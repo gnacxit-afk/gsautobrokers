@@ -91,7 +91,7 @@ function Sidebar() {
                     </div>
                     <div className="overflow-hidden">
                         <p className="text-sm font-medium truncate">{user.name}</p>
-                        <p className="text-xs text-slate-400 truncate">ID: {user.id.slice(0,6)}</p>
+                        <p className="text-xs text-slate-400 truncate">ID: {user.id}</p>
                     </div>
                 </div>
                 <RoleSwitcher />

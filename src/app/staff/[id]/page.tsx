@@ -78,14 +78,23 @@ export default function StaffProfilePage() {
             title: "Profile Updated",
             description: `Details for ${formData.name} have been updated.`,
         });
-        setAllStaff(getStaff());
+        
+        // This is a bit of a workaround for the mock data. In a real app,
+        // you'd probably refetch or use a state management library.
+        const updatedStaffList = getStaff();
+        setAllStaff(updatedStaffList);
 
         // If the edited user is the current user, reload auth context
         if (user && user.id === staffId) {
             reloadUser();
         }
 
-        router.refresh();
+        // If the ID (DUI) was changed, we need to navigate to the new URL
+        if (formData.dui && formData.dui !== staffId) {
+            router.replace(`/staff/${formData.dui}`);
+        } else {
+            router.refresh();
+        }
     } else {
         toast({
             title: "Update Failed",
@@ -112,7 +121,7 @@ export default function StaffProfilePage() {
                     </div>
                     <div>
                         <CardTitle className="text-2xl">{formData.name}</CardTitle>
-                        <CardDescription>ID: {formData.id}</CardDescription>
+                        <CardDescription>DUI (ID): {formData.dui}</CardDescription>
                     </div>
                 </div>
             </CardHeader>

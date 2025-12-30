@@ -30,7 +30,7 @@ const StaffCard = ({ member }: { member: Staff }) => {
             <h4 className="font-bold text-slate-800 text-lg">{member.name}</h4>
             <p className="text-xs text-slate-400 mb-4">DUI: {member.dui}</p>
             <div className="pt-4 border-t flex justify-between items-center">
-                <span className="text-xs text-slate-500">ID: {member.id.slice(0, 8)}</span>
+                <span className="text-xs text-slate-500">ID: {member.id}</span>
                  <Link href={`/staff/${member.id}`}>
                     <Button variant="link" className="p-0 h-auto text-xs">View Profile</Button>
                 </Link>
