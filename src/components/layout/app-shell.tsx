@@ -125,6 +125,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
+  const pagesWithDateFilter = ['/', '/leads'];
+  const showDateFilter = pagesWithDateFilter.includes(pathname);
+
 
   const getPageTitle = () => {
     if (pathname === '/') return 'Dashboard';
@@ -156,7 +159,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <h2 className="text-xl font-semibold text-slate-800 capitalize">{getPageTitle()}</h2>
           </div>
           <div className="flex items-center gap-4">
-            <DateRangePicker />
+            {showDateFilter && <DateRangePicker />}
           </div>
         </header>
 
