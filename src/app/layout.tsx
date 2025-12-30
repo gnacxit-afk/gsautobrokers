@@ -10,7 +10,7 @@ import { DateRangeProvider } from "@/providers/date-range-provider";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "GS Auto Brokers",
+  title: "GS AUTOBROKERS",
   description: "The future of auto sales is here.",
 };
 

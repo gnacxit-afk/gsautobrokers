@@ -8,7 +8,7 @@ export function Logo(props: Partial<ComponentProps<'div'>>) {
       className={cn('text-2xl font-bold text-slate-800', className)}
       {...rest}
     >
-      GS AutoBrokers
+      GS AUTOBROKERS
     </div>
   );
 }

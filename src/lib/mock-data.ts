@@ -25,7 +25,7 @@ const articles: Article[] = [
     {
         id: '1',
         title: 'Mastering the Initial Client Call',
-        content: 'The initial client call is your first, and perhaps most crucial, opportunity to make a lasting impression. Start by introducing yourself and GS Auto Brokers clearly. The primary goal is to listen. Understand the client\'s needs, preferences, and what prompted their call. Use open-ended questions like, "What are you looking for in your next vehicle?" or "What features are most important to you and your family?" Avoid jumping into sales pitches. Instead, focus on building rapport and trust. Summarize their needs at the end of the call to confirm your understanding and outline the next steps, whether it\'s sending them specific vehicle information or scheduling a test drive. Remember, this first conversation sets the tone for the entire relationship.',
+        content: 'The initial client call is your first, and perhaps most crucial, opportunity to make a lasting impression. Start by introducing yourself and GS AUTOBROKERS clearly. The primary goal is to listen. Understand the client\'s needs, preferences, and what prompted their call. Use open-ended questions like, "What are you looking for in your next vehicle?" or "What features are most important to you and your family?" Avoid jumping into sales pitches. Instead, focus on building rapport and trust. Summarize their needs at the end of the call to confirm your understanding and outline the next steps, whether it\'s sending them specific vehicle information or scheduling a test drive. Remember, this first conversation sets the tone for the entire relationship.',
         author: 'Ava Johnson',
         date: '2023-10-26',
         tags: ['Sales', 'Client Interaction'],
@@ -34,7 +34,7 @@ const articles: Article[] = [
     {
         id: '2',
         title: 'Effective Negotiation Strategies',
-        content: 'Negotiation is a dialogue, not a battle. The goal is to reach a mutually beneficial agreement. Begin by understanding the client\'s budget and expectations. Present the vehicle\'s value proposition clearly, highlighting its features, condition, and market value. When discussing price, anchor the conversation with the asking price but show flexibility. Use phrases like, "While the list price is X, let\'s see what we can do to make this work for you." Always maintain a positive and respectful tone. If you reach an impasse, suggest creative solutions like including a service package or accessories. A successful negotiation leaves the client feeling they got a fair deal, strengthening their loyalty to GS Auto Brokers.',
+        content: 'Negotiation is a dialogue, not a battle. The goal is to reach a mutually beneficial agreement. Begin by understanding the client\'s budget and expectations. Present the vehicle\'s value proposition clearly, highlighting its features, condition, and market value. When discussing price, anchor the conversation with the asking price but show flexibility. Use phrases like, "While the list price is X, let\'s see what we can do to make this work for you." Always maintain a positive and respectful tone. If you reach an impasse, suggest creative solutions like including a service package or accessories. A successful negotiation leaves the client feeling they got a fair deal, strengthening their loyalty to GS AUTOBROKERS.',
         author: 'Liam Smith',
         date: '2023-11-05',
         tags: ['Negotiation', 'Sales Process'],
