@@ -2,6 +2,7 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import { MoreHorizontal, Trash2, ChevronDown, MessageSquare, Phone } from "lucide-react";
+import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -158,6 +159,19 @@ export const getColumns = (
    {
     accessorKey: "ownerName",
     header: "Owner",
+  },
+  {
+    accessorKey: "createdAt",
+    header: "Created At",
+    cell: ({ row }) => {
+        const date = new Date(row.getValue("createdAt"));
+        return (
+            <div className="text-xs text-slate-500">
+                <div>{format(date, 'MMM d, yyyy')}</div>
+                <div className="opacity-70">{format(date, 'h:mm a')}</div>
+            </div>
+        )
+    }
   },
   {
     id: "actions",

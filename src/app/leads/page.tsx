@@ -14,19 +14,25 @@ import {
   getFilteredRowModel,
   getExpandedRowModel,
   type SortingState,
+  type ColumnFiltersState,
 } from '@tanstack/react-table';
+
+const leadStatuses: Lead['status'][] = ["New", "Contacted", "Qualified", "On the way", "On site", "Sale", "Closed", "Lost"];
+const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
 
 export default function LeadsPage() {
     const { user } = useAuth();
-    const allLeads = getLeads();
-    const allStaff = getStaff();
+    const allLeads = useMemo(() => getLeads(), []);
+    const allStaff = useMemo(() => getStaff(), []);
 
     const [leads, setLeads] = useState<Lead[]>(allLeads);
     const [sorting, setSorting] = useState<SortingState>([]);
+    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [globalFilter, setGlobalFilter] = useState('');
     const [expanded, setExpanded] = useState({});
 
-    const filteredLeads = useMemo(() => {
+    const filteredLeadsForRole = useMemo(() => {
+        if (!user) return [];
         if (user.role === 'Admin') {
             return leads;
         }
@@ -62,7 +68,7 @@ export default function LeadsPage() {
     const columns = useMemo(() => getColumns(handleUpdateStatus, handleDelete), [handleUpdateStatus, handleDelete]);
     
     const table = useReactTable({
-      data: filteredLeads,
+      data: filteredLeadsForRole,
       columns,
       getCoreRowModel: getCoreRowModel(),
       getPaginationRowModel: getPaginationRowModel(),
@@ -72,16 +78,25 @@ export default function LeadsPage() {
       getFilteredRowModel: getFilteredRowModel(),
       getExpandedRowModel: getExpandedRowModel(),
       onExpandedChange: setExpanded,
+      onColumnFiltersChange: setColumnFilters,
       state: {
         sorting,
         globalFilter,
         expanded,
+        columnFilters
       },
     });
 
     return (
         <main className="flex flex-1 flex-col gap-4">
-            <DataTable columns={columns} data={filteredLeads} table={table} onUpdateNotes={handleUpdateNotes} />
+            <DataTable 
+                table={table}
+                columns={columns}
+                onUpdateNotes={handleUpdateNotes} 
+                staff={allStaff}
+                statuses={leadStatuses}
+                channels={channels}
+            />
         </main>
     );
 }
