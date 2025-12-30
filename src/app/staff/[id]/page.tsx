@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, UserCircle2 } from "lucide-react";
+import { ArrowLeft, UserCircle2, Eye, EyeOff } from "lucide-react";
 
 const roles: Role[] = ["Admin", "Supervisor", "Broker"];
 
@@ -25,6 +25,7 @@ export default function StaffProfilePage() {
 
   // Use a state for staff list to ensure re-renders on update
   const [allStaff, setAllStaff] = useState(() => getStaff());
+  const [showPassword, setShowPassword] = useState(false);
   
   // Effect to refetch staff if needed, e.g., after an update
   useEffect(() => {
@@ -131,7 +132,18 @@ export default function StaffProfilePage() {
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="current-password">Current Password</Label>
-                        <Input id="current-password" type="password" value={formData.password || ''} disabled className="bg-gray-100" />
+                        <div className="relative">
+                            <Input id="current-password" type={showPassword ? 'text' : 'password'} value={formData.password || ''} disabled className="bg-gray-100 pr-10" />
+                            <Button 
+                                type="button"
+                                variant="ghost" 
+                                size="icon" 
+                                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-gray-500"
+                                onClick={() => setShowPassword(!showPassword)}
+                                >
+                                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </Button>
+                        </div>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="password">Reset Password</Label>
