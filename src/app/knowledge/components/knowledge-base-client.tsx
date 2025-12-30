@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useTransition } from 'react';
 import { useAuth } from '@/lib/auth';
 import type { Article } from '@/lib/types';
-import { Search, Plus, Save, X, Edit2, Trash2, BookOpen, Wand2, ChevronRight } from 'lucide-react';
+import { Search, Plus, Save, X, Edit2, Trash2, BookOpen, Wand2, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,27 +11,47 @@ import { cn } from '@/lib/utils';
 import { summarizeResource } from "@/ai/flows/summarize-knowledge-base-resources";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
-async function SummaryDisplay({ content }: { content: string }) {
-  try {
-    const { summary } = await summarizeResource({ resourceContent: content });
-    return (
-      <Card className="my-6 bg-blue-50 border-blue-100">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base text-blue-800">
-            <Wand2 className="h-5 w-5 text-blue-600" />
-            AI Generated Summary
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+function SummaryDisplay({ content }: { content: string }) {
+  const [summary, setSummary] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (content) {
+      startTransition(async () => {
+        try {
+          const result = await summarizeResource({ resourceContent: content });
+          setSummary(result.summary);
+        } catch (error) {
+          console.error("Failed to generate summary:", error);
+          setSummary("Could not generate summary.");
+        }
+      });
+    }
+  }, [content]);
+
+  return (
+    <Card className="my-6 bg-blue-50 border-blue-100">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base text-blue-800">
+          <Wand2 className="h-5 w-5 text-blue-600" />
+          AI Generated Summary
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isPending ? (
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+          </div>
+        ) : (
           <p className="text-sm text-blue-700">{summary}</p>
-        </CardContent>
-      </Card>
-    );
-  } catch (error) {
-    console.error("Failed to generate summary:", error);
-    return null;
-  }
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 export function KnowledgeBaseClient({ initialArticles }: { initialArticles: Article[] }) {
