@@ -109,24 +109,24 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="name" className="text-right">
               Full Name*
             </Label>
-            <Input id="name" value={formData.name} onChange={handleInputChange} />
+            <Input id="name" value={formData.name} onChange={handleInputChange} className="col-span-3" />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="phone">
-              Phone Number*
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="phone" className="text-right">
+              Phone*
             </Label>
-            <Input id="phone" type="tel" value={formData.phone} onChange={handleInputChange} placeholder="+1 (555) 123-4567" />
+            <Input id="phone" type="tel" value={formData.phone} onChange={handleInputChange} placeholder="+1 (555) 123-4567" className="col-span-3" />
           </div>
-           <div className="space-y-2">
-            <Label htmlFor="language">
+           <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="language" className="text-right">
               Language
             </Label>
             <Select onValueChange={(v) => handleSelectChange('language', v as Lead['language'])} value={formData.language}>
-              <SelectTrigger>
+              <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select a language" />
               </SelectTrigger>
               <SelectContent>
@@ -136,12 +136,12 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
               </SelectContent>
             </Select>
           </div>
-           <div className="space-y-2">
-            <Label htmlFor="channel">
+           <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="channel" className="text-right">
               Channel
             </Label>
             <Select onValueChange={(v) => handleSelectChange('channel', v as Lead['channel'])} value={formData.channel}>
-              <SelectTrigger>
+              <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select a channel" />
               </SelectTrigger>
               <SelectContent>
@@ -151,12 +151,12 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
               </SelectContent>
             </Select>
           </div>
-           <div className="space-y-2">
-            <Label htmlFor="status">
+           <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="status" className="text-right">
               Status*
             </Label>
             <Select onValueChange={(v) => handleSelectChange('status', v as Lead['status'])} value={formData.status}>
-              <SelectTrigger>
+              <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select a status" />
               </SelectTrigger>
               <SelectContent>
@@ -171,8 +171,8 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
               </SelectContent>
             </Select>
           </div>
-           <div className="space-y-2">
-              <Label htmlFor="notes">
+           <div className="grid grid-cols-4 items-start gap-4">
+              <Label htmlFor="notes" className="text-right pt-2">
                 Notes*
               </Label>
               <Textarea
@@ -180,6 +180,7 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
                 value={formData.notes}
                 onChange={handleInputChange}
                 placeholder="Add any initial notes for this lead."
+                className="col-span-3"
               />
             </div>
             <div>
