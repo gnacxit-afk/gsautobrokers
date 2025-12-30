@@ -12,8 +12,6 @@ import {
   PhoneCall,
   Briefcase
 } from "lucide-react";
-import { signOut } from "firebase/auth";
-import { getAuth } from "firebase/auth";
 
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -53,6 +51,8 @@ function NavItem({ active, icon, label, href }: { active: boolean; icon: React.R
 function MainNav({ items }: { items: NavItemType[] }) {
   const pathname = usePathname();
   const { user } = useAuth();
+
+  if (!user) return null;
   
   return (
     <nav className="flex-1 p-4 space-y-2">
@@ -72,17 +72,11 @@ function MainNav({ items }: { items: NavItemType[] }) {
 }
 
 function Sidebar() {
-    const { user } = useAuth();
-    const userInitials = user.name.split(' ').map(n => n[0]).join('');
+    const { user, logout } = useAuth();
+    
+    if (!user) return null;
 
-    const handleLogout = () => {
-        // In a real app, you'd call your auth provider's sign out method.
-        // For this mock app, we'll just log to console.
-        console.log("User logged out.");
-        // If you were using Firebase auth:
-        // const auth = getAuth();
-        // signOut(auth);
-    }
+    const userInitials = user.name.split(' ').map(n => n[0]).join('');
 
     return (
         <aside className="w-64 bg-slate-900 text-white flex-col shrink-0 hidden md:flex">
@@ -109,7 +103,7 @@ function Sidebar() {
                 </div>
                 <RoleSwitcher />
                  <Button 
-                    onClick={handleLogout}
+                    onClick={logout}
                     variant="ghost"
                     className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors w-full justify-start mt-2 text-sm p-2 h-auto"
                 >
@@ -121,7 +115,23 @@ function Sidebar() {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
   const pathname = usePathname();
+
+  if (loading) {
+    // You can return a global loading spinner here
+    return <div className="h-screen w-full flex items-center justify-center">Loading...</div>;
+  }
+
+  if (!user && pathname !== '/login') {
+    // AuthProvider should handle redirection, but this is a safeguard.
+    return null;
+  }
+  
+  if (pathname === '/login') {
+    return <>{children}</>;
+  }
+
 
   const getPageTitle = () => {
     if (pathname === '/') return 'Dashboard';

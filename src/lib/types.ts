@@ -38,6 +38,7 @@ export type Staff = {
   id:string;
   name: string;
   email: string;
+  password?: string;
   role: Role;
   hireDate: string;
   avatarUrl: string;
