@@ -22,33 +22,58 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import React, { useState, useMemo } from "react";
 import type { Role, Staff } from "@/lib/types";
-import { getStaff } from "@/lib/mock-data";
+import { getStaff, addStaffMember } from "@/lib/mock-data";
 
 const roles: Role[] = ["Admin", "Supervisor", "Broker"];
 
-export function NewStaffDialog({ children }: { children: React.ReactNode }) {
+interface NewStaffDialogProps {
+  children: React.ReactNode;
+  onStaffAdded: () => void;
+}
+
+export function NewStaffDialog({ children, onStaffAdded }: NewStaffDialogProps) {
     const [open, setOpen] = React.useState(false);
     const { toast } = useToast();
-    const [selectedRole, setSelectedRole] = useState<Role | "">("");
+    const [formData, setFormData] = useState<Partial<Omit<Staff, 'id' | 'hireDate' | 'avatarUrl'>>>({});
 
     const allStaff = useMemo(() => getStaff(), []);
     
     const supervisors = useMemo(() => allStaff.filter(s => s.role === 'Supervisor'), [allStaff]);
     const admins = useMemo(() => allStaff.filter(s => s.role === 'Admin'), [allStaff]);
+    
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { id, value } = e.target;
+      setFormData(prev => ({ ...prev, [id]: value }));
+    };
+
+    const handleSelectChange = (field: keyof Staff, value: string) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+    };
 
     const handleSave = () => {
+        if (!formData.name || !formData.email || !formData.password || !formData.role || !formData.dui) {
+            toast({
+                title: "Missing Fields",
+                description: "Please fill all required fields.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        addStaffMember(formData as Omit<Staff, 'id' | 'hireDate' | 'avatarUrl'>);
         toast({
             title: "Staff Member Added",
             description: "The new staff member has been registered.",
         });
         setOpen(false);
-        setSelectedRole("");
+        setFormData({});
+        onStaffAdded(); // Callback to refresh parent component
     }
     
     return (
         <Dialog open={open} onOpenChange={(isOpen) => {
             setOpen(isOpen);
-            if (!isOpen) setSelectedRole("");
+            if (!isOpen) setFormData({});
         }}>
         <DialogTrigger asChild>{children}</DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
@@ -63,31 +88,31 @@ export function NewStaffDialog({ children }: { children: React.ReactNode }) {
                     <Label htmlFor="name" className="text-right">
                         Full Name
                     </Label>
-                    <Input id="name" className="col-span-3" />
+                    <Input id="name" value={formData.name || ''} onChange={handleChange} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="email" className="text-right">
                         Email
                     </Label>
-                    <Input id="email" type="email" className="col-span-3" />
+                    <Input id="email" type="email" value={formData.email || ''} onChange={handleChange} className="col-span-3" />
                 </div>
                  <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="dui" className="text-right">
                         DUI
                     </Label>
-                    <Input id="dui" className="col-span-3" placeholder="00000000-0" />
+                    <Input id="dui" value={formData.dui || ''} onChange={handleChange} className="col-span-3" placeholder="00000000-0" />
                 </div>
                  <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="password" className="text-right">
                         Password
                     </Label>
-                    <Input id="password" type="password" className="col-span-3" />
+                    <Input id="password" type="password" value={formData.password || ''} onChange={handleChange} className="col-span-3" />
                 </div>
                  <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="role" className="text-right">
                         Role
                     </Label>
-                     <Select onValueChange={(value: Role) => setSelectedRole(value)}>
+                     <Select onValueChange={(value: Role) => handleSelectChange('role', value)} value={formData.role}>
                         <SelectTrigger className="col-span-3">
                             <SelectValue placeholder="Select a role" />
                         </SelectTrigger>
@@ -98,12 +123,12 @@ export function NewStaffDialog({ children }: { children: React.ReactNode }) {
                         </SelectContent>
                     </Select>
                 </div>
-                {selectedRole === 'Broker' && (
+                {formData.role === 'Broker' && (
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="supervisor" className="text-right">
                             Supervisor
                         </Label>
-                        <Select>
+                        <Select onValueChange={(value) => handleSelectChange('supervisorId', value)} value={formData.supervisorId}>
                             <SelectTrigger className="col-span-3">
                                 <SelectValue placeholder="Select a supervisor" />
                             </SelectTrigger>
@@ -115,12 +140,12 @@ export function NewStaffDialog({ children }: { children: React.ReactNode }) {
                         </Select>
                     </div>
                 )}
-                 {selectedRole === 'Supervisor' && (
+                 {formData.role === 'Supervisor' && (
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="admin" className="text-right">
                             Reports to
                         </Label>
-                        <Select>
+                        <Select onValueChange={(value) => handleSelectChange('supervisorId', value)} value={formData.supervisorId}>
                             <SelectTrigger className="col-span-3">
                                 <SelectValue placeholder="Select an admin" />
                             </SelectTrigger>

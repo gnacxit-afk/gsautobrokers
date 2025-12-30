@@ -1,7 +1,7 @@
 import type { Lead, Staff, Article } from './types';
 import { PlaceHolderImages } from './placeholder-images';
 
-const staff: Staff[] = [
+let staff: Staff[] = [
   { id: '1', name: 'Ava Johnson', email: 'ava.j@gsautobrokers.com', password: 'password123', role: 'Admin', hireDate: '2020-01-15', avatarUrl: PlaceHolderImages.find(img => img.id === 'user-1')?.imageUrl || '', dui: '11111111-1' },
   { id: '6', name: 'Nacho Gonzalez', email: 'gnacxit@gmail.com', password: 'annagcexlit.5691', role: 'Admin', hireDate: '2024-01-01', avatarUrl: PlaceHolderImages.find(img => img.id === 'user-4')?.imageUrl || '', dui: '66666666-6' },
   { id: '2', name: 'Liam Smith', email: 'liam.s@gsautobrokers.com', password: 'password123', role: 'Supervisor', hireDate: '2021-03-22', avatarUrl: PlaceHolderImages.find(img => img.id === 'user-2')?.imageUrl || '', dui: '22222222-2' },
@@ -10,7 +10,7 @@ const staff: Staff[] = [
   { id: '5', name: 'Emma Jones', email: 'emma.j@gsautobrokers.com', password: 'password123', role: 'Broker', hireDate: '2023-09-01', avatarUrl: PlaceHolderImages.find(img => img.id === 'user-5')?.imageUrl || '', dui: '55555555-5', supervisorId: '2' },
 ];
 
-const leads: Lead[] = [
+let leads: Lead[] = [
   { id: '1', name: 'John Doe', email: 'john.d@example.com', phone: '123-456-7890', company: 'Innovate Inc.', status: 'New', notes: 'Interested in a reliable family SUV. Mentioned the new Highlander model.', ownerId: '3', ownerName: 'Olivia Brown', channel: 'Facebook', createdAt: '2024-05-01T10:00:00Z' },
   { id: '2', name: 'Jane Smith', email: 'jane.s@example.com', phone: '234-567-8901', company: 'Solutions Co.', status: 'Contacted', notes: 'Looking for a luxury sedan, budget around $50k. Booked a test drive for the Lexus ES.', ownerId: '4', ownerName: 'Noah Williams', channel: 'WhatsApp', createdAt: '2024-05-03T11:00:00Z' },
   { id: '3', name: 'Sam Wilson', email: 'sam.w@example.com', phone: '345-678-9012', company: 'Tech Forward', status: 'Qualified', notes: 'Needs a fleet of 5 mid-size sedans for corporate use. Sent initial proposal.', ownerId: '2', ownerName: 'Liam Smith', channel: 'Call', createdAt: '2024-05-05T09:30:00Z' },
@@ -84,3 +84,24 @@ export const getStaff = (): Staff[] => staff;
 export const getArticles = (): Article[] => articles;
 export const getArticleById = (id: string): Article | undefined => articles.find(a => a.id === id);
 export const getSalesData = () => salesData;
+
+export const addStaffMember = (member: Omit<Staff, 'id' | 'hireDate' | 'avatarUrl'>): Staff => {
+    const newMember: Staff = {
+        ...member,
+        id: new Date().toISOString(),
+        hireDate: new Date().toISOString(),
+        avatarUrl: '', // Or a default avatar
+    };
+    staff.push(newMember);
+    return newMember;
+};
+
+
+export const updateStaffMember = (id: string, updates: Partial<Staff>): boolean => {
+    const staffIndex = staff.findIndex(s => s.id === id);
+    if (staffIndex !== -1) {
+        staff[staffIndex] = { ...staff[staffIndex], ...updates };
+        return true;
+    }
+    return false;
+};

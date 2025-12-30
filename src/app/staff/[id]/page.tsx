@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getStaff } from "@/lib/mock-data";
+import { getStaff, updateStaffMember } from "@/lib/mock-data";
 import type { Staff, Role } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import { AccessDenied } from "@/components/access-denied";
@@ -23,10 +23,24 @@ export default function StaffProfilePage() {
   const { toast } = useToast();
   const staffId = params.id as string;
 
-  const allStaff = useMemo(() => getStaff(), []);
+  // Use a state for staff list to ensure re-renders on update
+  const [allStaff, setAllStaff] = useState(() => getStaff());
+  
+  // Effect to refetch staff if needed, e.g., after an update
+  useEffect(() => {
+    // This is a simple way to refresh. In a real app, this might be triggered by an event.
+    setAllStaff(getStaff());
+  }, []);
+
+
   const staffMember = useMemo(() => allStaff.find(s => s.id === staffId), [allStaff, staffId]);
 
   const [formData, setFormData] = useState<Partial<Staff>>(staffMember || {});
+
+  useEffect(() => {
+    setFormData(staffMember || {});
+  }, [staffMember]);
+
 
   const supervisors = useMemo(() => allStaff.filter(s => s.role === 'Supervisor'), [allStaff]);
   const admins = useMemo(() => allStaff.filter(s => s.role === 'Admin'), [allStaff]);
@@ -57,12 +71,23 @@ export default function StaffProfilePage() {
   };
 
   const handleSaveChanges = () => {
-    // Here you would typically send the updated data to your backend
-    console.log("Saving changes:", formData);
-    toast({
-      title: "Profile Updated",
-      description: `Details for ${formData.name} have been updated.`,
-    });
+    // In a real app, you'd call an API. Here, we update the mock data.
+    const updated = updateStaffMember(staffId, formData);
+    if (updated) {
+        toast({
+            title: "Profile Updated",
+            description: `Details for ${formData.name} have been updated.`,
+        });
+        // Optimistically update local state or refetch
+        setAllStaff(getStaff());
+        router.push('/staff'); // Navigate back to the list
+    } else {
+        toast({
+            title: "Update Failed",
+            description: "Could not save changes.",
+            variant: "destructive",
+        });
+    }
   };
 
   return (
@@ -99,6 +124,10 @@ export default function StaffProfilePage() {
                     <div className="space-y-2">
                         <Label htmlFor="dui">DUI</Label>
                         <Input id="dui" value={formData.dui || ''} onChange={handleChange} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="current-password">Current Password</Label>
+                        <Input id="current-password" type="password" value={formData.password || ''} disabled className="bg-gray-100" />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="password">Reset Password</Label>

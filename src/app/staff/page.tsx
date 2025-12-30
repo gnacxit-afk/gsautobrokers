@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { getStaff } from "@/lib/mock-data";
 import { AccessDenied } from "@/components/access-denied";
@@ -40,17 +41,25 @@ const StaffCard = ({ member }: { member: Staff }) => {
 
 export default function StaffPage() {
     const { user } = useAuth();
-    const staff = getStaff();
+    const [staff, setStaff] = useState<Staff[]>([]);
+
+    useEffect(() => {
+        setStaff(getStaff());
+    }, []);
 
     if (user.role !== 'Admin') {
         return <AccessDenied />;
     }
 
+    const onStaffAdded = () => {
+        setStaff(getStaff());
+    };
+
     return (
         <main className="flex flex-1 flex-col gap-6">
              <div className="flex justify-between items-center">
                 <h3 className="text-xl font-bold">Staff Management</h3>
-                <NewStaffDialog>
+                <NewStaffDialog onStaffAdded={onStaffAdded}>
                     <Button
                     className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-200"
                     >
