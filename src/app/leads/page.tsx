@@ -6,6 +6,14 @@ import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 import { useAuth } from "@/lib/auth";
 import type { Lead } from "@/lib/types";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  type SortingState,
+} from '@tanstack/react-table';
 
 export default function LeadsPage() {
     const { user } = useAuth();
@@ -13,6 +21,8 @@ export default function LeadsPage() {
     const allStaff = getStaff();
 
     const [leads, setLeads] = useState<Lead[]>(allLeads);
+    const [sorting, setSorting] = useState<SortingState>([]);
+    const [globalFilter, setGlobalFilter] = useState('');
 
     const filteredLeads = useMemo(() => {
         if (user.role === 'Admin') {
@@ -42,10 +52,25 @@ export default function LeadsPage() {
     }, []);
 
     const columns = useMemo(() => getColumns(handleUpdateStatus, handleDelete), [handleUpdateStatus, handleDelete]);
+    
+    const table = useReactTable({
+      data: filteredLeads,
+      columns,
+      getCoreRowModel: getCoreRowModel(),
+      getPaginationRowModel: getPaginationRowModel(),
+      onSortingChange: setSorting,
+      getSortedRowModel: getSortedRowModel(),
+      onGlobalFilterChange: setGlobalFilter,
+      getFilteredRowModel: getFilteredRowModel(),
+      state: {
+        sorting,
+        globalFilter,
+      },
+    });
 
     return (
         <main className="flex flex-1 flex-col gap-4">
-            <DataTable columns={columns} data={filteredLeads} />
+            <DataTable columns={columns} data={filteredLeads} table={table} />
         </main>
     );
 }

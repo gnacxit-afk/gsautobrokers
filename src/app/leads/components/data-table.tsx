@@ -10,6 +10,7 @@ import {
   useReactTable,
   SortingState,
   getFilteredRowModel,
+  Table as ReactTable,
 } from "@tanstack/react-table";
 
 import {
@@ -28,31 +29,18 @@ import { Input } from "@/components/ui/input";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  table: ReactTable<TData>;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  table,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = React.useState('');
   
-  const table = useReactTable({
-    data,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
-    onGlobalFilterChange: setGlobalFilter,
-    getFilteredRowModel: getFilteredRowModel(),
-    state: {
-      sorting,
-      globalFilter,
-    },
-  });
-
   const [isNewLeadDialogOpen, setNewLeadDialogOpen] = React.useState(false);
+  const globalFilter = table.getState().globalFilter;
+  const setGlobalFilter = (filter: string) => table.setGlobalFilter(filter);
 
   return (
     <div className="space-y-6">
