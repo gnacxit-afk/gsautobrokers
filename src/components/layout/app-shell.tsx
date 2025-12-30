@@ -10,6 +10,7 @@ import {
   LogOut,
   PanelLeft,
   PhoneCall,
+  UserCircle2,
 } from "lucide-react";
 
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -17,7 +18,6 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import type { NavItem as NavItemType, Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { DateRangePicker } from "./date-range-picker";
 import { RoleSwitcher } from "./role-switcher";
 import { Logo } from "../icons";
@@ -76,8 +76,6 @@ function Sidebar() {
     
     if (!user) return null;
 
-    const userInitials = user.name.split(' ').map(n => n[0]).join('');
-
     return (
         <aside className="w-64 bg-slate-900 text-white flex-col shrink-0 hidden md:flex">
             <div className="p-6 border-b border-slate-800 h-16 flex items-center">
@@ -88,10 +86,9 @@ function Sidebar() {
 
             <div className="p-4 border-t border-slate-800">
                 <div className="flex items-center gap-3 mb-4">
-                    <Avatar className="h-9 w-9">
-                        <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint="avatar"/>
-                        <AvatarFallback>{userInitials}</AvatarFallback>
-                    </Avatar>
+                    <div className="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center">
+                        <UserCircle2 className="h-6 w-6 text-slate-500" />
+                    </div>
                     <div className="overflow-hidden">
                         <p className="text-sm font-medium truncate">{user.name}</p>
                         <p className="text-xs text-slate-400 truncate">ID: {user.id.slice(0,6)}</p>

@@ -12,8 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft } from "lucide-react";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { ArrowLeft, UserCircle2 } from "lucide-react";
 
 const roles: Role[] = ["Admin", "Supervisor", "Broker"];
 
@@ -78,10 +77,9 @@ export default function StaffProfilePage() {
         <Card>
             <CardHeader>
                 <div className="flex items-center gap-4">
-                     <Avatar className="h-16 w-16">
-                        <AvatarImage src={formData.avatarUrl} alt={formData.name} />
-                        <AvatarFallback>{formData.name?.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                    </Avatar>
+                     <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center">
+                        <UserCircle2 className="h-10 w-10 text-slate-400" />
+                    </div>
                     <div>
                         <CardTitle className="text-2xl">{formData.name}</CardTitle>
                         <CardDescription>ID: {formData.id}</CardDescription>
