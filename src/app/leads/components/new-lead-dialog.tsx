@@ -101,7 +101,7 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
         if (!isOpen) resetForm();
     }}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[625px]">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create New Lead</DialogTitle>
           <DialogDescription>
@@ -109,24 +109,24 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
+          <div className="space-y-2">
+            <Label htmlFor="name">
               Full Name*
             </Label>
-            <Input id="name" className="col-span-3" value={formData.name} onChange={handleInputChange} />
+            <Input id="name" value={formData.name} onChange={handleInputChange} />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="phone" className="text-right">
+          <div className="space-y-2">
+            <Label htmlFor="phone">
               Phone Number*
             </Label>
-            <Input id="phone" type="tel" className="col-span-3" value={formData.phone} onChange={handleInputChange} placeholder="+1 (555) 123-4567" />
+            <Input id="phone" type="tel" value={formData.phone} onChange={handleInputChange} placeholder="+1 (555) 123-4567" />
           </div>
-           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="language" className="text-right">
+           <div className="space-y-2">
+            <Label htmlFor="language">
               Language
             </Label>
             <Select onValueChange={(v) => handleSelectChange('language', v as Lead['language'])} value={formData.language}>
-              <SelectTrigger className="col-span-3">
+              <SelectTrigger>
                 <SelectValue placeholder="Select a language" />
               </SelectTrigger>
               <SelectContent>
@@ -136,12 +136,12 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
               </SelectContent>
             </Select>
           </div>
-           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="channel" className="text-right">
+           <div className="space-y-2">
+            <Label htmlFor="channel">
               Channel
             </Label>
             <Select onValueChange={(v) => handleSelectChange('channel', v as Lead['channel'])} value={formData.channel}>
-              <SelectTrigger className="col-span-3">
+              <SelectTrigger>
                 <SelectValue placeholder="Select a channel" />
               </SelectTrigger>
               <SelectContent>
@@ -151,12 +151,12 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
               </SelectContent>
             </Select>
           </div>
-           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="status" className="text-right">
+           <div className="space-y-2">
+            <Label htmlFor="status">
               Status*
             </Label>
             <Select onValueChange={(v) => handleSelectChange('status', v as Lead['status'])} value={formData.status}>
-              <SelectTrigger className="col-span-3">
+              <SelectTrigger>
                 <SelectValue placeholder="Select a status" />
               </SelectTrigger>
               <SelectContent>
@@ -171,19 +171,18 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
               </SelectContent>
             </Select>
           </div>
-           <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="notes" className="text-right pt-2">
+           <div className="space-y-2">
+              <Label htmlFor="notes">
                 Notes*
               </Label>
               <Textarea
                 id="notes"
                 value={formData.notes}
                 onChange={handleInputChange}
-                className="col-span-3"
                 placeholder="Add any initial notes for this lead."
               />
             </div>
-            <div className="col-span-4">
+            <div>
                 <p className="text-xs text-muted-foreground text-center pt-2">Fields marked with an asterisk (*) are mandatory.</p>
             </div>
         </div>
