@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { summarizeResource } from "@/ai/flows/summarize-knowledge-base-resources";
+import { summarizeArticle } from "@/ai/flows/summarize-knowledge-base-articles";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,7 +21,7 @@ function SummaryDisplay({ content }: { content: string }) {
     if (content) {
       startTransition(async () => {
         try {
-          const result = await summarizeResource({ resourceContent: content });
+          const result = await summarizeArticle({ articleContent: content });
           setSummary(result.summary);
         } catch (error) {
           console.error("Failed to generate summary:", error);

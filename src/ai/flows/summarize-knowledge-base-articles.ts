@@ -29,7 +29,10 @@ export async function summarizeArticle(input: SummarizeArticleInput): Promise<Su
 
 const prompt = ai.definePrompt({
   name: 'summarizeArticlePrompt',
-  input: {schema: SummarizeArticleInputSchema},
+  input: {schema: z.object({
+    articleContent: SummarizeArticleInputSchema.shape.articleContent,
+    progress: z.string().optional(),
+  })},
   output: {schema: SummarizeArticleOutputSchema},
   prompt: `You are an expert at summarizing knowledge base articles.
 
