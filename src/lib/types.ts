@@ -22,6 +22,7 @@ export type Lead = {
   ownerName: string;
   channel: 'Facebook' | 'WhatsApp' | 'Call' | 'Visit' | 'Other';
   createdAt: string;
+  language: 'English' | 'Spanish';
 };
 
 export type Article = {

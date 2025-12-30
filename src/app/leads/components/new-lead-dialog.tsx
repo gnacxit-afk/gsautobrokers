@@ -30,6 +30,7 @@ interface NewLeadDialogProps {
 
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
 const leadStatuses: Lead['status'][] = ["New", "Contacted", "Qualified", "On the way", "On site", "Sale", "Closed", "Lost"];
+const languages: Lead['language'][] = ['English', 'Spanish'];
 
 const statusColors: Record<Lead['status'], string> = {
     "New": "bg-gray-400",
@@ -48,6 +49,7 @@ const initialFormState = {
     notes: "",
     channel: "" as Lead['channel'],
     status: "New" as Lead['status'],
+    language: "Spanish" as Lead['language'],
 };
 
 
@@ -118,6 +120,21 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
               Phone Number
             </Label>
             <Input id="phone" type="tel" className="col-span-3" value={formData.phone} onChange={handleInputChange} placeholder="+1 (555) 123-4567" />
+          </div>
+           <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="language" className="text-right">
+              Language
+            </Label>
+            <Select onValueChange={(v) => handleSelectChange('language', v as Lead['language'])} value={formData.language}>
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select a language" />
+              </SelectTrigger>
+              <SelectContent>
+                {languages.map(lang => (
+                  <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
            <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="channel" className="text-right">
