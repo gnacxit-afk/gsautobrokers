@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Briefcase, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Logo } from "@/components/icons";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -44,9 +45,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-                <div className="bg-primary text-primary-foreground p-3 rounded-full">
-                    <Briefcase size={32} />
-                </div>
+                <Logo />
             </div>
             <CardTitle className="text-2xl">Welcome to GS Auto Brokers</CardTitle>
             <CardDescription>Enter your credentials to access your account</CardDescription>

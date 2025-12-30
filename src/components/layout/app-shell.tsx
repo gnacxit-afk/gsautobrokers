@@ -10,7 +10,6 @@ import {
   LogOut,
   PanelLeft,
   PhoneCall,
-  Briefcase
 } from "lucide-react";
 
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -21,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { DateRangePicker } from "./date-range-picker";
 import { RoleSwitcher } from "./role-switcher";
+import { Logo } from "../icons";
 
 const navItems: NavItemType[] = [
   { href: "/", title: "Dashboard", icon: LayoutDashboard, role: ["Admin", "Supervisor", "Broker"] },
@@ -82,8 +82,7 @@ function Sidebar() {
         <aside className="w-64 bg-slate-900 text-white flex-col shrink-0 hidden md:flex">
             <div className="p-6 border-b border-slate-800">
                 <h1 className="text-xl font-bold flex items-center gap-2">
-                    <Briefcase className="text-primary" />
-                    GS Auto Brokers
+                    <Logo className="w-auto h-8" />
                 </h1>
                 <p className="text-xs text-slate-400 mt-1 uppercase tracking-wider font-semibold">{user.role}</p>
             </div>
@@ -156,8 +155,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <SheetContent side="left" className="sm:max-w-xs p-0 bg-slate-900 text-white border-r-0">
                 <div className="p-6 border-b border-slate-800">
                     <h1 className="text-xl font-bold flex items-center gap-2">
-                        <Briefcase className="text-primary" />
-                        GS Auto Brokers
+                        <Logo className="w-auto h-8" />
                     </h1>
                 </div>
                 <MainNav items={navItems} />
