@@ -47,7 +47,7 @@ const initialFormState = {
     name: "",
     phone: "+1 ",
     notes: "",
-    channel: "" as Lead['channel'],
+    channel: "Facebook" as Lead['channel'],
     status: "New" as Lead['status'],
     language: "Spanish" as Lead['language'],
 };
@@ -80,8 +80,8 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
         return;
     }
 
-    if (!formData.name || !formData.phone) {
-        toast({ title: "Missing Fields", description: "Please fill out at least Name and Phone.", variant: "destructive"});
+    if (!formData.name || !formData.phone || !formData.status || !formData.notes) {
+        toast({ title: "Missing Fields", description: "Please fill out all fields marked with an asterisk (*).", variant: "destructive"});
         return;
     }
 
@@ -111,13 +111,13 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
-              Full Name
+              Full Name*
             </Label>
             <Input id="name" className="col-span-3" value={formData.name} onChange={handleInputChange} />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="phone" className="text-right">
-              Phone Number
+              Phone Number*
             </Label>
             <Input id="phone" type="tel" className="col-span-3" value={formData.phone} onChange={handleInputChange} placeholder="+1 (555) 123-4567" />
           </div>
@@ -153,7 +153,7 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
           </div>
            <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="status" className="text-right">
-              Status
+              Status*
             </Label>
             <Select onValueChange={(v) => handleSelectChange('status', v as Lead['status'])} value={formData.status}>
               <SelectTrigger className="col-span-3">
@@ -173,7 +173,7 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
           </div>
            <div className="grid grid-cols-4 items-start gap-4">
               <Label htmlFor="notes" className="text-right pt-2">
-                Notes
+                Notes*
               </Label>
               <Textarea
                 id="notes"
@@ -182,6 +182,9 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
                 className="col-span-3"
                 placeholder="Add any initial notes for this lead."
               />
+            </div>
+            <div className="col-span-4">
+                <p className="text-xs text-muted-foreground text-center pt-2">Fields marked with an asterisk (*) are mandatory.</p>
             </div>
         </div>
         <DialogFooter>
