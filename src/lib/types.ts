@@ -16,7 +16,7 @@ export type Lead = {
   email: string;
   phone: string;
   company: string;
-  status: "New" | "Contacted" | "Qualified" | "Proposal" | "Closed" | "Lost";
+  status: "New" | "Contacted" | "Qualified" | "On the way" | "On site" | "Sale" | "Closed" | "Lost";
   notes?: string;
   ownerId: string;
   ownerName: string;

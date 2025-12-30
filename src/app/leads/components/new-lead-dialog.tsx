@@ -27,6 +27,7 @@ interface NewLeadDialogProps {
 }
 
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
+const leadStatuses: Lead['status'][] = ["New", "Contacted", "Qualified", "On the way", "On site", "Sale", "Closed", "Lost"];
 
 export function NewLeadDialog({ children, open, onOpenChange }: NewLeadDialogProps) {
   const [description, setDescription] = useState("");
@@ -107,10 +108,10 @@ export function NewLeadDialog({ children, open, onOpenChange }: NewLeadDialogPro
             <Input id="name" className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="email" className="text-right">
-              Email
+            <Label htmlFor="phone" className="text-right">
+              Phone Number
             </Label>
-            <Input id="email" type="email" className="col-span-3" />
+            <Input id="phone" type="tel" className="col-span-3" />
           </div>
            <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="channel" className="text-right">
@@ -123,6 +124,21 @@ export function NewLeadDialog({ children, open, onOpenChange }: NewLeadDialogPro
               <SelectContent>
                 {channels.map(channel => (
                   <SelectItem key={channel} value={channel}>{channel}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+           <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="status" className="text-right">
+              Status
+            </Label>
+            <Select>
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select a status" />
+              </SelectTrigger>
+              <SelectContent>
+                {leadStatuses.map(status => (
+                  <SelectItem key={status} value={status}>{status}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

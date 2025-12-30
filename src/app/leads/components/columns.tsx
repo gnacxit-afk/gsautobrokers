@@ -1,7 +1,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, Trash2, ChevronDown, ChevronRight, MessageSquare } from "lucide-react";
+import { MoreHorizontal, Trash2, ChevronDown, MessageSquare } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +11,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import type { Lead } from "@/lib/types";
@@ -19,15 +25,17 @@ import { AnalyzeLeadDialog } from "./analyze-lead-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 
+const leadStatuses: Lead['status'][] = ["New", "Contacted", "Qualified", "On the way", "On site", "Sale", "Closed", "Lost"];
+
+
 const CellActions: React.FC<{ lead: Lead, onUpdateStatus: (id: string, status: Lead['status']) => void, onDelete: (id: string) => void, row: any }> = ({ lead, onUpdateStatus, onDelete, row }) => {
   const [isAnalyzeOpen, setAnalyzeOpen] = React.useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const handleStatusToggle = () => {
-    const newStatus = lead.status === "Closed" ? "New" : "Closed";
-    onUpdateStatus(lead.id, newStatus);
-    toast({ title: "Status Updated", description: `Lead "${lead.name}" is now ${newStatus}.` });
+  const handleStatusUpdate = (status: Lead['status']) => {
+    onUpdateStatus(lead.id, status);
+    toast({ title: "Status Updated", description: `Lead "${lead.name}" is now ${status}.` });
   };
 
   return (
@@ -53,9 +61,22 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStatus: (id: string, status: L
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem onSelect={() => setAnalyzeOpen(true)}>Analyze Lead (AI)</DropdownMenuItem>
             {user.role === 'Admin' && (
-                <DropdownMenuItem onClick={handleStatusToggle}>
-                    Mark as {lead.status === "Closed" ? "New" : "Closed"}
-                </DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <span>Update Status</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuRadioGroup value={lead.status} onValueChange={(status) => handleStatusUpdate(status as Lead['status'])}>
+                        {leadStatuses.map((status) => (
+                          <DropdownMenuRadioItem key={status} value={status}>
+                            {status}
+                          </DropdownMenuRadioItem>
+                        ))}
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
             )}
             <DropdownMenuSeparator />
             <DropdownMenuItem 
@@ -119,11 +140,11 @@ export const getColumns = (
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
        const variant: "default" | "secondary" | "destructive" | "outline" =
-        status === "Closed"
+        status === "Closed" || status === "Sale"
           ? "default"
           : status === "Lost"
           ? "destructive"
-          : status === "New"
+          : ["New", "Contacted", "Qualified"].includes(status)
           ? "secondary"
           : "outline";
       return <Badge variant={variant}>{status}</Badge>;
