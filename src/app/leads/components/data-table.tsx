@@ -11,6 +11,8 @@ import {
   SortingState,
   getFilteredRowModel,
   Table as ReactTable,
+  getExpandedRowModel,
+  Row,
 } from "@tanstack/react-table";
 
 import {
@@ -25,17 +27,55 @@ import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
 import { NewLeadDialog } from "./new-lead-dialog";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import type { Lead } from "@/lib/types";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   table: ReactTable<TData>;
+  onUpdateNotes: (id: string, notes: string) => void;
 }
 
-export function DataTable<TData, TValue>({
+const renderSubComponent = ({ row, onUpdateNotes }: { row: Row<Lead>, onUpdateNotes: (id: string, notes: string) => void }) => {
+    const { toast } = useToast();
+    const [notes, setNotes] = React.useState(row.original.notes || "");
+
+    const handleSaveNotes = () => {
+        onUpdateNotes(row.original.id, notes);
+        toast({ title: "Notes Updated", description: "The notes for this lead have been saved." });
+    }
+
+    return (
+        <Card className="m-4 bg-slate-50">
+            <CardContent className="p-4">
+                <div className="space-y-2">
+                    <Label htmlFor={`notes-${row.id}`} className="font-semibold">Lead Notes</Label>
+                    <Textarea 
+                        id={`notes-${row.id}`} 
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="Add notes for this lead..."
+                        className="h-24"
+                    />
+                    <div className="flex justify-end">
+                        <Button size="sm" onClick={handleSaveNotes}>Save Notes</Button>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
+
+export function DataTable<TData extends Lead, TValue>({
   columns,
   data,
   table,
+  onUpdateNotes,
 }: DataTableProps<TData, TValue>) {
   
   const [isNewLeadDialogOpen, setNewLeadDialogOpen] = React.useState(false);
@@ -86,8 +126,8 @@ export function DataTable<TData, TValue>({
           <TableBody className="divide-y">
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
+                <React.Fragment key={row.id}>
                 <TableRow
-                  key={row.id}
                   data-state={row.getIsSelected() && "selected"}
                   className="hover:bg-slate-50 transition-colors"
                 >
@@ -100,6 +140,14 @@ export function DataTable<TData, TValue>({
                     </TableCell>
                   ))}
                 </TableRow>
+                {row.getIsExpanded() && (
+                    <TableRow>
+                        <TableCell colSpan={columns.length}>
+                            {renderSubComponent({ row: row as Row<Lead>, onUpdateNotes })}
+                        </TableCell>
+                    </TableRow>
+                )}
+                </React.Fragment>
               ))
             ) : (
               <TableRow>

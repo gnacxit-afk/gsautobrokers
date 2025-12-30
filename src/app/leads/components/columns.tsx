@@ -1,7 +1,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, Trash2 } from "lucide-react";
+import { MoreHorizontal, Trash2, ChevronDown, ChevronRight, MessageSquare } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,10 +17,12 @@ import type { Lead } from "@/lib/types";
 import React from "react";
 import { AnalyzeLeadDialog } from "./analyze-lead-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth";
 
-const CellActions: React.FC<{ lead: Lead, onUpdateStatus: (id: string, status: Lead['status']) => void, onDelete: (id: string) => void }> = ({ lead, onUpdateStatus, onDelete }) => {
+const CellActions: React.FC<{ lead: Lead, onUpdateStatus: (id: string, status: Lead['status']) => void, onDelete: (id: string) => void, row: any }> = ({ lead, onUpdateStatus, onDelete, row }) => {
   const [isAnalyzeOpen, setAnalyzeOpen] = React.useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleStatusToggle = () => {
     const newStatus = lead.status === "Closed" ? "New" : "Closed";
@@ -31,28 +33,40 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStatus: (id: string, status: L
   return (
     <>
       <AnalyzeLeadDialog open={isAnalyzeOpen} onOpenChange={setAnalyzeOpen} lead={lead} />
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
-            <span className="sr-only">Open menu</span>
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-          <DropdownMenuItem onSelect={() => setAnalyzeOpen(true)}>Analyze Lead (AI)</DropdownMenuItem>
-          <DropdownMenuItem onClick={handleStatusToggle}>
-            Mark as {lead.status === "Closed" ? "New" : "Closed"}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem 
-            className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-            onClick={() => onDelete(lead.id)}
-          >
-            <Trash2 className="mr-2 h-4 w-4" /> Delete Lead
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="flex items-center gap-2">
+        <Button
+            onClick={() => row.toggleExpanded()}
+            variant="ghost"
+            size="icon"
+            className="w-8 h-8"
+            >
+            {row.getIsExpanded() ? <ChevronDown size={16} /> : <MessageSquare size={16} />}
+        </Button>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+            </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem onSelect={() => setAnalyzeOpen(true)}>Analyze Lead (AI)</DropdownMenuItem>
+            {user.role === 'Admin' && (
+                <DropdownMenuItem onClick={handleStatusToggle}>
+                    Mark as {lead.status === "Closed" ? "New" : "Closed"}
+                </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+                className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                onClick={() => onDelete(lead.id)}
+            >
+                <Trash2 className="mr-2 h-4 w-4" /> Delete Lead
+            </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </>
   );
 };
@@ -123,7 +137,7 @@ export const getColumns = (
     id: "actions",
     cell: ({ row }) => {
       const lead = row.original;
-      return <CellActions lead={lead} onUpdateStatus={onUpdateStatus} onDelete={onDelete} />;
+      return <CellActions lead={lead} onUpdateStatus={onUpdateStatus} onDelete={onDelete} row={row} />;
     },
   },
 ];

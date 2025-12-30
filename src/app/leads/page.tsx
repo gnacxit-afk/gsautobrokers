@@ -12,6 +12,7 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   getFilteredRowModel,
+  getExpandedRowModel,
   type SortingState,
 } from '@tanstack/react-table';
 
@@ -23,6 +24,7 @@ export default function LeadsPage() {
     const [leads, setLeads] = useState<Lead[]>(allLeads);
     const [sorting, setSorting] = useState<SortingState>([]);
     const [globalFilter, setGlobalFilter] = useState('');
+    const [expanded, setExpanded] = useState({});
 
     const filteredLeads = useMemo(() => {
         if (user.role === 'Admin') {
@@ -44,6 +46,12 @@ export default function LeadsPage() {
             lead.id === id ? { ...lead, status } : lead
         ));
     }, []);
+    
+    const handleUpdateNotes = useCallback((id: string, notes: string) => {
+        setLeads(prevLeads => prevLeads.map(lead =>
+            lead.id === id ? { ...lead, notes } : lead
+        ));
+    }, []);
 
     const handleDelete = useCallback((id: string) => {
         if (window.confirm('Are you sure you want to delete this lead?')) {
@@ -62,15 +70,18 @@ export default function LeadsPage() {
       getSortedRowModel: getSortedRowModel(),
       onGlobalFilterChange: setGlobalFilter,
       getFilteredRowModel: getFilteredRowModel(),
+      getExpandedRowModel: getExpandedRowModel(),
+      onExpandedChange: setExpanded,
       state: {
         sorting,
         globalFilter,
+        expanded,
       },
     });
 
     return (
         <main className="flex flex-1 flex-col gap-4">
-            <DataTable columns={columns} data={filteredLeads} table={table} />
+            <DataTable columns={columns} data={filteredLeads} table={table} onUpdateNotes={handleUpdateNotes} />
         </main>
     );
 }
