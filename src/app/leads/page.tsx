@@ -65,6 +65,20 @@ export default function LeadsPage() {
         }
     }, []);
 
+    const handleAddLead = useCallback((newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'>) => {
+        const owner = allStaff.find(s => s.id === newLeadData.ownerId);
+        if (!owner) return;
+
+        const newLead: Lead = {
+            ...newLeadData,
+            id: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            ownerName: owner.name,
+        };
+        setLeads(prevLeads => [newLead, ...prevLeads]);
+    }, [allStaff]);
+
+
     const columns = useMemo(() => getColumns(handleUpdateStatus, handleDelete), [handleUpdateStatus, handleDelete]);
     
     const table = useReactTable({
@@ -92,7 +106,8 @@ export default function LeadsPage() {
             <DataTable 
                 table={table}
                 columns={columns}
-                onUpdateNotes={handleUpdateNotes} 
+                onUpdateNotes={handleUpdateNotes}
+                onAddLead={handleAddLead}
                 staff={allStaff}
                 statuses={leadStatuses}
                 channels={channels}
