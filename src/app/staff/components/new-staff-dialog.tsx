@@ -20,14 +20,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import React from "react";
-import type { Role } from "@/lib/types";
+import React, { useState, useMemo } from "react";
+import type { Role, Staff } from "@/lib/types";
+import { getStaff } from "@/lib/mock-data";
 
 const roles: Role[] = ["Admin", "Supervisor", "Broker"];
 
 export function NewStaffDialog({ children }: { children: React.ReactNode }) {
     const [open, setOpen] = React.useState(false);
     const { toast } = useToast();
+    const [selectedRole, setSelectedRole] = useState<Role | "">("");
+
+    const allStaff = useMemo(() => getStaff(), []);
+    
+    const supervisors = useMemo(() => allStaff.filter(s => s.role === 'Supervisor'), [allStaff]);
+    const admins = useMemo(() => allStaff.filter(s => s.role === 'Admin'), [allStaff]);
 
     const handleSave = () => {
         toast({
@@ -35,10 +42,14 @@ export function NewStaffDialog({ children }: { children: React.ReactNode }) {
             description: "The new staff member has been registered.",
         });
         setOpen(false);
+        setSelectedRole("");
     }
     
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(isOpen) => {
+            setOpen(isOpen);
+            if (!isOpen) setSelectedRole("");
+        }}>
         <DialogTrigger asChild>{children}</DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
@@ -70,7 +81,7 @@ export function NewStaffDialog({ children }: { children: React.ReactNode }) {
                     <Label htmlFor="role" className="text-right">
                         Role
                     </Label>
-                     <Select>
+                     <Select onValueChange={(value: Role) => setSelectedRole(value)}>
                         <SelectTrigger className="col-span-3">
                             <SelectValue placeholder="Select a role" />
                         </SelectTrigger>
@@ -81,6 +92,40 @@ export function NewStaffDialog({ children }: { children: React.ReactNode }) {
                         </SelectContent>
                     </Select>
                 </div>
+                {selectedRole === 'Broker' && (
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="supervisor" className="text-right">
+                            Supervisor
+                        </Label>
+                        <Select>
+                            <SelectTrigger className="col-span-3">
+                                <SelectValue placeholder="Select a supervisor" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {supervisors.map(supervisor => (
+                                    <SelectItem key={supervisor.id} value={supervisor.id}>{supervisor.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
+                 {selectedRole === 'Supervisor' && (
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="admin" className="text-right">
+                            Reports to
+                        </Label>
+                        <Select>
+                            <SelectTrigger className="col-span-3">
+                                <SelectValue placeholder="Select an admin" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {admins.map(admin => (
+                                    <SelectItem key={admin.id} value={admin.id}>{admin.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
             </div>
             <DialogFooter>
                 <Button type="button" variant="secondary" onClick={() => setOpen(false)}>Cancel</Button>
