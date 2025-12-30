@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo } from 'react';
-import { getLeads, getStaff, COMMISSION_PER_VEHICLE, MARGIN_PER_VEHICLE, REVENUE_PER_VEHICLE } from "@/lib/mock-data";
+import { getLeads, getStaff } from "@/lib/mock-data";
 import { useDateRange } from '@/hooks/use-date-range';
+import { useAuth } from '@/lib/auth';
 import { Users, BarChart3 } from "lucide-react";
-import type { Lead, Staff } from '@/lib/types';
+import type { Lead } from '@/lib/types';
 
 const StatCard = ({ label, value, color }: { label: string, value: string | number, color: string }) => {
   const colors: { [key: string]: string } = {
@@ -25,41 +26,54 @@ const StatCard = ({ label, value, color }: { label: string, value: string | numb
 
 export default function DashboardPage() {
   const { dateRange } = useDateRange();
-  const leads = getLeads();
-  const staff = getStaff();
+  const { user } = useAuth();
+  const allLeads = getLeads();
+  const allStaff = getStaff();
 
   const stats = useMemo(() => {
-    const filteredLeads = leads.filter(l => {
+    if (!user) return { totalLeads: 0, closedSales: 0, conversion: 0, totalRevenue: 0, totalCommissions: 0, totalMargin: 0, channels: {}, sellerStats: {} };
+
+    const visibleLeads = allLeads.filter(lead => {
+      if (user.role === 'Admin') return true;
+      if (user.role === 'Broker') return lead.ownerId === user.id;
+      if (user.role === 'Supervisor') {
+        const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
+        return lead.ownerId === user.id || teamIds.includes(lead.ownerId);
+      }
+      return false;
+    });
+
+    const filteredLeads = visibleLeads.filter(l => {
       const leadDate = new Date(l.createdAt);
       return leadDate >= dateRange.start && leadDate <= dateRange.end;
     });
 
     const totalLeads = filteredLeads.length;
-    const closedSales = filteredLeads.filter(l => l.status === 'Closed').length;
+    const closedSales = filteredLeads.filter(l => l.status === 'Closed' || l.status === 'Sale').length;
     const conversion = totalLeads > 0 ? (closedSales / totalLeads) * 100 : 0;
-    const totalRevenue = closedSales * REVENUE_PER_VEHICLE;
-    const totalCommissions = closedSales * COMMISSION_PER_VEHICLE;
-    const totalMargin = closedSales * MARGIN_PER_VEHICLE;
+    const totalRevenue = closedSales * 30000;
+    const totalCommissions = closedSales * 500;
+    const totalMargin = closedSales * 2500;
 
     const channels: { [key: string]: { leads: number; sales: number } } = {};
     filteredLeads.forEach(l => {
       if (!channels[l.channel]) channels[l.channel] = { leads: 0, sales: 0 };
       channels[l.channel].leads++;
-      if (l.status === 'Closed') channels[l.channel].sales++;
+      if (l.status === 'Closed' || l.status === 'Sale') channels[l.channel].sales++;
     });
 
     const sellerStats: { [key: string]: { leads: number; sales: number; id: string } } = {};
     filteredLeads.forEach(l => {
       if (!sellerStats[l.ownerName]) sellerStats[l.ownerName] = { leads: 0, sales: 0, id: l.ownerId };
       sellerStats[l.ownerName].leads++;
-      if (l.status === 'Closed') sellerStats[l.ownerName].sales++;
+      if (l.status === 'Closed' || l.status === 'Sale') sellerStats[l.ownerName].sales++;
     });
 
     return {
       totalLeads, closedSales, conversion, totalRevenue, totalCommissions, totalMargin,
       channels, sellerStats
     };
-  }, [leads, dateRange]);
+  }, [allLeads, allStaff, dateRange, user]);
 
   const topSellers = Object.entries(stats.sellerStats).sort(([, a], [, b]) => b.sales - a.sales);
   const topChannel = Object.entries(stats.channels).sort(([, a], [, b]) => (b.sales / (b.leads || 1)) - (a.sales / (a.leads || 1)))[0];
@@ -100,8 +114,8 @@ export default function DashboardPage() {
                     <td className="py-3 text-center font-bold text-blue-600">
                       {data.leads > 0 ? ((data.sales / data.leads) * 100).toFixed(1) : 0}%
                     </td>
-                    <td className="py-3 text-right text-amber-600 font-medium">${(data.sales * COMMISSION_PER_VEHICLE).toLocaleString()}</td>
-                    <td className="py-3 text-right text-emerald-600 font-medium">${(data.sales * MARGIN_PER_VEHICLE).toLocaleString()}</td>
+                    <td className="py-3 text-right text-amber-600 font-medium">${(data.sales * 500).toLocaleString()}</td>
+                    <td className="py-3 text-right text-emerald-600 font-medium">${(data.sales * 2500).toLocaleString()}</td>
                   </tr>
                 ))}
                  {topSellers.length === 0 && (
