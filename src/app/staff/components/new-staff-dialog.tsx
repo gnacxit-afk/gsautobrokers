@@ -78,6 +78,12 @@ export function NewStaffDialog({ children }: { children: React.ReactNode }) {
                     <Input id="dui" className="col-span-3" placeholder="00000000-0" />
                 </div>
                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="password" className="text-right">
+                        Password
+                    </Label>
+                    <Input id="password" type="password" className="col-span-3" />
+                </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="role" className="text-right">
                         Role
                     </Label>
@@ -117,7 +123,7 @@ export function NewStaffDialog({ children }: { children: React.ReactNode }) {
                         <Select>
                             <SelectTrigger className="col-span-3">
                                 <SelectValue placeholder="Select an admin" />
-                            </SelectTrigger>
+                            </Trigger>
                             <SelectContent>
                                 {admins.map(admin => (
                                     <SelectItem key={admin.id} value={admin.id}>{admin.name}</SelectItem>
