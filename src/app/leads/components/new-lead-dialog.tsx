@@ -44,9 +44,7 @@ const statusColors: Record<Lead['status'], string> = {
 
 const initialFormState = {
     name: "",
-    phone: "",
-    email: "",
-    company: "",
+    phone: "+1 ",
     notes: "",
     channel: "" as Lead['channel'],
     status: "New" as Lead['status'],
@@ -57,7 +55,7 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const [formData, setFormData] = useState<Omit<Lead, 'id' | 'createdAt' | 'ownerId' | 'ownerName'>>({
+  const [formData, setFormData] = useState<Omit<Lead, 'id' | 'createdAt' | 'ownerId' | 'ownerName' | 'email' | 'company'>>({
     ...initialFormState
   });
 
@@ -119,7 +117,7 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
             <Label htmlFor="phone" className="text-right">
               Phone Number
             </Label>
-            <Input id="phone" type="tel" className="col-span-3" value={formData.phone} onChange={handleInputChange} placeholder="(555) 123-4567" />
+            <Input id="phone" type="tel" className="col-span-3" value={formData.phone} onChange={handleInputChange} placeholder="+1 (555) 123-4567" />
           </div>
            <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="channel" className="text-right">
