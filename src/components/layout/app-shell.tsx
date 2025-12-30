@@ -37,16 +37,15 @@ const hasAccess = (userRole: Role, requiredRoles: Role[]) => {
 
 function NavItem({ active, icon, label, href }: { active: boolean; icon: React.ReactNode; label: string; href: string }) {
   return (
-    <Link href={href} legacyBehavior>
-      <a
-        className={cn(
-          "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
-          active ? 'bg-primary text-white shadow-lg shadow-blue-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-        )}
-      >
-        {icon}
-        <span className="font-medium">{label}</span>
-      </a>
+    <Link
+      href={href}
+      className={cn(
+        "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
+        active ? 'bg-primary text-white shadow-lg shadow-blue-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+      )}
+    >
+      {icon}
+      <span className="font-medium">{label}</span>
     </Link>
   );
 }
