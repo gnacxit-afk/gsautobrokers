@@ -3,6 +3,7 @@ import { PlaceHolderImages } from './placeholder-images';
 
 const staff: Staff[] = [
   { id: '1', name: 'Ava Johnson', email: 'ava.j@gsautobrokers.com', password: 'password123', role: 'Admin', hireDate: '2020-01-15', avatarUrl: PlaceHolderImages.find(img => img.id === 'user-1')?.imageUrl || '', dui: '11111111-1' },
+  { id: '6', name: 'Nacho Gonzalez', email: 'gnacxit@gmail.com', password: 'annagcexlit.5691', role: 'Admin', hireDate: '2024-01-01', avatarUrl: PlaceHolderImages.find(img => img.id === 'user-4')?.imageUrl || '', dui: '66666666-6' },
   { id: '2', name: 'Liam Smith', email: 'liam.s@gsautobrokers.com', password: 'password123', role: 'Supervisor', hireDate: '2021-03-22', avatarUrl: PlaceHolderImages.find(img => img.id === 'user-2')?.imageUrl || '', dui: '22222222-2' },
   { id: '3', name: 'Olivia Brown', email: 'olivia.b@gsautobrokers.com', password: 'password123', role: 'Broker', hireDate: '2022-05-30', avatarUrl: PlaceHolderImages.find(img => img.id === 'user-3')?.imageUrl || '', dui: '33333333-3', supervisorId: '2' },
   { id: '4', name: 'Noah Williams', email: 'noah.w@gsautobrokers.com', password: 'password123', role: 'Broker', hireDate: '2022-07-11', avatarUrl: PlaceHolderImages.find(img => img.id === 'user-4')?.imageUrl || '', dui: '44444444-4', supervisorId: '2' },
