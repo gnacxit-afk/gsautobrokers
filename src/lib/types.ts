@@ -13,9 +13,9 @@ export type User = {
 export type Lead = {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   phone: string;
-  company: string;
+  company?: string;
   status: "New" | "Contacted" | "Qualified" | "On the way" | "On site" | "Sale" | "Closed" | "Lost";
   notes?: string;
   ownerId: string;

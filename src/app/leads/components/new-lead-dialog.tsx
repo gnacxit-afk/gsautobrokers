@@ -13,9 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Wand2, Loader2, Circle } from "lucide-react";
-import React, { useState, useTransition } from "react";
-import { suggestLeadFields } from "@/ai/flows/lead-generation-field-suggestion";
+import { Circle } from "lucide-react";
+import React, { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Lead } from "@/lib/types";
@@ -55,9 +54,6 @@ const initialFormState = {
 
 
 export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLeadDialogProps) {
-  const [description, setDescription] = useState("");
-  const [suggestedFields, setSuggestedFields] = useState<string[]>([]);
-  const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -74,31 +70,7 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
     setFormData(prev => ({ ...prev, [id]: value }));
   }
 
-
-  const handleSuggestFields = () => {
-    if (!description) {
-      toast({
-        title: "Description is empty",
-        description: "Please enter a description for the lead first.",
-        variant: "destructive",
-      });
-      return;
-    }
-    startTransition(async () => {
-      const result = await suggestLeadFields({ leadDescription: description });
-      if (result.suggestedFields) {
-        setSuggestedFields(result.suggestedFields);
-        toast({
-          title: "Fields Suggested",
-          description: "AI has suggested some fields for you.",
-        });
-      }
-    });
-  };
-  
   const resetForm = () => {
-    setDescription("");
-    setSuggestedFields([]);
     setFormData(initialFormState);
   }
 
@@ -133,33 +105,10 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
         <DialogHeader>
           <DialogTitle>Create New Lead</DialogTitle>
           <DialogDescription>
-            Describe the lead and let AI suggest relevant fields, or fill them
-            out manually.
+            Fill out the lead details manually.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-start gap-4">
-            <Label htmlFor="description" className="text-right pt-2">
-              Description
-            </Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="col-span-3"
-              placeholder="e.g., 'A new prospect from a tech company looking for a reliable SUV for their family. They mentioned needing a lot of cargo space and good fuel economy.'"
-            />
-          </div>
-          <div className="flex justify-end">
-            <Button onClick={handleSuggestFields} disabled={isPending} variant="outline" size="sm">
-              {isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Wand2 className="mr-2 h-4 w-4" />
-              )}
-              Suggest Fields with AI
-            </Button>
-          </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
               Full Name
@@ -170,19 +119,7 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
             <Label htmlFor="phone" className="text-right">
               Phone Number
             </Label>
-            <Input id="phone" type="tel" className="col-span-3" value={formData.phone} onChange={handleInputChange} />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="email" className="text-right">
-              Email
-            </Label>
-            <Input id="email" type="email" className="col-span-3" value={formData.email} onChange={handleInputChange} />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="company" className="text-right">
-              Company
-            </Label>
-            <Input id="company" className="col-span-3" value={formData.company} onChange={handleInputChange} />
+            <Input id="phone" type="tel" className="col-span-3" value={formData.phone} onChange={handleInputChange} placeholder="(555) 123-4567" />
           </div>
            <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="channel" className="text-right">
@@ -231,17 +168,6 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
                 placeholder="Add any initial notes for this lead."
               />
             </div>
-          {suggestedFields.map((field) => (
-            <div key={field} className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor={field.toLowerCase().replace(/\s/g, "-")} className="text-right">
-                {field}
-              </Label>
-              <Input
-                id={field.toLowerCase().replace(/\s/g, "-")}
-                className="col-span-3"
-              />
-            </div>
-          ))}
         </div>
         <DialogFooter>
           <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>Cancel</Button>
