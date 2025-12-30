@@ -7,6 +7,7 @@ import { NewStaffDialog } from "./components/new-staff-dialog";
 import { Button } from "@/components/ui/button";
 import { UserPlus, Users } from "lucide-react";
 import type { Staff } from "@/lib/types";
+import Link from "next/link";
 
 const StaffCard = ({ member }: { member: Staff }) => {
     const roleColors = {
@@ -29,7 +30,9 @@ const StaffCard = ({ member }: { member: Staff }) => {
             <p className="text-xs text-slate-400 mb-4">DUI: {member.dui}</p>
             <div className="pt-4 border-t flex justify-between items-center">
                 <span className="text-xs text-slate-500">ID: {member.id.slice(0, 8)}</span>
-                <Button variant="link" className="p-0 h-auto text-xs">View Profile</Button>
+                 <Link href={`/staff/${member.id}`}>
+                    <Button variant="link" className="p-0 h-auto text-xs">View Profile</Button>
+                </Link>
             </div>
         </div>
     );
