@@ -102,6 +102,10 @@ export default function StaffProfilePage() {
                         <Label htmlFor="dui">DUI</Label>
                         <Input id="dui" value={formData.dui || ''} onChange={handleChange} />
                     </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="password">Reset Password</Label>
+                        <Input id="password" type="password" placeholder="Enter new password" onChange={handleChange} />
+                    </div>
                      <div className="space-y-2">
                         <Label htmlFor="role">Role</Label>
                         <Select value={formData.role} onValueChange={handleRoleChange}>
