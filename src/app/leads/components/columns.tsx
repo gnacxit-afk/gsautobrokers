@@ -1,7 +1,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, Trash2, ChevronDown, MessageSquare } from "lucide-react";
+import { MoreHorizontal, Trash2, ChevronDown, MessageSquare, Phone } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -116,7 +116,12 @@ export const getColumns = (
       const lead = row.original;
       return (
         <div className="text-sm text-slate-600">
-          <div>{lead.phone}</div>
+          <div className="flex items-center gap-2">
+            <span>{lead.phone}</span>
+            <a href={`tel:${lead.phone}`} className="text-blue-500 hover:text-blue-700">
+              <Phone size={14} />
+            </a>
+          </div>
           <div className="text-xs opacity-60">{lead.email}</div>
         </div>
       );
