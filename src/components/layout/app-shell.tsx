@@ -81,7 +81,7 @@ function Sidebar() {
     return (
         <aside className="w-64 bg-slate-900 text-white flex-col shrink-0 hidden md:flex">
             <div className="p-6 border-b border-slate-800 h-16 flex items-center">
-                <Logo className="w-auto h-8" />
+                <Logo className="text-white text-lg" />
             </div>
             
             <MainNav items={navItems} />
@@ -151,7 +151,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </SheetTrigger>
               <SheetContent side="left" className="sm:max-w-xs p-0 bg-slate-900 text-white border-r-0">
                 <div className="p-6 border-b border-slate-800 h-16 flex items-center">
-                    <Logo className="w-auto h-8" />
+                    <Logo className="text-white text-lg" />
                 </div>
                 <MainNav items={navItems} />
               </SheetContent>
