@@ -1,1 +1,8 @@
-// Flows will be imported for their side effects in this file.
+import { config } from 'dotenv';
+config();
+
+import '@/ai/flows/analyze-and-update-leads.ts';
+import '@/ai/flows/lead-generation-field-suggestion.ts';
+import '@/ai/flows/summarize-knowledge-base-resources.ts';
+import '@/ai/flows/summarize-knowledge-base-articles.ts';
+import '@/ai/flows/enhance-lead-notes.ts';
