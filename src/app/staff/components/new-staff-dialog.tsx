@@ -123,7 +123,7 @@ export function NewStaffDialog({ children }: { children: React.ReactNode }) {
                         <Select>
                             <SelectTrigger className="col-span-3">
                                 <SelectValue placeholder="Select an admin" />
-                            </Trigger>
+                            </SelectTrigger>
                             <SelectContent>
                                 {admins.map(admin => (
                                     <SelectItem key={admin.id} value={admin.id}>{admin.name}</SelectItem>
