@@ -80,11 +80,8 @@ function Sidebar() {
 
     return (
         <aside className="w-64 bg-slate-900 text-white flex-col shrink-0 hidden md:flex">
-            <div className="p-6 border-b border-slate-800">
-                <h1 className="text-xl font-bold flex items-center gap-2">
-                    <Logo className="w-auto h-8" />
-                </h1>
-                <p className="text-xs text-slate-400 mt-1 uppercase tracking-wider font-semibold">{user.role}</p>
+            <div className="p-6 border-b border-slate-800 h-16 flex items-center">
+                <Logo className="w-auto h-8" />
             </div>
             
             <MainNav items={navItems} />
@@ -136,7 +133,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (pathname === '/') return 'Dashboard';
     const currentPath = pathname.split('/')[1];
     const currentNavItem = navItems.find(item => item.href === `/${currentPath}`);
-    return currentNavItem ? currentNavItem.title : 'GS Auto Brokers';
+    return currentNavItem ? currentNavItem.title : '';
   };
 
   return (
@@ -153,10 +150,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="sm:max-w-xs p-0 bg-slate-900 text-white border-r-0">
-                <div className="p-6 border-b border-slate-800">
-                    <h1 className="text-xl font-bold flex items-center gap-2">
-                        <Logo className="w-auto h-8" />
-                    </h1>
+                <div className="p-6 border-b border-slate-800 h-16 flex items-center">
+                    <Logo className="w-auto h-8" />
                 </div>
                 <MainNav items={navItems} />
               </SheetContent>

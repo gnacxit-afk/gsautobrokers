@@ -47,7 +47,7 @@ export default function LoginPage() {
             <div className="flex justify-center mb-4">
                 <Logo />
             </div>
-            <CardTitle className="text-2xl">Welcome to GS Auto Brokers</CardTitle>
+            <CardTitle className="text-2xl">Welcome</CardTitle>
             <CardDescription>Enter your credentials to access your account</CardDescription>
         </CardHeader>
         <CardContent>
