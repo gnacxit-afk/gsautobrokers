@@ -17,7 +17,7 @@ import { ArrowLeft, UserCircle2 } from "lucide-react";
 const roles: Role[] = ["Admin", "Supervisor", "Broker"];
 
 export default function StaffProfilePage() {
-  const { user } = useAuth();
+  const { user, reloadUser } = useAuth();
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
@@ -71,16 +71,20 @@ export default function StaffProfilePage() {
   };
 
   const handleSaveChanges = () => {
-    // In a real app, you'd call an API. Here, we update the mock data.
     const updated = updateStaffMember(staffId, formData);
     if (updated) {
         toast({
             title: "Profile Updated",
             description: `Details for ${formData.name} have been updated.`,
         });
-        // Optimistically update local state or refetch
         setAllStaff(getStaff());
-        router.push('/staff'); // Navigate back to the list
+
+        // If the edited user is the current user, reload auth context
+        if (user && user.id === staffId) {
+            reloadUser();
+        }
+
+        router.refresh();
     } else {
         toast({
             title: "Update Failed",

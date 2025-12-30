@@ -13,6 +13,7 @@ interface AuthContextType {
   login: (email: string, password_not_used: string) => Promise<Staff | null>;
   logout: () => void;
   setUserRole: (role: Role) => void;
+  reloadUser: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,13 +23,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
-  const allStaff = getStaff();
   
+  const reloadUser = () => {
+    const allStaff = getStaff();
+    const storedUser = localStorage.getItem('autosales-user');
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      const latestUserData = allStaff.find(s => s.id === parsedUser.id);
+      if (latestUserData) {
+        setUser(latestUserData);
+        localStorage.setItem('autosales-user', JSON.stringify(latestUserData));
+      }
+    }
+  };
+
   useEffect(() => {
     // In a real app, you'd check a token in localStorage or an HttpOnly cookie
     try {
       const storedUser = localStorage.getItem('autosales-user');
       if (storedUser) {
+        const allStaff = getStaff();
         const foundUser = allStaff.find(s => s.id === JSON.parse(storedUser).id);
         setUser(foundUser || null);
       }
@@ -53,6 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password_not_used: string): Promise<Staff | null> => {
     // This is a mock login. In a real app, you'd call an API.
     // The password is not used, we just find the user by email for this demo.
+    const allStaff = getStaff();
     const foundUser = allStaff.find(staff => staff.email.toLowerCase() === email.toLowerCase());
 
     if (foundUser) { // In real app, you would also check password
@@ -74,6 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const setUserRole = (role: Role) => {
     if (!user) return;
+    const allStaff = getStaff();
     const newUserByRole = allStaff.find(s => s.role === role) || allStaff[0];
     setUser(newUserByRole);
      if (newUserByRole) {
@@ -81,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const value = useMemo(() => ({ user, loading, login, logout, setUserRole }), [user, loading]);
+  const value = useMemo(() => ({ user, loading, login, logout, setUserRole, reloadUser }), [user, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
