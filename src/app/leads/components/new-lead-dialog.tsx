@@ -13,12 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Wand2, Loader2 } from "lucide-react";
+import { Wand2, Loader2, Circle } from "lucide-react";
 import React, { useState, useTransition } from "react";
 import { suggestLeadFields } from "@/ai/flows/lead-generation-field-suggestion";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Lead } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 interface NewLeadDialogProps {
   children: React.ReactNode;
@@ -28,6 +29,18 @@ interface NewLeadDialogProps {
 
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
 const leadStatuses: Lead['status'][] = ["New", "Contacted", "Qualified", "On the way", "On site", "Sale", "Closed", "Lost"];
+
+const statusColors: Record<Lead['status'], string> = {
+    "New": "bg-gray-400",
+    "Contacted": "bg-blue-400",
+    "Qualified": "bg-yellow-500",
+    "On the way": "bg-orange-500",
+    "On site": "bg-purple-500",
+    "Sale": "bg-green-500",
+    "Closed": "bg-green-600",
+    "Lost": "bg-red-500",
+};
+
 
 export function NewLeadDialog({ children, open, onOpenChange }: NewLeadDialogProps) {
   const [description, setDescription] = useState("");
@@ -138,7 +151,12 @@ export function NewLeadDialog({ children, open, onOpenChange }: NewLeadDialogPro
               </SelectTrigger>
               <SelectContent>
                 {leadStatuses.map(status => (
-                  <SelectItem key={status} value={status}>{status}</SelectItem>
+                  <SelectItem key={status} value={status}>
+                    <div className="flex items-center gap-2">
+                        <Circle className={cn("h-3 w-3 fill-current", statusColors[status])} />
+                        <span>{status}</span>
+                    </div>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
