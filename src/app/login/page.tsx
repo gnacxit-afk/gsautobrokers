@@ -48,7 +48,7 @@ export default function LoginPage() {
                     <Briefcase size={32} />
                 </div>
             </div>
-            <CardTitle className="text-2xl">Welcome to AutoSales AI</CardTitle>
+            <CardTitle className="text-2xl">Welcome to GS Auto Brokers</CardTitle>
             <CardDescription>Enter your credentials to access your account</CardDescription>
         </CardHeader>
         <CardContent>

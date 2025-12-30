@@ -83,7 +83,7 @@ function Sidebar() {
             <div className="p-6 border-b border-slate-800">
                 <h1 className="text-xl font-bold flex items-center gap-2">
                     <Briefcase className="text-primary" />
-                    AutoSales AI
+                    GS Auto Brokers
                 </h1>
                 <p className="text-xs text-slate-400 mt-1 uppercase tracking-wider font-semibold">{user.role}</p>
             </div>
@@ -137,7 +137,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (pathname === '/') return 'Dashboard';
     const currentPath = pathname.split('/')[1];
     const currentNavItem = navItems.find(item => item.href === `/${currentPath}`);
-    return currentNavItem ? currentNavItem.title : 'AutoSales AI';
+    return currentNavItem ? currentNavItem.title : 'GS Auto Brokers';
   };
 
   return (
@@ -157,7 +157,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <div className="p-6 border-b border-slate-800">
                     <h1 className="text-xl font-bold flex items-center gap-2">
                         <Briefcase className="text-primary" />
-                        AutoSales AI
+                        GS Auto Brokers
                     </h1>
                 </div>
                 <MainNav items={navItems} />
