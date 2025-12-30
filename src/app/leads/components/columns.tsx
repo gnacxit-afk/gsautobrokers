@@ -99,13 +99,12 @@ export const getColumns = (
 ): ColumnDef<Lead>[] => [
   {
     accessorKey: "name",
-    header: "Customer / Company",
+    header: "Customer",
     cell: ({ row }) => {
       const lead = row.original;
       return (
         <div>
           <div className="font-bold text-slate-800">{lead.name}</div>
-          <div className="text-xs text-slate-400">{lead.company || 'Individual'}</div>
         </div>
       );
     },
