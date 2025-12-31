@@ -53,3 +53,10 @@ export type NavItem = {
   icon: LucideIcon;
   role: Role[];
 };
+
+export type KPI = {
+  id: string;
+  label: string;
+  target: string;
+  description: string;
+};
