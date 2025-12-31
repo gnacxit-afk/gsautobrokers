@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { getLeads, getStaff } from "@/lib/mock-data";
 import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
@@ -16,16 +16,12 @@ import {
   type SortingState,
   type ColumnFiltersState,
 } from '@tanstack/react-table';
-import { useDateRange, DEFAULT_DATE_RANGE } from "@/hooks/use-date-range";
-import { useLeadsPage } from "@/providers/leads-page-provider";
 
 const leadStatuses: Lead['status'][] = ["New", "Contacted", "Qualified", "On the way", "On site", "Sale", "Closed", "Lost"];
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
 
 export default function LeadsPage() {
     const { user } = useAuth();
-    const { dateRange, setDateRange } = useDateRange();
-    const { setClearAllFilters } = useLeadsPage();
     const allLeads = useMemo(() => getLeads(), []);
     const allStaff = useMemo(() => getStaff(), []);
 
@@ -38,25 +34,19 @@ export default function LeadsPage() {
     const filteredLeads = useMemo(() => {
         if (!user) return [];
         
-        let roleFilteredLeads;
         if (user.role === 'Admin') {
-            roleFilteredLeads = leads;
-        } else if (user.role === 'Supervisor') {
+            return leads;
+        }
+        if (user.role === 'Supervisor') {
             const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
             const visibleIds = [user.id, ...teamIds];
-            roleFilteredLeads = leads.filter(l => visibleIds.includes(l.ownerId));
-        } else if (user.role === 'Broker') {
-            roleFilteredLeads = leads.filter(l => l.ownerId === user.id);
-        } else {
-            roleFilteredLeads = [];
+            return leads.filter(l => visibleIds.includes(l.ownerId));
         }
-
-        return roleFilteredLeads.filter(l => {
-          const leadDate = new Date(l.createdAt);
-          return leadDate >= dateRange.start && leadDate <= dateRange.end;
-        });
-
-    }, [user, leads, allStaff, dateRange]);
+        if (user.role === 'Broker') {
+            return leads.filter(l => l.ownerId === user.id);
+        }
+        return [];
+    }, [user, leads, allStaff]);
 
     const handleUpdateStatus = useCallback((id: string, status: Lead['status']) => {
         setLeads(prevLeads => prevLeads.map(lead => 
@@ -111,16 +101,6 @@ export default function LeadsPage() {
         columnFilters
       },
     });
-
-    const clearAllFilters = useCallback(() => {
-      table.resetColumnFilters();
-      setGlobalFilter('');
-      setDateRange(DEFAULT_DATE_RANGE);
-    }, [table, setDateRange]);
-
-    useEffect(() => {
-      setClearAllFilters(clearAllFilters);
-    }, [clearAllFilters, setClearAllFilters]);
 
     return (
         <main className="flex flex-1 flex-col gap-4">

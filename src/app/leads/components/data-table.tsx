@@ -38,7 +38,6 @@ interface DataTableProps<TData, TValue> {
   staff: Staff[];
   statuses: Lead['status'][];
   channels: Lead['channel'][];
-  clearAllFilters: () => void;
 }
 
 export function DataTable<TData extends Lead, TValue>({
