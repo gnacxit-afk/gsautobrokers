@@ -16,12 +16,14 @@ import {
   type SortingState,
   type ColumnFiltersState,
 } from '@tanstack/react-table';
+import { useDateRange } from "@/hooks/use-date-range";
 
 const leadStatuses: Lead['status'][] = ["New", "Contacted", "Qualified", "On the way", "On site", "Sale", "Closed", "Lost"];
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
 
 export default function LeadsPage() {
     const { user } = useAuth();
+    const { dateRange } = useDateRange();
     const allLeads = useMemo(() => getLeads(), []);
     const allStaff = useMemo(() => getStaff(), []);
 
@@ -31,21 +33,28 @@ export default function LeadsPage() {
     const [globalFilter, setGlobalFilter] = useState('');
     const [expanded, setExpanded] = useState({});
 
-    const filteredLeadsForRole = useMemo(() => {
+    const filteredLeads = useMemo(() => {
         if (!user) return [];
+        
+        let roleFilteredLeads;
         if (user.role === 'Admin') {
-            return leads;
-        }
-        if (user.role === 'Supervisor') {
+            roleFilteredLeads = leads;
+        } else if (user.role === 'Supervisor') {
             const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
             const visibleIds = [user.id, ...teamIds];
-            return leads.filter(l => visibleIds.includes(l.ownerId));
+            roleFilteredLeads = leads.filter(l => visibleIds.includes(l.ownerId));
+        } else if (user.role === 'Broker') {
+            roleFilteredLeads = leads.filter(l => l.ownerId === user.id);
+        } else {
+            roleFilteredLeads = [];
         }
-        if (user.role === 'Broker') {
-            return leads.filter(l => l.ownerId === user.id);
-        }
-        return [];
-    }, [user, leads, allStaff]);
+
+        return roleFilteredLeads.filter(l => {
+          const leadDate = new Date(l.createdAt);
+          return leadDate >= dateRange.start && leadDate <= dateRange.end;
+        });
+
+    }, [user, leads, allStaff, dateRange]);
 
     const handleUpdateStatus = useCallback((id: string, status: Lead['status']) => {
         setLeads(prevLeads => prevLeads.map(lead => 
@@ -82,7 +91,7 @@ export default function LeadsPage() {
     const columns = useMemo(() => getColumns(handleUpdateStatus, handleDelete), [handleUpdateStatus, handleDelete]);
     
     const table = useReactTable({
-      data: filteredLeadsForRole,
+      data: filteredLeads,
       columns,
       getCoreRowModel: getCoreRowModel(),
       getPaginationRowModel: getPaginationRowModel(),
