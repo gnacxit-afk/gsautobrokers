@@ -17,8 +17,8 @@ interface DateRangeContextType {
 export const DateRangeContext = createContext<DateRangeContextType | undefined>(undefined);
 
 export const DEFAULT_DATE_RANGE = {
-  start: subDays(new Date(), 30),
-  end: new Date(),
+  start: new Date('2000-01-01'),
+  end: new Date('2100-01-01'),
 };
 
 export function DateRangeProvider({ children }: { children: React.ReactNode }) {
