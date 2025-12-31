@@ -2,22 +2,23 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getStaff, updateStaffMember } from "@/lib/mock-data";
+import { deleteStaffMember, getStaff, updateStaffMember } from "@/lib/mock-data";
 import type { Staff, Role } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import { AccessDenied } from "@/components/access-denied";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, UserCircle2, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, UserCircle2, Eye, EyeOff, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const roles: Role[] = ["Admin", "Supervisor", "Broker"];
 
 export default function StaffProfilePage() {
-  const { user, reloadUser } = useAuth();
+  const { user, reloadUser, logout } = useAuth();
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
@@ -103,6 +104,27 @@ export default function StaffProfilePage() {
         });
     }
   };
+
+  const handleDelete = () => {
+    const deleted = deleteStaffMember(staffId);
+    if(deleted) {
+      toast({
+        title: "Profile Deleted",
+        description: `The profile for ${formData.name} has been permanently removed.`,
+      });
+      if (user?.id === staffId) {
+        logout();
+      } else {
+        router.push('/staff');
+      }
+    } else {
+      toast({
+        title: "Deletion Failed",
+        description: "Could not delete the profile.",
+        variant: "destructive"
+      });
+    }
+  }
 
   return (
     <main className="flex flex-1 flex-col gap-6">
@@ -208,6 +230,35 @@ export default function StaffProfilePage() {
                     <Button onClick={handleSaveChanges}>Save Changes</Button>
                 </div>
             </CardContent>
+            <CardFooter className="bg-red-50/50 border-t p-6 rounded-b-lg flex-col items-start gap-3">
+                 <h4 className="font-bold text-red-700">Danger Zone</h4>
+                <p className="text-sm text-red-600">
+                    Deleting a staff member is a permanent action and cannot be undone. This will remove all their data from the system.
+                </p>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                         <Button variant="destructive">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete Profile
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the profile for
+                            <span className="font-bold"> {formData.name}</span> and remove all associated data.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                            Yes, delete profile
+                        </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </CardFooter>
         </Card>
 
     </main>
