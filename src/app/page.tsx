@@ -13,7 +13,8 @@ const StatCard = ({ label, value, color }: { label: string, value: string | numb
     green: "text-green-600 bg-green-50 border-green-100",
     indigo: "text-indigo-600 bg-indigo-50 border-indigo-100",
     amber: "text-amber-600 bg-amber-50 border-amber-100",
-    emerald: "text-emerald-600 bg-emerald-50 border-emerald-100"
+    emerald: "text-emerald-600 bg-emerald-50 border-emerald-100",
+    rose: "text-rose-600 bg-rose-50 border-rose-100",
   };
   return (
     <div className={`p-5 rounded-2xl border ${colors[color] || colors.blue} shadow-sm`}>
@@ -80,13 +81,16 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className={`grid grid-cols-1 md:grid-cols-3 ${user?.role === 'Admin' ? 'lg:grid-cols-6' : 'lg:grid-cols-4'} gap-4`}>
         <StatCard label="Total Leads" value={stats.totalLeads} color="blue" />
         <StatCard label="Closed Sales" value={stats.closedSales} color="green" />
         <StatCard label="Conversion" value={`${stats.conversion.toFixed(1)}%`} color="indigo" />
         <StatCard label="Commissions" value={`$${stats.totalCommissions.toLocaleString()}`} color="amber" />
         {user?.role === 'Admin' && (
+          <>
             <StatCard label="Gross Margin" value={`$${stats.totalMargin.toLocaleString()}`} color="emerald" />
+            <StatCard label="Total Revenue" value={`$${stats.totalRevenue.toLocaleString()}`} color="rose" />
+          </>
         )}
       </div>
 
