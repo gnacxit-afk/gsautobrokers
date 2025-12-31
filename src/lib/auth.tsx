@@ -54,9 +54,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, loading, pathname, router]);
 
   const login = (email: string, pass: string): User | null => {
-    // The actual login happens on the login page now.
-    // This function can be removed or repurposed. For now, it does nothing.
-    console.error("The mock login function was called, but login is now handled by Firebase.");
+    const allStaff = getStaff();
+    const foundUser = allStaff.find(
+      (s) => s.email === email && s.password === pass
+    ) as Staff | undefined;
+
+    if (foundUser) {
+      // Don't store password in the user object
+      const { password, ...userToStore } = foundUser;
+      
+      const storedRole = localStorage.getItem("autosales-user-role");
+      const finalUser = {
+        ...userToStore,
+        // Prioritize stored role, then default to user's role
+        role: (storedRole as Role) || userToStore.role,
+      };
+
+      setUser(finalUser);
+      localStorage.setItem("autosales-user", JSON.stringify(finalUser));
+      return finalUser;
+    }
     return null;
   };
 
