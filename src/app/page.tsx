@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from 'react';
-import { getLeads, getStaff } from "@/lib/mock-data";
+import { getLeads, getStaff, REVENUE_PER_VEHICLE, COMMISSION_PER_VEHICLE, MARGIN_PER_VEHICLE } from "@/lib/mock-data";
 import { useDateRange } from '@/hooks/use-date-range';
 import { useAuth } from '@/lib/auth';
 import { Users, BarChart3 } from "lucide-react";
@@ -51,9 +51,9 @@ export default function DashboardPage() {
     const totalLeads = filteredLeads.length;
     const closedSales = filteredLeads.filter(l => l.status === 'Closed' || l.status === 'Sale').length;
     const conversion = totalLeads > 0 ? (closedSales / totalLeads) * 100 : 0;
-    const totalRevenue = closedSales * 30000;
-    const totalCommissions = closedSales * 500;
-    const totalMargin = closedSales * 2500;
+    const totalRevenue = closedSales * REVENUE_PER_VEHICLE;
+    const totalCommissions = closedSales * COMMISSION_PER_VEHICLE;
+    const totalMargin = closedSales * MARGIN_PER_VEHICLE;
 
     const channels: { [key: string]: { leads: number; sales: number } } = {};
     filteredLeads.forEach(l => {
@@ -118,9 +118,9 @@ export default function DashboardPage() {
                     <td className="py-3 text-center font-bold text-blue-600">
                       {data.leads > 0 ? ((data.sales / data.leads) * 100).toFixed(1) : 0}%
                     </td>
-                    <td className="py-3 text-right text-amber-600 font-medium">${(data.sales * 500).toLocaleString()}</td>
+                    <td className="py-3 text-right text-amber-600 font-medium">${(data.sales * COMMISSION_PER_VEHICLE).toLocaleString()}</td>
                     {user?.role === 'Admin' && (
-                      <td className="py-3 text-right text-emerald-600 font-medium">${(data.sales * 2500).toLocaleString()}</td>
+                      <td className="py-3 text-right text-emerald-600 font-medium">${(data.sales * MARGIN_PER_VEHICLE).toLocaleString()}</td>
                     )}
                   </tr>
                 ))}

@@ -75,9 +75,9 @@ const salesData = [
   { name: 'Dec', total: 9100 },
 ];
 
-export const REVENUE_PER_VEHICLE = 30000;
-export const COMMISSION_PER_VEHICLE = 500;
-export const MARGIN_PER_VEHICLE = 2500;
+export const REVENUE_PER_VEHICLE = 300;
+export const COMMISSION_PER_VEHICLE = 75;
+export const MARGIN_PER_VEHICLE = 225;
 
 export const getLeads = (): Lead[] => leads;
 export const getStaff = (): Staff[] => staff;
