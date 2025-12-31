@@ -89,8 +89,8 @@ export function PerformanceDashboard({ allLeads, allStaff }: { allLeads: Lead[],
 
     if (!user) return null;
 
-    if (user.role !== 'Admin') {
-        const userData = filteredData[0]; // Broker/Supervisor sees only their data
+    if (user.role === 'Broker') {
+        const userData = filteredData[0]; // Broker sees only their data
         if (!userData) {
              return <p className="text-muted-foreground">No performance data for today.</p>;
         }
@@ -106,23 +106,25 @@ export function PerformanceDashboard({ allLeads, allStaff }: { allLeads: Lead[],
         )
     }
 
-    // Admin View
+    // Admin & Supervisor View
     return (
         <div className="space-y-4">
-            <div className="flex flex-col md:flex-row gap-4">
-                <DateRangePicker />
-                <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                    <SelectTrigger className="w-full md:w-[240px]">
-                        <SelectValue placeholder="Filter by user..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Salespeople</SelectItem>
-                        {allStaff.filter(s => s.role !== 'Admin').map(s => (
-                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
+            {user.role === 'Admin' && (
+                <div className="flex flex-col md:flex-row gap-4">
+                    <DateRangePicker />
+                    <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                        <SelectTrigger className="w-full md:w-[240px]">
+                            <SelectValue placeholder="Filter by user..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Salespeople</SelectItem>
+                            {allStaff.filter(s => s.role !== 'Admin').map(s => (
+                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
             <div className="rounded-lg border bg-white">
                 <Table>
                     <TableHeader>
