@@ -1,25 +1,25 @@
 "use client";
 
-import React, { createContext, useState, useMemo, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useMemo, useContext, ReactNode, useCallback } from 'react';
 
 interface LeadsPageContextType {
-  clearAllFilters: () => void;
+  clearAllFilters: (() => void) | null;
   setClearAllFilters: (fn: () => void) => void;
 }
 
-const LeadsPageContext = createContext<LeadsPageContextType | undefined>(undefined);
+export const LeadsPageContext = createContext<LeadsPageContextType | undefined>(undefined);
 
 export function LeadsPageProvider({ children }: { children: ReactNode }) {
-  const [clearAllFilters, setClearAllFiltersState] = useState<() => void>(() => () => {});
-
-  const setClearAllFilters = (fn: () => void) => {
-    setClearAllFiltersState(() => fn);
-  };
+  const [clearFn, setClearFn] = useState<(() => void) | null>(null);
   
+  const setClearAllFilters = useCallback((fn: () => void) => {
+    setClearFn(() => fn);
+  }, []);
+
   const value = useMemo(() => ({
-    clearAllFilters,
+    clearAllFilters: clearFn,
     setClearAllFilters,
-  }), [clearAllFilters]);
+  }), [clearFn, setClearAllFilters]);
 
   return (
     <LeadsPageContext.Provider value={value}>
@@ -30,7 +30,7 @@ export function LeadsPageProvider({ children }: { children: ReactNode }) {
 
 export const useLeadsPage = () => {
   const context = useContext(LeadsPageContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useLeadsPage must be used within a LeadsPageProvider');
   }
   return context;

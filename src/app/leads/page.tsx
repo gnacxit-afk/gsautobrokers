@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { getLeads, getStaff } from "@/lib/mock-data";
 import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
@@ -17,6 +17,7 @@ import {
   type ColumnFiltersState,
 } from '@tanstack/react-table';
 import { useDateRange, DEFAULT_DATE_RANGE } from "@/hooks/use-date-range";
+import { useLeadsPage } from "@/providers/leads-page-provider";
 
 const leadStatuses: Lead['status'][] = ["New", "Contacted", "Qualified", "On the way", "On site", "Sale", "Closed", "Lost"];
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
@@ -24,6 +25,7 @@ const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'O
 export default function LeadsPage() {
     const { user } = useAuth();
     const { dateRange, setDateRange } = useDateRange();
+    const { setClearAllFilters } = useLeadsPage();
     const allLeads = useMemo(() => getLeads(), []);
     const allStaff = useMemo(() => getStaff(), []);
 
@@ -116,6 +118,10 @@ export default function LeadsPage() {
       setDateRange(DEFAULT_DATE_RANGE);
     }, [table, setDateRange]);
 
+    useEffect(() => {
+      setClearAllFilters(clearAllFilters);
+    }, [clearAllFilters, setClearAllFilters]);
+
     return (
         <main className="flex flex-1 flex-col gap-4">
             <DataTable 
@@ -126,7 +132,6 @@ export default function LeadsPage() {
                 staff={allStaff}
                 statuses={leadStatuses}
                 channels={channels}
-                clearAllFilters={clearAllFilters}
             />
         </main>
     );
