@@ -85,7 +85,9 @@ export default function DashboardPage() {
         <StatCard label="Closed Sales" value={stats.closedSales} color="green" />
         <StatCard label="Conversion" value={`${stats.conversion.toFixed(1)}%`} color="indigo" />
         <StatCard label="Commissions" value={`$${stats.totalCommissions.toLocaleString()}`} color="amber" />
-        <StatCard label="Gross Margin" value={`$${stats.totalMargin.toLocaleString()}`} color="emerald" />
+        {user?.role === 'Admin' && (
+            <StatCard label="Gross Margin" value={`$${stats.totalMargin.toLocaleString()}`} color="emerald" />
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
