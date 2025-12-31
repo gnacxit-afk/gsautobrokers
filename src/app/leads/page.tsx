@@ -6,7 +6,7 @@ import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 import { useAuth } from "@/lib/auth";
 import type { Lead } from "@/lib/types";
-import { useDateRange, DEFAULT_DATE_RANGE } from "@/hooks/use-date-range";
+import { useDateRange, getDefaultDateRange } from "@/hooks/use-date-range";
 import {
   useReactTable,
   getCoreRowModel,
@@ -49,6 +49,20 @@ export default function LeadsPage() {
             }
         } else {
             visibleLeads = [];
+        }
+
+        // Check if the default range is being used. If so, don't filter by date.
+        const defaultRange = getDefaultDateRange();
+        const isDefaultRange = dateRange.start.getTime() === defaultRange.start.getTime() && dateRange.end.getTime() === defaultRange.end.getTime();
+
+        if (isDefaultRange) {
+          // This logic is a bit tricky, the default should now show everything. Let's make it wide open.
+           const wideOpenStart = new Date('2000-01-01');
+           const wideOpenEnd = new Date('2100-01-01');
+            return visibleLeads.filter(l => {
+              const leadDate = new Date(l.createdAt);
+              return leadDate >= wideOpenStart && leadDate <= wideOpenEnd;
+          });
         }
 
         return visibleLeads.filter(l => {
@@ -115,7 +129,10 @@ export default function LeadsPage() {
     const clearAllFilters = useCallback(() => {
         table.setGlobalFilter('');
         table.setColumnFilters([]);
-        setDateRange(DEFAULT_DATE_RANGE);
+        setDateRange({
+          start: new Date('2000-01-01'),
+          end: new Date('2100-01-01'),
+        });
     }, [table, setDateRange]);
 
     return (
