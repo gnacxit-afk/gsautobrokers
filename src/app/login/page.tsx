@@ -17,19 +17,24 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const user = login(email, password);
-    if (!user) {
-      toast({
+    try {
+      const user = await login(email, password);
+      if (!user) {
+        throw new Error("Login failed");
+      }
+      // AuthProvider will handle redirection on successful login
+    } catch (error) {
+       toast({
         variant: "destructive",
         title: "Login Failed",
         description: "Invalid email or password. Please try again.",
       });
+    } finally {
+      setLoading(false);
     }
-    // AuthProvider will handle redirection on successful login
-    setLoading(false);
   };
 
   return (

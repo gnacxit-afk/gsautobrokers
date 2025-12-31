@@ -1,14 +1,17 @@
 "use client";
 
-import React, { createContext, useContext, useState, useMemo, useEffect } from "react";
+import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { getStaff } from "./mock-data";
 import type { Role, Staff, User } from "./types";
+import { useFirestore, useFirebase } from "@/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { signInWithEmailAndPassword, onAuthStateChanged, signOut, type User as FirebaseUser } from "firebase/auth";
+
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, pass: string) => User | null;
+  login: (email: string, pass: string) => Promise<User | null>;
   logout: () => void;
   setUserRole: (role: Role) => void;
   reloadUser: () => void;
@@ -21,28 +24,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  const firestore = useFirestore();
+  const { auth } = useFirebase();
 
-  const reloadUser = () => {
-    // This is a mock function, in a real app this would re-fetch user data
-    // from a server or re-validate a token.
-    if (user) {
-      const allStaff = getStaff();
-      const updatedUser = allStaff.find(s => s.id === user.id) as Staff | undefined;
-      if (updatedUser) {
-        setUser(updatedUser);
-      }
+  const fetchUserRole = useCallback(async (firebaseUser: FirebaseUser) => {
+    if (!firestore) return null;
+    const staffDocRef = doc(firestore, 'staff', firebaseUser.uid);
+    const staffDoc = await getDoc(staffDocRef);
+    if (staffDoc.exists()) {
+        const staffData = staffDoc.data() as Staff;
+        const appUser: User = {
+            id: firebaseUser.uid,
+            name: staffData.name,
+            email: staffData.email,
+            avatarUrl: staffData.avatarUrl,
+            role: staffData.role
+        };
+        setUser(appUser);
+        localStorage.setItem("autosales-user", JSON.stringify(appUser));
+    } else {
+        // Handle case where user exists in Auth but not in 'staff' collection
+        setUser(null);
     }
-  }
+  }, [firestore]);
 
 
   useEffect(() => {
-    // Simulate checking for a logged-in user
-    const loggedInUser = localStorage.getItem("autosales-user");
-    if (loggedInUser) {
-      setUser(JSON.parse(loggedInUser));
-    }
-    setLoading(false);
-  }, []);
+    if (!auth) return;
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        await fetchUserRole(firebaseUser);
+      } else {
+        setUser(null);
+        localStorage.removeItem("autosales-user");
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [auth, fetchUserRole]);
+
 
   useEffect(() => {
     if (!loading && !user && pathname !== "/login") {
@@ -53,50 +74,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, pathname, router]);
 
-  const login = (email: string, pass: string): User | null => {
-    const allStaff = getStaff();
-    const foundUser = allStaff.find(
-      (s) => s.email === email && s.password === pass
-    ) as Staff | undefined;
 
-    if (foundUser) {
-      // Don't store password in the user object
-      const { password, ...userToStore } = foundUser;
-      
-      const storedRole = localStorage.getItem("autosales-user-role");
-      const finalUser = {
-        ...userToStore,
-        // Prioritize stored role, then default to user's role
-        role: (storedRole as Role) || userToStore.role,
-      };
-
-      setUser(finalUser);
-      localStorage.setItem("autosales-user", JSON.stringify(finalUser));
-      return finalUser;
+  const login = async (email: string, pass: string): Promise<User | null> => {
+    if (!auth) return null;
+    const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+    if (userCredential.user) {
+        await fetchUserRole(userCredential.user);
+        // The user state will be set by the onAuthStateChanged listener,
+        // but we can optimistically return it here after fetching.
+        if (firestore) {
+            const staffDocRef = doc(firestore, 'staff', userCredential.user.uid);
+            const staffDoc = await getDoc(staffDocRef);
+             if (staffDoc.exists()) {
+                const staffData = staffDoc.data() as Staff;
+                const appUser: User = {
+                    id: userCredential.user.uid,
+                    name: staffData.name,
+                    email: staffData.email,
+                    avatarUrl: staffData.avatarUrl,
+                    role: staffData.role
+                };
+                return appUser;
+            }
+        }
     }
     return null;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    if (!auth) return;
+    await signOut(auth);
     setUser(null);
     localStorage.removeItem("autosales-user");
-    localStorage.removeItem("autosales-user-role");
+    localStorage.removeItem("autosales-user-role"); // Also clear this if used
     router.push("/login");
   };
 
   const setUserRole = (role: Role) => {
-    // This simulates switching roles for a user who might have multiple.
-    // In a real app, this might involve changing JWT claims.
+    // This is now primarily a front-end simulation for role switching if needed.
+    // The source of truth for the role is Firestore.
     if (!user) return;
     const updatedUser = { ...user, role };
     setUser(updatedUser);
     localStorage.setItem("autosales-user", JSON.stringify(updatedUser));
-    localStorage.setItem("autosales-user-role", role);
   };
+  
+  const reloadUser = useCallback(async () => {
+    if (auth?.currentUser) {
+        setLoading(true);
+        await fetchUserRole(auth.currentUser);
+        setLoading(false);
+    }
+  }, [auth, fetchUserRole]);
 
   const value = useMemo(
     () => ({ user, loading, login, logout, setUserRole, reloadUser }),
-    [user, loading]
+    [user, loading, reloadUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
