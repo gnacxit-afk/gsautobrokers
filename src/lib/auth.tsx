@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from "react";
@@ -27,7 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const { auth } = useFirebase();
 
-  const fetchUserRole = useCallback(async (firebaseUser: FirebaseUser) => {
+  const fetchUserRole = useCallback(async (firebaseUser: FirebaseUser): Promise<User | null> => {
     if (!firestore) return null;
     const staffDocRef = doc(firestore, 'staff', firebaseUser.uid);
     const staffDoc = await getDoc(staffDocRef);
@@ -40,25 +41,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             avatarUrl: staffData.avatarUrl,
             role: staffData.role
         };
-        setUser(appUser);
-        localStorage.setItem("autosales-user", JSON.stringify(appUser));
-    } else {
-        // Handle case where user exists in Auth but not in 'staff' collection
-        setUser(null);
-    }
+       return appUser;
+    } 
+    return null;
   }, [firestore]);
 
 
   useEffect(() => {
     if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        await fetchUserRole(firebaseUser);
-      } else {
+      try {
+        if (firebaseUser) {
+          const appUser = await fetchUserRole(firebaseUser);
+          setUser(appUser);
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
         setUser(null);
-        localStorage.removeItem("autosales-user");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -79,24 +83,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!auth) return null;
     const userCredential = await signInWithEmailAndPassword(auth, email, pass);
     if (userCredential.user) {
-        await fetchUserRole(userCredential.user);
-        // The user state will be set by the onAuthStateChanged listener,
-        // but we can optimistically return it here after fetching.
-        if (firestore) {
-            const staffDocRef = doc(firestore, 'staff', userCredential.user.uid);
-            const staffDoc = await getDoc(staffDocRef);
-             if (staffDoc.exists()) {
-                const staffData = staffDoc.data() as Staff;
-                const appUser: User = {
-                    id: userCredential.user.uid,
-                    name: staffData.name,
-                    email: staffData.email,
-                    avatarUrl: staffData.avatarUrl,
-                    role: staffData.role
-                };
-                return appUser;
-            }
-        }
+        const appUser = await fetchUserRole(userCredential.user);
+        setUser(appUser);
+        return appUser;
     }
     return null;
   };
@@ -105,31 +94,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!auth) return;
     await signOut(auth);
     setUser(null);
-    localStorage.removeItem("autosales-user");
-    localStorage.removeItem("autosales-user-role"); // Also clear this if used
     router.push("/login");
   };
 
   const setUserRole = (role: Role) => {
-    // This is now primarily a front-end simulation for role switching if needed.
-    // The source of truth for the role is Firestore.
     if (!user) return;
     const updatedUser = { ...user, role };
     setUser(updatedUser);
-    localStorage.setItem("autosales-user", JSON.stringify(updatedUser));
   };
   
   const reloadUser = useCallback(async () => {
     if (auth?.currentUser) {
         setLoading(true);
-        await fetchUserRole(auth.currentUser);
+        const appUser = await fetchUserRole(auth.currentUser);
+        setUser(appUser)
         setLoading(false);
     }
   }, [auth, fetchUserRole]);
 
   const value = useMemo(
     () => ({ user, loading, login, logout, setUserRole, reloadUser }),
-    [user, loading, reloadUser]
+    [user, loading, reloadUser, login, logout, setUserRole]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -12,7 +13,7 @@ import { Logo } from "@/components/icons";
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const [email, setEmail] = useState("ava.johnson@example.com");
+  const [email, setEmail] = useState("liam.smith@example.com");
   const [password, setPassword] = useState("password123");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
