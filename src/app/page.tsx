@@ -104,7 +104,9 @@ export default function DashboardPage() {
                   <th className="pb-3 font-medium text-center">Sales</th>
                   <th className="pb-3 font-medium text-center">Conv.</th>
                   <th className="pb-3 font-medium text-right">To Pay</th>
-                  <th className="pb-3 font-medium text-right">Margin</th>
+                  {user?.role === 'Admin' && (
+                    <th className="pb-3 font-medium text-right">Margin</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -117,12 +119,14 @@ export default function DashboardPage() {
                       {data.leads > 0 ? ((data.sales / data.leads) * 100).toFixed(1) : 0}%
                     </td>
                     <td className="py-3 text-right text-amber-600 font-medium">${(data.sales * 500).toLocaleString()}</td>
-                    <td className="py-3 text-right text-emerald-600 font-medium">${(data.sales * 2500).toLocaleString()}</td>
+                    {user?.role === 'Admin' && (
+                      <td className="py-3 text-right text-emerald-600 font-medium">${(data.sales * 2500).toLocaleString()}</td>
+                    )}
                   </tr>
                 ))}
                  {topSellers.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="text-center py-8 text-gray-500">No seller data for this period.</td>
+                    <td colSpan={user?.role === 'Admin' ? 6 : 5} className="text-center py-8 text-gray-500">No seller data for this period.</td>
                   </tr>
                  )}
               </tbody>
