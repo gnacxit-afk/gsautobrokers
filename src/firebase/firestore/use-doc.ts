@@ -11,12 +11,14 @@ export const useDoc = <T extends DocumentData>(
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    // Only subscribe if the ref object is valid.
     if (!ref) {
+      setLoading(true);
       setData(null);
-      setLoading(false);
       return;
     }
-
+    
+    setLoading(true);
     const unsubscribe = onSnapshot(
       ref,
       (docSnapshot) => {
@@ -28,13 +30,14 @@ export const useDoc = <T extends DocumentData>(
         setLoading(false);
       },
       (err) => {
+        console.error("useDoc error:", err);
         setError(err);
         setLoading(false);
       }
     );
 
     return () => unsubscribe();
-  }, [ref]);
+  }, [ref ? ref.path : null]);
 
   return { data, loading, error };
 };

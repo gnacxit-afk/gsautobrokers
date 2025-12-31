@@ -29,8 +29,11 @@ export default function StaffProfilePage() {
 
   const [showPassword, setShowPassword] = useState(false);
   
-  const { data: staffMember, loading: staffMemberLoading } = useDoc(firestore ? doc(firestore, 'staff', staffId) : null);
-  const { data: allStaff, loading: allStaffLoading } = useCollection(firestore ? collection(firestore, 'staff') : null);
+  const staffDocRef = useMemo(() => firestore ? doc(firestore, 'staff', staffId) : null, [firestore, staffId]);
+  const allStaffCollectionRef = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
+
+  const { data: staffMember, loading: staffMemberLoading } = useDoc(staffDocRef);
+  const { data: allStaff, loading: allStaffLoading } = useCollection(allStaffCollectionRef);
 
   const [formData, setFormData] = useState<Partial<Staff>>(staffMember as Staff || {});
 

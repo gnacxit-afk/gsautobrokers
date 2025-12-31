@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from 'react';
 import { useCollection, useFirestore } from "@/firebase";
 import { KnowledgeBaseClient } from "./components/knowledge-base-client";
 import type { Article } from "@/lib/types";
@@ -7,7 +8,13 @@ import { collection, orderBy, query } from "firebase/firestore";
 
 export default function KnowledgeBasePage() {
   const firestore = useFirestore();
-  const articlesQuery = firestore ? query(collection(firestore, "articles"), orderBy("date", "desc")) : null;
+  
+  const articlesQuery = useMemo(() => 
+    firestore 
+      ? query(collection(firestore, "articles"), orderBy("date", "desc")) 
+      : null
+  , [firestore]);
+
   const { data: articles, loading } = useCollection(articlesQuery);
 
   return (

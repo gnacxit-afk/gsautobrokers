@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from 'react';
 import { KpiClient } from "./components/kpi-client";
 import { PerformanceDashboard } from "./components/performance-dashboard";
 import { BonusStatus } from "./components/bonus-status";
@@ -13,9 +14,13 @@ export default function KpiPage() {
   const firestore = useFirestore();
   const { user } = useAuth();
 
-  const { data: kpis, loading: kpisLoading } = useCollection(firestore ? collection(firestore, 'kpis') : null);
-  const { data: leads, loading: leadsLoading } = useCollection(firestore ? collection(firestore, 'leads') : null);
-  const { data: staff, loading: staffLoading } = useCollection(firestore ? collection(firestore, 'staff') : null);
+  const kpisQuery = useMemo(() => firestore ? collection(firestore, 'kpis') : null, [firestore]);
+  const leadsQuery = useMemo(() => firestore ? collection(firestore, 'leads') : null, [firestore]);
+  const staffQuery = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
+
+  const { data: kpis, loading: kpisLoading } = useCollection(kpisQuery);
+  const { data: leads, loading: leadsLoading } = useCollection(leadsQuery);
+  const { data: staff, loading: staffLoading } = useCollection(staffQuery);
 
   const loading = kpisLoading || leadsLoading || staffLoading;
 

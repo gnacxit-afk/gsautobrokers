@@ -26,8 +26,11 @@ export default function LeadsPage() {
     const { user } = useAuth();
     const firestore = useFirestore();
 
-    const { data: leadsData, loading: leadsLoading } = useCollection(firestore ? collection(firestore, 'leads') : null);
-    const { data: staffData, loading: staffLoading } = useCollection(firestore ? collection(firestore, 'staff') : null);
+    const leadsQuery = useMemo(() => firestore ? collection(firestore, 'leads') : null, [firestore]);
+    const staffQuery = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
+
+    const { data: leadsData, loading: leadsLoading } = useCollection(leadsQuery);
+    const { data: staffData, loading: staffLoading } = useCollection(staffQuery);
     
     const allLeads = useMemo(() => (leadsData as Lead[]) || [], [leadsData]);
     const allStaff = useMemo(() => (staffData as Staff[]) || [], [staffData]);
@@ -58,6 +61,7 @@ export default function LeadsPage() {
         }
 
         return visibleLeads.filter(l => {
+            if (!l.createdAt) return false;
             const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
             return leadDate >= dateRange.start && leadDate <= dateRange.end;
         });
