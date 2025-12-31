@@ -71,3 +71,10 @@ export type PerformanceMetric = {
   leadsDescartados: number;
   ventas: number;
 };
+
+export type BonusInfo = {
+  sales: number;
+  bonus: number;
+  nextGoal: number;
+  needed: number;
+};

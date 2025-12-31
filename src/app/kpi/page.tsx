@@ -1,6 +1,7 @@
 import { getKpis } from "@/lib/kpi-data";
 import { KpiClient } from "./components/kpi-client";
 import { PerformanceDashboard } from "./components/performance-dashboard";
+import { BonusStatus } from "./components/bonus-status";
 import { getLeads, getStaff } from "@/lib/mock-data";
 
 export default function KpiPage() {
@@ -23,6 +24,16 @@ export default function KpiPage() {
         </div>
       </div>
       
+       <div className="border-t pt-8">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+                <h1 className="text-2xl font-bold">Bonus Status</h1>
+                <p className="text-muted-foreground">Your sales bonus progress over the last 30 days.</p>
+            </div>
+          </div>
+          <BonusStatus allLeads={leads} />
+      </div>
+
       <div className="border-t pt-8">
          <div className="flex justify-between items-center mb-6">
           <div>

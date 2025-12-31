@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { calculateBonus } from '@/lib/utils';
 
 const calculateMetrics = (leads: Lead[]): Omit<PerformanceMetric, 'userId' | 'userName'> => {
     const leadsRecibidos = leads.length;
@@ -43,7 +44,7 @@ export function PerformanceDashboard({ allLeads, allStaff }: { allLeads: Lead[],
     const activeDateRange = user?.role === 'Admin' ? dateRange : todayRange;
 
     const performanceData = useMemo(() => {
-        const data: PerformanceMetric[] = [];
+        const data: (PerformanceMetric & { bonus: number })[] = [];
         
         const staffToDisplay = allStaff.filter(s => s.role === 'Broker' || s.role === 'Supervisor');
 
@@ -56,11 +57,13 @@ export function PerformanceDashboard({ allLeads, allStaff }: { allLeads: Lead[],
             });
             
             const metrics = calculateMetrics(userLeads);
+            const bonus = calculateBonus(metrics.ventas);
             
             data.push({
                 userId: staffMember.id,
                 userName: staffMember.name,
-                ...metrics
+                ...metrics,
+                bonus
             });
         });
 
@@ -136,6 +139,7 @@ export function PerformanceDashboard({ allLeads, allStaff }: { allLeads: Lead[],
                             <TableHead className="text-center">Citas Confirmadas</TableHead>
                             <TableHead className="text-center">Leads Descartados</TableHead>
                             <TableHead className="text-center">Ventas</TableHead>
+                            {user.role === 'Admin' && <TableHead className="text-center">Bonus</TableHead>}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -148,11 +152,12 @@ export function PerformanceDashboard({ allLeads, allStaff }: { allLeads: Lead[],
                                 <TableCell className="text-center">{data.citasConfirmadas}</TableCell>
                                 <TableCell className="text-center">{data.leadsDescartados}</TableCell>
                                 <TableCell className="text-center font-bold text-green-600">{data.ventas}</TableCell>
+                                {user.role === 'Admin' && <TableCell className="text-center font-bold text-violet-600">${data.bonus.toLocaleString()}</TableCell>}
                             </TableRow>
                         ))}
                          {filteredData.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={7} className="h-24 text-center">
+                                <TableCell colSpan={user.role === 'Admin' ? 8 : 7} className="h-24 text-center">
                                     No performance data for the selected criteria.
                                 </TableCell>
                             </TableRow>

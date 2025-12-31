@@ -4,8 +4,9 @@ import { useMemo } from 'react';
 import { getLeads, getStaff, REVENUE_PER_VEHICLE, COMMISSION_PER_VEHICLE, MARGIN_PER_VEHICLE } from "@/lib/mock-data";
 import { useDateRange } from '@/hooks/use-date-range';
 import { useAuth } from '@/lib/auth';
-import { Users, BarChart3 } from "lucide-react";
+import { Users, BarChart3, Award } from "lucide-react";
 import type { Lead } from '@/lib/types';
+import { calculateBonus } from '@/lib/utils';
 
 const StatCard = ({ label, value, color }: { label: string, value: string | number, color: string }) => {
   const colors: { [key: string]: string } = {
@@ -15,6 +16,7 @@ const StatCard = ({ label, value, color }: { label: string, value: string | numb
     amber: "text-amber-600 bg-amber-50 border-amber-100",
     emerald: "text-emerald-600 bg-emerald-50 border-emerald-100",
     rose: "text-rose-600 bg-rose-50 border-rose-100",
+    violet: "text-violet-600 bg-violet-50 border-violet-100",
   };
   return (
     <div className={`p-5 rounded-2xl border ${colors[color] || colors.blue} shadow-sm`}>
@@ -32,7 +34,7 @@ export default function DashboardPage() {
   const allStaff = getStaff();
 
   const stats = useMemo(() => {
-    if (!user) return { totalLeads: 0, closedSales: 0, conversion: 0, totalRevenue: 0, totalCommissions: 0, totalMargin: 0, channels: {}, sellerStats: {} };
+    if (!user) return { totalLeads: 0, closedSales: 0, conversion: 0, totalRevenue: 0, totalCommissions: 0, totalMargin: 0, totalBonuses: 0, channels: {}, sellerStats: {} };
 
     const visibleLeads = allLeads.filter(lead => {
       if (user.role === 'Admin') return true;
@@ -54,7 +56,22 @@ export default function DashboardPage() {
     const conversion = totalLeads > 0 ? (closedSales / totalLeads) * 100 : 0;
     const totalRevenue = closedSales * REVENUE_PER_VEHICLE;
     const totalCommissions = closedSales * COMMISSION_PER_VEHICLE;
-    const totalMargin = closedSales * MARGIN_PER_VEHICLE;
+
+    const sellerStats: { [key: string]: { leads: number; sales: number; id: string; bonus: number } } = {};
+    filteredLeads.forEach(l => {
+      if (!sellerStats[l.ownerName]) sellerStats[l.ownerName] = { leads: 0, sales: 0, id: l.ownerId, bonus: 0 };
+      sellerStats[l.ownerName].leads++;
+      if (l.status === 'Closed' || l.status === 'Sale') sellerStats[l.ownerName].sales++;
+    });
+
+    let totalBonuses = 0;
+    Object.keys(sellerStats).forEach(name => {
+      const bonus = calculateBonus(sellerStats[name].sales);
+      sellerStats[name].bonus = bonus;
+      totalBonuses += bonus;
+    });
+
+    const totalMargin = (closedSales * MARGIN_PER_VEHICLE) - totalBonuses;
 
     const channels: { [key: string]: { leads: number; sales: number } } = {};
     filteredLeads.forEach(l => {
@@ -63,15 +80,8 @@ export default function DashboardPage() {
       if (l.status === 'Closed' || l.status === 'Sale') channels[l.channel].sales++;
     });
 
-    const sellerStats: { [key: string]: { leads: number; sales: number; id: string } } = {};
-    filteredLeads.forEach(l => {
-      if (!sellerStats[l.ownerName]) sellerStats[l.ownerName] = { leads: 0, sales: 0, id: l.ownerId };
-      sellerStats[l.ownerName].leads++;
-      if (l.status === 'Closed' || l.status === 'Sale') sellerStats[l.ownerName].sales++;
-    });
-
     return {
-      totalLeads, closedSales, conversion, totalRevenue, totalCommissions, totalMargin,
+      totalLeads, closedSales, conversion, totalRevenue, totalCommissions, totalMargin, totalBonuses,
       channels, sellerStats
     };
   }, [allLeads, allStaff, dateRange, user]);
@@ -81,13 +91,14 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div className={`grid grid-cols-1 md:grid-cols-3 ${user?.role === 'Admin' ? 'lg:grid-cols-6' : 'lg:grid-cols-4'} gap-4`}>
+       <div className={`grid grid-cols-1 md:grid-cols-3 ${user?.role === 'Admin' ? 'lg:grid-cols-7' : 'lg:grid-cols-4'} gap-4`}>
         <StatCard label="Total Leads" value={stats.totalLeads} color="blue" />
         <StatCard label="Closed Sales" value={stats.closedSales} color="green" />
         <StatCard label="Conversion" value={`${stats.conversion.toFixed(1)}%`} color="indigo" />
         <StatCard label="Commissions" value={`$${stats.totalCommissions.toLocaleString()}`} color="amber" />
         {user?.role === 'Admin' && (
           <>
+            <StatCard label="Total Bonuses" value={`$${stats.totalBonuses.toLocaleString()}`} color="violet" />
             <StatCard label="Gross Margin" value={`$${stats.totalMargin.toLocaleString()}`} color="emerald" />
             <StatCard label="Total Revenue" value={`$${stats.totalRevenue.toLocaleString()}`} color="rose" />
           </>
@@ -109,7 +120,10 @@ export default function DashboardPage() {
                   <th className="pb-3 font-medium text-center">Conv.</th>
                   <th className="pb-3 font-medium text-right">To Pay</th>
                   {user?.role === 'Admin' && (
-                    <th className="pb-3 font-medium text-right">Margin</th>
+                    <>
+                      <th className="pb-3 font-medium text-right">Bonus</th>
+                      <th className="pb-3 font-medium text-right">Margin</th>
+                    </>
                   )}
                 </tr>
               </thead>
@@ -124,13 +138,16 @@ export default function DashboardPage() {
                     </td>
                     <td className="py-3 text-right text-amber-600 font-medium">${(data.sales * COMMISSION_PER_VEHICLE).toLocaleString()}</td>
                     {user?.role === 'Admin' && (
-                      <td className="py-3 text-right text-emerald-600 font-medium">${(data.sales * MARGIN_PER_VEHICLE).toLocaleString()}</td>
+                      <>
+                        <td className="py-3 text-right text-violet-600 font-medium">${data.bonus.toLocaleString()}</td>
+                        <td className="py-3 text-right text-emerald-600 font-medium">${((data.sales * MARGIN_PER_VEHICLE) - data.bonus).toLocaleString()}</td>
+                      </>
                     )}
                   </tr>
                 ))}
                  {topSellers.length === 0 && (
                   <tr>
-                    <td colSpan={user?.role === 'Admin' ? 6 : 5} className="text-center py-8 text-gray-500">No seller data for this period.</td>
+                    <td colSpan={user?.role === 'Admin' ? 7 : 5} className="text-center py-8 text-gray-500">No seller data for this period.</td>
                   </tr>
                  )}
               </tbody>
