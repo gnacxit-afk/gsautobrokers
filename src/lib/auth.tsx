@@ -5,11 +5,11 @@ import { useRouter, usePathname } from "next/navigation";
 import type { Role, Staff } from "./types";
 import { useUser, useAuth as useFirebaseAuth, useFirestore } from '@/firebase';
 import { doc, getDoc } from "firebase/firestore";
+import { signOut } from "firebase/auth";
 
 interface AuthContextType {
   user: Staff | null;
   loading: boolean;
-  login: (email: string, password_not_used: string) => Promise<Staff | null>; // This is now a mock, will be replaced
   logout: () => void;
   setUserRole: (role: Role) => void;
   reloadUser: () => void;
@@ -73,18 +73,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, pathname, router]);
 
-
-  const login = async (email: string, password_not_used: string): Promise<Staff | null> => {
-    // This is just a placeholder now. Login is handled by FirebaseUI or other Firebase methods.
-    // The actual login happens on the login page now.
-    // This function can be removed or repurposed. For now, it does nothing.
-    console.error("The mock login function was called, but login is now handled by Firebase.");
-    return null;
-  };
-
   const logout = () => {
     if (firebaseAuth) {
-        firebaseAuth.signOut();
+        signOut(firebaseAuth);
     }
     setUser(null);
     localStorage.removeItem('autosales-user-role');
@@ -100,7 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('autosales-user-role', role);
   };
 
-  const value = useMemo(() => ({ user, loading, login, logout, setUserRole, reloadUser }), [user, loading]);
+  const value = useMemo(() => ({ user, loading, logout, setUserRole, reloadUser }), [user, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
