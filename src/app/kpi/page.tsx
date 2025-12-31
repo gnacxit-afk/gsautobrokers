@@ -14,9 +14,9 @@ export default function KpiPage() {
   const firestore = useFirestore();
   const { user } = useAuth();
 
-  const kpisQuery = collection(firestore, 'kpis');
-  const leadsQuery = collection(firestore, 'leads');
-  const staffQuery = collection(firestore, 'staff');
+  const kpisQuery = useMemo(() => firestore ? collection(firestore, 'kpis') : null, [firestore]);
+  const leadsQuery = useMemo(() => firestore ? collection(firestore, 'leads') : null, [firestore]);
+  const staffQuery = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
 
   const { data: kpis, loading: kpisLoading } = useCollection(kpisQuery);
   const { data: leads, loading: leadsLoading } = useCollection(leadsQuery);

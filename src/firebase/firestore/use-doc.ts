@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { onSnapshot, type DocumentReference, type DocumentData } from 'firebase/firestore';
 
 export const useDoc = <T extends DocumentData>(
-  ref: DocumentReference<T>
+  ref: DocumentReference<T> | null
 ) => {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -12,7 +12,10 @@ export const useDoc = <T extends DocumentData>(
 
   useEffect(() => {
     // Only subscribe if the ref object is valid.
-    if (!ref) return;
+    if (!ref) {
+      setLoading(false);
+      return;
+    };
     
     setLoading(true);
     const unsubscribe = onSnapshot(
@@ -33,7 +36,7 @@ export const useDoc = <T extends DocumentData>(
     );
 
     return () => unsubscribe();
-  }, [ref ? ref.path : null]);
+  }, [ref]);
 
   return { data, loading, error };
 };

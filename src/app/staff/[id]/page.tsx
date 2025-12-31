@@ -29,8 +29,8 @@ export default function StaffProfilePage() {
 
   const [showPassword, setShowPassword] = useState(false);
   
-  const staffDocRef = doc(firestore, 'staff', staffId);
-  const allStaffCollectionRef = collection(firestore, 'staff');
+  const staffDocRef = useMemo(() => firestore ? doc(firestore, 'staff', staffId) : null, [firestore, staffId]);
+  const allStaffCollectionRef = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
 
   const { data: staffMember, loading: staffMemberLoading } = useDoc(staffDocRef);
   const { data: allStaff, loading: allStaffLoading } = useCollection(allStaffCollectionRef);
@@ -105,13 +105,12 @@ export default function StaffProfilePage() {
   };
 
   const handleSaveChanges = async () => {
-    if (!firestore) return;
+    if (!firestore || !staffDocRef) return;
     try {
-        const staffRef = doc(firestore, 'staff', staffId);
         // Note: Password update would require a separate, secure flow with Firebase Auth, not just Firestore.
         const { password, ...updateData } = formData;
         
-        await updateDoc(staffRef, updateData);
+        await updateDoc(staffDocRef, updateData);
         
         toast({
             title: "Profile Updated",
@@ -137,9 +136,9 @@ export default function StaffProfilePage() {
   };
 
   const handleDelete = async () => {
-    if (!firestore) return;
+    if (!firestore || !staffDocRef) return;
     try {
-      await deleteDoc(doc(firestore, 'staff', staffId));
+      await deleteDoc(staffDocRef);
       toast({
         title: "Profile Deleted",
         description: `The profile for ${formData.name} has been permanently removed.`,

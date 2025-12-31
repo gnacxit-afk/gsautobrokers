@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { onSnapshot, type Query, type DocumentData } from 'firebase/firestore';
 
 export const useCollection = <T extends DocumentData>(
-  q: Query<T>
+  q: Query<T> | null
 ) => {
   const [data, setData] = useState<T[] | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -12,7 +12,10 @@ export const useCollection = <T extends DocumentData>(
 
   useEffect(() => {
     // Only subscribe if the query object is valid.
-    if (!q) return;
+    if (!q) {
+      setLoading(false);
+      return;
+    };
     
     setLoading(true);
     const unsubscribe = onSnapshot(
@@ -34,7 +37,7 @@ export const useCollection = <T extends DocumentData>(
 
     return () => unsubscribe();
   // The dependency array now correctly includes `q` stringified to re-run when the query changes.
-  }, [q ? q.path : null, q ? JSON.stringify(q.where) : null]);
+  }, [q]);
 
   return { data, loading, error };
 };
