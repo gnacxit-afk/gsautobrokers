@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import type { NavItem as NavItemType, Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { DateRangePicker } from "./date-range-picker";
+import { HeaderActions } from "./header-actions";
 import { RoleSwitcher } from "./role-switcher";
 import { Logo } from "../icons";
 
@@ -159,7 +159,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <h2 className="text-xl font-semibold text-slate-800 capitalize">{getPageTitle()}</h2>
           </div>
           <div className="flex items-center gap-4">
-            {showDateFilter && <DateRangePicker />}
+            <HeaderActions showDateFilter={showDateFilter} page={pathname} />
           </div>
         </header>
 

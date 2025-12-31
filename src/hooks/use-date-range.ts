@@ -1,7 +1,7 @@
 "use client";
 
 import { useContext } from 'react';
-import { DateRangeContext } from '@/providers/date-range-provider';
+import { DateRangeContext, DEFAULT_DATE_RANGE } from '@/providers/date-range-provider';
 
 export const useDateRange = () => {
   const context = useContext(DateRangeContext);
@@ -10,3 +10,5 @@ export const useDateRange = () => {
   }
   return context;
 };
+
+export { DEFAULT_DATE_RANGE };

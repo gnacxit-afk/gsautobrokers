@@ -11,15 +11,18 @@ export interface DateRange {
 interface DateRangeContextType {
   dateRange: DateRange;
   setDateRange: React.Dispatch<React.SetStateAction<DateRange>>;
+  clearAllFilters?: () => void;
 }
 
 export const DateRangeContext = createContext<DateRangeContextType | undefined>(undefined);
 
+export const DEFAULT_DATE_RANGE = {
+  start: subDays(new Date(), 30),
+  end: new Date(),
+};
+
 export function DateRangeProvider({ children }: { children: React.ReactNode }) {
-  const [dateRange, setDateRange] = useState<DateRange>({
-    start: subDays(new Date(), 30),
-    end: new Date(),
-  });
+  const [dateRange, setDateRange] = useState<DateRange>(DEFAULT_DATE_RANGE);
 
   const value = useMemo(() => ({ dateRange, setDateRange }), [dateRange]);
 

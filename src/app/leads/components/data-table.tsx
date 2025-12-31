@@ -24,13 +24,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, X } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { NewLeadDialog } from "./new-lead-dialog";
 import { Input } from "@/components/ui/input";
 import type { Lead, Staff } from "@/lib/types";
 import { RenderSubComponent } from "./render-sub-component";
-import { DateRange } from "@/providers/date-range-provider";
-import { subDays } from "date-fns";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -40,7 +38,7 @@ interface DataTableProps<TData, TValue> {
   staff: Staff[];
   statuses: Lead['status'][];
   channels: Lead['channel'][];
-  setDateRange: React.Dispatch<React.SetStateAction<DateRange>>;
+  clearAllFilters: () => void;
 }
 
 export function DataTable<TData extends Lead, TValue>({
@@ -51,7 +49,6 @@ export function DataTable<TData extends Lead, TValue>({
   staff,
   statuses,
   channels,
-  setDateRange,
 }: DataTableProps<TData, TValue>) {
   
   const [isNewLeadDialogOpen, setNewLeadDialogOpen] = React.useState(false);
@@ -65,13 +62,6 @@ export function DataTable<TData extends Lead, TValue>({
   const setOwnerFilter = (value: string) => table.getColumn("ownerName")?.setFilterValue(value);
   const setStatusFilter = (value: string) => table.getColumn("status")?.setFilterValue(value);
   const setChannelFilter = (value: string) => table.getColumn("channel")?.setFilterValue(value);
-  
-  const clearFilters = () => {
-    table.resetColumnFilters();
-    setDateRange({ start: subDays(new Date(), 30), end: new Date() });
-  };
-
-  const isFiltered = !!ownerFilter || !!statusFilter || !!channelFilter;
 
   return (
     <div className="space-y-6">
@@ -128,7 +118,6 @@ export function DataTable<TData extends Lead, TValue>({
                         </SelectContent>
                     </Select>
                 </div>
-                {isFiltered && <Button variant="ghost" onClick={clearFilters} className="w-full sm:w-auto"><X size={16} />Clear Filters</Button>}
             </div>
         </div>
       <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">

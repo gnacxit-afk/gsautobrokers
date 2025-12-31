@@ -16,7 +16,7 @@ import {
   type SortingState,
   type ColumnFiltersState,
 } from '@tanstack/react-table';
-import { useDateRange } from "@/hooks/use-date-range";
+import { useDateRange, DEFAULT_DATE_RANGE } from "@/hooks/use-date-range";
 
 const leadStatuses: Lead['status'][] = ["New", "Contacted", "Qualified", "On the way", "On site", "Sale", "Closed", "Lost"];
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
@@ -110,6 +110,12 @@ export default function LeadsPage() {
       },
     });
 
+    const clearAllFilters = useCallback(() => {
+      table.resetColumnFilters();
+      setGlobalFilter('');
+      setDateRange(DEFAULT_DATE_RANGE);
+    }, [table, setDateRange]);
+
     return (
         <main className="flex flex-1 flex-col gap-4">
             <DataTable 
@@ -120,7 +126,7 @@ export default function LeadsPage() {
                 staff={allStaff}
                 statuses={leadStatuses}
                 channels={channels}
-                setDateRange={setDateRange}
+                clearAllFilters={clearAllFilters}
             />
         </main>
     );
