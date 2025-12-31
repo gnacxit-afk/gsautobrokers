@@ -2,14 +2,13 @@
 
 import React, { createContext, useContext, useState, useMemo, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import type { Role, Staff } from "./types";
-import { useUser, useAuth as useFirebaseAuth, useFirestore } from '@/firebase';
-import { doc, getDoc } from "firebase/firestore";
-import { signOut } from "firebase/auth";
+import { getStaff } from "./mock-data";
+import type { Role, Staff, User } from "./types";
 
 interface AuthContextType {
-  user: Staff | null;
+  user: User | null;
   loading: boolean;
+  login: (email: string, pass: string) => User | null;
   logout: () => void;
   setUserRole: (role: Role) => void;
   reloadUser: () => void;
@@ -18,51 +17,32 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<Staff | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
-  const firebaseAuth = useFirebaseAuth();
-  const firestore = useFirestore();
-  const { user: firebaseUser, loading: firebaseUserLoading } = useUser();
 
-  const reloadUser = async () => {
-    if (firebaseUser && firestore) {
-      const userDoc = await getDoc(doc(firestore, 'staff', firebaseUser.uid));
-      if (userDoc.exists()) {
-        const userData = { id: userDoc.id, ...userDoc.data() } as Staff;
-        setUser(userData);
-        localStorage.setItem('autosales-user-role', userData.role);
+  const reloadUser = () => {
+    // This is a mock function, in a real app this would re-fetch user data
+    // from a server or re-validate a token.
+    if (user) {
+      const allStaff = getStaff();
+      const updatedUser = allStaff.find(s => s.id === user.id) as Staff | undefined;
+      if (updatedUser) {
+        setUser(updatedUser);
       }
     }
-  };
+  }
+
 
   useEffect(() => {
-    const fetchUser = async () => {
-      if (firebaseUser && firestore) {
-        const userDoc = await getDoc(doc(firestore, 'staff', firebaseUser.uid));
-        if (userDoc.exists()) {
-           const userData = { id: userDoc.id, ...userDoc.data() } as Staff;
-           const storedRole = localStorage.getItem('autosales-user-role') as Role;
-           // If a role is stored and valid, use it. Otherwise, use the one from DB.
-           if (storedRole && ["Admin", "Supervisor", "Broker"].includes(storedRole)) {
-             setUser({ ...userData, role: storedRole });
-           } else {
-             setUser(userData);
-           }
-        } else {
-            setUser(null); // No staff profile found
-        }
-      } else if (!firebaseUser) {
-        setUser(null);
-      }
-      setLoading(false);
+    // Simulate checking for a logged-in user
+    const loggedInUser = localStorage.getItem("autosales-user");
+    if (loggedInUser) {
+      setUser(JSON.parse(loggedInUser));
     }
-    if (!firebaseUserLoading) {
-        fetchUser();
-    }
-  }, [firebaseUser, firestore, firebaseUserLoading]);
-
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     if (!loading && !user && pathname !== "/login") {
@@ -73,25 +53,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, pathname, router]);
 
+  const login = (email: string, pass: string): User | null => {
+    // The actual login happens on the login page now.
+    // This function can be removed or repurposed. For now, it does nothing.
+    console.error("The mock login function was called, but login is now handled by Firebase.");
+    return null;
+  };
+
   const logout = () => {
-    if (firebaseAuth) {
-        signOut(firebaseAuth);
-    }
     setUser(null);
-    localStorage.removeItem('autosales-user-role');
+    localStorage.removeItem("autosales-user");
+    localStorage.removeItem("autosales-user-role");
     router.push("/login");
   };
 
   const setUserRole = (role: Role) => {
     // This simulates switching roles for a user who might have multiple.
-    // In a real app, this might involve changing custom claims.
+    // In a real app, this might involve changing JWT claims.
     if (!user) return;
     const updatedUser = { ...user, role };
     setUser(updatedUser);
-    localStorage.setItem('autosales-user-role', role);
+    localStorage.setItem("autosales-user", JSON.stringify(updatedUser));
+    localStorage.setItem("autosales-user-role", role);
   };
 
-  const value = useMemo(() => ({ user, loading, logout, setUserRole, reloadUser }), [user, loading]);
+  const value = useMemo(
+    () => ({ user, loading, login, logout, setUserRole, reloadUser }),
+    [user, loading]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { onSnapshot, type DocumentReference, type DocumentData } from 'firebase/firestore';
 
 export const useDoc = <T extends DocumentData>(
-  ref: DocumentReference<T> | null
+  ref: DocumentReference<T>
 ) => {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -12,11 +12,7 @@ export const useDoc = <T extends DocumentData>(
 
   useEffect(() => {
     // Only subscribe if the ref object is valid.
-    if (!ref) {
-      setLoading(true);
-      setData(null);
-      return;
-    }
+    if (!ref) return;
     
     setLoading(true);
     const unsubscribe = onSnapshot(

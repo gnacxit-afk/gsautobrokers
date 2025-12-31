@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { onSnapshot, type Query, type DocumentData } from 'firebase/firestore';
 
 export const useCollection = <T extends DocumentData>(
-  q: Query<T> | null
+  q: Query<T>
 ) => {
   const [data, setData] = useState<T[] | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -12,14 +12,7 @@ export const useCollection = <T extends DocumentData>(
 
   useEffect(() => {
     // Only subscribe if the query object is valid.
-    if (!q) {
-      // If the query is null, it means we're not ready to fetch, 
-      // but it's not an error. We just wait.
-      // We set loading to true to indicate we are not yet done.
-      setLoading(true);
-      setData(null);
-      return;
-    }
+    if (!q) return;
     
     setLoading(true);
     const unsubscribe = onSnapshot(

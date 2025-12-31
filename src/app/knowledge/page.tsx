@@ -9,12 +9,7 @@ import { collection, orderBy, query } from "firebase/firestore";
 export default function KnowledgeBasePage() {
   const firestore = useFirestore();
   
-  const articlesQuery = useMemo(() => 
-    firestore 
-      ? query(collection(firestore, "articles"), orderBy("date", "desc")) 
-      : null
-  , [firestore]);
-
+  const articlesQuery = query(collection(firestore, "articles"), orderBy("date", "desc"));
   const { data: articles, loading } = useCollection(articlesQuery);
 
   return (

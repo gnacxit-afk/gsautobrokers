@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth as useFirebaseAuth } from "@/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,31 +11,25 @@ import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/icons";
 
 export default function LoginPage() {
-  const auth = useFirebaseAuth();
+  const { login } = useAuth();
   const [email, setEmail] = useState("gnacxit@gmail.com");
   const [password, setPassword] = useState("annagcexlit.5691");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // The AuthProvider will handle redirection on successful login
-    } catch (error: any) {
-        let description = "Something went wrong during login.";
-        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-            description = "Invalid email or password. Please try again.";
-        }
-        toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: description,
-        });
-    } finally {
-      setLoading(false);
+    const user = login(email, password);
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: "Invalid email or password. Please try again.",
+      });
     }
+    // AuthProvider will handle redirection on successful login
+    setLoading(false);
   };
 
   return (
