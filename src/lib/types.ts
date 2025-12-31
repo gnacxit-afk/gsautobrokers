@@ -60,3 +60,14 @@ export type KPI = {
   target: string;
   description: string;
 };
+
+export type PerformanceMetric = {
+  userId: string;
+  userName: string;
+  leadsRecibidos: number;
+  numerosObtenidos: number;
+  citasAgendadas: number;
+  citasConfirmadas: number;
+  leadsDescartados: number;
+  ventas: number;
+};
