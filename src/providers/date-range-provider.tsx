@@ -3,7 +3,7 @@
 import React, { createContext, useState, useMemo } from 'react';
 import { subDays } from 'date-fns';
 
-interface DateRange {
+export interface DateRange {
   start: Date;
   end: Date;
 }

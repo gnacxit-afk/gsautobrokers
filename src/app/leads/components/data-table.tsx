@@ -29,6 +29,8 @@ import { NewLeadDialog } from "./new-lead-dialog";
 import { Input } from "@/components/ui/input";
 import type { Lead, Staff } from "@/lib/types";
 import { RenderSubComponent } from "./render-sub-component";
+import { DateRange } from "@/providers/date-range-provider";
+import { subDays } from "date-fns";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -38,6 +40,7 @@ interface DataTableProps<TData, TValue> {
   staff: Staff[];
   statuses: Lead['status'][];
   channels: Lead['channel'][];
+  setDateRange: React.Dispatch<React.SetStateAction<DateRange>>;
 }
 
 export function DataTable<TData extends Lead, TValue>({
@@ -47,7 +50,8 @@ export function DataTable<TData extends Lead, TValue>({
   onAddLead,
   staff,
   statuses,
-  channels
+  channels,
+  setDateRange,
 }: DataTableProps<TData, TValue>) {
   
   const [isNewLeadDialogOpen, setNewLeadDialogOpen] = React.useState(false);
@@ -64,6 +68,7 @@ export function DataTable<TData extends Lead, TValue>({
   
   const clearFilters = () => {
     table.resetColumnFilters();
+    setDateRange({ start: subDays(new Date(), 30), end: new Date() });
   };
 
   const isFiltered = !!ownerFilter || !!statusFilter || !!channelFilter;

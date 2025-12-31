@@ -23,7 +23,7 @@ const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'O
 
 export default function LeadsPage() {
     const { user } = useAuth();
-    const { dateRange } = useDateRange();
+    const { dateRange, setDateRange } = useDateRange();
     const allLeads = useMemo(() => getLeads(), []);
     const allStaff = useMemo(() => getStaff(), []);
 
@@ -120,6 +120,7 @@ export default function LeadsPage() {
                 staff={allStaff}
                 statuses={leadStatuses}
                 channels={channels}
+                setDateRange={setDateRange}
             />
         </main>
     );
