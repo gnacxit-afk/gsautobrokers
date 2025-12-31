@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { deleteStaffMember, getStaff, updateStaffMember } from "@/lib/mock-data";
 import type { Staff, Role } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import { AccessDenied } from "@/components/access-denied";
@@ -14,6 +13,9 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, UserCircle2, Eye, EyeOff, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useCollection, useDoc, useFirestore } from "@/firebase";
+import { collection, deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const roles: Role[] = ["Admin", "Supervisor", "Broker"];
 
@@ -23,32 +25,59 @@ export default function StaffProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
   const staffId = params.id as string;
+  const firestore = useFirestore();
 
-  // Use a state for staff list to ensure re-renders on update
-  const [allStaff, setAllStaff] = useState(() => getStaff());
   const [showPassword, setShowPassword] = useState(false);
   
-  // Effect to refetch staff if needed, e.g., after an update
-  useEffect(() => {
-    // This is a simple way to refresh. In a real app, this might be triggered by an event.
-    setAllStaff(getStaff());
-  }, []);
+  const { data: staffMember, loading: staffMemberLoading } = useDoc(firestore ? doc(firestore, 'staff', staffId) : null);
+  const { data: allStaff, loading: allStaffLoading } = useCollection(firestore ? collection(firestore, 'staff') : null);
 
-
-  const staffMember = useMemo(() => allStaff.find(s => s.id === staffId), [allStaff, staffId]);
-
-  const [formData, setFormData] = useState<Partial<Staff>>(staffMember || {});
+  const [formData, setFormData] = useState<Partial<Staff>>(staffMember as Staff || {});
 
   useEffect(() => {
-    setFormData(staffMember || {});
+    if (staffMember) {
+      setFormData(staffMember as Staff);
+    }
   }, [staffMember]);
 
 
-  const supervisors = useMemo(() => allStaff.filter(s => s.role === 'Supervisor'), [allStaff]);
-  const admins = useMemo(() => allStaff.filter(s => s.role === 'Admin'), [allStaff]);
+  const supervisors = useMemo(() => (allStaff as Staff[] || []).filter(s => s.role === 'Supervisor'), [allStaff]);
+  const admins = useMemo(() => (allStaff as Staff[] || []).filter(s => s.role === 'Admin'), [allStaff]);
 
   if (user?.role !== 'Admin') {
     return <AccessDenied />;
+  }
+
+  if (staffMemberLoading || allStaffLoading) {
+    return (
+        <main className="flex flex-1 flex-col gap-6">
+            <div className="flex items-center gap-4">
+                <Skeleton className="h-10 w-10" />
+                <Skeleton className="h-6 w-48" />
+            </div>
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center gap-4">
+                        <Skeleton className="h-16 w-16 rounded-full" />
+                        <div>
+                            <Skeleton className="h-8 w-40 mb-2" />
+                            <Skeleton className="h-4 w-32" />
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {[...Array(6)].map((_, i) => (
+                            <div key={i} className="space-y-2">
+                                <Skeleton className="h-4 w-20" />
+                                <Skeleton className="h-10 w-full" />
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+        </main>
+    )
   }
 
   if (!staffMember) {
@@ -72,31 +101,30 @@ export default function StaffProfilePage() {
     setFormData(prev => ({ ...prev, supervisorId }));
   };
 
-  const handleSaveChanges = () => {
-    const updated = updateStaffMember(staffId, formData);
-    if (updated) {
+  const handleSaveChanges = async () => {
+    if (!firestore) return;
+    try {
+        const staffRef = doc(firestore, 'staff', staffId);
+        // Note: Password update would require a separate, secure flow with Firebase Auth, not just Firestore.
+        const { password, ...updateData } = formData;
+        
+        await updateDoc(staffRef, updateData);
+        
         toast({
             title: "Profile Updated",
             description: `Details for ${formData.name} have been updated.`,
         });
-        
-        // This is a bit of a workaround for the mock data. In a real app,
-        // you'd probably refetch or use a state management library.
-        const updatedStaffList = getStaff();
-        setAllStaff(updatedStaffList);
 
-        // If the edited user is the current user, reload auth context
         if (user && user.id === staffId) {
             reloadUser();
         }
 
-        // If the ID (DUI) was changed, we need to navigate to the new URL
         if (formData.dui && formData.dui !== staffId) {
             router.replace(`/staff/${formData.dui}`);
         } else {
             router.refresh();
         }
-    } else {
+    } catch (error) {
         toast({
             title: "Update Failed",
             description: "Could not save changes.",
@@ -105,9 +133,10 @@ export default function StaffProfilePage() {
     }
   };
 
-  const handleDelete = () => {
-    const deleted = deleteStaffMember(staffId);
-    if(deleted) {
+  const handleDelete = async () => {
+    if (!firestore) return;
+    try {
+      await deleteDoc(doc(firestore, 'staff', staffId));
       toast({
         title: "Profile Deleted",
         description: `The profile for ${formData.name} has been permanently removed.`,
@@ -117,7 +146,7 @@ export default function StaffProfilePage() {
       } else {
         router.push('/staff');
       }
-    } else {
+    } catch (error) {
       toast({
         title: "Deletion Failed",
         description: "Could not delete the profile.",
@@ -159,10 +188,10 @@ export default function StaffProfilePage() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="dui">DUI</Label>
-                        <Input id="dui" value={formData.dui || ''} onChange={handleChange} />
+                        <Input id="dui" value={formData.dui || ''} onChange={handleChange} disabled />
                     </div>
                      <div className="space-y-2">
-                        <Label htmlFor="current-password">Current Password</Label>
+                        <Label htmlFor="current-password">User Password</Label>
                         <div className="relative">
                             <Input id="current-password" type={showPassword ? 'text' : 'password'} value={formData.password || ''} disabled className="bg-gray-100 pr-10" />
                             <Button 

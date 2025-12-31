@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -11,6 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { calculateBonus } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
+
 
 const calculateMetrics = (leads: Lead[]): Omit<PerformanceMetric, 'userId' | 'userName'> => {
     const leadsRecibidos = leads.length;
@@ -31,7 +32,7 @@ const calculateMetrics = (leads: Lead[]): Omit<PerformanceMetric, 'userId' | 'us
 };
 
 
-export function PerformanceDashboard({ allLeads, allStaff }: { allLeads: Lead[], allStaff: Staff[] }) {
+export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads: Lead[], allStaff: Staff[], loading: boolean }) {
     const { user } = useAuth();
     const { dateRange } = useDateRange();
     const [selectedUserId, setSelectedUserId] = useState<string>('all');
@@ -50,7 +51,7 @@ export function PerformanceDashboard({ allLeads, allStaff }: { allLeads: Lead[],
 
         staffToDisplay.forEach(staffMember => {
             const userLeads = allLeads.filter(lead => {
-                const leadDate = new Date(lead.createdAt);
+                const leadDate = (lead.createdAt as any).toDate ? (lead.createdAt as any).toDate() : new Date(lead.createdAt as string);
                 const isOwner = lead.ownerId === staffMember.id;
                 const isInDateRange = isWithinInterval(leadDate, activeDateRange);
                 return isOwner && isInDateRange;
@@ -92,6 +93,37 @@ export function PerformanceDashboard({ allLeads, allStaff }: { allLeads: Lead[],
 
     if (!user) return null;
 
+    if (loading) {
+        return (
+            <div className="space-y-4">
+                <div className="flex flex-col md:flex-row gap-4">
+                    <Skeleton className="h-10 w-full md:w-[300px]" />
+                    <Skeleton className="h-10 w-full md:w-[240px]" />
+                </div>
+                <div className="rounded-lg border bg-white">
+                     <Table>
+                        <TableHeader>
+                            <TableRow>
+                                {[...Array(user.role === 'Admin' ? 8 : 7)].map((_, i) => (
+                                    <TableHead key={i}><Skeleton className="h-5 w-20" /></TableHead>
+                                ))}
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {[...Array(3)].map((_, i) => (
+                                <TableRow key={i}>
+                                    {[...Array(user.role === 'Admin' ? 8 : 7)].map((_, j) => (
+                                        <TableCell key={j}><Skeleton className="h-5 w-full" /></TableCell>
+                                    ))}
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            </div>
+        )
+    }
+
     if (user.role === 'Broker') {
         const userData = filteredData[0]; // Broker sees only their data
         if (!userData) {
@@ -128,7 +160,7 @@ export function PerformanceDashboard({ allLeads, allStaff }: { allLeads: Lead[],
                     </Select>
                 </div>
             )}
-            <div className="rounded-lg border bg-white">
+            <div className="rounded-lg border bg-white overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow>

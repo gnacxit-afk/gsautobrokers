@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useTransition } from 'react';
-import { useAuth } from '@/lib/auth';
 import type { Article } from '@/lib/types';
 import { Search, Plus, Save, X, Edit2, Trash2, BookOpen, Wand2, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,8 @@ import { summarizeArticle } from "@/ai/flows/summarize-knowledge-base-articles";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth, useFirestore } from '@/firebase';
+import { collection, addDoc, serverTimestamp, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 
 function SummaryDisplay({ content }: { content: string }) {
   const [summary, setSummary] = useState<string | null>(null);
@@ -54,14 +55,19 @@ function SummaryDisplay({ content }: { content: string }) {
   );
 }
 
-export function KnowledgeBaseClient({ initialArticles }: { initialArticles: Article[] }) {
+export function KnowledgeBaseClient({ initialArticles, loading }: { initialArticles: Article[], loading: boolean }) {
   const { user } = useAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const [articles, setArticles] = useState(initialArticles);
   const [selected, setSelected] = useState<Article | null>(null);
   const [editing, setEditing] = useState(false);
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState<Omit<Article, 'id' | 'author' | 'date' | 'tags'>>({ title: '', category: '', content: '' });
+  
+  useEffect(() => {
+    setArticles(initialArticles);
+  }, [initialArticles]);
 
   const filteredKB = articles.filter(i => 
     i.title?.toLowerCase().includes(search.toLowerCase()) || 
@@ -76,34 +82,35 @@ export function KnowledgeBaseClient({ initialArticles }: { initialArticles: Arti
   }, [articles, selected]);
   
 
-  const handleSaveArticle = () => {
+  const handleSaveArticle = async () => {
     if (!draft.title || !draft.content || !draft.category) {
         toast({ title: "Missing Fields", description: "Please fill out title, category, and content.", variant: "destructive" });
         return;
     }
+
+    if (!firestore || !user) return;
+
     if (selected && editing) { // Editing existing article
-      const updatedArticle = { ...selected, ...draft };
-      setArticles(articles.map(a => a.id === selected.id ? updatedArticle : a));
-      setSelected(updatedArticle);
+      const articleRef = doc(firestore, 'articles', selected.id);
+      await updateDoc(articleRef, { ...draft });
+      setSelected({ ...selected, ...draft });
       toast({ title: "Article Updated", description: "Your changes have been saved." });
     } else { // Creating new article
-      const newArticle: Article = {
-        id: new Date().toISOString(),
+      const newArticleData = {
         ...draft,
         author: user.name,
-        date: new Date().toISOString(),
+        date: serverTimestamp(),
         tags: [],
       };
-      setArticles([newArticle, ...articles]);
-      setSelected(newArticle);
+      await addDoc(collection(firestore, 'articles'), newArticleData);
       toast({ title: "Article Created", description: "The new article has been added." });
     }
     setEditing(false);
   };
 
-  const handleDeleteArticle = (id: string) => {
-    if(window.confirm('Are you sure you want to delete this article?')) {
-        setArticles(articles.filter(a => a.id !== id));
+  const handleDeleteArticle = async (id: string) => {
+    if(window.confirm('Are you sure you want to delete this article?') && firestore) {
+        await deleteDoc(doc(firestore, 'articles', id));
         setSelected(null);
         setEditing(false);
         toast({ title: "Article Deleted", variant: "destructive" });
@@ -122,6 +129,14 @@ export function KnowledgeBaseClient({ initialArticles }: { initialArticles: Arti
       setEditing(true);
   }
 
+  const renderDate = (date: Article['date']) => {
+    if (!date) return 'N/A';
+    if (date instanceof Date) return date.toLocaleDateString();
+    if (typeof date === 'string') return new Date(date).toLocaleDateString();
+    // It's a Timestamp
+    return (date as any).toDate().toLocaleDateString();
+  }
+
   return (
     <div className="flex flex-col md:flex-row gap-8 h-[calc(100vh-8rem)]">
       <div className="w-full md:w-1/3 lg:w-1/4 space-y-4 flex flex-col">
@@ -133,7 +148,7 @@ export function KnowledgeBaseClient({ initialArticles }: { initialArticles: Arti
             value={search} onChange={e => setSearch(e.target.value)}
           />
         </div>
-        {user.role === 'Admin' && (
+        {user?.role === 'Admin' && (
           <Button 
             onClick={startNew}
             variant="outline"
@@ -143,22 +158,28 @@ export function KnowledgeBaseClient({ initialArticles }: { initialArticles: Arti
           </Button>
         )}
         <div className="bg-white border rounded-2xl divide-y flex-1 overflow-y-auto">
-          {filteredKB.map(item => (
-            <button 
-              key={item.id}
-              onClick={() => { setSelected(item); setEditing(false); }}
-              className={cn(
-                "w-full p-4 text-left hover:bg-blue-50 transition-colors flex justify-between items-center group",
-                selected?.id === item.id && !editing ? 'bg-blue-50 border-l-4 border-blue-600' : ''
-              )}
-            >
-              <div>
-                <p className="font-bold text-slate-700 line-clamp-1">{item.title}</p>
-                <p className="text-xs text-slate-400 uppercase tracking-wider">{item.category}</p>
-              </div>
-              <ChevronRight size={16} className="text-gray-300 group-hover:text-blue-500" />
-            </button>
-          ))}
+          {loading ? (
+            <div className="p-4 space-y-4">
+              {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+            </div>
+          ) : (
+            filteredKB.map(item => (
+              <button 
+                key={item.id}
+                onClick={() => { setSelected(item); setEditing(false); }}
+                className={cn(
+                  "w-full p-4 text-left hover:bg-blue-50 transition-colors flex justify-between items-center group",
+                  selected?.id === item.id && !editing ? 'bg-blue-50 border-l-4 border-blue-600' : ''
+                )}
+              >
+                <div>
+                  <p className="font-bold text-slate-700 line-clamp-1">{item.title}</p>
+                  <p className="text-xs text-slate-400 uppercase tracking-wider">{item.category}</p>
+                </div>
+                <ChevronRight size={16} className="text-gray-300 group-hover:text-blue-500" />
+              </button>
+            ))
+          )}
         </div>
       </div>
 
@@ -193,9 +214,9 @@ export function KnowledgeBaseClient({ initialArticles }: { initialArticles: Arti
               <div>
                 <span className="bg-blue-50 text-blue-600 rounded-full text-xs font-bold uppercase tracking-widest not-prose px-3 py-1">{selected.category}</span>
                 <h2 className="mt-3">{selected.title}</h2>
-                <p className="text-sm text-muted-foreground">By {selected.author} on {new Date(selected.date).toLocaleDateString()}</p>
+                <p className="text-sm text-muted-foreground">By {selected.author} on {renderDate(selected.date)}</p>
               </div>
-              {user.role === 'Admin' && (
+              {user?.role === 'Admin' && (
                 <div className="flex gap-2 not-prose">
                   <Button onClick={startEdit} variant="outline" size="icon"><Edit2 size={16}/></Button>
                   <Button onClick={() => handleDeleteArticle(selected.id)} variant="destructive" size="icon"><Trash2 size={16}/></Button>

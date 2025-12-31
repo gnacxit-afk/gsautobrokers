@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import type { Timestamp } from "firebase/firestore";
 
 export type Role = "Admin" | "Supervisor" | "Broker";
 
@@ -21,7 +22,7 @@ export type Lead = {
   ownerId: string;
   ownerName: string;
   channel: 'Facebook' | 'WhatsApp' | 'Call' | 'Visit' | 'Other';
-  createdAt: string;
+  createdAt: Timestamp | Date | string;
   language: 'English' | 'Spanish';
 };
 
@@ -30,7 +31,7 @@ export type Article = {
   title: string;
   content: string;
   author: string;
-  date: string;
+  date: Timestamp | Date | string;
   tags: string[];
   category: string;
 };
@@ -41,7 +42,7 @@ export type Staff = {
   email: string;
   password?: string;
   role: Role;
-  hireDate: string;
+  hireDate: Timestamp | Date | string;
   avatarUrl: string;
   dui: string;
   supervisorId?: string;

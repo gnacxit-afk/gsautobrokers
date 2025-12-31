@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { getLeads, getStaff } from "@/lib/mock-data";
 import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 import { useAuth } from "@/lib/auth";
-import type { Lead } from "@/lib/types";
-import { useDateRange, getDefaultDateRange } from "@/hooks/use-date-range";
+import type { Lead, Staff } from "@/lib/types";
+import { useDateRange } from "@/hooks/use-date-range";
+import { useCollection, useFirestore } from '@/firebase';
 import {
   useReactTable,
   getCoreRowModel,
@@ -17,33 +17,39 @@ import {
   type SortingState,
   type ColumnFiltersState,
 } from '@tanstack/react-table';
+import { addDoc, collection, deleteDoc, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 
 const leadStatuses: Lead['status'][] = ["New", "Contacted", "Qualified", "On the way", "On site", "Sale", "Closed", "Lost"];
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
 
 export default function LeadsPage() {
     const { user } = useAuth();
-    const allLeads = useMemo(() => getLeads(), []);
-    const allStaff = useMemo(() => getStaff(), []);
+    const firestore = useFirestore();
+
+    const { data: leadsData, loading: leadsLoading } = useCollection(firestore ? collection(firestore, 'leads') : null);
+    const { data: staffData, loading: staffLoading } = useCollection(firestore ? collection(firestore, 'staff') : null);
+    
+    const allLeads = useMemo(() => (leadsData as Lead[]) || [], [leadsData]);
+    const allStaff = useMemo(() => (staffData as Staff[]) || [], [staffData]);
+
     const { dateRange, setDateRange } = useDateRange();
 
-    const [leads, setLeads] = useState<Lead[]>(allLeads);
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [globalFilter, setGlobalFilter] = useState('');
     const [expanded, setExpanded] = useState({});
 
     const filteredLeads = useMemo(() => {
-        let visibleLeads = leads;
+        let visibleLeads = allLeads;
         if (user) {
             if (user.role === 'Admin') {
                 // Admin sees all leads
             } else if (user.role === 'Supervisor') {
                 const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
                 const visibleIds = [user.id, ...teamIds];
-                visibleLeads = leads.filter(l => visibleIds.includes(l.ownerId));
+                visibleLeads = allLeads.filter(l => visibleIds.includes(l.ownerId));
             } else if (user.role === 'Broker') {
-                visibleLeads = leads.filter(l => l.ownerId === user.id);
+                visibleLeads = allLeads.filter(l => l.ownerId === user.id);
             } else {
                 visibleLeads = [];
             }
@@ -51,57 +57,41 @@ export default function LeadsPage() {
             visibleLeads = [];
         }
 
-        // Check if the default range is being used. If so, don't filter by date.
-        const defaultRange = getDefaultDateRange();
-        const isDefaultRange = dateRange.start.getTime() === defaultRange.start.getTime() && dateRange.end.getTime() === defaultRange.end.getTime();
-
-        if (isDefaultRange) {
-          // This logic is a bit tricky, the default should now show everything. Let's make it wide open.
-           const wideOpenStart = new Date('2000-01-01');
-           const wideOpenEnd = new Date('2100-01-01');
-            return visibleLeads.filter(l => {
-              const leadDate = new Date(l.createdAt);
-              return leadDate >= wideOpenStart && leadDate <= wideOpenEnd;
-          });
-        }
-
         return visibleLeads.filter(l => {
-            const leadDate = new Date(l.createdAt);
+            const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
             return leadDate >= dateRange.start && leadDate <= dateRange.end;
         });
 
-    }, [user, leads, allStaff, dateRange]);
+    }, [user, allLeads, allStaff, dateRange]);
 
-    const handleUpdateStatus = useCallback((id: string, status: Lead['status']) => {
-        setLeads(prevLeads => prevLeads.map(lead => 
-            lead.id === id ? { ...lead, status } : lead
-        ));
-    }, []);
+    const handleUpdateStatus = useCallback(async (id: string, status: Lead['status']) => {
+        if (!firestore) return;
+        const leadRef = doc(firestore, 'leads', id);
+        await updateDoc(leadRef, { status });
+    }, [firestore]);
     
-    const handleUpdateNotes = useCallback((id: string, notes: string) => {
-        setLeads(prevLeads => prevLeads.map(lead =>
-            lead.id === id ? { ...lead, notes } : lead
-        ));
-    }, []);
+    const handleUpdateNotes = useCallback(async (id: string, notes: string) => {
+        if (!firestore) return;
+        const leadRef = doc(firestore, 'leads', id);
+        await updateDoc(leadRef, { notes });
+    }, [firestore]);
 
-    const handleDelete = useCallback((id: string) => {
-        if (window.confirm('Are you sure you want to delete this lead?')) {
-            setLeads(prevLeads => prevLeads.filter(lead => lead.id !== id));
+    const handleDelete = useCallback(async (id: string) => {
+        if (window.confirm('Are you sure you want to delete this lead?') && firestore) {
+            await deleteDoc(doc(firestore, 'leads', id));
         }
-    }, []);
+    }, [firestore]);
 
-    const handleAddLead = useCallback((newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'>) => {
+    const handleAddLead = useCallback(async (newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'>) => {
         const owner = allStaff.find(s => s.id === newLeadData.ownerId);
-        if (!owner) return;
+        if (!owner || !firestore) return;
 
-        const newLead: Lead = {
+        await addDoc(collection(firestore, 'leads'), {
             ...newLeadData,
-            id: new Date().toISOString(),
-            createdAt: new Date().toISOString(),
+            createdAt: serverTimestamp(),
             ownerName: owner.name,
-        };
-        setLeads(prevLeads => [newLead, ...prevLeads]);
-    }, [allStaff]);
+        });
+    }, [allStaff, firestore]);
 
 
     const columns = useMemo(() => getColumns(handleUpdateStatus, handleDelete), [handleUpdateStatus, handleDelete]);
@@ -146,6 +136,7 @@ export default function LeadsPage() {
                 statuses={leadStatuses}
                 channels={channels}
                 clearAllFilters={clearAllFilters}
+                loading={leadsLoading || staffLoading}
             />
         </main>
     );

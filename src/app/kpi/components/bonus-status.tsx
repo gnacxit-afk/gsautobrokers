@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { isWithinInterval, subDays } from 'date-fns';
 import { calculateBonus, getNextBonusGoal } from '@/lib/utils';
 import { Award, Target, Trophy } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const StatCard = ({ label, value, icon, color }: { label: string, value: string | number, icon: React.ReactNode, color: string }) => {
   const colors: { [key: string]: string } = {
@@ -28,7 +29,7 @@ const StatCard = ({ label, value, icon, color }: { label: string, value: string 
 };
 
 
-export function BonusStatus({ allLeads }: { allLeads: Lead[] }) {
+export function BonusStatus({ allLeads, loading }: { allLeads: Lead[], loading: boolean }) {
     const { user } = useAuth();
 
     const bonusInfo: BonusInfo | null = useMemo(() => {
@@ -38,10 +39,10 @@ export function BonusStatus({ allLeads }: { allLeads: Lead[] }) {
         const now = new Date();
 
         const userLeads = allLeads.filter(lead => {
-            const leadDate = new Date(lead.createdAt);
+            const leadDate = (lead.createdAt as any).toDate ? (lead.createdAt as any).toDate() : new Date(lead.createdAt as string);
             const isOwner = lead.ownerId === user.id;
             const isInDateRange = isWithinInterval(leadDate, { start: thirtyDaysAgo, end: now });
-            return isOwner && isInDateRange && (lead.status === 'Sale' || lead.status === 'Closed');
+            return isOwner && (lead.status === 'Sale' || lead.status === 'Closed');
         });
         
         const sales = userLeads.length;
@@ -50,6 +51,22 @@ export function BonusStatus({ allLeads }: { allLeads: Lead[] }) {
 
         return { sales, bonus, nextGoal, needed };
     }, [allLeads, user]);
+
+    if (loading) {
+        return (
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-6 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-24 w-full" />
+                </CardContent>
+            </Card>
+        )
+    }
 
     if (!user || !bonusInfo) return null;
 

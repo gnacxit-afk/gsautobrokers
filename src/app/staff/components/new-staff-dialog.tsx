@@ -22,24 +22,25 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import React, { useState, useMemo } from "react";
 import type { Role, Staff } from "@/lib/types";
-import { getStaff, addStaffMember } from "@/lib/mock-data";
+import { useCollection, useFirestore } from "@/firebase";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
 const roles: Role[] = ["Admin", "Supervisor", "Broker"];
 
 interface NewStaffDialogProps {
   children: React.ReactNode;
-  onStaffAdded: () => void;
 }
 
-export function NewStaffDialog({ children, onStaffAdded }: NewStaffDialogProps) {
+export function NewStaffDialog({ children }: NewStaffDialogProps) {
     const [open, setOpen] = React.useState(false);
     const { toast } = useToast();
     const [formData, setFormData] = useState<Partial<Omit<Staff, 'id' | 'hireDate' | 'avatarUrl'>>>({});
+    const firestore = useFirestore();
 
-    const allStaff = useMemo(() => getStaff(), []);
+    const { data: allStaff } = useCollection(firestore ? collection(firestore, 'staff') : null);
     
-    const supervisors = useMemo(() => allStaff.filter(s => s.role === 'Supervisor'), [allStaff]);
-    const admins = useMemo(() => allStaff.filter(s => s.role === 'Admin'), [allStaff]);
+    const supervisors = useMemo(() => (allStaff as Staff[] || []).filter(s => s.role === 'Supervisor'), [allStaff]);
+    const admins = useMemo(() => (allStaff as Staff[] || []).filter(s => s.role === 'Admin'), [allStaff]);
     
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const { id, value } = e.target;
@@ -50,7 +51,9 @@ export function NewStaffDialog({ children, onStaffAdded }: NewStaffDialogProps) 
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
+        if (!firestore) return;
+
         if (!formData.name || !formData.email || !formData.password || !formData.role || !formData.dui) {
             toast({
                 title: "Missing Fields",
@@ -60,14 +63,28 @@ export function NewStaffDialog({ children, onStaffAdded }: NewStaffDialogProps) 
             return;
         }
 
-        addStaffMember(formData as Omit<Staff, 'id' | 'hireDate' | 'avatarUrl'>);
-        toast({
-            title: "Staff Member Added",
-            description: "The new staff member has been registered.",
-        });
-        setOpen(false);
-        setFormData({});
-        onStaffAdded(); // Callback to refresh parent component
+        try {
+            await addDoc(collection(firestore, 'staff'), {
+                ...formData,
+                id: formData.dui, // Using DUI as ID
+                hireDate: serverTimestamp(),
+                avatarUrl: '', // Or a default avatar
+            });
+
+            toast({
+                title: "Staff Member Added",
+                description: "The new staff member has been registered.",
+            });
+            setOpen(false);
+            setFormData({});
+        } catch (error) {
+            console.error("Error adding staff member: ", error);
+            toast({
+                title: "Error",
+                description: "Could not add staff member.",
+                variant: "destructive",
+            });
+        }
     }
     
     return (

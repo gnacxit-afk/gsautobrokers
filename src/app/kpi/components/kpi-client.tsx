@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { updateKpi, getKpis } from "@/lib/kpi-data";
 import { Edit, Save, X, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useFirestore } from "@/firebase";
+import { doc, updateDoc } from "firebase/firestore";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 const KpiCard = ({ kpi, isEditing, onValueChange }: { kpi: KPI, isEditing: boolean, onValueChange: (value: string) => void }) => {
@@ -47,12 +49,19 @@ const KpiCard = ({ kpi, isEditing, onValueChange }: { kpi: KPI, isEditing: boole
 }
 
 
-export function KpiClient({ initialKpis }: { initialKpis: KPI[] }) {
+export function KpiClient({ initialKpis, loading }: { initialKpis: KPI[], loading: boolean }) {
     const { user } = useAuth();
+    const firestore = useFirestore();
     const { toast } = useToast();
     const [kpis, setKpis] = useState(initialKpis);
     const [isEditing, setIsEditing] = useState(false);
     const [draftKpis, setDraftKpis] = useState([...initialKpis]);
+
+    useState(() => {
+        setKpis(initialKpis);
+        setDraftKpis([...initialKpis]);
+    }, [initialKpis]);
+
 
     const handleEditToggle = () => {
         if (isEditing) {
@@ -66,15 +75,17 @@ export function KpiClient({ initialKpis }: { initialKpis: KPI[] }) {
         setDraftKpis(draftKpis.map(kpi => kpi.id === id ? { ...kpi, target: value } : kpi));
     };
 
-    const handleSaveChanges = () => {
+    const handleSaveChanges = async () => {
+        if (!firestore) return;
         try {
-            draftKpis.forEach(kpi => {
-                updateKpi(kpi.id, kpi.target);
+            const updatePromises = draftKpis.map(kpi => {
+                const kpiRef = doc(firestore, 'kpis', kpi.id);
+                return updateDoc(kpiRef, { target: kpi.target });
             });
-            // After updating mock data, refresh state from the source of truth
-            const updatedKpis = getKpis();
-            setKpis(updatedKpis);
-            setDraftKpis([...updatedKpis]);
+
+            await Promise.all(updatePromises);
+            
+            setKpis(draftKpis);
             setIsEditing(false);
             toast({
                 title: "KPIs Updated",
@@ -88,6 +99,23 @@ export function KpiClient({ initialKpis }: { initialKpis: KPI[] }) {
             });
         }
     };
+
+    if (loading) {
+        return (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                    <Card key={i}>
+                        <CardHeader>
+                            <Skeleton className="h-6 w-3/4" />
+                        </CardHeader>
+                        <CardContent>
+                            <Skeleton className="h-8 w-1/2" />
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+        )
+    }
 
     return (
         <div>

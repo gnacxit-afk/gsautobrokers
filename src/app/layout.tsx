@@ -6,6 +6,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { AuthProvider } from "@/lib/auth";
 import { Toaster } from "@/components/ui/toaster";
 import { DateRangeProvider } from "@/providers/date-range-provider";
+import { FirebaseClientProvider } from "@/firebase/client-provider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -32,13 +33,15 @@ export default function RootLayout({
           inter.variable
         )}
       >
-        <AuthProvider>
-          <DateRangeProvider>
-            <AppShell>
-              {children}
-            </AppShell>
-          </DateRangeProvider>
-        </AuthProvider>
+        <FirebaseClientProvider>
+          <AuthProvider>
+            <DateRangeProvider>
+              <AppShell>
+                {children}
+              </AppShell>
+            </DateRangeProvider>
+          </AuthProvider>
+        </FirebaseClientProvider>
         <Toaster />
       </body>
     </html>

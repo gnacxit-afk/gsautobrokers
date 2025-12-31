@@ -1,12 +1,18 @@
-import { getArticles } from "@/lib/mock-data";
+"use client";
+
+import { useCollection, useFirestore } from "@/firebase";
 import { KnowledgeBaseClient } from "./components/knowledge-base-client";
+import type { Article } from "@/lib/types";
+import { collection, orderBy, query } from "firebase/firestore";
 
 export default function KnowledgeBasePage() {
-  const articles = getArticles();
+  const firestore = useFirestore();
+  const articlesQuery = firestore ? query(collection(firestore, "articles"), orderBy("date", "desc")) : null;
+  const { data: articles, loading } = useCollection(articlesQuery);
 
   return (
     <main className="flex-1">
-      <KnowledgeBaseClient initialArticles={articles} />
+      <KnowledgeBaseClient initialArticles={articles as Article[] || []} loading={loading} />
     </main>
   );
 }

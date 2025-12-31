@@ -42,7 +42,7 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStatus: (id: string, status: L
   return (
     <>
       <AnalyzeLeadDialog open={isAnalyzeOpen} onOpenChange={setAnalyzeOpen} lead={lead} />
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 justify-end">
         <Button
             onClick={() => row.toggleExpanded()}
             variant="ghost"
@@ -61,7 +61,7 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStatus: (id: string, status: L
             <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem onSelect={() => setAnalyzeOpen(true)}>Analyze Lead (AI)</DropdownMenuItem>
-            {user.role === 'Admin' && (
+            {user?.role === 'Admin' && (
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
                     <span>Update Status</span>
@@ -163,7 +163,11 @@ export const getColumns = (
     accessorKey: "createdAt",
     header: "Created At",
     cell: ({ row }) => {
-        const date = new Date(row.getValue("createdAt"));
+        const dateRaw = row.getValue("createdAt");
+        if (!dateRaw) return null;
+        
+        const date = (dateRaw as any).toDate ? (dateRaw as any).toDate() : new Date(dateRaw as string);
+        
         return (
             <div className="text-xs text-slate-500">
                 <div>{format(date, 'MMM d, yyyy')}</div>

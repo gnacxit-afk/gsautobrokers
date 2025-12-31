@@ -1,13 +1,23 @@
-import { getKpis } from "@/lib/kpi-data";
+"use client";
+
 import { KpiClient } from "./components/kpi-client";
 import { PerformanceDashboard } from "./components/performance-dashboard";
 import { BonusStatus } from "./components/bonus-status";
-import { getLeads, getStaff } from "@/lib/mock-data";
+import { useCollection, useFirestore } from "@/firebase";
+import { collection, query, where } from "firebase/firestore";
+import type { Lead, Staff, KPI } from "@/lib/types";
+import { useAuth } from "@/lib/auth";
+
 
 export default function KpiPage() {
-  const kpis = getKpis();
-  const leads = getLeads();
-  const staff = getStaff();
+  const firestore = useFirestore();
+  const { user } = useAuth();
+
+  const { data: kpis, loading: kpisLoading } = useCollection(firestore ? collection(firestore, 'kpis') : null);
+  const { data: leads, loading: leadsLoading } = useCollection(firestore ? collection(firestore, 'leads') : null);
+  const { data: staff, loading: staffLoading } = useCollection(firestore ? collection(firestore, 'staff') : null);
+
+  const loading = kpisLoading || leadsLoading || staffLoading;
 
   return (
     <main className="flex-1 space-y-8">
@@ -18,7 +28,7 @@ export default function KpiPage() {
               <p className="text-muted-foreground">Metas de desempeño diario para vendedores.</p>
           </div>
         </div>
-        <KpiClient initialKpis={kpis} />
+        <KpiClient initialKpis={kpis as KPI[] || []} loading={loading} />
         <div className="mt-8 p-4 bg-gray-100 border border-gray-200 rounded-lg">
           <p className="text-sm font-semibold text-gray-700">👉 Si no hay número, NO cuenta como lead de trabajado.</p>
         </div>
@@ -31,7 +41,7 @@ export default function KpiPage() {
                 <p className="text-muted-foreground">Your sales bonus progress over the last 30 days.</p>
             </div>
           </div>
-          <BonusStatus allLeads={leads} />
+          <BonusStatus allLeads={leads as Lead[] || []} loading={loading} />
       </div>
 
       <div className="border-t pt-8">
@@ -41,7 +51,7 @@ export default function KpiPage() {
               <p className="text-muted-foreground">Daily performance overview.</p>
           </div>
         </div>
-        <PerformanceDashboard allLeads={leads} allStaff={staff} />
+        <PerformanceDashboard allLeads={leads as Lead[] || []} allStaff={staff as Staff[] || []} loading={loading} />
       </div>
 
     </main>

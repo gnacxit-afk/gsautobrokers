@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import type { Lead, Staff } from "@/lib/types";
 import { RenderSubComponent } from "./render-sub-component";
 import { DateRangePicker } from "@/components/layout/date-range-picker";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 interface DataTableProps<TData, TValue> {
@@ -41,6 +42,7 @@ interface DataTableProps<TData, TValue> {
   statuses: Lead['status'][];
   channels: Lead['channel'][];
   clearAllFilters: () => void;
+  loading: boolean;
 }
 
 export function DataTable<TData extends Lead, TValue>({
@@ -52,6 +54,7 @@ export function DataTable<TData extends Lead, TValue>({
   statuses,
   channels,
   clearAllFilters,
+  loading,
 }: DataTableProps<TData, TValue>) {
   
   const [isNewLeadDialogOpen, setNewLeadDialogOpen] = React.useState(false);
@@ -157,7 +160,17 @@ export function DataTable<TData extends Lead, TValue>({
             ))}
           </TableHeader>
           <TableBody className="divide-y">
-            {table.getRowModel().rows?.length ? (
+            {loading ? (
+                [...Array(10)].map((_, i) => (
+                    <TableRow key={i}>
+                        {[...Array(columns.length)].map((_, j) => (
+                            <TableCell key={j} className="px-6 py-4">
+                                <Skeleton className="h-5 w-full" />
+                            </TableCell>
+                        ))}
+                    </TableRow>
+                ))
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <React.Fragment key={row.id}>
                 <TableRow

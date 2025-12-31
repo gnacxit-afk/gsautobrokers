@@ -1,12 +1,15 @@
 "use client";
 
 import { useMemo } from 'react';
-import { getLeads, getStaff, REVENUE_PER_VEHICLE, COMMISSION_PER_VEHICLE, MARGIN_PER_VEHICLE } from "@/lib/mock-data";
+import { REVENUE_PER_VEHICLE, COMMISSION_PER_VEHICLE, MARGIN_PER_VEHICLE } from "@/lib/mock-data";
 import { useDateRange } from '@/hooks/use-date-range';
 import { useAuth } from '@/lib/auth';
 import { Users, BarChart3, Award } from "lucide-react";
-import type { Lead } from '@/lib/types';
+import type { Lead, Staff } from '@/lib/types';
 import { calculateBonus } from '@/lib/utils';
+import { useCollection } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 
 const StatCard = ({ label, value, color }: { label: string, value: string | number, color: string }) => {
   const colors: { [key: string]: string } = {
@@ -30,8 +33,14 @@ const StatCard = ({ label, value, color }: { label: string, value: string | numb
 export default function DashboardPage() {
   const { dateRange } = useDateRange();
   const { user } = useAuth();
-  const allLeads = getLeads();
-  const allStaff = getStaff();
+  const firestore = useFirestore();
+
+  const { data: leadsData } = useCollection(firestore ? collection(firestore, 'leads') : null);
+  const allLeads = leadsData as Lead[] || [];
+  
+  const { data: staffData } = useCollection(firestore ? collection(firestore, 'staff') : null);
+  const allStaff = staffData as Staff[] || [];
+
 
   const stats = useMemo(() => {
     if (!user) return { totalLeads: 0, closedSales: 0, conversion: 0, totalRevenue: 0, totalCommissions: 0, totalMargin: 0, totalBonuses: 0, channels: {}, sellerStats: {} };
@@ -47,7 +56,7 @@ export default function DashboardPage() {
     });
 
     const filteredLeads = visibleLeads.filter(l => {
-      const leadDate = new Date(l.createdAt);
+      const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
       return leadDate >= dateRange.start && leadDate <= dateRange.end;
     });
 

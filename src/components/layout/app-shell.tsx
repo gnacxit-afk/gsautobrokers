@@ -79,7 +79,7 @@ function Sidebar() {
     if (!user) return null;
 
     return (
-        <aside className="w-64 bg-slate-900 text-white flex-col shrink-0 hidden md:flex">
+        <aside className="w-64 bg-slate-900 text-white flex-col shrink-0 hidden lg:flex">
             <div className="p-6 border-b border-slate-800 h-16 flex items-center">
                 <Logo className="text-white text-lg" />
             </div>
@@ -135,7 +135,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (pathname === '/') return 'Dashboard';
     const currentPath = pathname.split('/')[1];
     const currentNavItem = navItems.find(item => item.href === `/${currentPath}`);
-    return currentNavItem ? currentNavItem.title : '';
+    return currentNavItem ? currentNavItem.title : 'Profile';
   };
 
   return (
@@ -146,7 +146,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-4">
             <Sheet>
               <SheetTrigger asChild>
-                <Button size="icon" variant="outline" className="md:hidden">
+                <Button size="icon" variant="outline" className="lg:hidden">
                   <PanelLeft className="h-5 w-5" />
                   <span className="sr-only">Toggle Menu</span>
                 </Button>
@@ -158,7 +158,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <MainNav items={navItems} />
               </SheetContent>
             </Sheet>
-            <h2 className="text-xl font-semibold text-slate-800 capitalize">{getPageTitle()}</h2>
+            <h2 className="text-xl font-semibold text-slate-800 capitalize hidden sm:block">{getPageTitle()}</h2>
           </div>
           <div className="flex items-center gap-4">
             {showDateFilter && <DateRangePicker />}

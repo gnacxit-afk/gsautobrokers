@@ -3,14 +3,13 @@
 import React, { createContext, useContext, useState, useMemo, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import type { Role, Staff } from "./types";
-import { getStaff } from "./mock-data";
-
-// A mock authentication provider to simulate user roles for RBAC.
+import { useUser, useAuth as useFirebaseAuth, useFirestore } from '@/firebase';
+import { doc, getDoc } from "firebase/firestore";
 
 interface AuthContextType {
   user: Staff | null;
   loading: boolean;
-  login: (email: string, password_not_used: string) => Promise<Staff | null>;
+  login: (email: string, password_not_used: string) => Promise<Staff | null>; // This is now a mock, will be replaced
   logout: () => void;
   setUserRole: (role: Role) => void;
   reloadUser: () => void;
@@ -23,36 +22,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
-  
-  const reloadUser = () => {
-    const allStaff = getStaff();
-    const storedUser = localStorage.getItem('autosales-user');
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      const latestUserData = allStaff.find(s => s.id === parsedUser.id);
-      if (latestUserData) {
-        setUser(latestUserData);
-        localStorage.setItem('autosales-user', JSON.stringify(latestUserData));
+  const firebaseAuth = useFirebaseAuth();
+  const firestore = useFirestore();
+  const { user: firebaseUser, loading: firebaseUserLoading } = useUser();
+
+  const reloadUser = async () => {
+    if (firebaseUser && firestore) {
+      const userDoc = await getDoc(doc(firestore, 'staff', firebaseUser.uid));
+      if (userDoc.exists()) {
+        const userData = { id: userDoc.id, ...userDoc.data() } as Staff;
+        setUser(userData);
+        localStorage.setItem('autosales-user-role', userData.role);
       }
     }
   };
 
   useEffect(() => {
-    // In a real app, you'd check a token in localStorage or an HttpOnly cookie
-    try {
-      const storedUser = localStorage.getItem('autosales-user');
-      if (storedUser) {
-        const allStaff = getStaff();
-        const foundUser = allStaff.find(s => s.id === JSON.parse(storedUser).id);
-        setUser(foundUser || null);
+    const fetchUser = async () => {
+      if (firebaseUser && firestore) {
+        const userDoc = await getDoc(doc(firestore, 'staff', firebaseUser.uid));
+        if (userDoc.exists()) {
+           const userData = { id: userDoc.id, ...userDoc.data() } as Staff;
+           const storedRole = localStorage.getItem('autosales-user-role') as Role;
+           // If a role is stored and valid, use it. Otherwise, use the one from DB.
+           if (storedRole && ["Admin", "Supervisor", "Broker"].includes(storedRole)) {
+             setUser({ ...userData, role: storedRole });
+           } else {
+             setUser(userData);
+           }
+        } else {
+            setUser(null); // No staff profile found
+        }
+      } else if (!firebaseUser) {
+        setUser(null);
       }
-    } catch (e) {
-      // Could be in a server environment
-      console.log("Reading localStorage failed, this is expected on SSR");
-    } finally {
       setLoading(false);
     }
-  }, []);
+    if (!firebaseUserLoading) {
+        fetchUser();
+    }
+  }, [firebaseUser, firestore, firebaseUserLoading]);
+
 
   useEffect(() => {
     if (!loading && !user && pathname !== "/login") {
@@ -65,39 +75,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 
   const login = async (email: string, password_not_used: string): Promise<Staff | null> => {
-    // This is a mock login. In a real app, you'd call an API.
-    // The password is not used, we just find the user by email for this demo.
-    const allStaff = getStaff();
-    const foundUser = allStaff.find(staff => staff.email.toLowerCase() === email.toLowerCase());
-
-    if (foundUser) { // In real app, you would also check password
-      setUser(foundUser);
-      localStorage.setItem('autosales-user', JSON.stringify(foundUser));
-      router.push("/");
-      return foundUser;
-    }
-    
-    // In a real app, throw an error for wrong credentials
+    // This is just a placeholder now. Login is handled by FirebaseUI or other Firebase methods.
+    // The actual login happens on the login page now.
+    // This function can be removed or repurposed. For now, it does nothing.
+    console.error("The mock login function was called, but login is now handled by Firebase.");
     return null;
   };
 
   const logout = () => {
+    if (firebaseAuth) {
+        firebaseAuth.signOut();
+    }
     setUser(null);
-    localStorage.removeItem('autosales-user');
+    localStorage.removeItem('autosales-user-role');
     router.push("/login");
   };
 
   const setUserRole = (role: Role) => {
+    // This simulates switching roles for a user who might have multiple.
+    // In a real app, this might involve changing custom claims.
     if (!user) return;
-    const allStaff = getStaff();
-    const newUserByRole = allStaff.find(s => s.role === role) || allStaff[0];
-    setUser(newUserByRole);
-     if (newUserByRole) {
-      localStorage.setItem('autosales-user', JSON.stringify(newUserByRole));
-    }
+    const updatedUser = { ...user, role };
+    setUser(updatedUser);
+    localStorage.setItem('autosales-user-role', role);
   };
 
-  const value = useMemo(() => ({ user, loading, login, logout, setUserRole, reloadUser }), [user, loading, login, logout, setUserRole, reloadUser]);
+  const value = useMemo(() => ({ user, loading, login, logout, setUserRole, reloadUser }), [user, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

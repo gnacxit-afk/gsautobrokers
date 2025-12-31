@@ -12,8 +12,8 @@ import { Logo } from "@/components/icons";
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("ava.j@gsautobrokers.com");
+  const [password, setPassword] = useState("password123");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -41,7 +41,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
+    <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
