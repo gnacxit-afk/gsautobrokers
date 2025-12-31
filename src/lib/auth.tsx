@@ -48,21 +48,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 
   useEffect(() => {
-    if (!auth) return;
+    // If auth is not ready, don't do anything yet.
+    if (!auth) {
+        // We are not setting loading to false here, because we are waiting for auth.
+        return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      try {
         if (firebaseUser) {
-          const appUser = await fetchUserRole(firebaseUser);
-          setUser(appUser);
+            const appUser = await fetchUserRole(firebaseUser);
+            setUser(appUser);
         } else {
-          setUser(null);
+            setUser(null);
         }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-        setUser(null);
-      } finally {
         setLoading(false);
-      }
     });
 
     return () => unsubscribe();
