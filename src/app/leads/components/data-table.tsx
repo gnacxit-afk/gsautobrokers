@@ -62,9 +62,9 @@ export function DataTable<TData extends Lead, TValue>({
   const statusFilter = table.getColumn("status")?.getFilterValue() as string | undefined;
   const channelFilter = table.getColumn("channel")?.getFilterValue() as string | undefined;
 
-  const setOwnerFilter = (value: string) => table.getColumn("ownerName")?.setFilterValue(value);
-  const setStatusFilter = (value: string) => table.getColumn("status")?.setFilterValue(value);
-  const setChannelFilter = (value: string) => table.getColumn("channel")?.setFilterValue(value);
+  const setOwnerFilter = (value: string) => table.getColumn("ownerName")?.setFilterValue(value === "all" ? undefined : value);
+  const setStatusFilter = (value: string) => table.getColumn("status")?.setFilterValue(value === "all" ? undefined : value);
+  const setChannelFilter = (value: string) => table.getColumn("channel")?.setFilterValue(value === "all" ? undefined : value);
 
   return (
     <div className="space-y-6">
@@ -97,32 +97,32 @@ export function DataTable<TData extends Lead, TValue>({
                     <div className="col-span-1 xl:col-span-2">
                        <DateRangePicker />
                     </div>
-                    <Select value={ownerFilter} onValueChange={setOwnerFilter}>
+                    <Select value={ownerFilter || 'all'} onValueChange={setOwnerFilter}>
                         <SelectTrigger>
                             <SelectValue placeholder="Filter by Owner" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">All Owners</SelectItem>
+                            <SelectItem value="all">All Owners</SelectItem>
                             {staff.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
 
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <Select value={statusFilter || 'all'} onValueChange={setStatusFilter}>
                         <SelectTrigger>
                             <SelectValue placeholder="Filter by Status" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">All Statuses</SelectItem>
+                            <SelectItem value="all">All Statuses</SelectItem>
                             {statuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                         </SelectContent>
                     </Select>
                     
-                    <Select value={channelFilter} onValueChange={setChannelFilter}>
+                    <Select value={channelFilter || 'all'} onValueChange={setChannelFilter}>
                         <SelectTrigger>
                             <SelectValue placeholder="Filter by Channel" />
                         </SelectTrigger>
                         <SelectContent>
-                             <SelectItem value="">All Channels</SelectItem>
+                             <SelectItem value="all">All Channels</SelectItem>
                             {channels.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                         </SelectContent>
                     </Select>
