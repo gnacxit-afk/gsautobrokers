@@ -125,7 +125,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  const pagesWithDateFilter = ['/', '/leads'];
+  const pagesWithDateFilter = ['/'];
   const showDateFilter = pagesWithDateFilter.includes(pathname);
 
 

@@ -6,6 +6,7 @@ import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 import { useAuth } from "@/lib/auth";
 import type { Lead } from "@/lib/types";
+import { useDateRange, DEFAULT_DATE_RANGE } from "@/hooks/use-date-range";
 import {
   useReactTable,
   getCoreRowModel,
@@ -24,6 +25,7 @@ export default function LeadsPage() {
     const { user } = useAuth();
     const allLeads = useMemo(() => getLeads(), []);
     const allStaff = useMemo(() => getStaff(), []);
+    const { dateRange, setDateRange } = useDateRange();
 
     const [leads, setLeads] = useState<Lead[]>(allLeads);
     const [sorting, setSorting] = useState<SortingState>([]);
@@ -32,21 +34,29 @@ export default function LeadsPage() {
     const [expanded, setExpanded] = useState({});
 
     const filteredLeads = useMemo(() => {
-        if (!user) return [];
-        
-        if (user.role === 'Admin') {
-            return leads;
+        let visibleLeads = leads;
+        if (user) {
+            if (user.role === 'Admin') {
+                // Admin sees all leads
+            } else if (user.role === 'Supervisor') {
+                const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
+                const visibleIds = [user.id, ...teamIds];
+                visibleLeads = leads.filter(l => visibleIds.includes(l.ownerId));
+            } else if (user.role === 'Broker') {
+                visibleLeads = leads.filter(l => l.ownerId === user.id);
+            } else {
+                visibleLeads = [];
+            }
+        } else {
+            visibleLeads = [];
         }
-        if (user.role === 'Supervisor') {
-            const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
-            const visibleIds = [user.id, ...teamIds];
-            return leads.filter(l => visibleIds.includes(l.ownerId));
-        }
-        if (user.role === 'Broker') {
-            return leads.filter(l => l.ownerId === user.id);
-        }
-        return [];
-    }, [user, leads, allStaff]);
+
+        return visibleLeads.filter(l => {
+            const leadDate = new Date(l.createdAt);
+            return leadDate >= dateRange.start && leadDate <= dateRange.end;
+        });
+
+    }, [user, leads, allStaff, dateRange]);
 
     const handleUpdateStatus = useCallback((id: string, status: Lead['status']) => {
         setLeads(prevLeads => prevLeads.map(lead => 
@@ -102,6 +112,12 @@ export default function LeadsPage() {
       },
     });
 
+    const clearAllFilters = useCallback(() => {
+        table.setGlobalFilter('');
+        table.setColumnFilters([]);
+        setDateRange(DEFAULT_DATE_RANGE);
+    }, [table, setDateRange]);
+
     return (
         <main className="flex flex-1 flex-col gap-4">
             <DataTable 
@@ -112,6 +128,7 @@ export default function LeadsPage() {
                 staff={allStaff}
                 statuses={leadStatuses}
                 channels={channels}
+                clearAllFilters={clearAllFilters}
             />
         </main>
     );

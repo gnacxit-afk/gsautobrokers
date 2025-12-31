@@ -24,11 +24,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, XCircle } from "lucide-react";
 import { NewLeadDialog } from "./new-lead-dialog";
 import { Input } from "@/components/ui/input";
 import type { Lead, Staff } from "@/lib/types";
 import { RenderSubComponent } from "./render-sub-component";
+import { DateRangePicker } from "@/components/layout/date-range-picker";
+
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -38,6 +40,7 @@ interface DataTableProps<TData, TValue> {
   staff: Staff[];
   statuses: Lead['status'][];
   channels: Lead['channel'][];
+  clearAllFilters: () => void;
 }
 
 export function DataTable<TData extends Lead, TValue>({
@@ -48,6 +51,7 @@ export function DataTable<TData extends Lead, TValue>({
   staff,
   statuses,
   channels,
+  clearAllFilters,
 }: DataTableProps<TData, TValue>) {
   
   const [isNewLeadDialogOpen, setNewLeadDialogOpen] = React.useState(false);
@@ -89,12 +93,16 @@ export function DataTable<TData extends Lead, TValue>({
                 </NewLeadDialog>
             </div>
              <div className="flex flex-col md:flex-row items-center gap-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 w-full items-center">
+                    <div className="col-span-1 xl:col-span-2">
+                       <DateRangePicker />
+                    </div>
                     <Select value={ownerFilter} onValueChange={setOwnerFilter}>
                         <SelectTrigger>
                             <SelectValue placeholder="Filter by Owner" />
                         </SelectTrigger>
                         <SelectContent>
+                            <SelectItem value="">All Owners</SelectItem>
                             {staff.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -104,6 +112,7 @@ export function DataTable<TData extends Lead, TValue>({
                             <SelectValue placeholder="Filter by Status" />
                         </SelectTrigger>
                         <SelectContent>
+                            <SelectItem value="">All Statuses</SelectItem>
                             {statuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -113,9 +122,17 @@ export function DataTable<TData extends Lead, TValue>({
                             <SelectValue placeholder="Filter by Channel" />
                         </SelectTrigger>
                         <SelectContent>
+                             <SelectItem value="">All Channels</SelectItem>
                             {channels.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                         </SelectContent>
                     </Select>
+                     <Button
+                        onClick={clearAllFilters}
+                        variant="ghost"
+                        className="text-muted-foreground hover:text-foreground col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-1"
+                    >
+                        <XCircle className="mr-2 h-4 w-4" /> Clear Filters
+                    </Button>
                 </div>
             </div>
         </div>
