@@ -13,8 +13,8 @@ import { Logo } from "@/components/icons";
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const [email, setEmail] = useState("liam.smith@example.com");
-  const [password, setPassword] = useState("password123");
+  const [email, setEmail] = useState("nacxit@gmail.com");
+  const [password, setPassword] = useState("annagcexlit.5691");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
