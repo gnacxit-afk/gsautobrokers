@@ -1,12 +1,8 @@
-import type { FirebaseOptions } from 'firebase/app';
-
-export const firebaseConfig: FirebaseOptions = {
-  apiKey: "AIzaSyBE77gLf2veDaSXXuOz33Cr4ubQyoMRSOQ",
-  authDomain: "gs-auto-brokers.firebaseapp.com",
-  databaseURL: "https://gs-auto-brokers-default-rtdb.firebaseio.com",
-  projectId: "gs-auto-brokers",
-  storageBucket: "gs-auto-brokers.firebasestorage.app",
-  messagingSenderId: "423258761446",
-  appId: "1:423258761446:web:9a5cfe3431e47a9c0db327",
-  measurementId: "G-JMB1JYTF0E"
+export const firebaseConfig = {
+  "projectId": "studio-7674486159-b9551",
+  "appId": "1:1011351605710:web:30e1de9b250e21d25edb9f",
+  "apiKey": "AIzaSyDqGBvYbqI8-PG_qvEZBTq05fyMk3oyO7c",
+  "authDomain": "studio-7674486159-b9551.firebaseapp.com",
+  "measurementId": "",
+  "messagingSenderId": "1011351605710"
 };
