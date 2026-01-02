@@ -89,7 +89,7 @@ service cloud.firestore {
        * @description Controls access to the single KPI document.
        * @path /kpis/kpi-doc
        */
-      match /kpis/kpi-doc {
+      match /kpis/{docId} {
         allow get: if isSignedIn();
         allow write: if isAdmin(appId);
       }
