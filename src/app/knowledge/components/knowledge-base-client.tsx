@@ -329,3 +329,5 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
     </div>
   );
 }
+
+    
