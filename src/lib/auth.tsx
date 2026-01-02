@@ -16,6 +16,10 @@ import { Loader2 } from "lucide-react";
 import { Logo } from "@/components/icons";
 
 
+// TODO: Replace with your actual master admin email address.
+// This user will have full admin privileges and will not need an entry in the 'staff' collection.
+const MASTER_ADMIN_EMAIL = "admin@example.com";
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -40,7 +44,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchAppUser = useCallback(async (fbUser: FirebaseUser): Promise<User | null> => {
     if (!firestore) throw new Error("Firestore not initialized");
+
+    // Master Admin Check: If the email matches, grant admin access immediately.
+    if (fbUser.email === MASTER_ADMIN_EMAIL) {
+      return {
+        id: fbUser.uid,
+        name: "Master Admin",
+        email: fbUser.email,
+        avatarUrl: "",
+        role: "Admin",
+        dui: "N/A",
+      };
+    }
     
+    // For all other users, check the 'staff' collection.
     const staffDocRef = doc(firestore, 'staff', fbUser.uid);
     
     try {
@@ -48,6 +65,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (staffDoc.exists()) {
             const staffData = staffDoc.data() as Staff;
+            // You can add an 'active' check here if needed in the future
+            // if (staffData.active !== true) {
+            //   throw new Error("User account is inactive.");
+            // }
             return {
                 id: fbUser.uid,
                 name: staffData.name,
@@ -56,31 +77,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 role: staffData.role,
                 dui: staffData.dui,
             };
+        } else {
+            // If the user is not the master admin and not in staff, they have no access.
+             throw new Error("User not found in staff directory.");
         }
 
-        const newUser: User = {
-            id: fbUser.uid,
-            name: fbUser.displayName || fbUser.email || 'New User',
-            email: fbUser.email || '',
-            avatarUrl: fbUser.photoURL || '',
-            role: 'Broker', // Default role
-            dui: '00000000-0',
-        };
-        
-        await setDoc(staffDocRef, {
-            id: newUser.id,
-            name: newUser.name,
-            email: newUser.email,
-            role: newUser.role,
-            dui: newUser.dui,
-            createdAt: serverTimestamp(),
-            avatarUrl: newUser.avatarUrl,
-        });
-        
-        return newUser;
     } catch (error: any) {
-        console.error("Error fetching or creating user document:", error);
-        setAuthError(`Failed to access user profile: ${error.message}`);
+        console.error("Error fetching or validating user document:", error);
+        setAuthError(error.message);
         if(auth) await signOut(auth);
         return null;
     }
@@ -91,6 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!auth || !firestore) return;
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        setLoading(true);
         if (firebaseUser) {
             const userProfile = await fetchAppUser(firebaseUser);
             setUser(userProfile);
@@ -123,10 +128,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     setAuthError(null);
     try {
-        await signInWithEmailAndPassword(auth, email, pass);
+        const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+        // After successful Firebase Auth, onAuthStateChanged will trigger `fetchAppUser`
+        // which contains the new logic. No need to manually set user here.
     } catch (error: any) {
         setAuthError(error.message);
         setUser(null);
+    } finally {
         setLoading(false);
     }
   }, [auth]);
@@ -136,14 +144,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!auth) return;
     setLoading(true);
     await signOut(auth);
+    // onAuthStateChanged will handle setting user to null and redirecting
   }, [auth]);
 
   const setUserRole = useCallback((role: Role) => {
-    setUser(currentUser => {
-        if(!currentUser) return null;
-        return { ...currentUser, role };
-    });
-  }, []);
+    // This is for local role-switching simulation and should not affect the master admin.
+    if (user && user.email !== MASTER_ADMIN_EMAIL) {
+       setUser(currentUser => {
+          if(!currentUser) return null;
+          return { ...currentUser, role };
+      });
+    }
+  }, [user]);
   
   const reloadUser = useCallback(async () => {
      if (auth?.currentUser) {
@@ -159,7 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [user, loading, authError, login, logout, setUserRole, reloadUser]
   );
   
-  if (loading) {
+  if (loading && pathname !== "/login") {
      return (
         <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
             <Logo />
