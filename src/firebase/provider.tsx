@@ -1,74 +1,52 @@
 'use client';
 
-import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
+import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { initializeFirebase } from '@/firebase';
 
-interface FirebaseProviderProps {
-  children: ReactNode;
-}
-
 // Combined state for the Firebase context
 export interface FirebaseContextState {
   firebaseApp: FirebaseApp | null;
   firestore: Firestore | null;
   auth: Auth | null;
-  user: User | null;
-  isUserLoading: boolean;
-  userError: Error | null;
+  isReady: boolean; // New flag to signal when services are ready
 }
 
-// React Context
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
-/**
- * FirebaseProvider manages and provides Firebase services and user authentication state.
- */
-export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
+export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [services, setServices] = useState<{ firebaseApp: FirebaseApp, auth: Auth, firestore: Firestore } | null>(null);
-  const [userAuthState, setUserAuthState] = useState<{ user: User | null, isUserLoading: boolean, userError: Error | null }>({
-    user: null,
-    isUserLoading: true,
-    userError: null,
-  });
+  const [services, setServices] = useState<{
+    firebaseApp: FirebaseApp;
+    auth: Auth;
+    firestore: Firestore;
+  } | null>(null);
 
   useEffect(() => {
+    // Initialize Firebase and set the services in state.
     const { firebaseApp, auth, firestore } = initializeFirebase();
     setServices({ firebaseApp, auth, firestore });
-
-    const unsubscribe = onAuthStateChanged(auth,
-      (firebaseUser) => {
-        setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
-      },
-      (error) => {
-        console.error("FirebaseProvider: onAuthStateChanged error:", error);
-        setUserAuthState({ user: null, isUserLoading: false, userError: error });
-      }
-    );
-
-    return () => unsubscribe();
   }, []);
 
   const contextValue = useMemo((): FirebaseContextState => ({
     firebaseApp: services?.firebaseApp || null,
     firestore: services?.firestore || null,
     auth: services?.auth || null,
-    ...userAuthState,
-  }), [services, userAuthState]);
+    isReady: !!services, // isReady is true only when services are initialized.
+  }), [services]);
 
+  // Render children only when Firebase is ready.
   return (
     <FirebaseContext.Provider value={contextValue}>
       <FirebaseErrorListener />
-      {children}
+      {contextValue.isReady ? children : null} 
     </FirebaseContext.Provider>
   );
 };
-
 
 function useFirebaseInternal() {
   const context = useContext(FirebaseContext);
@@ -77,7 +55,6 @@ function useFirebaseInternal() {
   }
   return context;
 }
-
 
 /** Hook to access Firebase Auth instance. */
 export const useAuth = (): Auth | null => {
@@ -94,22 +71,9 @@ export const useFirebaseApp = (): FirebaseApp | null => {
   return useFirebaseInternal().firebaseApp;
 };
 
-type MemoFirebase <T> = T & {__memo?: boolean};
-
-export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | (MemoFirebase<T>) {
-  const memoized = useMemo(factory, deps);
-  
-  if(typeof memoized !== 'object' || memoized === null) return memoized;
-  (memoized as MemoFirebase<T>).__memo = true;
-  
-  return memoized;
-}
-
 /**
- * Hook specifically for accessing the authenticated user's state.
- * This provides the User object, loading status, and any auth errors.
+ * Hook to check if the Firebase services are initialized.
  */
-export const useUser = () => {
-  const { user, isUserLoading, userError } = useFirebaseInternal();
-  return { user, isUserLoading, userError };
-};
+export const useFirebaseReady = (): boolean => {
+    return useFirebaseInternal().isReady;
+}

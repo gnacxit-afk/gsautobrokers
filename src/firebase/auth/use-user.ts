@@ -1,35 +1,12 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { onAuthStateChanged, type User } from 'firebase/auth';
-import { useAuth } from '@/firebase';
+import { useAuthContext } from '@/lib/auth';
 
 /**
- * A hook to get the current authenticated user.
- * @returns An object containing the user, loading state, and any error.
+ * A hook to get the current authenticated application user.
+ * This is a convenience hook that wraps `useAuthContext`.
+ * @returns An object containing the user, loading state, and any auth error.
  */
 export const useUser = () => {
-  const auth = useAuth();
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    if (!auth) return;
-
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      (user) => {
-        setUser(user);
-        setLoading(false);
-      },
-      (error) => {
-        setError(error);
-        setLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [auth]);
-
-  return { user, loading, error };
+  const { user, loading, authError } = useAuthContext();
+  return { user, loading, error: authError };
 };

@@ -14,13 +14,12 @@ export const useDoc = <T extends DocumentData>(
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!ref) {
+    if (ref === null) {
+      // Reference is not ready yet, stay in loading state.
       setLoading(true);
-      setData(null);
       return;
     };
     
-    setLoading(true);
     setError(null);
     const unsubscribe = onSnapshot(
       ref,

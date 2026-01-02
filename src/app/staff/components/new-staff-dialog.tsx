@@ -22,8 +22,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import React, { useState, useMemo } from "react";
 import type { Role, Staff } from "@/lib/types";
-import { useCollection, useFirestore, useMemoFirebase, useAuth } from "@/firebase";
-import { addDoc, collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { useCollection, useFirestore, useAuth } from "@/firebase";
+import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 
 const roles: Role[] = ["Admin", "Supervisor", "Broker"];
@@ -39,7 +39,7 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
     const auth = useAuth();
     const firestore = useFirestore();
 
-    const staffQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
+    const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
     const { data: allStaffData } = useCollection<Staff>(staffQuery);
     const allStaff = allStaffData || [];
     

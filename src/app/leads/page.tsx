@@ -5,7 +5,7 @@ import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 import type { Lead, Staff } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { useCollection, useFirestore, useUser } from '@/firebase';
 import {
   useReactTable,
   getCoreRowModel,
@@ -27,8 +27,8 @@ export default function LeadsPage() {
     const firestore = useFirestore();
     const { toast } = useToast();
 
-    const leadsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'leads') : null), [firestore]);
-    const staffQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
+    const leadsQuery = useMemo(() => (firestore ? collection(firestore, 'leads') : null), [firestore]);
+    const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
 
     const { data: leadsData, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
     const { data: staffData, loading: staffLoading } = useCollection<Staff>(staffQuery);

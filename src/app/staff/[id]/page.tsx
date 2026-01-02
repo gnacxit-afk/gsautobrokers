@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, UserCircle2, Eye, EyeOff, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { useCollection, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { useCollection, useDoc, useFirestore } from "@/firebase";
 import { collection, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { signOut } from "firebase/auth";
@@ -33,8 +33,8 @@ export default function StaffProfilePage() {
 
   const [showPassword, setShowPassword] = useState(false);
   
-  const staffDocRef = useMemoFirebase(() => (firestore && staffId ? doc(firestore, 'staff', staffId) : null), [firestore, staffId]);
-  const allStaffCollectionRef = useMemoFirebase(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
+  const staffDocRef = useMemo(() => (firestore && staffId ? doc(firestore, 'staff', staffId) : null), [firestore, staffId]);
+  const allStaffCollectionRef = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
 
   const { data: staffMemberData, loading: staffMemberLoading } = useDoc<Staff>(staffDocRef);
   const { data: allStaffData, loading: allStaffLoading } = useCollection<Staff>(allStaffCollectionRef);

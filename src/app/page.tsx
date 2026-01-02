@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { REVENUE_PER_VEHICLE, COMMISSION_PER_VEHICLE, MARGIN_PER_VEHICLE } from "@/lib/mock-data";
 import { useDateRange } from '@/hooks/use-date-range';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { useCollection, useFirestore, useUser } from '@/firebase';
 import { Users, BarChart3, Award } from "lucide-react";
 import type { Lead, Staff } from '@/lib/types';
 import { calculateBonus } from '@/lib/utils';
@@ -33,8 +33,8 @@ export default function DashboardPage() {
   const { user } = useUser();
   const firestore = useFirestore();
 
-  const leadsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'leads') : null), [firestore]);
-  const staffQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
+  const leadsQuery = useMemo(() => (firestore ? collection(firestore, 'leads') : null), [firestore]);
+  const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
 
   const { data: leadsData } = useCollection<Lead>(leadsQuery);
   const { data: staffData } = useCollection<Staff>(staffQuery);

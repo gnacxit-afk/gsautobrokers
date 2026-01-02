@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { UserPlus, Users, Trash2 } from 'lucide-react';
 import type { Staff } from '@/lib/types';
 import Link from 'next/link';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { useCollection, useFirestore, useUser } from '@/firebase';
 import { collection, deleteDoc, doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -87,7 +87,7 @@ export default function StaffPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const staffQuery = useMemoFirebase(
+  const staffQuery = useMemo(
     () => (firestore ? collection(firestore, 'staff') : null),
     [firestore]
   );
