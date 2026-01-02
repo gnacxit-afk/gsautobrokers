@@ -80,8 +80,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const syncUser = async () => {
-      // Don't do anything until Firebase auth is resolved
-      if (isFirebaseUserLoading) return;
+      if (isFirebaseUserLoading) {
+        setLoading(true);
+        return;
+      }
 
       if (firebaseUser) {
         try {
@@ -94,14 +96,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setAppUser(null);
       }
-      setLoading(false); // All loading is complete
+      setLoading(false);
     };
     syncUser();
   }, [firebaseUser, isFirebaseUserLoading, fetchAppUser]);
 
 
   useEffect(() => {
-    // Only perform routing logic once all loading is complete
     if (!loading) {
       if (!appUser && pathname !== "/login") {
         router.push("/login");
@@ -120,15 +121,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     setAuthError(null);
     try {
-        await signInWithEmailAndPassword(auth, email, pass);
-        // The useEffect hooks will handle fetching the user profile and routing.
-        return null; 
+        const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+        const userProfile = await fetchAppUser(userCredential.user);
+        setAppUser(userProfile);
+        // setLoading will be handled by the main useEffect, but we can set it to false after success
+        setLoading(false);
+        // The main useEffect will now handle the redirect
+        return userProfile;
     } catch (error: any) {
         setAuthError(error.message);
+        setAppUser(null);
         setLoading(false);
         return null;
     }
-  }, [auth]);
+  }, [auth, fetchAppUser]);
 
 
   const logout = useCallback(async () => {
@@ -136,6 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     await signOut(auth);
     setAppUser(null);
+    setLoading(false);
     // The useEffect hook will handle the redirect to /login
   }, [auth]);
 
