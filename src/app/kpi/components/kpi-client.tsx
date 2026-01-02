@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useFirestore } from "@/firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
+import { updateKpiDoc } from "@/lib/kpi-data";
 
 
 const KpiCard = ({ kpi, isEditing, onValueChange }: { kpi: KPI, isEditing: boolean, onValueChange: (value: string) => void }) => {
@@ -78,13 +79,7 @@ export function KpiClient({ initialKpis, loading }: { initialKpis: KPI[], loadin
     const handleSaveChanges = async () => {
         if (!firestore) return;
         try {
-            const updatePromises = draftKpis.map(kpi => {
-                const kpiRef = doc(firestore, 'kpis', kpi.id);
-                return updateDoc(kpiRef, { target: kpi.target });
-            });
-
-            await Promise.all(updatePromises);
-            
+            await updateKpiDoc(firestore, draftKpis);
             setKpis(draftKpis);
             setIsEditing(false);
             toast({

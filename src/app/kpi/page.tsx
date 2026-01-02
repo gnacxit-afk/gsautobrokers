@@ -5,24 +5,17 @@ import { KpiClient } from './components/kpi-client';
 import { PerformanceDashboard } from './components/performance-dashboard';
 import { BonusStatus } from './components/bonus-status';
 import { useCollection, useFirestore } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import type { Lead, Staff, KPI } from '@/lib/types';
-
-// Hardcoded KPIs as a temporary measure
-const hardcodedKpis: KPI[] = [
-    { id: "1", label: "📩 Leads recibidos", target: "informativo", description: "Total de leads recibidos en el día." },
-    { id: "2", label: "📞 Números obtenidos", target: "5 mínimos", description: "Cantidad de números de teléfono válidos obtenidos." },
-    { id: "3", label: "📅 Citas agendadas", target: "3 mínimas", description: "Cantidad de citas agendadas para demostración o prueba de manejo." },
-    { id: "4", label: "✅ Citas confirmadas", target: "2+", description: "Citas que han sido confirmadas por el cliente." },
-    { id: "5", label: "🚫 Leads descartados", target: "permitido", description: "Leads que han sido correctamente calificados y descartados." },
-    { id: "6", label: "💸 Ventas", target: "3", description: "Cantidad de ventas cerradas." }
-];
-
+import { useDoc } from '@/firebase/firestore/use-doc';
 
 export default function KpiPage() {
   const firestore = useFirestore();
 
-  // We are using hardcoded KPIs for now, but keep fetching other data
+  const kpisDocRef = useMemo(
+    () => (firestore ? doc(firestore, 'kpis', 'kpi-doc') : null),
+    [firestore]
+  );
   const leadsQuery = useMemo(
     () => (firestore ? collection(firestore, 'leads') : null),
     [firestore]
@@ -32,17 +25,15 @@ export default function KpiPage() {
     [firestore]
   );
 
+  const { data: kpisData, loading: kpisLoading } = useDoc<{ list: KPI[] }>(kpisDocRef);
   const { data: leadsData, loading: leadsLoading } =
     useCollection<Lead>(leadsQuery);
   const { data: staffData, loading: staffLoading } =
     useCollection<Staff>(staffQuery);
 
+  const kpis = kpisData?.list || [];
   const leads = leadsData || [];
   const staff = staffData || [];
-
-  // KPI data is now coming from the hardcoded list.
-  const kpis = hardcodedKpis;
-  const kpisLoading = false; 
 
   const loading = kpisLoading || leadsLoading || staffLoading;
 

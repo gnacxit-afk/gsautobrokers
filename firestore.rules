@@ -84,6 +84,16 @@ service cloud.firestore {
         allow update: if isOwner(userId) && resource != null && request.resource.data.id == resource.data.id;
         allow delete: if false; // Profiles are generally not deleted by users.
       }
+      
+      /**
+       * @description Controls access to the single KPI document.
+       * @path /kpis/kpi-doc
+       */
+      match /kpis/kpi-doc {
+        allow get: if isSignedIn();
+        allow write: if isAdmin(appId);
+      }
+
 
       // Match all public data collections
       match /public/data {
