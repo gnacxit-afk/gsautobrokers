@@ -1,60 +1,78 @@
+
 "use client";
 
-import React, { useState, useEffect, useTransition } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { Article } from '@/lib/types';
-import { Search, Plus, Save, X, Edit2, Trash2, BookOpen, Wand2, ChevronRight, Loader2 } from 'lucide-react';
+import { Search, Plus, Save, X, Edit2, Trash2, BookOpen, ChevronRight, Bold, Italic, Code, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { summarizeArticle } from "@/ai/flows/summarize-knowledge-base-articles";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth, useFirestore } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { collection, addDoc, serverTimestamp, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { useAuthContext } from '@/lib/auth';
 
-function SummaryDisplay({ content }: { content: string }) {
-  const [summary, setSummary] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+function MarkdownToolbar({ textareaRef, onContentChange }: { textareaRef: React.RefObject<HTMLTextAreaElement>, onContentChange: (value: string) => void }) {
+  const insertMarkdown = (syntax: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
 
-  useEffect(() => {
-    if (content) {
-      startTransition(async () => {
-        try {
-          const result = await summarizeArticle({ articleContent: content });
-          setSummary(result.summary);
-        } catch (error) {
-          console.error("Failed to generate summary:", error);
-          setSummary("Could not generate summary.");
-        }
-      });
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
+    
+    let newText;
+    if(syntax === '\n- ') { // for lists
+       newText = `${textarea.value.substring(0, start)}${syntax}${selectedText}${textarea.value.substring(end)}`;
+    } else {
+       newText = `${textarea.value.substring(0, start)}${syntax}${selectedText}${syntax}${textarea.value.substring(end)}`;
     }
-  }, [content]);
 
+    onContentChange(newText);
+
+    // After updating, focus and adjust cursor position
+    setTimeout(() => {
+        textarea.focus();
+        if(selectedText) {
+            textarea.setSelectionRange(start + syntax.length, end + syntax.length);
+        } else {
+             textarea.setSelectionRange(start + syntax.length, start + syntax.length);
+        }
+    }, 0);
+  };
+  
   return (
-    <Card className="my-6 bg-blue-50 border-blue-100">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base text-blue-800">
-          <Wand2 className="h-5 w-5 text-blue-600" />
-          AI Generated Summary
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {isPending ? (
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4" />
-          </div>
-        ) : (
-          <p className="text-sm text-blue-700">{summary}</p>
-        )}
-      </CardContent>
-    </Card>
+    <div className="flex items-center gap-1 rounded-t-md border border-b-0 bg-gray-50 p-2">
+      <Button variant="ghost" size="icon" onClick={() => insertMarkdown('**')} title="Bold"><Bold size={16} /></Button>
+      <Button variant="ghost" size="icon" onClick={() => insertMarkdown('*')} title="Italic"><Italic size={16} /></Button>
+      <Button variant="ghost" size="icon" onClick={() => insertMarkdown('`')} title="Code"><Code size={16} /></Button>
+      <Button variant="ghost" size="icon" onClick={() => insertMarkdown('\n- ')} title="List"><List size={16} /></Button>
+    </div>
   );
 }
+
+function SimpleMarkdownRenderer({ content }: { content: string }) {
+  const renderLine = (line: string, index: number) => {
+    if (line.startsWith('- ')) {
+      return <li key={index} className="ml-5 list-disc">{line.substring(2)}</li>;
+    }
+    // Bold, Italic, Code - simple regex replacement
+    line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    line = line.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    line = line.replace(/`(.*?)`/g, '<code class="bg-gray-100 p-1 rounded text-sm font-mono">$1</code>');
+    
+    return <p key={index} dangerouslySetInnerHTML={{ __html: line }} />;
+  };
+
+  return (
+    <div className="whitespace-pre-wrap space-y-2">
+      {content.split('\n').map(renderLine)}
+    </div>
+  );
+}
+
 
 export function KnowledgeBaseClient({ initialArticles, loading }: { initialArticles: Article[], loading: boolean }) {
   const { user } = useAuthContext();
@@ -65,6 +83,7 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
   const [editing, setEditing] = useState(false);
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState<Omit<Article, 'id' | 'author' | 'date' | 'tags'>>({ title: '', category: '', content: '' });
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   useEffect(() => {
     setArticles(initialArticles);
@@ -209,11 +228,16 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
               placeholder="Category" 
               value={draft.category} onChange={e => setDraft({...draft, category: e.target.value})}
             />
-            <Textarea 
-              placeholder="Write content here..." 
-              className="h-96 font-mono text-sm"
-              value={draft.content} onChange={e => setDraft({...draft, content: e.target.value})}
-            />
+            <div>
+              <MarkdownToolbar textareaRef={textareaRef} onContentChange={(value) => setDraft({...draft, content: value})} />
+              <Textarea 
+                ref={textareaRef}
+                placeholder="Write content here... You can use the toolbar above to add basic formatting." 
+                className="h-96 font-mono text-sm rounded-t-none"
+                value={draft.content} 
+                onChange={e => setDraft({...draft, content: e.target.value})}
+              />
+            </div>
           </div>
         ) : selected ? (
           <div className="prose prose-slate max-w-none">
@@ -230,8 +254,7 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
                 </div>
               )}
             </div>
-            <SummaryDisplay content={selected.content} />
-            <p className="whitespace-pre-wrap">{selected.content}</p>
+            <SimpleMarkdownRenderer content={selected.content} />
           </div>
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-center text-gray-400 space-y-4">
