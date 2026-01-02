@@ -37,10 +37,11 @@ const hasAccess = (userRole: Role, requiredRoles: Role[]) => {
     return requiredRoles.includes(userRole);
 }
 
-function NavItem({ active, icon, label, href }: { active: boolean; icon: React.ReactNode; label: string; href: string }) {
+function NavItem({ active, icon, label, href, onLinkClick }: { active: boolean; icon: React.ReactNode; label: string; href: string, onLinkClick?: () => void }) {
   return (
     <Link
       href={href}
+      onClick={onLinkClick}
       className={cn(
         "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
         active ? 'bg-primary text-white shadow-lg shadow-blue-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
@@ -52,7 +53,7 @@ function NavItem({ active, icon, label, href }: { active: boolean; icon: React.R
   );
 }
 
-function MainNav({ items }: { items: NavItemType[] }) {
+function MainNav({ items, onLinkClick }: { items: NavItemType[], onLinkClick?: () => void }) {
   const pathname = usePathname();
   const { user } = useAuthContext();
 
@@ -68,6 +69,7 @@ function MainNav({ items }: { items: NavItemType[] }) {
             active={pathname === item.href}
             icon={<item.icon size={20} />}
             label={item.title}
+            onLinkClick={onLinkClick}
           />
         )
       ))}
@@ -75,7 +77,7 @@ function MainNav({ items }: { items: NavItemType[] }) {
   );
 }
 
-function SidebarContent() {
+function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
     const { user, logout, MASTER_ADMIN_EMAIL } = useAuthContext();
     
     if (!user) return null;
@@ -99,12 +101,15 @@ function SidebarContent() {
                 </div>
             </div>
             
-            <MainNav items={navItems} />
+            <MainNav items={navItems} onLinkClick={onLinkClick} />
 
             <div className="p-4 border-t border-slate-800 mt-auto">
                 {user.email === MASTER_ADMIN_EMAIL && <RoleSwitcher />}
                  <Button 
-                    onClick={logout}
+                    onClick={() => {
+                      if (onLinkClick) onLinkClick();
+                      logout();
+                    }}
                     variant="ghost"
                     className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors w-full justify-start mt-2 text-sm p-2 h-auto"
                 >
@@ -127,6 +132,7 @@ function Sidebar() {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthContext();
   const pathname = usePathname();
+  const [isSheetOpen, setIsSheetOpen] = React.useState(false);
 
   if (loading) {
     return (
@@ -165,7 +171,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 bg-white border-b flex items-center justify-between px-4 sm:px-8 shrink-0">
           <div className="flex items-center gap-4">
-            <Sheet>
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
                 <Button size="icon" variant="outline" className="lg:hidden">
                   <PanelLeft className="h-5 w-5" />
@@ -173,7 +179,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="sm:max-w-xs p-0 bg-slate-900 text-white border-r-0 flex flex-col">
-                <SidebarContent />
+                <SidebarContent onLinkClick={() => setIsSheetOpen(false)} />
               </SheetContent>
             </Sheet>
             <h2 className="text-xl font-semibold text-slate-800 capitalize hidden sm:block">{getPageTitle()}</h2>
