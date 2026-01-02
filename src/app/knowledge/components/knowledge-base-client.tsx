@@ -52,7 +52,7 @@ function MarkdownToolbar({ textareaRef, onContentChange, onAlignChange, onEmojiI
     onEmojiInsert(newText);
     setTimeout(() => {
         textarea.focus();
-        textarea.setSelectionRange(start + emoji.length, end + emoji.length);
+        textarea.setSelectionRange(start + emoji.length, start + emoji.length);
     }, 0);
   };
 
