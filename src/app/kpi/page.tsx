@@ -70,7 +70,7 @@ export default function KpiPage() {
     <main className="flex-1 space-y-8">
       <div>
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold">KPI's & Performance</h1>
+          <h1 className="text-2xl font-bold">METAS DIARIAS</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Cada vendedor profesional genera resultados todos los días, porque
             entiende que el éxito no se espera, se provoca.
