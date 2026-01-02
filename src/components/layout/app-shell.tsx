@@ -16,7 +16,7 @@ import {
 
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/lib/auth";
+import { useAuthContext } from "@/lib/auth";
 import type { NavItem as NavItemType, Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { DateRangePicker } from "./date-range-picker";
@@ -52,7 +52,7 @@ function NavItem({ active, icon, label, href }: { active: boolean; icon: React.R
 
 function MainNav({ items }: { items: NavItemType[] }) {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user } = useAuthContext();
 
   if (!user) return null;
   
@@ -74,7 +74,7 @@ function MainNav({ items }: { items: NavItemType[] }) {
 }
 
 function Sidebar() {
-    const { user, logout } = useAuth();
+    const { user, logout } = useAuthContext();
     
     if (!user) return null;
 
@@ -110,11 +110,10 @@ function Sidebar() {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading } = useAuthContext();
   const pathname = usePathname();
 
   if (loading) {
-    // You can return a global loading spinner here
     return <div className="h-screen w-full flex items-center justify-center">Loading...</div>;
   }
 

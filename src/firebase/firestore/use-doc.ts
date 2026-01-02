@@ -14,12 +14,9 @@ export const useDoc = <T extends DocumentData>(
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // If the ref is null, we are not ready to fetch.
-    // Set loading to true if there's no data yet.
     if (!ref) {
-      if (data === null) {
-          setLoading(true);
-      }
+      setLoading(true);
+      setData(null);
       return;
     };
     
@@ -45,7 +42,7 @@ export const useDoc = <T extends DocumentData>(
     );
 
     return () => unsubscribe();
-  }, [ref, data]); // Added 'data' to dependency array
+  }, [ref]);
 
   return { data, loading, error };
 };

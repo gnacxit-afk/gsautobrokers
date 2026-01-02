@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import type { Lead, BonusInfo } from '@/lib/types';
-import { useAuth } from '@/lib/auth';
+import { useAuthContext } from '@/lib/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { isWithinInterval, subDays } from 'date-fns';
 import { calculateBonus, getNextBonusGoal } from '@/lib/utils';
@@ -30,7 +30,7 @@ const StatCard = ({ label, value, icon, color }: { label: string, value: string 
 
 
 export function BonusStatus({ allLeads, loading }: { allLeads: Lead[], loading: boolean }) {
-    const { user } = useAuth();
+    const { user } = useAuthContext();
 
     const bonusInfo: BonusInfo | null = useMemo(() => {
         if (!user) return null;

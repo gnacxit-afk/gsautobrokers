@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth, useFirestore } from '@/firebase';
 import { collection, addDoc, serverTimestamp, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { useAuthContext } from '@/lib/auth';
 
 function SummaryDisplay({ content }: { content: string }) {
   const [summary, setSummary] = useState<string | null>(null);
@@ -56,7 +57,7 @@ function SummaryDisplay({ content }: { content: string }) {
 }
 
 export function KnowledgeBaseClient({ initialArticles, loading }: { initialArticles: Article[], loading: boolean }) {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [articles, setArticles] = useState(initialArticles);

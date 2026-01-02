@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { KPI } from "@/lib/types";
-import { useAuth } from "@/lib/auth";
+import { useAuthContext } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -50,7 +50,7 @@ const KpiCard = ({ kpi, isEditing, onValueChange }: { kpi: KPI, isEditing: boole
 
 
 export function KpiClient({ initialKpis, loading }: { initialKpis: KPI[], loading: boolean }) {
-    const { user } = useAuth();
+    const { user } = useAuthContext();
     const firestore = useFirestore();
     const { toast } = useToast();
     const [kpis, setKpis] = useState(initialKpis);

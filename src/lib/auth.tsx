@@ -4,11 +4,10 @@
 import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import type { Role, Staff, User } from "./types";
-import { useFirestore, useFirebase } from "@/firebase";
+import { useFirestore, useUser, useAuth } from "@/firebase";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { 
-  signInWithEmailAndPassword, 
-  onAuthStateChanged, 
+  signInWithEmailAndPassword,
   signOut, 
   type User as FirebaseUser
 } from "firebase/auth";
@@ -27,42 +26,44 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [appUser, setAppUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isAppUserLoading, setAppUserLoading] = useState(true);
+
   const router = useRouter();
   const pathname = usePathname();
-  const { firestore, auth, isUserLoading } = useFirebase();
+  const firestore = useFirestore();
+  const auth = useAuth();
+  const { user: firebaseUser, isUserLoading: isFirebaseUserLoading } = useUser();
 
-  const fetchUserRole = useCallback(async (firebaseUser: FirebaseUser): Promise<User | null> => {
-    if (!firestore) return null;
-    const staffDocRef = doc(firestore, 'staff', firebaseUser.uid);
+  const fetchAppUser = useCallback(async (fbUser: FirebaseUser): Promise<User> => {
+    if (!firestore) throw new Error("Firestore not initialized");
+    
+    const staffDocRef = doc(firestore, 'staff', fbUser.uid);
     const staffDoc = await getDoc(staffDocRef);
 
     if (staffDoc.exists()) {
         const staffData = staffDoc.data() as Staff;
-        const appUser: User = {
-            id: firebaseUser.uid,
+        return {
+            id: fbUser.uid,
             name: staffData.name,
             email: staffData.email,
             avatarUrl: staffData.avatarUrl,
             role: staffData.role,
             dui: staffData.dui,
         };
-       return appUser;
     } 
 
-    // If user is not in staff collection, create a new staff document and a user object.
     const newUser: User = {
-        id: firebaseUser.uid,
-        name: firebaseUser.displayName || firebaseUser.email || 'New User',
-        email: firebaseUser.email || '',
-        avatarUrl: firebaseUser.photoURL || '',
-        role: 'Broker', // Assign a default role
-        dui: '00000000-0', // Default DUI, should be updated
+        id: fbUser.uid,
+        name: fbUser.displayName || fbUser.email || 'New User',
+        email: fbUser.email || '',
+        avatarUrl: fbUser.photoURL || '',
+        role: 'Broker',
+        dui: '00000000-0',
     };
     
-    const newStaffData: Staff = {
+    const newStaffData: Omit<Staff, 'hireDate'> & { hireDate: any } = {
         id: newUser.id,
         name: newUser.name,
         email: newUser.email,
@@ -79,88 +80,90 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 
   useEffect(() => {
-    if (!isUserLoading) {
-      const handleAuthChange = async (firebaseUser: FirebaseUser | null) => {
-        if (firebaseUser) {
-          const appUser = await fetchUserRole(firebaseUser);
-          setUser(appUser);
-        } else {
-          setUser(null);
-        }
-        setLoading(false);
-      };
-      
-      const unsubscribe = onAuthStateChanged(auth, handleAuthChange);
-      return () => unsubscribe();
-    }
-  }, [auth, isUserLoading, fetchUserRole]);
+    const syncUser = async () => {
+      if (isFirebaseUserLoading) {
+        return;
+      }
+      if (firebaseUser) {
+        setAppUserLoading(true);
+        const userProfile = await fetchAppUser(firebaseUser);
+        setAppUser(userProfile);
+        setAppUserLoading(false);
+      } else {
+        setAppUser(null);
+        setAppUserLoading(false);
+      }
+    };
+    syncUser();
+  }, [firebaseUser, isFirebaseUserLoading, fetchAppUser]);
 
 
   useEffect(() => {
-    if (!loading && !user && pathname !== "/login") {
+    const finalLoading = isFirebaseUserLoading || isAppUserLoading;
+    if (!finalLoading && !appUser && pathname !== "/login") {
       router.push("/login");
     }
-    if (!loading && user && (pathname === "/login" || pathname === "/")) {
+    if (!finalLoading && appUser && (pathname === "/login" || pathname === "/")) {
       router.push("/leads");
     }
-  }, [user, loading, pathname, router]);
+  }, [appUser, isFirebaseUserLoading, isAppUserLoading, pathname, router]);
 
 
   const login = useCallback(async (email: string, pass: string): Promise<User | null> => {
-    setLoading(true);
-    setAuthError(null);
-    try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-        const firebaseUser = userCredential.user;
-        if (firebaseUser) {
-            const appUser = await fetchUserRole(firebaseUser);
-            setUser(appUser);
-            setLoading(false);
-            return appUser;
-        }
-        return null;
-    } catch (error: any) {
-        setAuthError(error.message);
-        setLoading(false);
+    if (!auth) {
+        setAuthError("Authentication service is not available.");
         return null;
     }
-  }, [auth, fetchUserRole]);
+    setAppUserLoading(true);
+    setAuthError(null);
+    try {
+        await signInWithEmailAndPassword(auth, email, pass);
+        // The useEffect hooks will handle fetching the user profile and routing.
+        // We can optimistically return something, but the state will be the source of truth.
+        return null; 
+    } catch (error: any) {
+        setAuthError(error.message);
+        setAppUserLoading(false);
+        return null;
+    }
+  }, [auth]);
 
 
   const logout = useCallback(async () => {
+    if (!auth) return;
     await signOut(auth);
-    setUser(null);
+    setAppUser(null);
     router.push("/login");
   }, [auth, router]);
 
   const setUserRole = useCallback((role: Role) => {
-    setUser(currentUser => {
+    setAppUser(currentUser => {
         if(!currentUser) return null;
         return { ...currentUser, role };
     });
   }, []);
   
   const reloadUser = useCallback(async () => {
-    if (auth?.currentUser) {
-        setLoading(true);
-        const appUser = await fetchUserRole(auth.currentUser);
-        setUser(appUser);
-        setLoading(false);
+    if (firebaseUser) {
+        setAppUserLoading(true);
+        const updatedAppUser = await fetchAppUser(firebaseUser);
+        setAppUser(updatedAppUser);
+        setAppUserLoading(false);
     }
-  }, [auth, fetchUserRole]);
+  }, [firebaseUser, fetchAppUser]);
 
   const value = useMemo(
-    () => ({ user, loading, authError, login, logout, setUserRole, reloadUser }),
-    [user, loading, authError, login, logout, setUserRole, reloadUser]
+    () => ({ user: appUser, loading: isFirebaseUserLoading || isAppUserLoading, authError, login, logout, setUserRole, reloadUser }),
+    [appUser, isFirebaseUserLoading, isAppUserLoading, authError, login, logout, setUserRole, reloadUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function useAuth() {
+export function useAuthContext() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error("useAuthContext must be used within an AuthProvider");
   }
   return context;
 }

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import type { Lead, Staff, PerformanceMetric } from '@/lib/types';
-import { useAuth } from '@/lib/auth';
+import { useAuthContext } from '@/lib/auth';
 import { useDateRange } from '@/hooks/use-date-range';
 import { DateRangePicker } from '@/components/layout/date-range-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -33,7 +33,7 @@ const calculateMetrics = (leads: Lead[]): Omit<PerformanceMetric, 'userId' | 'us
 
 
 export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads: Lead[], allStaff: Staff[], loading: boolean }) {
-    const { user } = useAuth();
+    const { user } = useAuthContext();
     const { dateRange } = useDateRange();
     const [selectedUserId, setSelectedUserId] = useState<string>('all');
     

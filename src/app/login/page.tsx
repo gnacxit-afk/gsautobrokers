@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
-import { useAuth } from "@/lib/auth";
+import { useState } from "react";
+import { useAuthContext } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,26 +12,20 @@ import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/icons";
 
 export default function LoginPage() {
-  const { login, authError } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { login, authError, loading } = useAuthContext();
+  const [email, setEmail] = useState("nacxit@gmail.com");
+  const [password, setPassword] = useState("annagcexlit.5691");
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    try {
-      await login(email, password);
-      // AuthProvider will handle redirection on successful login and authorization
-    } catch (error) {
+    const user = await login(email, password);
+    if (!user && !loading) {
        toast({
         variant: "destructive",
         title: "Login Failed",
-        description: "Invalid email or password. Please try again.",
+        description: authError || "Invalid email or password. Please try again.",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -83,4 +77,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

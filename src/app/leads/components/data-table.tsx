@@ -31,7 +31,7 @@ import type { Lead, Staff } from "@/lib/types";
 import { RenderSubComponent } from "./render-sub-component";
 import { DateRangePicker } from "@/components/layout/date-range-picker";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAuth } from "@/lib/auth";
+import { useAuthContext } from "@/lib/auth";
 
 
 interface DataTableProps<TData, TValue> {
@@ -58,7 +58,7 @@ export function DataTable<TData extends Lead, TValue>({
   loading,
 }: DataTableProps<TData, TValue>) {
   
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [isNewLeadDialogOpen, setNewLeadDialogOpen] = React.useState(false);
   const globalFilter = table.getState().globalFilter;
   const setGlobalFilter = (filter: string) => table.setGlobalFilter(filter);

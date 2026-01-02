@@ -24,7 +24,7 @@ import type { Lead } from "@/lib/types";
 import React from "react";
 import { AnalyzeLeadDialog } from "./analyze-lead-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/lib/auth";
+import { useAuthContext } from "@/lib/auth";
 
 const leadStatuses: Lead['status'][] = ["New", "Contacted", "Qualified", "On the way", "On site", "Sale", "Closed", "Lost"];
 
@@ -32,7 +32,7 @@ const leadStatuses: Lead['status'][] = ["New", "Contacted", "Qualified", "On the
 const CellActions: React.FC<{ lead: Lead, onUpdateStatus: (id: string, status: Lead['status']) => void, onDelete: (id: string) => void, row: any }> = ({ lead, onUpdateStatus, onDelete, row }) => {
   const [isAnalyzeOpen, setAnalyzeOpen] = React.useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user } = useAuthContext();
 
   const handleStatusUpdate = (status: Lead['status']) => {
     onUpdateStatus(lead.id, status);

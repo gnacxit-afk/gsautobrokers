@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { Staff, Role } from "@/lib/types";
-import { useUser } from "@/firebase";
+import { useUser, useAuth } from "@/firebase";
 import { AccessDenied } from "@/components/access-denied";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -17,13 +17,13 @@ import { useCollection, useDoc, useFirestore, useMemoFirebase } from "@/firebase
 import { collection, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { signOut } from "firebase/auth";
-import { useAuth } from "@/firebase";
+import { useAuthContext } from "@/lib/auth";
 
 
 const roles: Role[] = ["Admin", "Supervisor", "Broker"];
 
 export default function StaffProfilePage() {
-  const { user, isUserLoading } = useUser();
+  const { user, loading: isUserLoading } = useAuthContext();
   const auth = useAuth();
   const params = useParams();
   const router = useRouter();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@/lib/auth";
+import { useAuthContext } from "@/lib/auth";
 import type { Role } from "@/lib/types";
 import {
   DropdownMenu,
@@ -15,7 +15,9 @@ import { Button } from "../ui/button";
 const roles: Role[] = ["Admin", "Supervisor", "Broker"];
 
 export function RoleSwitcher() {
-  const { user, setUserRole } = useAuth();
+  const { user, setUserRole } = useAuthContext();
+
+  if (!user) return null;
 
   return (
     <DropdownMenu>

@@ -19,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Lead } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/lib/auth";
+import { useAuthContext } from "@/lib/auth";
 
 interface NewLeadDialogProps {
   children: React.ReactNode;
@@ -55,7 +55,7 @@ const initialFormState = {
 
 export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLeadDialogProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user } = useAuthContext();
 
   const [formData, setFormData] = useState<Omit<Lead, 'id' | 'createdAt' | 'ownerId' | 'ownerName' | 'email' | 'company'>>({
     ...initialFormState
