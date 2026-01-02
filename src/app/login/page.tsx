@@ -13,8 +13,8 @@ import { Logo } from "@/components/icons";
 
 export default function LoginPage() {
   const { login, authError, loading } = useAuthContext();
-  const [email, setEmail] = useState("nacxit@gmail.com");
-  const [password, setPassword] = useState("annagcexlit.5691");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
