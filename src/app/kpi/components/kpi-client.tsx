@@ -17,9 +17,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 const KpiCard = ({ kpi, isEditing, onValueChange }: { kpi: KPI, isEditing: boolean, onValueChange: (value: string) => void }) => {
     return (
         <Card className="shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader>
-                <div className="flex justify-between items-center">
-                   <CardTitle className="text-lg font-semibold text-slate-800">{kpi.label}</CardTitle>
+            <CardHeader className="pb-2">
+                <div className="flex justify-between items-start">
+                   <CardTitle className="text-base font-semibold text-slate-700">{kpi.label}</CardTitle>
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -38,10 +38,10 @@ const KpiCard = ({ kpi, isEditing, onValueChange }: { kpi: KPI, isEditing: boole
                         type="text"
                         value={kpi.target}
                         onChange={(e) => onValueChange(e.target.value)}
-                        className="text-3xl font-bold h-12"
+                        className="text-2xl font-bold h-10"
                     />
                 ) : (
-                    <p className="text-3xl font-bold text-primary">{kpi.target}</p>
+                    <p className="text-2xl font-bold text-primary">{kpi.target}</p>
                 )}
             </CardContent>
         </Card>
@@ -102,7 +102,7 @@ export function KpiClient({ initialKpis, loading }: { initialKpis: KPI[], loadin
 
     if (loading) {
         return (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
                 {[...Array(6)].map((_, i) => (
                     <Card key={i}>
                         <CardHeader>
@@ -131,7 +131,7 @@ export function KpiClient({ initialKpis, loading }: { initialKpis: KPI[], loadin
                     )}
                 </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
                 {(isEditing ? draftKpis : kpis).map(kpi => (
                     <KpiCard
                         key={kpi.id}
