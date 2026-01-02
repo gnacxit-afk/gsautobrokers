@@ -76,7 +76,7 @@ function MainNav({ items }: { items: NavItemType[] }) {
 }
 
 function Sidebar() {
-    const { user, logout } = useAuthContext();
+    const { user, logout, MASTER_ADMIN_EMAIL } = useAuthContext();
     
     if (!user) return null;
 
@@ -102,7 +102,7 @@ function Sidebar() {
             <MainNav items={navItems} />
 
             <div className="p-4 border-t border-slate-800">
-                <RoleSwitcher />
+                {user.email === MASTER_ADMIN_EMAIL && <RoleSwitcher />}
                  <Button 
                     onClick={logout}
                     variant="ghost"

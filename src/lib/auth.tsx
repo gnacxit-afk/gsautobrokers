@@ -15,10 +15,7 @@ import {
 import { Loader2 } from "lucide-react";
 import { Logo } from "@/components/icons";
 
-
-// TODO: Replace with your actual master admin email address.
-// This user will have full admin privileges and will not need an entry in the 'staff' collection.
-const MASTER_ADMIN_EMAIL = "gnacxit@gmail.com";
+export const MASTER_ADMIN_EMAIL = "gnacxit@gmail.com";
 
 interface AuthContextType {
   user: User | null;
@@ -28,6 +25,7 @@ interface AuthContextType {
   logout: () => void;
   setUserRole: (role: Role) => void;
   reloadUser: () => void;
+  MASTER_ADMIN_EMAIL: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -167,7 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [auth, fetchAppUser]);
 
   const value = useMemo(
-    () => ({ user, loading, authError, login, logout, setUserRole, reloadUser }),
+    () => ({ user, loading, authError, login, logout, setUserRole, reloadUser, MASTER_ADMIN_EMAIL }),
     [user, loading, authError, login, logout, setUserRole, reloadUser]
   );
   
