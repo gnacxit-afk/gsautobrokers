@@ -85,19 +85,23 @@ function Sidebar() {
             <div className="p-6 border-b border-slate-800 h-16 flex items-center">
                 <Logo className="text-white text-lg" />
             </div>
-            
-            <MainNav items={navItems} />
 
-            <div className="p-4 border-t border-slate-800">
-                <div className="flex items-center gap-3 mb-4">
+            <div className="p-4 border-b border-slate-800">
+                <div className="flex items-center gap-3">
                     <div className="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center">
                         <UserCircle2 className="h-6 w-6 text-slate-500" />
                     </div>
                     <div className="overflow-hidden">
                         <p className="text-sm font-medium truncate">{user.name}</p>
                         <p className="text-xs text-slate-400 truncate">ID: {user.id}</p>
+                        <p className="text-xs text-slate-400 truncate capitalize">{user.role}</p>
                     </div>
                 </div>
+            </div>
+            
+            <MainNav items={navItems} />
+
+            <div className="p-4 border-t border-slate-800">
                 <RoleSwitcher />
                  <Button 
                     onClick={logout}
