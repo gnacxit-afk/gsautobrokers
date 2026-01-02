@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import type { Article } from '@/lib/types';
-import { Search, Plus, Save, X, Edit2, Trash2, BookOpen, ChevronRight, Bold, Italic, Code, List, AlignCenter, AlignLeft, AlignRight, Smile, Minus } from 'lucide-react';
+import { Search, Plus, Save, X, Edit2, Trash2, BookOpen, ChevronRight, Bold, Italic, Code, List, AlignCenter, AlignLeft, AlignRight, Smile, Minus, Heading } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -56,6 +56,26 @@ function MarkdownToolbar({ textareaRef, onContentChange, onAlignChange, onEmojiI
     let newText;
     const placeholder = 'text';
 
+    if (syntax.startsWith('#')) {
+      const lineStart = textarea.value.lastIndexOf('\n', start - 1) + 1;
+      const lineEnd = textarea.value.indexOf('\n', end);
+      const finalLineEnd = lineEnd === -1 ? textarea.value.length : lineEnd;
+      const line = textarea.value.substring(lineStart, finalLineEnd);
+      
+      const currentLevel = (line.match(/^#+/) || [''])[0].length;
+      const newLevel = (currentLevel % 3) + 1;
+      
+      const newLine = '#'.repeat(newLevel) + ' ' + line.replace(/^#+\s*/, '');
+      newText = textarea.value.substring(0, lineStart) + newLine + textarea.value.substring(finalLineEnd);
+      
+      onContentChange(newText);
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start, end);
+      }, 0);
+      return;
+    }
+
     if (syntax === '\n- ') { // for lists
        newText = `${textarea.value.substring(0, start)}${syntax}${selectedText || placeholder}${textarea.value.substring(end)}`;
     } else if (syntax === '\n---\n') { // for horizontal line
@@ -94,6 +114,7 @@ function MarkdownToolbar({ textareaRef, onContentChange, onAlignChange, onEmojiI
 
   return (
     <div className="flex items-center gap-1 rounded-t-md border border-b-0 bg-gray-50 p-2 flex-wrap">
+      <Button variant="ghost" size="icon" onClick={() => insertMarkdown('#')} title="Heading"><Heading size={16} /></Button>
       <Button variant="ghost" size="icon" onClick={() => insertMarkdown('**')} title="Bold"><Bold size={16} /></Button>
       <Button variant="ghost" size="icon" onClick={() => insertMarkdown('*')} title="Italic"><Italic size={16} /></Button>
       <Button variant="ghost" size="icon" onClick={() => insertMarkdown('`')} title="Code"><Code size={16} /></Button>
@@ -111,6 +132,17 @@ function MarkdownToolbar({ textareaRef, onContentChange, onAlignChange, onEmojiI
 
 function SimpleMarkdownRenderer({ content, align }: { content: string, align?: 'left' | 'center' | 'right' }) {
   const renderLine = (line: string, index: number) => {
+    // Headings
+    if (line.startsWith('### ')) {
+      return <h3 key={index} className="text-lg font-semibold" dangerouslySetInnerHTML={{ __html: line.substring(4) }} />;
+    }
+    if (line.startsWith('## ')) {
+        return <h2 key={index} className="text-xl font-bold" dangerouslySetInnerHTML={{ __html: line.substring(3) }} />;
+    }
+    if (line.startsWith('# ')) {
+        return <h1 key={index} className="text-2xl font-bold" dangerouslySetInnerHTML={{ __html: line.substring(2) }} />;
+    }
+
     // Must process bold first, then italic
     line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     line = line.replace(/\*(.*?)\*/g, '<em>$1</em>');
@@ -340,3 +372,5 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
     </div>
   );
 }
+
+    
