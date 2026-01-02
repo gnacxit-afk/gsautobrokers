@@ -143,7 +143,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 
   const getPageTitle = () => {
-    if (pathname === '/kpi') return 'METAS DIARIAS';
+    if (pathname === '/kpi') return 'Daily Goals';
     if (pathname === '/') return 'Dashboard';
     const currentPath = pathname.split('/')[1];
     const currentNavItem = navItems.find(item => item.href === `/${currentPath}`);
