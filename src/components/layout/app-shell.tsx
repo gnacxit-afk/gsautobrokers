@@ -125,14 +125,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // The AuthProvider now handles redirection, so this check is for pages
-  // that might render children before the redirect effect kicks in.
-  if (!user && pathname !== '/login') {
-    return null;
-  }
-  
   if (pathname === '/login') {
     return <>{children}</>;
+  }
+
+  // The AuthProvider handles redirection, but this prevents flashing content.
+  if (!user) {
+    return null;
   }
 
   const pagesWithDateFilter = ['/'];

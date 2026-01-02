@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import type { Role, Staff, User } from "./types";
-import { useFirestore, useAuth, useFirebaseReady } from "@/firebase";
+import { useFirestore, useAuth } from "@/firebase";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { 
   signInWithEmailAndPassword,
@@ -12,6 +12,8 @@ import {
   onAuthStateChanged,
   type User as FirebaseUser
 } from "firebase/auth";
+import { Loader2 } from "lucide-react";
+import { Logo } from "@/components/icons";
 
 
 interface AuthContextType {
@@ -27,7 +29,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [appUser, setAppUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -35,7 +37,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const firestore = useFirestore();
   const auth = useAuth();
-  const firebaseReady = useFirebaseReady();
 
   const fetchAppUser = useCallback(async (fbUser: FirebaseUser): Promise<User | null> => {
     if (!firestore) throw new Error("Firestore not initialized");
@@ -57,7 +58,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             };
         }
 
-        // If user is not in staff, create a default profile.
         const newUser: User = {
             id: fbUser.uid,
             name: fbUser.displayName || fbUser.email || 'New User',
@@ -78,11 +78,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
         
         return newUser;
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error fetching or creating user document:", error);
-        // This could be a permissions error if the user is not allowed to read/write their own profile
-        // For now, we'll treat it as a login failure.
-        setAuthError("Failed to access user profile.");
+        setAuthError(`Failed to access user profile: ${error.message}`);
         if(auth) await signOut(auth);
         return null;
     }
@@ -90,36 +88,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 
   useEffect(() => {
-    if (!firebaseReady || !auth) {
-        // Wait for Firebase to be ready
-        return;
-    }
+    if (!auth || !firestore) return;
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
             const userProfile = await fetchAppUser(firebaseUser);
-            setAppUser(userProfile);
+            setUser(userProfile);
         } else {
-            setAppUser(null);
+            setUser(null);
         }
         setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [firebaseReady, auth, fetchAppUser]);
+  }, [auth, firestore, fetchAppUser]);
 
 
   useEffect(() => {
-    // This effect handles routing after the loading state is resolved.
     if (!loading) {
-      if (!appUser && pathname !== "/login") {
+      if (!user && pathname !== "/login") {
         router.push("/login");
-      } else if (appUser && pathname === "/login") {
-        // Redirect from login page to a default page after successful login
+      } else if (user && pathname === "/login") {
         router.push("/leads");
       }
     }
-  }, [appUser, loading, pathname, router]);
+  }, [user, loading, pathname, router]);
 
 
   const login = useCallback(async (email: string, pass: string): Promise<void> => {
@@ -131,11 +124,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthError(null);
     try {
         await signInWithEmailAndPassword(auth, email, pass);
-        // The onAuthStateChanged listener will handle fetching the user and setting state.
     } catch (error: any) {
         setAuthError(error.message);
-        setAppUser(null);
-        setLoading(false); // Only set loading to false on error, success is handled by the listener
+        setUser(null);
+        setLoading(false);
     }
   }, [auth]);
 
@@ -144,12 +136,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!auth) return;
     setLoading(true);
     await signOut(auth);
-    setAppUser(null);
-    // The onAuthStateChanged listener will set loading to false.
   }, [auth]);
 
   const setUserRole = useCallback((role: Role) => {
-    setAppUser(currentUser => {
+    setUser(currentUser => {
         if(!currentUser) return null;
         return { ...currentUser, role };
     });
@@ -159,23 +149,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
      if (auth?.currentUser) {
         setLoading(true);
         const updatedAppUser = await fetchAppUser(auth.currentUser);
-        setAppUser(updatedAppUser);
+        setUser(updatedAppUser);
         setLoading(false);
     }
   }, [auth, fetchAppUser]);
 
   const value = useMemo(
-    () => ({ user: appUser, loading, authError, login, logout, setUserRole, reloadUser }),
-    [appUser, loading, authError, login, logout, setUserRole, reloadUser]
+    () => ({ user, loading, authError, login, logout, setUserRole, reloadUser }),
+    [user, loading, authError, login, logout, setUserRole, reloadUser]
   );
-
-  // Render children only when not in the initial loading phase and not on the login page without a user
-  // This prevents flashing the content of a protected page.
-  const shouldRenderChildren = !loading || (loading && pathname === '/login');
+  
+  if (loading) {
+     return (
+        <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
+            <Logo />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Loading Application...</p>
+        </div>
+    );
+  }
 
   return (
     <AuthContext.Provider value={value}>
-        {shouldRenderChildren ? children : null}
+        {children}
     </AuthContext.Provider>
   );
 }

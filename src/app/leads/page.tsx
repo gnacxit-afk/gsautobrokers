@@ -5,7 +5,7 @@ import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 import type { Lead, Staff } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
-import { useCollection, useFirestore, useUser } from '@/firebase';
+import { useCollection, useFirestore, useUser, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import {
   useReactTable,
   getCoreRowModel,
@@ -72,36 +72,22 @@ export default function LeadsPage() {
     const handleUpdateStatus = useCallback(async (id: string, status: Lead['status']) => {
         if (!firestore) return;
         const leadRef = doc(firestore, 'leads', id);
-        try {
-            await updateDoc(leadRef, { status });
-            toast({ title: "Status Updated", description: `Lead status changed to ${status}.` });
-        } catch (error) {
-            console.error("Error updating status:", error);
-            toast({ title: "Error", description: "Could not update lead status.", variant: "destructive" });
-        }
+        updateDocumentNonBlocking(leadRef, { status });
+        toast({ title: "Status Updated", description: `Lead status changed to ${status}.` });
     }, [firestore, toast]);
     
     const handleUpdateNotes = useCallback(async (id: string, notes: string) => {
         if (!firestore) return;
         const leadRef = doc(firestore, 'leads', id);
-         try {
-            await updateDoc(leadRef, { notes });
-            toast({ title: "Notes Updated", description: "Lead notes have been saved." });
-        } catch (error) {
-            console.error("Error updating notes:", error);
-            toast({ title: "Error", description: "Could not save lead notes.", variant: "destructive" });
-        }
+        updateDocumentNonBlocking(leadRef, { notes });
+        toast({ title: "Notes Updated", description: "Lead notes have been saved." });
     }, [firestore, toast]);
 
     const handleDelete = useCallback(async (id: string) => {
         if (window.confirm('Are you sure you want to delete this lead?') && firestore) {
-            try {
-                await deleteDoc(doc(firestore, 'leads', id));
-                toast({ title: "Lead Deleted", description: "The lead has been removed." });
-            } catch (error) {
-                console.error("Error deleting lead:", error);
-                toast({ title: "Error", description: "Could not delete the lead.", variant: "destructive" });
-            }
+            const leadRef = doc(firestore, 'leads', id);
+            deleteDocumentNonBlocking(leadRef);
+            toast({ title: "Lead Deleted", description: "The lead has been removed." });
         }
     }, [firestore, toast]);
 
@@ -110,17 +96,12 @@ export default function LeadsPage() {
         if (!owner || !firestore) return;
 
         const leadsCollection = collection(firestore, 'leads');
-        try {
-            await addDoc(leadsCollection, {
-                ...newLeadData,
-                createdAt: serverTimestamp(),
-                ownerName: owner.name,
-            });
-            toast({ title: "Lead Added", description: "The new lead has been created." });
-        } catch (error) {
-            console.error("Error adding lead:", error);
-            toast({ title: "Error", description: "Could not create the new lead.", variant: "destructive" });
-        }
+        addDocumentNonBlocking(leadsCollection, {
+            ...newLeadData,
+            createdAt: serverTimestamp(),
+            ownerName: owner.name,
+        });
+        toast({ title: "Lead Added", description: "The new lead has been created." });
     }, [allStaff, firestore, toast]);
 
 

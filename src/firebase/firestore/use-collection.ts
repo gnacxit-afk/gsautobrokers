@@ -21,6 +21,7 @@ export const useCollection = <T extends DocumentData>(
       return;
     };
     
+    setLoading(true);
     setError(null);
 
     const unsubscribe = onSnapshot(
