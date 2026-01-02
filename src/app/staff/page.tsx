@@ -1,18 +1,20 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useAuth } from '@/lib/auth';
 import { AccessDenied } from '@/components/access-denied';
 import { NewStaffDialog } from './components/new-staff-dialog';
 import { Button } from '@/components/ui/button';
-import { UserPlus, Users } from 'lucide-react';
+import { UserPlus, Users, Trash2 } from 'lucide-react';
 import type { Staff } from '@/lib/types';
 import Link from 'next/link';
 import { useCollection, useFirestore } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, deleteDoc, doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
 
-const StaffCard = ({ member }: { member: Staff }) => {
+const StaffCard = ({ member, onDelete }: { member: Staff, onDelete: (id: string, name: string) => void }) => {
   const roleColors = {
     Admin: 'bg-red-50 text-red-600',
     Supervisor: 'bg-blue-50 text-blue-600',
@@ -33,12 +35,32 @@ const StaffCard = ({ member }: { member: Staff }) => {
       <h4 className="font-bold text-slate-800 text-lg">{member.name}</h4>
       <p className="text-xs text-slate-400 mb-4">DUI: {member.dui}</p>
       <div className="pt-4 border-t flex justify-between items-center">
-        <span className="text-xs text-slate-500">ID: {member.id}</span>
         <Link href={`/staff/${member.id}`}>
           <Button variant="link" className="p-0 h-auto text-xs">
             View Profile
           </Button>
         </Link>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
+              <Trash2 size={16} />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the profile for <span className="font-bold">{member.name}</span>.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => onDelete(member.id, member.name)} className="bg-destructive hover:bg-destructive/90">
+                Yes, delete profile
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
@@ -54,8 +76,8 @@ const StaffCardSkeleton = () => {
       <Skeleton className="h-6 w-3/4 mb-2" />
       <Skeleton className="h-4 w-1/2 mb-4" />
       <div className="pt-4 border-t flex justify-between items-center">
-        <Skeleton className="h-4 w-1/3" />
         <Skeleton className="h-4 w-1/4" />
+        <Skeleton className="h-8 w-8 rounded-full" />
       </div>
     </div>
   );
@@ -64,6 +86,8 @@ const StaffCardSkeleton = () => {
 export default function StaffPage() {
   const { user } = useAuth();
   const firestore = useFirestore();
+  const { toast } = useToast();
+
   const staffQuery = useMemo(
     () => (firestore ? collection(firestore, 'staff') : null),
     [firestore]
@@ -71,6 +95,24 @@ export default function StaffPage() {
   const { data: staffData, loading } = useCollection(staffQuery);
 
   const staff = (staffData as Staff[]) || [];
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!firestore) return;
+    try {
+      await deleteDoc(doc(firestore, 'staff', id));
+      toast({
+        title: "Profile Deleted",
+        description: `The profile for ${name} has been permanently removed.`,
+      });
+      // The useCollection hook will automatically update the UI
+    } catch (error) {
+      toast({
+        title: "Deletion Failed",
+        description: "Could not delete the profile.",
+        variant: "destructive"
+      });
+    }
+  };
 
   if (user?.role !== 'Admin') {
     return <AccessDenied />;
@@ -91,7 +133,7 @@ export default function StaffPage() {
         {loading ? (
           [...Array(4)].map((_, i) => <StaffCardSkeleton key={i} />)
         ) : (
-          staff.map((member) => <StaffCard key={member.id} member={member} />)
+          staff.map((member) => <StaffCard key={member.id} member={member} onDelete={handleDelete} />)
         )}
       </div>
     </main>
