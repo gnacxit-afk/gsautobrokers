@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -13,8 +14,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, UserCircle2, Eye, EyeOff, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { useCollection, useDoc, useFirestore } from "@/firebase";
-import { collection, deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { useCollection, useDoc, useFirestore, updateDocumentNonBlocking } from "@/firebase";
+import { collection, deleteDoc, doc, getDocs, query, updateDoc, where, writeBatch } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { signOut } from "firebase/auth";
 import { useAuthContext } from "@/lib/auth";
@@ -23,7 +24,7 @@ import { useAuthContext } from "@/lib/auth";
 const roles: Role[] = ["Admin", "Supervisor", "Broker"];
 
 export default function StaffProfilePage() {
-  const { user, loading: isUserLoading } = useAuthContext();
+  const { user, loading: isUserLoading, MASTER_ADMIN_EMAIL } = useAuthContext();
   const auth = useAuth();
   const params = useParams();
   const router = useRouter();
@@ -141,23 +142,47 @@ export default function StaffProfilePage() {
   const handleDelete = async () => {
     if (!firestore || !staffDocRef) return;
     try {
-      // NOTE: This only deletes the Firestore record, not the Firebase Auth user.
-      // A full user deletion would require a Firebase Function to delete the auth user.
+      const masterAdmin = allStaff.find(s => s.email === MASTER_ADMIN_EMAIL);
+      if (!masterAdmin) {
+        throw new Error("Master Admin account not found.");
+      }
+
+      // 1. Find leads owned by the deleted user
+      const leadsRef = collection(firestore, 'leads');
+      const q = query(leadsRef, where("ownerId", "==", staffId));
+      const leadsSnapshot = await getDocs(q);
+
+      // 2. Reassign leads to Master Admin
+      if (!leadsSnapshot.empty) {
+        const batch = writeBatch(firestore);
+        leadsSnapshot.forEach(leadDoc => {
+          batch.update(leadDoc.ref, {
+            ownerId: masterAdmin.id,
+            ownerName: masterAdmin.name
+          });
+        });
+        await batch.commit();
+      }
+
+      // 3. Delete the staff document
       await deleteDoc(staffDocRef);
+      
       toast({
         title: "Profile Deleted",
-        description: `The profile for ${formData.name} has been permanently removed.`,
+        description: `The profile for ${formData.name} has been removed and their leads have been reassigned.`,
       });
+
+      // 4. Sign out if deleting self, otherwise redirect
       if (user?.id === staffId && auth) {
         await signOut(auth);
         router.push('/login');
       } else {
         router.push('/staff');
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Deletion Failed",
-        description: "Could not delete the profile.",
+        description: error.message || "Could not delete the profile.",
         variant: "destructive"
       });
     }
@@ -252,7 +277,7 @@ export default function StaffProfilePage() {
             <CardFooter className="bg-red-50/50 border-t p-6 rounded-b-lg flex-col items-start gap-3">
                  <h4 className="font-bold text-red-700">Danger Zone</h4>
                 <p className="text-sm text-red-600">
-                    Deleting a staff member will remove their profile data, but the authentication record will remain.
+                    Deleting a staff member will reassign all their leads to the Master Admin and remove their profile.
                 </p>
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -266,7 +291,7 @@ export default function StaffProfilePage() {
                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                         <AlertDialogDescription>
                             This action cannot be undone. This will permanently delete the profile for
-                            <span className="font-bold"> {formData.name}</span>.
+                            <span className="font-bold"> {formData.name}</span> and reassign their leads.
                         </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -283,3 +308,5 @@ export default function StaffProfilePage() {
     </main>
   );
 }
+
+    

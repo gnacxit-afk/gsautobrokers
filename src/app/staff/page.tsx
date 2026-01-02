@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -8,10 +9,11 @@ import { UserPlus, Users, Trash2 } from 'lucide-react';
 import type { Staff } from '@/lib/types';
 import Link from 'next/link';
 import { useCollection, useFirestore, useUser } from '@/firebase';
-import { collection, deleteDoc, doc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, query, where, writeBatch } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
+import { useAuthContext } from '@/lib/auth';
 
 const StaffCard = ({ member, onDelete }: { member: Staff, onDelete: (id: string, name: string) => void }) => {
   const roleColors = {
@@ -49,7 +51,7 @@ const StaffCard = ({ member, onDelete }: { member: Staff, onDelete: (id: string,
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the profile for <span className="font-bold">{member.name}</span>.
+                This action cannot be undone. This will permanently delete the profile for <span className="font-bold">{member.name}</span> and reassign their leads.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -86,6 +88,7 @@ export default function StaffPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { MASTER_ADMIN_EMAIL } = useAuthContext();
 
   const staffQuery = useMemo(
     () => (firestore ? collection(firestore, 'staff') : null),
@@ -98,16 +101,40 @@ export default function StaffPage() {
   const handleDelete = async (id: string, name: string) => {
     if (!firestore) return;
     try {
+      const masterAdmin = staff.find(s => s.email === MASTER_ADMIN_EMAIL);
+      if (!masterAdmin) {
+        throw new Error("Master Admin account not found.");
+      }
+
+      // 1. Find leads owned by the deleted user
+      const leadsRef = collection(firestore, 'leads');
+      const q = query(leadsRef, where("ownerId", "==", id));
+      const leadsSnapshot = await getDocs(q);
+
+      // 2. Reassign leads to Master Admin
+      if (!leadsSnapshot.empty) {
+        const batch = writeBatch(firestore);
+        leadsSnapshot.forEach(leadDoc => {
+          batch.update(leadDoc.ref, {
+            ownerId: masterAdmin.id,
+            ownerName: masterAdmin.name
+          });
+        });
+        await batch.commit();
+      }
+
+      // 3. Delete the staff document
       const staffDocRef = doc(firestore, 'staff', id);
       await deleteDoc(staffDocRef);
+
       toast({
         title: "Profile Deleted",
-        description: `The profile for ${name} has been permanently removed.`,
+        description: `The profile for ${name} has been removed and their leads have been reassigned.`,
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Deletion Failed",
-        description: "Could not delete the profile.",
+        description: error.message || "Could not delete the profile.",
         variant: "destructive"
       });
     }
@@ -138,3 +165,5 @@ export default function StaffPage() {
     </main>
   );
 }
+
+    
