@@ -1,3 +1,4 @@
+
 import type { LucideIcon } from "lucide-react";
 import type { Timestamp } from "firebase/firestore";
 
@@ -35,6 +36,7 @@ export type Article = {
   date: Timestamp | Date | string;
   tags: string[];
   category: string;
+  align?: 'left' | 'center' | 'right';
 };
 
 export type Staff = {

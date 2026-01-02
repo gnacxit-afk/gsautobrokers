@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import type { Article } from '@/lib/types';
-import { Search, Plus, Save, X, Edit2, Trash2, BookOpen, ChevronRight, Bold, Italic, Code, List } from 'lucide-react';
+import { Search, Plus, Save, X, Edit2, Trash2, BookOpen, ChevronRight, Bold, Italic, Code, List, AlignCenter, AlignLeft, AlignRight, Smile } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,7 +14,7 @@ import { useFirestore } from '@/firebase';
 import { collection, addDoc, serverTimestamp, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { useAuthContext } from '@/lib/auth';
 
-function MarkdownToolbar({ textareaRef, onContentChange }: { textareaRef: React.RefObject<HTMLTextAreaElement>, onContentChange: (value: string) => void }) {
+function MarkdownToolbar({ textareaRef, onContentChange, onAlignChange, onEmojiInsert }: { textareaRef: React.RefObject<HTMLTextAreaElement>, onContentChange: (value: string) => void, onAlignChange: (align: 'left' | 'center' | 'right') => void, onEmojiInsert: (emoji: string) => void }) {
   const insertMarkdown = (syntax: string) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -43,17 +43,38 @@ function MarkdownToolbar({ textareaRef, onContentChange }: { textareaRef: React.
     }, 0);
   };
   
+  const insertEmoji = (emoji: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const newText = `${textarea.value.substring(0, start)}${emoji}${textarea.value.substring(end)}`;
+    onEmojiInsert(newText);
+    setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + emoji.length, end + emoji.length);
+    }, 0);
+  };
+
   return (
-    <div className="flex items-center gap-1 rounded-t-md border border-b-0 bg-gray-50 p-2">
+    <div className="flex items-center gap-1 rounded-t-md border border-b-0 bg-gray-50 p-2 flex-wrap">
       <Button variant="ghost" size="icon" onClick={() => insertMarkdown('**')} title="Bold"><Bold size={16} /></Button>
       <Button variant="ghost" size="icon" onClick={() => insertMarkdown('*')} title="Italic"><Italic size={16} /></Button>
       <Button variant="ghost" size="icon" onClick={() => insertMarkdown('`')} title="Code"><Code size={16} /></Button>
       <Button variant="ghost" size="icon" onClick={() => insertMarkdown('\n- ')} title="List"><List size={16} /></Button>
+      <div className="h-6 w-px bg-gray-200 mx-2"></div>
+      <Button variant="ghost" size="icon" onClick={() => onAlignChange('left')} title="Align Left"><AlignLeft size={16} /></Button>
+      <Button variant="ghost" size="icon" onClick={() => onAlignChange('center')} title="Align Center"><AlignCenter size={16} /></Button>
+      <Button variant="ghost" size="icon" onClick={() => onAlignChange('right')} title="Align Right"><AlignRight size={16} /></Button>
+       <div className="h-6 w-px bg-gray-200 mx-2"></div>
+       <Button variant="ghost" size="icon" onClick={() => insertEmoji('😀')} title="Smile"><Smile size={16} /></Button>
+       <Button variant="ghost" size="icon" onClick={() => insertEmoji('👍')} title="Thumbs Up">👍</Button>
+       <Button variant="ghost" size="icon" onClick={() => insertEmoji('🚀')} title="Rocket">🚀</Button>
     </div>
   );
 }
 
-function SimpleMarkdownRenderer({ content }: { content: string }) {
+function SimpleMarkdownRenderer({ content, align }: { content: string, align?: 'left' | 'center' | 'right' }) {
   const renderLine = (line: string, index: number) => {
     if (line.startsWith('- ')) {
       return <li key={index} className="ml-5 list-disc">{line.substring(2)}</li>;
@@ -67,7 +88,11 @@ function SimpleMarkdownRenderer({ content }: { content: string }) {
   };
 
   return (
-    <div className="whitespace-pre-wrap space-y-2">
+    <div className={cn("whitespace-pre-wrap space-y-2", {
+        'text-center': align === 'center',
+        'text-right': align === 'right',
+        'text-left': align === 'left' || !align,
+    })}>
       {content.split('\n').map(renderLine)}
     </div>
   );
@@ -82,7 +107,7 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
   const [selected, setSelected] = useState<Article | null>(null);
   const [editing, setEditing] = useState(false);
   const [search, setSearch] = useState('');
-  const [draft, setDraft] = useState<Omit<Article, 'id' | 'author' | 'date' | 'tags'>>({ title: '', category: '', content: '' });
+  const [draft, setDraft] = useState<Omit<Article, 'id' | 'author' | 'date' | 'tags'>>({ title: '', category: '', content: '', align: 'left' });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   useEffect(() => {
@@ -145,13 +170,13 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
 
   const startNew = () => {
     setSelected(null);
-    setDraft({ title: '', category: 'Sales', content: '' });
+    setDraft({ title: '', category: 'Sales', content: '', align: 'left' });
     setEditing(true);
   };
 
   const startEdit = () => {
       if (!selected) return;
-      setDraft({ title: selected.title, category: selected.category, content: selected.content });
+      setDraft({ title: selected.title, category: selected.category, content: selected.content, align: selected.align || 'left' });
       setEditing(true);
   }
 
@@ -229,11 +254,20 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
               value={draft.category} onChange={e => setDraft({...draft, category: e.target.value})}
             />
             <div>
-              <MarkdownToolbar textareaRef={textareaRef} onContentChange={(value) => setDraft({...draft, content: value})} />
+              <MarkdownToolbar 
+                textareaRef={textareaRef} 
+                onContentChange={(value) => setDraft({...draft, content: value})} 
+                onAlignChange={(align) => setDraft({...draft, align: align})}
+                onEmojiInsert={(value) => setDraft({...draft, content: value})}
+              />
               <Textarea 
                 ref={textareaRef}
                 placeholder="Write content here... You can use the toolbar above to add basic formatting." 
-                className="h-96 font-mono text-sm rounded-t-none"
+                className={cn("h-96 font-mono text-sm rounded-t-none", {
+                    'text-center': draft.align === 'center',
+                    'text-right': draft.align === 'right',
+                    'text-left': draft.align === 'left' || !draft.align,
+                })}
                 value={draft.content} 
                 onChange={e => setDraft({...draft, content: e.target.value})}
               />
@@ -254,7 +288,7 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
                 </div>
               )}
             </div>
-            <SimpleMarkdownRenderer content={selected.content} />
+            <SimpleMarkdownRenderer content={selected.content} align={selected.align} />
           </div>
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-center text-gray-400 space-y-4">
