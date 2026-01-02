@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { Staff, Role } from "@/lib/types";
-import { useAuth } from "@/lib/auth";
+import { useUser } from "@/firebase";
 import { AccessDenied } from "@/components/access-denied";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -16,11 +16,15 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useCollection, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
+import { signOut } from "firebase/auth";
+import { useAuth } from "@/firebase";
+
 
 const roles: Role[] = ["Admin", "Supervisor", "Broker"];
 
 export default function StaffProfilePage() {
-  const { user, reloadUser, logout } = useAuth();
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
@@ -29,29 +33,31 @@ export default function StaffProfilePage() {
 
   const [showPassword, setShowPassword] = useState(false);
   
-  const staffDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'staff', staffId) : null, [firestore, staffId]);
-  const allStaffCollectionRef = useMemoFirebase(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
+  const staffDocRef = useMemoFirebase(() => (firestore && staffId ? doc(firestore, 'staff', staffId) : null), [firestore, staffId]);
+  const allStaffCollectionRef = useMemoFirebase(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
 
-  const { data: staffMember, loading: staffMemberLoading } = useDoc(staffDocRef);
-  const { data: allStaff, loading: allStaffLoading } = useCollection(allStaffCollectionRef);
+  const { data: staffMemberData, loading: staffMemberLoading } = useDoc<Staff>(staffDocRef);
+  const { data: allStaffData, loading: allStaffLoading } = useCollection<Staff>(allStaffCollectionRef);
+  
+  const staffMember = staffMemberData;
+  const allStaff = allStaffData || [];
 
-  const [formData, setFormData] = useState<Partial<Staff>>(staffMember as Staff || {});
+  const [formData, setFormData] = useState<Partial<Staff>>({});
 
   useEffect(() => {
     if (staffMember) {
-      setFormData(staffMember as Staff);
+      setFormData(staffMember);
     }
   }, [staffMember]);
 
 
-  const supervisors = useMemo(() => (allStaff as Staff[] || []).filter(s => s.role === 'Supervisor'), [allStaff]);
-  const admins = useMemo(() => (allStaff as Staff[] || []).filter(s => s.role === 'Admin'), [allStaff]);
+  const supervisors = useMemo(() => allStaff.filter(s => s.role === 'Supervisor'), [allStaff]);
+  const admins = useMemo(() => allStaff.filter(s => s.role === 'Admin'), [allStaff]);
 
-  if (user?.role !== 'Admin') {
-    return <AccessDenied />;
-  }
+  const currentUserCanEdit = user?.role === 'Admin';
 
-  if (staffMemberLoading || allStaffLoading) {
+
+  if (isUserLoading || staffMemberLoading || allStaffLoading) {
     return (
         <main className="flex flex-1 flex-col gap-6">
             <div className="flex items-center gap-4">
@@ -82,6 +88,11 @@ export default function StaffProfilePage() {
         </main>
     )
   }
+  
+  if (!user || !currentUserCanEdit) {
+    return <AccessDenied />;
+  }
+
 
   if (!staffMember) {
     return (
@@ -118,10 +129,6 @@ export default function StaffProfilePage() {
             description: `Details for ${formData.name} have been updated.`,
         });
 
-        if (user && user.id === staffId) {
-            reloadUser();
-        }
-
     } catch (error) {
         toast({
             title: "Update Failed",
@@ -141,8 +148,9 @@ export default function StaffProfilePage() {
         title: "Profile Deleted",
         description: `The profile for ${formData.name} has been permanently removed.`,
       });
-      if (user?.id === staffId) {
-        logout();
+      if (user?.id === staffId && auth) {
+        await signOut(auth);
+        router.push('/login');
       } else {
         router.push('/staff');
       }

@@ -15,14 +15,18 @@ export const useCollection = <T extends DocumentData>(
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    // If the query is null (or undefined), it means we're not ready to fetch yet.
+    // Set loading to true if we haven't loaded anything yet, or keep it as is if we have previous data.
     if (!q) {
-      setData(null);
-      setLoading(false);
+      if (data === null) {
+        setLoading(true);
+      }
       return;
     };
     
     setLoading(true);
     setError(null);
+
     const unsubscribe = onSnapshot(
       q,
       (querySnapshot) => {
@@ -38,13 +42,14 @@ export const useCollection = <T extends DocumentData>(
         const contextualError = new FirestorePermissionError({ operation: 'list', path });
         
         setError(contextualError);
+        setData(null);
         setLoading(false);
         errorEmitter.emit('permission-error', contextualError);
       }
     );
 
     return () => unsubscribe();
-  }, [q]);
+  }, [q, data]); // Added 'data' to dependency array to handle the initial loading state correctly
 
   return { data, loading, error };
 };

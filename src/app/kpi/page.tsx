@@ -4,23 +4,26 @@ import { useMemo } from 'react';
 import { KpiClient } from "./components/kpi-client";
 import { PerformanceDashboard } from "./components/performance-dashboard";
 import { BonusStatus } from "./components/bonus-status";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
 import type { Lead, Staff, KPI } from "@/lib/types";
-import { useAuth } from "@/lib/auth";
 
 
 export default function KpiPage() {
   const firestore = useFirestore();
-  const { user } = useAuth();
+  const { user } = useUser();
 
   const kpisQuery = useMemoFirebase(() => firestore ? collection(firestore, 'kpis') : null, [firestore]);
   const leadsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'leads') : null, [firestore]);
   const staffQuery = useMemoFirebase(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
 
-  const { data: kpis, loading: kpisLoading } = useCollection(kpisQuery);
-  const { data: leads, loading: leadsLoading } = useCollection(leadsQuery);
-  const { data: staff, loading: staffLoading } = useCollection(staffQuery);
+  const { data: kpisData, loading: kpisLoading } = useCollection<KPI>(kpisQuery);
+  const { data: leadsData, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
+  const { data: staffData, loading: staffLoading } = useCollection<Staff>(staffQuery);
+
+  const kpis = kpisData || [];
+  const leads = leadsData || [];
+  const staff = staffData || [];
 
   const loading = kpisLoading || leadsLoading || staffLoading;
 
@@ -33,7 +36,7 @@ export default function KpiPage() {
               <p className="text-muted-foreground">Metas de desempeño diario para vendedores.</p>
           </div>
         </div>
-        <KpiClient initialKpis={kpis as KPI[] || []} loading={loading} />
+        <KpiClient initialKpis={kpis} loading={loading} />
         <div className="mt-8 p-4 bg-gray-100 border border-gray-200 rounded-lg">
           <p className="text-sm font-semibold text-gray-700">👉 Si no hay número, NO cuenta como lead de trabajado.</p>
         </div>
@@ -46,7 +49,7 @@ export default function KpiPage() {
                 <p className="text-muted-foreground">Your sales bonus progress over the last 30 days.</p>
             </div>
           </div>
-          <BonusStatus allLeads={leads as Lead[] || []} loading={loading} />
+          <BonusStatus allLeads={leads} loading={loading} />
       </div>
 
       <div className="border-t pt-8">
@@ -56,7 +59,7 @@ export default function KpiPage() {
               <p className="text-muted-foreground">Daily performance overview.</p>
           </div>
         </div>
-        <PerformanceDashboard allLeads={leads as Lead[] || []} allStaff={staff as Staff[] || []} loading={loading} />
+        <PerformanceDashboard allLeads={leads} allStaff={staff} loading={loading} />
       </div>
 
     </main>

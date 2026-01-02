@@ -14,9 +14,12 @@ export const useDoc = <T extends DocumentData>(
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    // If the ref is null, we are not ready to fetch.
+    // Set loading to true if there's no data yet.
     if (!ref) {
-      setData(null);
-      setLoading(false);
+      if (data === null) {
+          setLoading(true);
+      }
       return;
     };
     
@@ -35,13 +38,14 @@ export const useDoc = <T extends DocumentData>(
       (err: FirestoreError) => {
         const contextualError = new FirestorePermissionError({ operation: 'get', path: ref.path });
         setError(contextualError);
+        setData(null);
         setLoading(false);
         errorEmitter.emit('permission-error', contextualError);
       }
     );
 
     return () => unsubscribe();
-  }, [ref]);
+  }, [ref, data]); // Added 'data' to dependency array
 
   return { data, loading, error };
 };

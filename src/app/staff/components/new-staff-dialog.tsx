@@ -22,10 +22,9 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import React, { useState, useMemo } from "react";
 import type { Role, Staff } from "@/lib/types";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, useAuth } from "@/firebase";
 import { addDoc, collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { useAuth } from "@/lib/auth";
 
 const roles: Role[] = ["Admin", "Supervisor", "Broker"];
 
@@ -37,14 +36,15 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
     const [open, setOpen] = React.useState(false);
     const { toast } = useToast();
     const [formData, setFormData] = useState<Partial<Omit<Staff, 'id' | 'hireDate' | 'avatarUrl'>>>({});
-    const { auth } = useFirebase();
+    const auth = useAuth();
     const firestore = useFirestore();
 
     const staffQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
-    const { data: allStaff } = useCollection(staffQuery);
+    const { data: allStaffData } = useCollection<Staff>(staffQuery);
+    const allStaff = allStaffData || [];
     
-    const supervisors = useMemo(() => (allStaff as Staff[] || []).filter(s => s.role === 'Supervisor'), [allStaff]);
-    const admins = useMemo(() => (allStaff as Staff[] || []).filter(s => s.role === 'Admin'), [allStaff]);
+    const supervisors = useMemo(() => allStaff.filter(s => s.role === 'Supervisor'), [allStaff]);
+    const admins = useMemo(() => allStaff.filter(s => s.role === 'Admin'), [allStaff]);
     
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const { id, value } = e.target;
@@ -81,7 +81,7 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
                 role: formData.role,
                 dui: formData.dui,
                 supervisorId: formData.supervisorId || '',
-                hireDate: serverTimestamp(),
+                createdAt: serverTimestamp(), // Use createdAt for consistency
                 avatarUrl: '', // Or a default avatar
             });
 

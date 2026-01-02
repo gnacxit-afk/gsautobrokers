@@ -3,10 +3,9 @@
 import { useState, useMemo, useCallback } from "react";
 import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
-import { useAuth } from "@/lib/auth";
 import type { Lead, Staff } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import {
   useReactTable,
   getCoreRowModel,
@@ -18,22 +17,24 @@ import {
   type ColumnFiltersState,
 } from '@tanstack/react-table';
 import { addDoc, collection, deleteDoc, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { useToast } from "@/hooks/use-toast";
 
 const leadStatuses: Lead['status'][] = ["New", "Contacted", "Qualified", "On the way", "On site", "Sale", "Closed", "Lost"];
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
 
 export default function LeadsPage() {
-    const { user } = useAuth();
+    const { user } = useUser();
     const firestore = useFirestore();
+    const { toast } = useToast();
 
     const leadsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'leads') : null), [firestore]);
     const staffQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
 
-    const { data: leadsData, loading: leadsLoading } = useCollection(leadsQuery);
-    const { data: staffData, loading: staffLoading } = useCollection(staffQuery);
+    const { data: leadsData, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
+    const { data: staffData, loading: staffLoading } = useCollection<Staff>(staffQuery);
     
-    const allLeads = useMemo(() => (leadsData as Lead[]) || [], [leadsData]);
-    const allStaff = useMemo(() => (staffData as Staff[]) || [], [staffData]);
+    const allLeads = useMemo(() => leadsData || [], [leadsData]);
+    const allStaff = useMemo(() => staffData || [], [staffData]);
 
     const { dateRange, setDateRange } = useDateRange();
 
@@ -71,32 +72,56 @@ export default function LeadsPage() {
     const handleUpdateStatus = useCallback(async (id: string, status: Lead['status']) => {
         if (!firestore) return;
         const leadRef = doc(firestore, 'leads', id);
-        await updateDoc(leadRef, { status });
-    }, [firestore]);
+        try {
+            await updateDoc(leadRef, { status });
+            toast({ title: "Status Updated", description: `Lead status changed to ${status}.` });
+        } catch (error) {
+            console.error("Error updating status:", error);
+            toast({ title: "Error", description: "Could not update lead status.", variant: "destructive" });
+        }
+    }, [firestore, toast]);
     
     const handleUpdateNotes = useCallback(async (id: string, notes: string) => {
         if (!firestore) return;
         const leadRef = doc(firestore, 'leads', id);
-        await updateDoc(leadRef, { notes });
-    }, [firestore]);
+         try {
+            await updateDoc(leadRef, { notes });
+            toast({ title: "Notes Updated", description: "Lead notes have been saved." });
+        } catch (error) {
+            console.error("Error updating notes:", error);
+            toast({ title: "Error", description: "Could not save lead notes.", variant: "destructive" });
+        }
+    }, [firestore, toast]);
 
     const handleDelete = useCallback(async (id: string) => {
         if (window.confirm('Are you sure you want to delete this lead?') && firestore) {
-            await deleteDoc(doc(firestore, 'leads', id));
+            try {
+                await deleteDoc(doc(firestore, 'leads', id));
+                toast({ title: "Lead Deleted", description: "The lead has been removed." });
+            } catch (error) {
+                console.error("Error deleting lead:", error);
+                toast({ title: "Error", description: "Could not delete the lead.", variant: "destructive" });
+            }
         }
-    }, [firestore]);
+    }, [firestore, toast]);
 
     const handleAddLead = useCallback(async (newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'>) => {
         const owner = allStaff.find(s => s.id === newLeadData.ownerId);
         if (!owner || !firestore) return;
 
         const leadsCollection = collection(firestore, 'leads');
-        await addDoc(leadsCollection, {
-            ...newLeadData,
-            createdAt: serverTimestamp(),
-            ownerName: owner.name,
-        });
-    }, [allStaff, firestore]);
+        try {
+            await addDoc(leadsCollection, {
+                ...newLeadData,
+                createdAt: serverTimestamp(),
+                ownerName: owner.name,
+            });
+            toast({ title: "Lead Added", description: "The new lead has been created." });
+        } catch (error) {
+            console.error("Error adding lead:", error);
+            toast({ title: "Error", description: "Could not create the new lead.", variant: "destructive" });
+        }
+    }, [allStaff, firestore, toast]);
 
 
     const columns = useMemo(() => getColumns(handleUpdateStatus, handleDelete), [handleUpdateStatus, handleDelete]);

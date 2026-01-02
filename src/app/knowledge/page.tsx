@@ -14,11 +14,12 @@ export default function KnowledgeBasePage() {
     return query(collection(firestore, "articles"), orderBy("date", "desc"));
   }, [firestore]);
 
-  const { data: articles, loading } = useCollection(articlesQuery);
+  const { data, loading } = useCollection<Article>(articlesQuery);
+  const articles = data || [];
 
   return (
     <main className="flex-1">
-      <KnowledgeBaseClient initialArticles={articles as Article[] || []} loading={loading} />
+      <KnowledgeBaseClient initialArticles={articles} loading={loading} />
     </main>
   );
 }

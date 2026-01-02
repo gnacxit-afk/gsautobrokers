@@ -1,14 +1,13 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useAuth } from '@/lib/auth';
 import { AccessDenied } from '@/components/access-denied';
 import { NewStaffDialog } from './components/new-staff-dialog';
 import { Button } from '@/components/ui/button';
 import { UserPlus, Users, Trash2 } from 'lucide-react';
 import type { Staff } from '@/lib/types';
 import Link from 'next/link';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, deleteDoc, doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -84,7 +83,7 @@ const StaffCardSkeleton = () => {
 };
 
 export default function StaffPage() {
-  const { user } = useAuth();
+  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -92,9 +91,9 @@ export default function StaffPage() {
     () => (firestore ? collection(firestore, 'staff') : null),
     [firestore]
   );
-  const { data: staffData, loading } = useCollection(staffQuery);
+  const { data: staffData, loading } = useCollection<Staff>(staffQuery);
 
-  const staff = (staffData as Staff[]) || [];
+  const staff = staffData || [];
 
   const handleDelete = async (id: string, name: string) => {
     if (!firestore) return;
@@ -105,7 +104,6 @@ export default function StaffPage() {
         title: "Profile Deleted",
         description: `The profile for ${name} has been permanently removed.`,
       });
-      // The useCollection hook will automatically update the UI
     } catch (error) {
       toast({
         title: "Deletion Failed",
