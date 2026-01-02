@@ -5,7 +5,7 @@ import { KpiClient } from "./components/kpi-client";
 import { PerformanceDashboard } from "./components/performance-dashboard";
 import { BonusStatus } from "./components/bonus-status";
 import { useCollection, useFirestore, useUser } from "@/firebase";
-import { collection, query, where } from "firebase/firestore";
+import { collection } from "firebase/firestore";
 import type { Lead, Staff, KPI } from "@/lib/types";
 
 
