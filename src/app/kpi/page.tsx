@@ -1,16 +1,32 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { KpiClient } from './components/kpi-client';
 import { PerformanceDashboard } from './components/performance-dashboard';
 import { BonusStatus } from './components/bonus-status';
-import { useCollection, useFirestore } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { useCollection, useFirestore, useUser } from '@/firebase';
+import { collection, doc, setDoc } from 'firebase/firestore';
 import type { Lead, Staff, KPI } from '@/lib/types';
 import { useDoc } from '@/firebase/firestore/use-doc';
+import { Button } from '@/components/ui/button';
+import { useAuthContext } from '@/lib/auth';
+import { useToast } from '@/hooks/use-toast';
+
+const DEFAULT_KPIS: KPI[] = [
+    { id: 'leads_recibidos', label: 'Leads recibidos', target: 'informativo', description: 'Total de leads que ingresan al sistema.' },
+    { id: 'numeros_obtenidos', label: 'Números obtenidos', target: '5 mínimos', description: 'Cantidad de números de teléfono válidos conseguidos.' },
+    { id: 'citas_agendadas', label: 'Citas agendadas', target: '3 mínimas', description: 'Cantidad de citas programadas con los leads.' },
+    { id: 'citas_confirmadas', label: 'Citas confirmadas', target: '2+', description: 'Citas que han sido confirmadas por el lead.' },
+    { id: 'leads_descartados', label: 'Leads descartados', target: 'permitido', description: 'Leads que han sido correctamente calificados y descartados.' },
+    { id: 'ventas', label: 'Ventas', target: '3', description: 'Número de ventas cerradas.' },
+];
+
 
 export default function KpiPage() {
   const firestore = useFirestore();
+  const { user, MASTER_ADMIN_EMAIL } = useAuthContext();
+  const { toast } = useToast();
+  const [isInitializing, setIsInitializing] = useState(false);
 
   const kpisDocRef = useMemo(
     () => (firestore ? doc(firestore, 'kpis', 'kpi-doc') : null),
@@ -36,6 +52,19 @@ export default function KpiPage() {
   const staff = staffData || [];
 
   const loading = kpisLoading || leadsLoading || staffLoading;
+  
+  const handleInitializeKpis = async () => {
+    if (!firestore || !kpisDocRef) return;
+    setIsInitializing(true);
+    try {
+        await setDoc(kpisDocRef, { list: DEFAULT_KPIS });
+        toast({ title: 'KPIs Initialized', description: 'Default KPI data has been saved.' });
+    } catch (error: any) {
+        toast({ title: 'Initialization Failed', description: error.message, variant: 'destructive'});
+    } finally {
+        setIsInitializing(false);
+    }
+  }
 
   return (
     <main className="flex-1 space-y-8">
@@ -47,7 +76,18 @@ export default function KpiPage() {
             entiende que el éxito no se espera, se provoca.
           </p>
         </div>
-        <KpiClient initialKpis={kpis} loading={loading} />
+        
+        {user?.email === MASTER_ADMIN_EMAIL && !kpisData && !kpisLoading && (
+            <div className="text-center my-6">
+                <p className="mb-2 text-muted-foreground">KPI data not found.</p>
+                <Button onClick={handleInitializeKpis} disabled={isInitializing}>
+                    {isInitializing ? 'Initializing...' : 'Initialize KPIs'}
+                </Button>
+            </div>
+        )}
+
+        <KpiClient initialKpis={kpis} loading={kpisLoading} />
+
         <div className="mt-8 p-4 bg-gray-100 border border-gray-200 rounded-lg text-center">
           <p className="text-sm font-semibold text-gray-700">
             👉 “Los vendedores que ganan saben esto: sin número no hay control,
