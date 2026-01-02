@@ -18,7 +18,7 @@ import { Logo } from "@/components/icons";
 
 // TODO: Replace with your actual master admin email address.
 // This user will have full admin privileges and will not need an entry in the 'staff' collection.
-const MASTER_ADMIN_EMAIL = "admin@example.com";
+const MASTER_ADMIN_EMAIL = "gnacxit@gmail.com";
 
 interface AuthContextType {
   user: User | null;
