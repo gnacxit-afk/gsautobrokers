@@ -13,6 +13,36 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useFirestore } from '@/firebase';
 import { collection, addDoc, serverTimestamp, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { useAuthContext } from '@/lib/auth';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+
+function EmojiPicker({ onEmojiInsert }: { onEmojiInsert: (emoji: string) => void }) {
+  const emojis = ['😀', '😂', '👍', '🚀', '💡', '🎉', '❤️', '🔥', '🤔', '💯', '🙏', '✍️'];
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" title="Insert Emoji">
+          <Smile size={16} />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-2">
+        <div className="grid grid-cols-4 gap-2">
+          {emojis.map(emoji => (
+            <Button
+              key={emoji}
+              variant="ghost"
+              size="icon"
+              onClick={() => onEmojiInsert(emoji)}
+              className="text-lg"
+            >
+              {emoji}
+            </Button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 
 function MarkdownToolbar({ textareaRef, onContentChange, onAlignChange, onEmojiInsert }: { textareaRef: React.RefObject<HTMLTextAreaElement>, onContentChange: (value: string) => void, onAlignChange: (align: 'left' | 'center' | 'right') => void, onEmojiInsert: (emoji: string) => void }) {
   const insertMarkdown = (syntax: string) => {
@@ -43,7 +73,7 @@ function MarkdownToolbar({ textareaRef, onContentChange, onAlignChange, onEmojiI
     }, 0);
   };
   
-  const insertEmoji = (emoji: string) => {
+  const handleEmojiInsert = (emoji: string) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
     const start = textarea.selectionStart;
@@ -67,9 +97,7 @@ function MarkdownToolbar({ textareaRef, onContentChange, onAlignChange, onEmojiI
       <Button variant="ghost" size="icon" onClick={() => onAlignChange('center')} title="Align Center"><AlignCenter size={16} /></Button>
       <Button variant="ghost" size="icon" onClick={() => onAlignChange('right')} title="Align Right"><AlignRight size={16} /></Button>
        <div className="h-6 w-px bg-gray-200 mx-2"></div>
-       <Button variant="ghost" size="icon" onClick={() => insertEmoji('😀')} title="Smile"><Smile size={16} /></Button>
-       <Button variant="ghost" size="icon" onClick={() => insertEmoji('👍')} title="Thumbs Up">👍</Button>
-       <Button variant="ghost" size="icon" onClick={() => insertEmoji('🚀')} title="Rocket">🚀</Button>
+       <EmojiPicker onEmojiInsert={handleEmojiInsert} />
     </div>
   );
 }
