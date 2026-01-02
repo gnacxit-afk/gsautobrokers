@@ -146,8 +146,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [auth]);
 
   const setUserRole = useCallback((role: Role) => {
-    // This is for local role-switching simulation and should not affect the master admin.
-    if (user && user.email !== MASTER_ADMIN_EMAIL) {
+    // This is for local role-switching simulation and should only work for the master admin.
+    if (user && user.email === MASTER_ADMIN_EMAIL) {
        setUser(currentUser => {
           if(!currentUser) return null;
           return { ...currentUser, role };
