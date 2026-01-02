@@ -6,7 +6,7 @@ import { DataTable } from "./components/data-table";
 import { useAuth } from "@/lib/auth";
 import type { Lead, Staff } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import {
   useReactTable,
   getCoreRowModel,
@@ -26,8 +26,8 @@ export default function LeadsPage() {
     const { user } = useAuth();
     const firestore = useFirestore();
 
-    const leadsQuery = useMemo(() => (firestore ? collection(firestore, 'leads') : null), [firestore]);
-    const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
+    const leadsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'leads') : null), [firestore]);
+    const staffQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
 
     const { data: leadsData, loading: leadsLoading } = useCollection(leadsQuery);
     const { data: staffData, loading: staffLoading } = useCollection(staffQuery);
@@ -90,7 +90,8 @@ export default function LeadsPage() {
         const owner = allStaff.find(s => s.id === newLeadData.ownerId);
         if (!owner || !firestore) return;
 
-        await addDoc(collection(firestore, 'leads'), {
+        const leadsCollection = collection(firestore, 'leads');
+        await addDoc(leadsCollection, {
             ...newLeadData,
             createdAt: serverTimestamp(),
             ownerName: owner.name,

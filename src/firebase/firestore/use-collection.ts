@@ -1,42 +1,49 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { onSnapshot, type Query, type DocumentData } from 'firebase/firestore';
+import { onSnapshot, type Query, type DocumentData, type FirestoreError } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+import type { WithId, InternalQuery } from './types';
+
 
 export const useCollection = <T extends DocumentData>(
   q: Query<T> | null
 ) => {
-  const [data, setData] = useState<T[] | null>(null);
+  const [data, setData] = useState<WithId<T>[] | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // Only subscribe if the query object is valid.
     if (!q) {
+      setData(null);
       setLoading(false);
       return;
     };
     
     setLoading(true);
+    setError(null);
     const unsubscribe = onSnapshot(
       q,
       (querySnapshot) => {
         const documents = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-        })) as T[];
+        })) as WithId<T>[];
         setData(documents);
         setLoading(false);
       },
-      (err) => {
-        console.error("useCollection error:", err);
-        setError(err);
+      (err: FirestoreError) => {
+        const path = (q as unknown as InternalQuery)._query.path.canonicalString();
+        const contextualError = new FirestorePermissionError({ operation: 'list', path });
+        
+        setError(contextualError);
         setLoading(false);
+        errorEmitter.emit('permission-error', contextualError);
       }
     );
 
     return () => unsubscribe();
-  // The dependency array now correctly includes `q` stringified to re-run when the query changes.
   }, [q]);
 
   return { data, loading, error };

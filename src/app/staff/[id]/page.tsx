@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, UserCircle2, Eye, EyeOff, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { useCollection, useDoc, useFirestore } from "@/firebase";
+import { useCollection, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -29,8 +29,8 @@ export default function StaffProfilePage() {
 
   const [showPassword, setShowPassword] = useState(false);
   
-  const staffDocRef = useMemo(() => firestore ? doc(firestore, 'staff', staffId) : null, [firestore, staffId]);
-  const allStaffCollectionRef = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
+  const staffDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'staff', staffId) : null, [firestore, staffId]);
+  const allStaffCollectionRef = useMemoFirebase(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
 
   const { data: staffMember, loading: staffMemberLoading } = useDoc(staffDocRef);
   const { data: allStaff, loading: allStaffLoading } = useCollection(allStaffCollectionRef);
@@ -107,8 +107,9 @@ export default function StaffProfilePage() {
   const handleSaveChanges = async () => {
     if (!firestore || !staffDocRef) return;
     try {
-        // Note: Password update would require a separate, secure flow with Firebase Auth, not just Firestore.
-        const { password, ...updateData } = formData;
+        // NOTE: Password update would require a separate, secure flow with Firebase Auth, not just Firestore.
+        // We will not update the password here.
+        const { password, id, ...updateData } = formData;
         
         await updateDoc(staffDocRef, updateData);
         
@@ -121,11 +122,6 @@ export default function StaffProfilePage() {
             reloadUser();
         }
 
-        if (formData.dui && formData.dui !== staffId) {
-            router.replace(`/staff/${formData.dui}`);
-        } else {
-            router.refresh();
-        }
     } catch (error) {
         toast({
             title: "Update Failed",
@@ -138,6 +134,8 @@ export default function StaffProfilePage() {
   const handleDelete = async () => {
     if (!firestore || !staffDocRef) return;
     try {
+      // NOTE: This only deletes the Firestore record, not the Firebase Auth user.
+      // A full user deletion would require a Firebase Function to delete the auth user.
       await deleteDoc(staffDocRef);
       toast({
         title: "Profile Deleted",
@@ -186,32 +184,14 @@ export default function StaffProfilePage() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="email">Email</Label>
-                        <Input id="email" type="email" value={formData.email || ''} onChange={handleChange} />
+                        <Input id="email" type="email" value={formData.email || ''} onChange={handleChange} disabled />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="dui">DUI</Label>
-                        <Input id="dui" value={formData.dui || ''} onChange={handleChange} disabled />
+                        <Input id="dui" value={formData.dui || ''} onChange={handleChange} />
                     </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="current-password">User Password</Label>
-                        <div className="relative">
-                            <Input id="current-password" type={showPassword ? 'text' : 'password'} value={formData.password || ''} disabled className="bg-gray-100 pr-10" />
-                            <Button 
-                                type="button"
-                                variant="ghost" 
-                                size="icon" 
-                                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-gray-500"
-                                onClick={() => setShowPassword(!showPassword)}
-                                >
-                                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                            </Button>
-                        </div>
-                    </div>
+                    
                     <div className="space-y-2">
-                        <Label htmlFor="password">Reset Password</Label>
-                        <Input id="password" type="password" placeholder="Enter new password" onChange={handleChange} />
-                    </div>
-                     <div className="space-y-2">
                         <Label htmlFor="role">Role</Label>
                         <Select value={formData.role} onValueChange={handleRoleChange}>
                             <SelectTrigger>
@@ -264,7 +244,7 @@ export default function StaffProfilePage() {
             <CardFooter className="bg-red-50/50 border-t p-6 rounded-b-lg flex-col items-start gap-3">
                  <h4 className="font-bold text-red-700">Danger Zone</h4>
                 <p className="text-sm text-red-600">
-                    Deleting a staff member is a permanent action and cannot be undone. This will remove all their data from the system.
+                    Deleting a staff member will remove their profile data, but the authentication record will remain.
                 </p>
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -278,7 +258,7 @@ export default function StaffProfilePage() {
                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                         <AlertDialogDescription>
                             This action cannot be undone. This will permanently delete the profile for
-                            <span className="font-bold"> {formData.name}</span> and remove all associated data.
+                            <span className="font-bold"> {formData.name}</span>.
                         </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

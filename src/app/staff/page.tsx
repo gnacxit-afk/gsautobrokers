@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { UserPlus, Users, Trash2 } from 'lucide-react';
 import type { Staff } from '@/lib/types';
 import Link from 'next/link';
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, deleteDoc, doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -88,7 +88,7 @@ export default function StaffPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const staffQuery = useMemo(
+  const staffQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'staff') : null),
     [firestore]
   );
@@ -99,7 +99,8 @@ export default function StaffPage() {
   const handleDelete = async (id: string, name: string) => {
     if (!firestore) return;
     try {
-      await deleteDoc(doc(firestore, 'staff', id));
+      const staffDocRef = doc(firestore, 'staff', id);
+      await deleteDoc(staffDocRef);
       toast({
         title: "Profile Deleted",
         description: `The profile for ${name} has been permanently removed.`,

@@ -31,6 +31,7 @@ import type { Lead, Staff } from "@/lib/types";
 import { RenderSubComponent } from "./render-sub-component";
 import { DateRangePicker } from "@/components/layout/date-range-picker";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/lib/auth";
 
 
 interface DataTableProps<TData, TValue> {
@@ -57,6 +58,7 @@ export function DataTable<TData extends Lead, TValue>({
   loading,
 }: DataTableProps<TData, TValue>) {
   
+  const { user } = useAuth();
   const [isNewLeadDialogOpen, setNewLeadDialogOpen] = React.useState(false);
   const globalFilter = table.getState().globalFilter;
   const setGlobalFilter = (filter: string) => table.setGlobalFilter(filter);
@@ -100,15 +102,17 @@ export function DataTable<TData extends Lead, TValue>({
                     <div className="col-span-1 xl:col-span-2">
                        <DateRangePicker />
                     </div>
-                    <Select value={ownerFilter || 'all'} onValueChange={setOwnerFilter}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Filter by Owner" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Owners</SelectItem>
-                            {staff.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
+                    {user?.role === 'Admin' && (
+                        <Select value={ownerFilter || 'all'} onValueChange={setOwnerFilter}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Filter by Owner" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Owners</SelectItem>
+                                {staff.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    )}
 
                     <Select value={statusFilter || 'all'} onValueChange={setStatusFilter}>
                         <SelectTrigger>

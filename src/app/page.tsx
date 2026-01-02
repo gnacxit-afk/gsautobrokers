@@ -3,13 +3,12 @@
 import { useMemo } from 'react';
 import { REVENUE_PER_VEHICLE, COMMISSION_PER_VEHICLE, MARGIN_PER_VEHICLE } from "@/lib/mock-data";
 import { useDateRange } from '@/hooks/use-date-range';
-import { useAuth } from '@/lib/auth';
+import { useAuth } from "@/lib/auth";
 import { Users, BarChart3, Award } from "lucide-react";
 import type { Lead, Staff } from '@/lib/types';
 import { calculateBonus } from '@/lib/utils';
-import { useCollection } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
 
 const StatCard = ({ label, value, color }: { label: string, value: string | number, color: string }) => {
   const colors: { [key: string]: string } = {
@@ -35,14 +34,14 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const firestore = useFirestore();
 
-  const leadsQuery = useMemo(() => (firestore ? collection(firestore, 'leads') : null), [firestore]);
-  const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
+  const leadsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'leads') : null), [firestore]);
+  const staffQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
 
   const { data: leadsData } = useCollection(leadsQuery);
-  const allLeads = leadsData as Lead[] || [];
+  const allLeads = (leadsData as Lead[]) || [];
   
   const { data: staffData } = useCollection(staffQuery);
-  const allStaff = staffData as Staff[] || [];
+  const allStaff = (staffData as Staff[]) || [];
 
 
   const stats = useMemo(() => {
@@ -59,6 +58,7 @@ export default function DashboardPage() {
     });
 
     const filteredLeads = visibleLeads.filter(l => {
+      if (!l.createdAt) return false;
       const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
       return leadDate >= dateRange.start && leadDate <= dateRange.end;
     });

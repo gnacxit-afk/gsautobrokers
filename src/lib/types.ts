@@ -9,6 +9,7 @@ export type User = {
   email: string;
   avatarUrl: string;
   role: Role;
+  dui: string;
 };
 
 export type Lead = {

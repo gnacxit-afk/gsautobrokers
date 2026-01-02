@@ -22,8 +22,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import React, { useState, useMemo } from "react";
 import type { Role, Staff } from "@/lib/types";
-import { useCollection, useFirestore } from "@/firebase";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { addDoc, collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { useAuth } from "@/lib/auth";
 
 const roles: Role[] = ["Admin", "Supervisor", "Broker"];
 
@@ -35,9 +37,10 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
     const [open, setOpen] = React.useState(false);
     const { toast } = useToast();
     const [formData, setFormData] = useState<Partial<Omit<Staff, 'id' | 'hireDate' | 'avatarUrl'>>>({});
+    const { auth } = useFirebase();
     const firestore = useFirestore();
 
-    const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
+    const staffQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
     const { data: allStaff } = useCollection(staffQuery);
     
     const supervisors = useMemo(() => (allStaff as Staff[] || []).filter(s => s.role === 'Supervisor'), [allStaff]);
@@ -48,12 +51,12 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
       setFormData(prev => ({ ...prev, [id]: value }));
     };
 
-    const handleSelectChange = (field: keyof Staff, value: string) => {
+    const handleSelectChange = (field: keyof Omit<Staff, 'id' | 'hireDate' | 'avatarUrl'>, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
     const handleSave = async () => {
-        if (!firestore) return;
+        if (!firestore || !auth) return;
 
         if (!formData.name || !formData.email || !formData.password || !formData.role || !formData.dui) {
             toast({
@@ -65,9 +68,19 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
         }
 
         try {
-            await addDoc(collection(firestore, 'staff'), {
-                ...formData,
-                id: formData.dui, // Using DUI as ID
+            // Create user in Firebase Auth
+            const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+            const user = userCredential.user;
+
+            // Create user document in Firestore 'staff' collection
+            const staffDocRef = doc(firestore, 'staff', user.uid);
+            await setDoc(staffDocRef, {
+                id: user.uid,
+                name: formData.name,
+                email: formData.email,
+                role: formData.role,
+                dui: formData.dui,
+                supervisorId: formData.supervisorId || '',
                 hireDate: serverTimestamp(),
                 avatarUrl: '', // Or a default avatar
             });
@@ -78,11 +91,11 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
             });
             setOpen(false);
             setFormData({});
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error adding staff member: ", error);
             toast({
                 title: "Error",
-                description: "Could not add staff member.",
+                description: error.message || "Could not add staff member.",
                 variant: "destructive",
             });
         }
@@ -143,7 +156,7 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
                 </div>
                 {formData.role === 'Broker' && (
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="supervisor" className="text-right">
+                        <Label htmlFor="supervisorId" className="text-right">
                             Supervisor
                         </Label>
                         <Select onValueChange={(value) => handleSelectChange('supervisorId', value)} value={formData.supervisorId}>
@@ -160,7 +173,7 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
                 )}
                  {formData.role === 'Supervisor' && (
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="admin" className="text-right">
+                        <Label htmlFor="supervisorId" className="text-right">
                             Reports to
                         </Label>
                         <Select onValueChange={(value) => handleSelectChange('supervisorId', value)} value={formData.supervisorId}>

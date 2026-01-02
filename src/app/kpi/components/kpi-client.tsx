@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { KPI } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -57,7 +57,7 @@ export function KpiClient({ initialKpis, loading }: { initialKpis: KPI[], loadin
     const [isEditing, setIsEditing] = useState(false);
     const [draftKpis, setDraftKpis] = useState([...initialKpis]);
 
-    useState(() => {
+    useEffect(() => {
         setKpis(initialKpis);
         setDraftKpis([...initialKpis]);
     }, [initialKpis]);

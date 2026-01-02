@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useMemo, useEffect, useCall
 import { useRouter, usePathname } from "next/navigation";
 import type { Role, Staff, User } from "./types";
 import { useFirestore, useFirebase } from "@/firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { 
   signInWithEmailAndPassword, 
   onAuthStateChanged, 
@@ -32,13 +32,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authError, setAuthError] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
-  const firestore = useFirestore();
-  const { auth } = useFirebase();
+  const { firestore, auth, isUserLoading } = useFirebase();
 
   const fetchUserRole = useCallback(async (firebaseUser: FirebaseUser): Promise<User | null> => {
     if (!firestore) return null;
     const staffDocRef = doc(firestore, 'staff', firebaseUser.uid);
     const staffDoc = await getDoc(staffDocRef);
+
     if (staffDoc.exists()) {
         const staffData = staffDoc.data() as Staff;
         const appUser: User = {
@@ -46,40 +46,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             name: staffData.name,
             email: staffData.email,
             avatarUrl: staffData.avatarUrl,
-            role: staffData.role
+            role: staffData.role,
+            dui: staffData.dui,
         };
        return appUser;
     } 
-    // If user is not in staff collection, create a default user object
-    const defaultUser: User = {
+
+    // If user is not in staff collection, create a new staff document and a user object.
+    const newUser: User = {
         id: firebaseUser.uid,
-        name: firebaseUser.email || 'New User',
+        name: firebaseUser.displayName || firebaseUser.email || 'New User',
         email: firebaseUser.email || '',
-        avatarUrl: '',
+        avatarUrl: firebaseUser.photoURL || '',
         role: 'Broker', // Assign a default role
+        dui: '00000000-0', // Default DUI, should be updated
     };
-    return defaultUser;
+    
+    const newStaffData: Staff = {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        dui: newUser.dui,
+        hireDate: serverTimestamp(),
+        avatarUrl: newUser.avatarUrl,
+    };
+
+    await setDoc(staffDocRef, newStaffData);
+    
+    return newUser;
   }, [firestore]);
 
 
   useEffect(() => {
-    if (!auth) {
-        setLoading(false);
-        return;
-    }
-
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    if (!isUserLoading) {
+      const handleAuthChange = async (firebaseUser: FirebaseUser | null) => {
         if (firebaseUser) {
-            const appUser = await fetchUserRole(firebaseUser);
-            setUser(appUser);
+          const appUser = await fetchUserRole(firebaseUser);
+          setUser(appUser);
         } else {
-            setUser(null);
+          setUser(null);
         }
         setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [auth, fetchUserRole]);
+      };
+      
+      const unsubscribe = onAuthStateChanged(auth, handleAuthChange);
+      return () => unsubscribe();
+    }
+  }, [auth, isUserLoading, fetchUserRole]);
 
 
   useEffect(() => {
@@ -93,27 +107,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 
   const login = useCallback(async (email: string, pass: string): Promise<User | null> => {
-    if (!auth) return null;
-    setAuthError(null); // Reset error on new login attempt
-    const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-    const firebaseUser = userCredential.user;
-    if (firebaseUser) {
-        const appUser = await fetchUserRole(firebaseUser);
-        if (appUser) {
+    setLoading(true);
+    setAuthError(null);
+    try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+        const firebaseUser = userCredential.user;
+        if (firebaseUser) {
+            const appUser = await fetchUserRole(firebaseUser);
             setUser(appUser);
+            setLoading(false);
             return appUser;
         }
-        // This part should theoretically not be reached with the new logic, but kept as a fallback.
-        await signOut(auth);
-        setAuthError("Could not retrieve user details after login.");
+        return null;
+    } catch (error: any) {
+        setAuthError(error.message);
+        setLoading(false);
         return null;
     }
-    return null;
   }, [auth, fetchUserRole]);
 
 
   const logout = useCallback(async () => {
-    if (!auth) return;
     await signOut(auth);
     setUser(null);
     router.push("/login");

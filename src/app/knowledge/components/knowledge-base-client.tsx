@@ -90,27 +90,33 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
 
     if (!firestore || !user) return;
 
-    if (selected && editing) { // Editing existing article
-      const articleRef = doc(firestore, 'articles', selected.id);
-      await updateDoc(articleRef, { ...draft });
-      setSelected({ ...selected, ...draft });
-      toast({ title: "Article Updated", description: "Your changes have been saved." });
-    } else { // Creating new article
-      const newArticleData = {
-        ...draft,
-        author: user.name,
-        date: serverTimestamp(),
-        tags: [],
-      };
-      await addDoc(collection(firestore, 'articles'), newArticleData);
-      toast({ title: "Article Created", description: "The new article has been added." });
+    try {
+      if (selected && editing) { // Editing existing article
+        const articleRef = doc(firestore, 'articles', selected.id);
+        await updateDoc(articleRef, { ...draft });
+        toast({ title: "Article Updated", description: "Your changes have been saved." });
+      } else { // Creating new article
+        const articlesCollection = collection(firestore, 'articles');
+        const newArticleData = {
+          ...draft,
+          author: user.name,
+          date: serverTimestamp(),
+          tags: [],
+        };
+        await addDoc(articlesCollection, newArticleData);
+        toast({ title: "Article Created", description: "The new article has been added." });
+      }
+      setEditing(false);
+      // The useCollection hook will automatically refresh the data, so no need to set `selected` here.
+    } catch (e: any) {
+        toast({ title: "Error Saving Article", description: e.message, variant: "destructive"});
     }
-    setEditing(false);
   };
 
   const handleDeleteArticle = async (id: string) => {
     if(window.confirm('Are you sure you want to delete this article?') && firestore) {
-        await deleteDoc(doc(firestore, 'articles', id));
+        const articleRef = doc(firestore, 'articles', id);
+        await deleteDoc(articleRef);
         setSelected(null);
         setEditing(false);
         toast({ title: "Article Deleted", variant: "destructive" });
