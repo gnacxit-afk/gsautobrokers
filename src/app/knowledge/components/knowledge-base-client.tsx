@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import type { Article } from '@/lib/types';
-import { Search, Plus, Save, X, Edit2, Trash2, BookOpen, ChevronRight, Bold, Italic, Code, List, AlignCenter, AlignLeft, AlignRight, Smile } from 'lucide-react';
+import { Search, Plus, Save, X, Edit2, Trash2, BookOpen, ChevronRight, Bold, Italic, Code, List, AlignCenter, AlignLeft, AlignRight, Smile, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -56,6 +56,8 @@ function MarkdownToolbar({ textareaRef, onContentChange, onAlignChange, onEmojiI
     let newText;
     if(syntax === '\n- ') { // for lists
        newText = `${textarea.value.substring(0, start)}${syntax}${selectedText}${textarea.value.substring(end)}`;
+    } else if (syntax === '\n---\n') { // for horizontal line
+      newText = `${textarea.value.substring(0, start)}${syntax}${selectedText}${textarea.value.substring(end)}`;
     } else {
        newText = `${textarea.value.substring(0, start)}${syntax}${selectedText}${syntax}${textarea.value.substring(end)}`;
     }
@@ -65,7 +67,7 @@ function MarkdownToolbar({ textareaRef, onContentChange, onAlignChange, onEmojiI
     // After updating, focus and adjust cursor position
     setTimeout(() => {
         textarea.focus();
-        if(selectedText) {
+        if(selectedText && syntax !== '\n---\n') {
             textarea.setSelectionRange(start + syntax.length, end + syntax.length);
         } else {
              textarea.setSelectionRange(start + syntax.length, start + syntax.length);
@@ -92,6 +94,7 @@ function MarkdownToolbar({ textareaRef, onContentChange, onAlignChange, onEmojiI
       <Button variant="ghost" size="icon" onClick={() => insertMarkdown('*')} title="Italic"><Italic size={16} /></Button>
       <Button variant="ghost" size="icon" onClick={() => insertMarkdown('`')} title="Code"><Code size={16} /></Button>
       <Button variant="ghost" size="icon" onClick={() => insertMarkdown('\n- ')} title="List"><List size={16} /></Button>
+      <Button variant="ghost" size="icon" onClick={() => insertMarkdown('\n---\n')} title="Horizontal Line"><Minus size={16} /></Button>
       <div className="h-6 w-px bg-gray-200 mx-2"></div>
       <Button variant="ghost" size="icon" onClick={() => onAlignChange('left')} title="Align Left"><AlignLeft size={16} /></Button>
       <Button variant="ghost" size="icon" onClick={() => onAlignChange('center')} title="Align Center"><AlignCenter size={16} /></Button>
@@ -104,6 +107,9 @@ function MarkdownToolbar({ textareaRef, onContentChange, onAlignChange, onEmojiI
 
 function SimpleMarkdownRenderer({ content, align }: { content: string, align?: 'left' | 'center' | 'right' }) {
   const renderLine = (line: string, index: number) => {
+    if (line.trim() === '---') {
+      return <hr key={index} className="my-4" />;
+    }
     if (line.startsWith('- ')) {
       return <li key={index} className="ml-5 list-disc">{line.substring(2)}</li>;
     }
@@ -330,4 +336,5 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
   );
 }
 
+    
     
