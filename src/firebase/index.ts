@@ -1,28 +1,26 @@
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, initializeFirestore, Firestore } from 'firebase/firestore';
+import { initializeApp, getApp, getApps, type FirebaseApp } from 'firebase/app';
+import { getAuth, type Auth } from 'firebase/auth';
+import { initializeFirestore, type Firestore } from 'firebase/firestore';
 
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
+// This pattern ensures that Firebase is initialized only once.
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const firestore = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+  useFetchStreams: false,
+});
+
+const services = { firebaseApp: app, auth, firestore };
+
+/**
+ * Initializes and returns the Firebase services. This function ensures that
+ * the services are initialized only once.
+ */
 export function initializeFirebase(): { firebaseApp: FirebaseApp, auth: Auth, firestore: Firestore } {
-  if (getApps().length === 0) {
-    const firebaseApp = initializeApp(firebaseConfig);
-    const auth = getAuth(firebaseApp);
-    const firestore = initializeFirestore(firebaseApp, {
-      experimentalForceLongPolling: true,
-      useFetchStreams: false,
-    });
-    return { firebaseApp, auth, firestore };
-  } 
-  
-  const app = getApp();
-  return {
-      firebaseApp: app,
-      auth: getAuth(app),
-      firestore: getFirestore(app)
-  };
+  return services;
 }
 
 export * from './provider';

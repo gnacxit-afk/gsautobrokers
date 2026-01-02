@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from "react";
@@ -22,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { DateRangePicker } from "./date-range-picker";
 import { RoleSwitcher } from "./role-switcher";
 import { Logo } from "../icons";
+import { Loader2 } from "lucide-react";
 
 const navItems: NavItemType[] = [
   { href: "/", title: "Dashboard", icon: LayoutDashboard, role: ["Admin", "Supervisor", "Broker"] },
@@ -114,11 +116,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   if (loading) {
-    return <div className="h-screen w-full flex items-center justify-center">Loading...</div>;
+    return (
+        <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
+            <Logo />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Loading Application...</p>
+        </div>
+    );
   }
 
+  // The AuthProvider now handles redirection, so this check is for pages
+  // that might render children before the redirect effect kicks in.
   if (!user && pathname !== '/login') {
-    // AuthProvider should handle redirection, but this is a safeguard.
     return null;
   }
   
