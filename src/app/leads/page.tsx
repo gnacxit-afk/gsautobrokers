@@ -26,8 +26,8 @@ export default function LeadsPage() {
     const { user } = useAuth();
     const firestore = useFirestore();
 
-    const leadsQuery = useMemo(() => firestore ? collection(firestore, 'leads') : null, [firestore]);
-    const staffQuery = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
+    const leadsQuery = useMemo(() => (firestore ? collection(firestore, 'leads') : null), [firestore]);
+    const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
 
     const { data: leadsData, loading: leadsLoading } = useCollection(leadsQuery);
     const { data: staffData, loading: staffLoading } = useCollection(staffQuery);

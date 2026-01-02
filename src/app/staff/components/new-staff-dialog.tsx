@@ -37,7 +37,8 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
     const [formData, setFormData] = useState<Partial<Omit<Staff, 'id' | 'hireDate' | 'avatarUrl'>>>({});
     const firestore = useFirestore();
 
-    const { data: allStaff } = useCollection(firestore ? collection(firestore, 'staff') : null);
+    const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
+    const { data: allStaff } = useCollection(staffQuery);
     
     const supervisors = useMemo(() => (allStaff as Staff[] || []).filter(s => s.role === 'Supervisor'), [allStaff]);
     const admins = useMemo(() => (allStaff as Staff[] || []).filter(s => s.role === 'Admin'), [allStaff]);

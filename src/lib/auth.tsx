@@ -5,13 +5,19 @@ import React, { createContext, useContext, useState, useMemo, useEffect, useCall
 import { useRouter, usePathname } from "next/navigation";
 import type { Role, Staff, User } from "./types";
 import { useFirestore, useFirebase } from "@/firebase";
-import { doc, getDoc } from "firebase/firestore";
-import { signInWithEmailAndPassword, onAuthStateChanged, signOut, type User as FirebaseUser } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { 
+  signInWithEmailAndPassword, 
+  onAuthStateChanged, 
+  signOut, 
+  type User as FirebaseUser
+} from "firebase/auth";
 
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  authError: string | null;
   login: (email: string, pass: string) => Promise<User | null>;
   logout: () => void;
   setUserRole: (role: Role) => void;
@@ -23,6 +29,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const firestore = useFirestore();
@@ -48,16 +55,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 
   useEffect(() => {
-    // If auth is not ready, don't do anything yet.
     if (!auth) {
-        // We are not setting loading to false here, because we are waiting for auth.
         return;
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
             const appUser = await fetchUserRole(firebaseUser);
-            setUser(appUser);
+            if (appUser) {
+                setUser(appUser);
+            } else {
+                // User is authenticated but not in staff collection
+                setUser(null);
+                setAuthError("No tienes acceso. Contacta al administrador.");
+                await signOut(auth); // Sign out the user
+            }
         } else {
             setUser(null);
         }
@@ -72,48 +84,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!loading && !user && pathname !== "/login") {
       router.push("/login");
     }
-    if (!loading && user && pathname === "/login") {
-      router.push("/");
+    if (!loading && user && (pathname === "/login" || pathname === "/")) {
+      router.push("/leads");
     }
   }, [user, loading, pathname, router]);
 
 
-  const login = async (email: string, pass: string): Promise<User | null> => {
+  const login = useCallback(async (email: string, pass: string): Promise<User | null> => {
     if (!auth) return null;
+    setAuthError(null); // Reset error on new login attempt
     const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-    if (userCredential.user) {
-        const appUser = await fetchUserRole(userCredential.user);
-        setUser(appUser);
-        return appUser;
+    const firebaseUser = userCredential.user;
+    if (firebaseUser) {
+        const appUser = await fetchUserRole(firebaseUser);
+        if (appUser) {
+            setUser(appUser);
+            return appUser;
+        }
+        // If user is not in staff, sign them out and set error
+        await signOut(auth);
+        setAuthError("No tienes acceso. Contacta al administrador.");
+        return null;
     }
     return null;
-  };
+  }, [auth, fetchUserRole]);
 
-  const logout = async () => {
+
+  const logout = useCallback(async () => {
     if (!auth) return;
     await signOut(auth);
     setUser(null);
     router.push("/login");
-  };
+  }, [auth, router]);
 
-  const setUserRole = (role: Role) => {
-    if (!user) return;
-    const updatedUser = { ...user, role };
-    setUser(updatedUser);
-  };
+  const setUserRole = useCallback((role: Role) => {
+    setUser(currentUser => {
+        if(!currentUser) return null;
+        return { ...currentUser, role };
+    });
+  }, []);
   
   const reloadUser = useCallback(async () => {
     if (auth?.currentUser) {
         setLoading(true);
         const appUser = await fetchUserRole(auth.currentUser);
-        setUser(appUser)
+        if (appUser) {
+            setUser(appUser);
+        } else {
+            setUser(null);
+            setAuthError("No tienes acceso. Contacta al administrador.");
+            await signOut(auth);
+        }
         setLoading(false);
     }
   }, [auth, fetchUserRole]);
 
   const value = useMemo(
-    () => ({ user, loading, login, logout, setUserRole, reloadUser }),
-    [user, loading, reloadUser, login, logout, setUserRole]
+    () => ({ user, loading, authError, login, logout, setUserRole, reloadUser }),
+    [user, loading, authError, login, logout, setUserRole, reloadUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

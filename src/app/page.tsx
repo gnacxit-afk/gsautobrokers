@@ -35,10 +35,13 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const firestore = useFirestore();
 
-  const { data: leadsData } = useCollection(firestore ? collection(firestore, 'leads') : null);
+  const leadsQuery = useMemo(() => (firestore ? collection(firestore, 'leads') : null), [firestore]);
+  const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
+
+  const { data: leadsData } = useCollection(leadsQuery);
   const allLeads = leadsData as Lead[] || [];
   
-  const { data: staffData } = useCollection(firestore ? collection(firestore, 'staff') : null);
+  const { data: staffData } = useCollection(staffQuery);
   const allStaff = staffData as Staff[] || [];
 
 

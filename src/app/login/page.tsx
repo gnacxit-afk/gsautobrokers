@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/icons";
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, authError } = useAuth();
   const [email, setEmail] = useState("nacxit@gmail.com");
   const [password, setPassword] = useState("annagcexlit.5691");
   const [loading, setLoading] = useState(false);
@@ -22,11 +22,8 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const user = await login(email, password);
-      if (!user) {
-        throw new Error("Login failed");
-      }
-      // AuthProvider will handle redirection on successful login
+      await login(email, password);
+      // AuthProvider will handle redirection on successful login and authorization
     } catch (error) {
        toast({
         variant: "destructive",
@@ -71,6 +68,11 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
+            {authError && (
+                <div className="text-red-600 text-sm font-medium text-center">
+                    {authError}
+                </div>
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign In
