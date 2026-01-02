@@ -54,12 +54,14 @@ function MarkdownToolbar({ textareaRef, onContentChange, onAlignChange, onEmojiI
     const selectedText = textarea.value.substring(start, end);
     
     let newText;
-    if(syntax === '\n- ') { // for lists
-       newText = `${textarea.value.substring(0, start)}${syntax}${selectedText}${textarea.value.substring(end)}`;
+    const placeholder = 'text';
+
+    if (syntax === '\n- ') { // for lists
+       newText = `${textarea.value.substring(0, start)}${syntax}${selectedText || placeholder}${textarea.value.substring(end)}`;
     } else if (syntax === '\n---\n') { // for horizontal line
       newText = `${textarea.value.substring(0, start)}${syntax}${selectedText}${textarea.value.substring(end)}`;
     } else {
-       newText = `${textarea.value.substring(0, start)}${syntax}${selectedText}${syntax}${textarea.value.substring(end)}`;
+       newText = `${textarea.value.substring(0, start)}${syntax}${selectedText || placeholder}${syntax}${textarea.value.substring(end)}`;
     }
 
     onContentChange(newText);
@@ -67,10 +69,12 @@ function MarkdownToolbar({ textareaRef, onContentChange, onAlignChange, onEmojiI
     // After updating, focus and adjust cursor position
     setTimeout(() => {
         textarea.focus();
-        if(selectedText && syntax !== '\n---\n') {
-            textarea.setSelectionRange(start + syntax.length, end + syntax.length);
+        if (selectedText) {
+          textarea.setSelectionRange(start + syntax.length, end + syntax.length);
+        } else if (syntax === '\n---\n') {
+          textarea.setSelectionRange(start + syntax.length, start + syntax.length);
         } else {
-             textarea.setSelectionRange(start + syntax.length, start + syntax.length);
+          textarea.setSelectionRange(start + syntax.length, start + syntax.length + placeholder.length);
         }
     }, 0);
   };
@@ -107,22 +111,23 @@ function MarkdownToolbar({ textareaRef, onContentChange, onAlignChange, onEmojiI
 
 function SimpleMarkdownRenderer({ content, align }: { content: string, align?: 'left' | 'center' | 'right' }) {
   const renderLine = (line: string, index: number) => {
+    // Must process bold first, then italic
+    line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    line = line.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    line = line.replace(/`(.*?)`/g, '<code class="bg-gray-100 p-1 rounded text-sm font-mono">$1</code>');
+    
     if (line.trim() === '---') {
       return <hr key={index} className="my-4" />;
     }
     if (line.startsWith('- ')) {
       return <li key={index} className="ml-5 list-disc">{line.substring(2)}</li>;
     }
-    // Bold, Italic, Code - simple regex replacement
-    line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    line = line.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    line = line.replace(/`(.*?)`/g, '<code class="bg-gray-100 p-1 rounded text-sm font-mono">$1</code>');
     
     return <p key={index} dangerouslySetInnerHTML={{ __html: line }} />;
   };
 
   return (
-    <div className={cn("whitespace-pre-wrap space-y-2", {
+    <div className={cn("prose prose-slate max-w-none whitespace-pre-wrap space-y-2", {
         'text-center': align === 'center',
         'text-right': align === 'right',
         'text-left': align === 'left' || !align,
@@ -308,11 +313,11 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
             </div>
           </div>
         ) : selected ? (
-          <div className="prose prose-slate max-w-none">
+          <div className="max-w-none">
             <div className="flex justify-between items-start mb-6">
               <div>
                 <span className="bg-blue-50 text-blue-600 rounded-full text-xs font-bold uppercase tracking-widest not-prose px-3 py-1">{selected.category}</span>
-                <h2 className="mt-3">{selected.title}</h2>
+                <h2 className="mt-3 text-3xl font-bold">{selected.title}</h2>
                 <p className="text-sm text-muted-foreground">By {selected.author} on {renderDate(selected.date)}</p>
               </div>
               {user?.role === 'Admin' && (
@@ -335,6 +340,3 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
     </div>
   );
 }
-
-    
-    
