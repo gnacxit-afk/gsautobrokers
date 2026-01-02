@@ -136,7 +136,7 @@ export function KpiClient({ initialKpis, loading }: { initialKpis: KPI[], loadin
                     <KpiCard
                         key={kpi.id}
                         kpi={kpi}
-                        isEditing={isEditing}
+                        isEditing={isEditing && user?.role === 'Admin'}
                         onValueChange={(value) => handleDraftChange(kpi.id, value)}
                     />
                 ))}
