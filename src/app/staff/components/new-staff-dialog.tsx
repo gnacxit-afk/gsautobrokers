@@ -23,10 +23,12 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import React, { useState, useMemo } from "react";
 import type { Role, Staff } from "@/lib/types";
-import { useCollection, useFirestore, useAuth } from "@/firebase";
+import { useCollection, useFirestore } from "@/firebase";
 import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, getAuth } from "firebase/auth";
 import { Eye, EyeOff } from "lucide-react";
+import { initializeApp } from "firebase/app";
+import { firebaseConfig } from "@/firebase/config";
 
 const roles: Role[] = ["Admin", "Supervisor", "Broker"];
 
@@ -39,7 +41,6 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
     const { toast } = useToast();
     const [formData, setFormData] = useState<Partial<Omit<Staff, 'id' | 'hireDate' | 'avatarUrl'>>>({});
     const [showPassword, setShowPassword] = useState(false);
-    const auth = useAuth();
     const firestore = useFirestore();
 
     const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
@@ -59,7 +60,7 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
     };
 
     const handleSave = async () => {
-        if (!firestore || !auth) return;
+        if (!firestore) return;
 
         if (!formData.name || !formData.email || !formData.password || !formData.role || !formData.dui) {
             toast({
@@ -70,9 +71,15 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
             return;
         }
 
+        // Create a temporary, secondary Firebase app instance for user creation.
+        // This prevents the current admin from being signed out.
+        const secondaryAppName = `newUserApp-${Date.now()}`;
+        const secondaryApp = initializeApp(firebaseConfig, secondaryAppName);
+        const secondaryAuth = getAuth(secondaryApp);
+
         try {
-            // Create user in Firebase Auth
-            const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+            // Create user in Firebase Auth using the secondary instance
+            const userCredential = await createUserWithEmailAndPassword(secondaryAuth, formData.email, formData.password);
             const user = userCredential.user;
 
             // Create user document in Firestore 'staff' collection
@@ -84,8 +91,8 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
                 role: formData.role,
                 dui: formData.dui,
                 supervisorId: formData.supervisorId || '',
-                createdAt: serverTimestamp(), // Use createdAt for consistency
-                avatarUrl: '', // Or a default avatar
+                createdAt: serverTimestamp(),
+                avatarUrl: '', 
             });
 
             toast({
