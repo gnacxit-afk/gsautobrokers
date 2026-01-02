@@ -28,7 +28,7 @@ import { Loader2 } from "lucide-react";
 const navItems: NavItemType[] = [
   { href: "/", title: "Dashboard", icon: LayoutDashboard, role: ["Admin", "Supervisor", "Broker"] },
   { href: "/leads", title: "Leads / CRM", icon: PhoneCall, role: ["Admin", "Supervisor", "Broker"] },
-  { href: "/kpi", title: "METAS DIARIAS", icon: TrendingUp, role: ["Admin", "Supervisor", "Broker"] },
+  { href: "/kpi", title: "KPI's & Performance", icon: TrendingUp, role: ["Admin", "Supervisor", "Broker"] },
   { href: "/knowledge", title: "Knowledge Base", icon: BookOpen, role: ["Admin", "Supervisor", "Broker"] },
   { href: "/staff", title: "Staff", icon: Users, role: ["Admin"] },
 ];
@@ -143,6 +143,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 
   const getPageTitle = () => {
+    if (pathname === '/kpi') return 'METAS DIARIAS';
     if (pathname === '/') return 'Dashboard';
     const currentPath = pathname.split('/')[1];
     const currentNavItem = navItems.find(item => item.href === `/${currentPath}`);
