@@ -75,13 +75,13 @@ function MainNav({ items }: { items: NavItemType[] }) {
   );
 }
 
-function Sidebar() {
+function SidebarContent() {
     const { user, logout, MASTER_ADMIN_EMAIL } = useAuthContext();
     
     if (!user) return null;
 
     return (
-        <aside className="w-64 bg-slate-900 text-white flex-col shrink-0 hidden lg:flex">
+        <>
             <div className="p-6 border-b border-slate-800 h-16 flex items-center">
                 <Logo className="text-white text-lg" />
             </div>
@@ -101,7 +101,7 @@ function Sidebar() {
             
             <MainNav items={navItems} />
 
-            <div className="p-4 border-t border-slate-800">
+            <div className="p-4 border-t border-slate-800 mt-auto">
                 {user.email === MASTER_ADMIN_EMAIL && <RoleSwitcher />}
                  <Button 
                     onClick={logout}
@@ -111,6 +111,15 @@ function Sidebar() {
                     <LogOut size={16} /> Cerrar Sesión
                 </Button>
             </div>
+        </>
+    );
+}
+
+
+function Sidebar() {
+    return (
+        <aside className="w-64 bg-slate-900 text-white flex-col shrink-0 hidden lg:flex">
+           <SidebarContent />
         </aside>
     );
 }
@@ -163,11 +172,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <span className="sr-only">Toggle Menu</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="sm:max-w-xs p-0 bg-slate-900 text-white border-r-0">
-                <div className="p-6 border-b border-slate-800 h-16 flex items-center">
-                    <Logo className="text-white text-lg" />
-                </div>
-                <MainNav items={navItems} />
+              <SheetContent side="left" className="sm:max-w-xs p-0 bg-slate-900 text-white border-r-0 flex flex-col">
+                <SidebarContent />
               </SheetContent>
             </Sheet>
             <h2 className="text-xl font-semibold text-slate-800 capitalize hidden sm:block">{getPageTitle()}</h2>
