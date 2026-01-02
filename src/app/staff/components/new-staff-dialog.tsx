@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -25,6 +26,7 @@ import type { Role, Staff } from "@/lib/types";
 import { useCollection, useFirestore, useAuth } from "@/firebase";
 import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
+import { Eye, EyeOff } from "lucide-react";
 
 const roles: Role[] = ["Admin", "Supervisor", "Broker"];
 
@@ -36,6 +38,7 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
     const [open, setOpen] = React.useState(false);
     const { toast } = useToast();
     const [formData, setFormData] = useState<Partial<Omit<Staff, 'id' | 'hireDate' | 'avatarUrl'>>>({});
+    const [showPassword, setShowPassword] = useState(false);
     const auth = useAuth();
     const firestore = useFirestore();
 
@@ -137,7 +140,24 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
                     <Label htmlFor="password" className="text-right">
                         Password
                     </Label>
-                    <Input id="password" type="password" value={formData.password || ''} onChange={handleChange} className="col-span-3" />
+                    <div className="col-span-3 relative">
+                        <Input 
+                            id="password" 
+                            type={showPassword ? "text" : "password"} 
+                            value={formData.password || ''} 
+                            onChange={handleChange} 
+                            className="pr-10"
+                        />
+                        <Button 
+                            type="button"
+                            variant="ghost" 
+                            size="icon" 
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                            onClick={() => setShowPassword(prev => !prev)}
+                        >
+                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </Button>
+                    </div>
                 </div>
                  <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="role" className="text-right">
