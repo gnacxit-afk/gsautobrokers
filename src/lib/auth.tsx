@@ -50,26 +50,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
        return appUser;
     } 
-    return null;
+    // If user is not in staff collection, create a default user object
+    const defaultUser: User = {
+        id: firebaseUser.uid,
+        name: firebaseUser.email || 'New User',
+        email: firebaseUser.email || '',
+        avatarUrl: '',
+        role: 'Broker', // Assign a default role
+    };
+    return defaultUser;
   }, [firestore]);
 
 
   useEffect(() => {
     if (!auth) {
+        setLoading(false);
         return;
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
             const appUser = await fetchUserRole(firebaseUser);
-            if (appUser) {
-                setUser(appUser);
-            } else {
-                // User is authenticated but not in staff collection
-                setUser(null);
-                setAuthError("No tienes acceso. Contacta al administrador.");
-                await signOut(auth); // Sign out the user
-            }
+            setUser(appUser);
         } else {
             setUser(null);
         }
@@ -101,9 +103,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(appUser);
             return appUser;
         }
-        // If user is not in staff, sign them out and set error
+        // This part should theoretically not be reached with the new logic, but kept as a fallback.
         await signOut(auth);
-        setAuthError("No tienes acceso. Contacta al administrador.");
+        setAuthError("Could not retrieve user details after login.");
         return null;
     }
     return null;
@@ -128,13 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (auth?.currentUser) {
         setLoading(true);
         const appUser = await fetchUserRole(auth.currentUser);
-        if (appUser) {
-            setUser(appUser);
-        } else {
-            setUser(null);
-            setAuthError("No tienes acceso. Contacta al administrador.");
-            await signOut(auth);
-        }
+        setUser(appUser);
         setLoading(false);
     }
   }, [auth, fetchUserRole]);
