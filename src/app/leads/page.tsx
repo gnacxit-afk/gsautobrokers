@@ -49,14 +49,16 @@ export default function LeadsPage() {
         let visibleLeads = allLeads;
 
         if (user) {
-            if (user.role === 'Supervisor') {
+            if (user.role === 'Admin') {
+                // Admins see all leads
+                visibleLeads = allLeads;
+            } else if (user.role === 'Supervisor') {
                 const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
                 const visibleIds = [user.id, ...teamIds];
                 visibleLeads = allLeads.filter(l => visibleIds.includes(l.ownerId));
             } else if (user.role === 'Broker') {
                 visibleLeads = allLeads.filter(l => l.ownerId === user.id);
             }
-            // Admins see all leads, so no extra filtering is needed for them.
         } else {
             visibleLeads = []; // If no user, show no leads.
         }
