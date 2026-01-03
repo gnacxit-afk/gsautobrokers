@@ -55,8 +55,6 @@ export default function LeadsPage() {
                 visibleLeads = allLeads.filter(l => visibleIds.includes(l.ownerId));
             } else if (user.role === 'Broker') {
                 visibleLeads = allLeads.filter(l => l.ownerId === user.id);
-            } else if (user.role !== 'Admin') {
-                 visibleLeads = [];
             }
         } else {
             visibleLeads = []; // If no user, show no leads.
@@ -106,7 +104,7 @@ export default function LeadsPage() {
         addDocumentNonBlocking(leadsCollection, completeLeadData);
         
         // Optimistically update the UI
-        setLeadsData(prevLeads => [{...completeLeadData, id: 'temp-id', createdAt: new Date() }, ...(prevLeads || [])]);
+        setLeadsData(prevLeads => [{...completeLeadData, id: `temp-${Math.random()}`, createdAt: new Date() }, ...(prevLeads || [])]);
 
         toast({ title: "Lead Added", description: "The new lead has been created." });
     }, [allStaff, firestore, toast, setLeadsData]);
@@ -145,8 +143,8 @@ export default function LeadsPage() {
         table.setGlobalFilter('');
         table.setColumnFilters([]);
         setDateRange({
-          start: new Date('2000-01-01'),
-          end: new Date('2100-01-01'),
+          start: new Date(new Date().getFullYear(), 0, 1),
+          end: new Date(new Date().getFullYear(), 11, 31),
         });
     }, [table, setDateRange]);
 
