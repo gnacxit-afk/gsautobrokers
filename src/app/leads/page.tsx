@@ -46,23 +46,25 @@ export default function LeadsPage() {
     const [expanded, setExpanded] = useState({});
 
     const filteredLeads = useMemo(() => {
-        let visibleLeads = allLeads;
-
-        if (user) {
-            if (user.role === 'Admin') {
-                // Admins see all leads
-                visibleLeads = allLeads;
-            } else if (user.role === 'Supervisor') {
-                const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
-                const visibleIds = [user.id, ...teamIds];
-                visibleLeads = allLeads.filter(l => visibleIds.includes(l.ownerId));
-            } else if (user.role === 'Broker') {
-                visibleLeads = allLeads.filter(l => l.ownerId === user.id);
-            }
-        } else {
-            visibleLeads = []; // If no user, show no leads.
+        if (!user) {
+            return []; // If no user, show no leads.
         }
 
+        let visibleLeads;
+        if (user.role === 'Admin') {
+            // Admins see all leads
+            visibleLeads = allLeads;
+        } else if (user.role === 'Supervisor') {
+            // Supervisors see their own leads and their team's leads
+            const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
+            const visibleIds = [user.id, ...teamIds];
+            visibleLeads = allLeads.filter(l => visibleIds.includes(l.ownerId));
+        } else { // Broker
+            // Brokers see only their own leads
+            visibleLeads = allLeads.filter(l => l.ownerId === user.id);
+        }
+
+        // Apply date range filter to the visible leads
         return visibleLeads.filter(l => {
             if (!l.createdAt) return false;
             const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
