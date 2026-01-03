@@ -32,7 +32,7 @@ export default function LeadsPage() {
     const leadsQuery = useMemo(() => (firestore ? collection(firestore, 'leads') : null), [firestore]);
     const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
 
-    const { data: leadsData, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
+    const { data: leadsData, loading: leadsLoading, setData: setLeadsData } = useCollection<Lead>(leadsQuery);
     const { data: staffData, loading: staffLoading } = useCollection<Staff>(staffQuery);
     
     const allLeads = useMemo(() => leadsData || [], [leadsData]);
@@ -55,8 +55,9 @@ export default function LeadsPage() {
                 visibleLeads = allLeads.filter(l => visibleIds.includes(l.ownerId));
             } else if (user.role === 'Broker') {
                 visibleLeads = allLeads.filter(l => l.ownerId === user.id);
+            } else if (user.role !== 'Admin') {
+                 visibleLeads = [];
             }
-            // For 'Admin', we don't filter by owner, so all leads remain visible.
         } else {
             visibleLeads = []; // If no user, show no leads.
         }
@@ -96,13 +97,19 @@ export default function LeadsPage() {
         if (!owner || !firestore) return;
 
         const leadsCollection = collection(firestore, 'leads');
-        addDocumentNonBlocking(leadsCollection, {
+        const completeLeadData = {
             ...newLeadData,
             createdAt: serverTimestamp(),
             ownerName: owner.name,
-        });
+        };
+
+        addDocumentNonBlocking(leadsCollection, completeLeadData);
+        
+        // Optimistically update the UI
+        setLeadsData(prevLeads => [{...completeLeadData, id: 'temp-id', createdAt: new Date() }, ...(prevLeads || [])]);
+
         toast({ title: "Lead Added", description: "The new lead has been created." });
-    }, [allStaff, firestore, toast]);
+    }, [allStaff, firestore, toast, setLeadsData]);
 
     const handleUpdateOwner = useCallback(async (id: string, newOwner: Staff) => {
         if (!firestore) return;
