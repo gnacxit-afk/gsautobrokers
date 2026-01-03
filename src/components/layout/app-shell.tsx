@@ -1,7 +1,7 @@
 
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -15,7 +15,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useAuthContext } from "@/lib/auth";
 import type { NavItem as NavItemType, Role } from "@/lib/types";
@@ -132,7 +132,7 @@ function Sidebar() {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthContext();
   const pathname = usePathname();
-  const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   if (loading) {
     return (
@@ -179,6 +179,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="sm:max-w-xs p-0 bg-slate-900 text-white border-r-0 flex flex-col">
+                <SheetHeader className="sr-only">
+                    <SheetTitle>Mobile Menu</SheetTitle>
+                </SheetHeader>
                 <SidebarContent onLinkClick={() => setIsSheetOpen(false)} />
               </SheetContent>
             </Sheet>
