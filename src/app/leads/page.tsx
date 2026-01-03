@@ -56,6 +56,7 @@ export default function LeadsPage() {
             } else if (user.role === 'Broker') {
                 visibleLeads = allLeads.filter(l => l.ownerId === user.id);
             }
+            // Admins see all leads, so no extra filtering is needed for them.
         } else {
             visibleLeads = []; // If no user, show no leads.
         }
