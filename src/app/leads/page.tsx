@@ -47,20 +47,18 @@ export default function LeadsPage() {
 
     const filteredLeads = useMemo(() => {
         let visibleLeads = allLeads;
+
         if (user) {
-            if (user.role === 'Admin') {
-                // Admin sees all leads
-            } else if (user.role === 'Supervisor') {
+            if (user.role === 'Supervisor') {
                 const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
                 const visibleIds = [user.id, ...teamIds];
                 visibleLeads = allLeads.filter(l => visibleIds.includes(l.ownerId));
             } else if (user.role === 'Broker') {
                 visibleLeads = allLeads.filter(l => l.ownerId === user.id);
-            } else {
-                visibleLeads = [];
             }
+            // For 'Admin', we don't filter by owner, so all leads remain visible.
         } else {
-            visibleLeads = [];
+            visibleLeads = []; // If no user, show no leads.
         }
 
         return visibleLeads.filter(l => {
