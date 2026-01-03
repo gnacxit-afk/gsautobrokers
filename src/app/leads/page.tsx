@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
@@ -105,8 +106,15 @@ export default function LeadsPage() {
         toast({ title: "Lead Added", description: "The new lead has been created." });
     }, [allStaff, firestore, toast]);
 
+    const handleUpdateOwner = useCallback(async (id: string, newOwner: Staff) => {
+        if (!firestore) return;
+        const leadRef = doc(firestore, 'leads', id);
+        updateDocumentNonBlocking(leadRef, { ownerId: newOwner.id, ownerName: newOwner.name });
+        toast({ title: "Owner Updated", description: `Lead reassigned to ${newOwner.name}.` });
+    }, [firestore, toast]);
 
-    const columns = useMemo(() => getColumns(handleUpdateStatus, handleDelete), [handleUpdateStatus, handleDelete]);
+
+    const columns = useMemo(() => getColumns(handleUpdateStatus, handleDelete, handleUpdateOwner, allStaff), [handleUpdateStatus, handleDelete, handleUpdateOwner, allStaff]);
     
     const table = useReactTable({
       data: filteredLeads,

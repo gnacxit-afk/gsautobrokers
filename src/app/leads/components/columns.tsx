@@ -1,7 +1,8 @@
+
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, Trash2, ChevronDown, MessageSquare, Phone } from "lucide-react";
+import { MoreHorizontal, Trash2, ChevronDown, MessageSquare, Phone, Users } from "lucide-react";
 import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ import {
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import type { Lead } from "@/lib/types";
+import type { Lead, Staff } from "@/lib/types";
 import React from "react";
 import { AnalyzeLeadDialog } from "./analyze-lead-dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -29,7 +30,7 @@ import { useAuthContext } from "@/lib/auth";
 const leadStatuses: Lead['status'][] = ["New", "Contacted", "Qualified", "On the way", "On site", "Sale", "Closed", "Lost"];
 
 
-const CellActions: React.FC<{ lead: Lead, onUpdateStatus: (id: string, status: Lead['status']) => void, onDelete: (id: string) => void, row: any }> = ({ lead, onUpdateStatus, onDelete, row }) => {
+const CellActions: React.FC<{ lead: Lead, onUpdateStatus: (id: string, status: Lead['status']) => void, onDelete: (id: string) => void, onUpdateOwner: (id: string, newOwner: Staff) => void, staff: Staff[], row: any }> = ({ lead, onUpdateStatus, onDelete, onUpdateOwner, staff, row }) => {
   const [isAnalyzeOpen, setAnalyzeOpen] = React.useState(false);
   const { toast } = useToast();
   const { user } = useAuthContext();
@@ -38,6 +39,16 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStatus: (id: string, status: L
     onUpdateStatus(lead.id, status);
     toast({ title: "Status Updated", description: `Lead "${lead.name}" is now ${status}.` });
   };
+  
+  const handleOwnerUpdate = (newOwnerId: string) => {
+    const newOwner = staff.find(s => s.id === newOwnerId);
+    if (newOwner) {
+      onUpdateOwner(lead.id, newOwner);
+      toast({ title: "Owner Updated", description: `Lead "${lead.name}" reassigned to ${newOwner.name}.` });
+    }
+  };
+
+  const assignableStaff = staff.filter(s => s.role === 'Broker' || s.role === 'Supervisor');
 
   return (
     <>
@@ -61,7 +72,9 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStatus: (id: string, status: L
             <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem onSelect={() => setAnalyzeOpen(true)}>Analyze Lead (AI)</DropdownMenuItem>
-            {user?.role === 'Admin' && (
+            
+            {(user?.role === 'Admin') && (
+              <>
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
                     <span>Update Status</span>
@@ -78,7 +91,26 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStatus: (id: string, status: L
                     </DropdownMenuSubContent>
                   </DropdownMenuPortal>
                 </DropdownMenuSub>
+                <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <Users className="mr-2 h-4 w-4" />
+                      <span>Change Owner</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuRadioGroup value={lead.ownerId} onValueChange={handleOwnerUpdate}>
+                          {assignableStaff.map((staffMember) => (
+                            <DropdownMenuRadioItem key={staffMember.id} value={staffMember.id}>
+                              {staffMember.name}
+                            </DropdownMenuRadioItem>
+                          ))}
+                        </DropdownMenuRadioGroup>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                </DropdownMenuSub>
+              </>
             )}
+
             <DropdownMenuSeparator />
             <DropdownMenuItem 
                 className="text-destructive focus:bg-destructive/10 focus:text-destructive"
@@ -95,7 +127,9 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStatus: (id: string, status: L
 
 export const getColumns = (
   onUpdateStatus: (id: string, status: Lead['status']) => void,
-  onDelete: (id: string) => void
+  onDelete: (id: string) => void,
+  onUpdateOwner: (id: string, newOwner: Staff) => void,
+  staff: Staff[]
 ): ColumnDef<Lead>[] => [
   {
     accessorKey: "name",
@@ -180,7 +214,7 @@ export const getColumns = (
     id: "actions",
     cell: ({ row }) => {
       const lead = row.original;
-      return <CellActions lead={lead} onUpdateStatus={onUpdateStatus} onDelete={onDelete} row={row} />;
+      return <CellActions lead={lead} onUpdateStatus={onUpdateStatus} onDelete={onDelete} onUpdateOwner={onUpdateOwner} staff={staff} row={row} />;
     },
   },
 ];
