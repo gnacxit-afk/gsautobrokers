@@ -97,26 +97,23 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lea
               </DropdownMenuPortal>
             </DropdownMenuSub>
 
-            {(user?.role === 'Admin') && (
-              <>
-                 <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <span>Update Lead Status</span>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent>
-                      <DropdownMenuRadioGroup value={lead.leadStatus} onValueChange={(status) => handleLeadStatusUpdate(status as NonNullable<Lead['leadStatus']>)}>
-                        {leadStatuses.map((status) => (
-                          <DropdownMenuRadioItem key={status} value={status}>
-                            {status}
-                          </DropdownMenuRadioItem>
-                        ))}
-                      </DropdownMenuRadioGroup>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
-              </>
-            )}
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <span>Update Lead Status</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent>
+                  <DropdownMenuRadioGroup value={lead.leadStatus} onValueChange={(status) => handleLeadStatusUpdate(status as NonNullable<Lead['leadStatus']>)}>
+                    {leadStatuses.map((status) => (
+                      <DropdownMenuRadioItem key={status} value={status}>
+                        {status}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
+            
             {user?.role === 'Admin' && (
                 <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
