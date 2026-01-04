@@ -117,7 +117,7 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lea
                 </DropdownMenuSub>
               </>
             )}
-            {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
+            {user?.role === 'Admin' && (
                 <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
                       <Users className="mr-2 h-4 w-4" />
