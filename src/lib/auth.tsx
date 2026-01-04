@@ -43,38 +43,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchAppUser = useCallback(async (fbUser: FirebaseUser): Promise<User | null> => {
     if (!firestore) throw new Error("Firestore not initialized");
 
-    // Master Admin Check
-    if (fbUser.email === MASTER_ADMIN_EMAIL) {
-      const masterAdminDUI = '04451625-5';
-      const masterAdminName = "Angel Nacxit Gomez Campos";
-      const staffDocRef = doc(firestore, 'staff', masterAdminDUI);
-      const staffDoc = await getDoc(staffDocRef);
-      if (!staffDoc.exists()) {
-        await setDoc(staffDocRef, {
-          id: masterAdminDUI,
-          authUid: fbUser.uid,
-          name: masterAdminName,
-          email: fbUser.email,
-          role: "Admin",
-          createdAt: serverTimestamp(),
-          avatarUrl: "",
-        });
-      }
-      return {
-        id: masterAdminDUI,
-        authUid: fbUser.uid,
-        name: masterAdminName,
-        email: fbUser.email,
-        avatarUrl: "",
-        role: "Admin",
-      };
-    }
-    
-    // For all other users, find their staff profile via their auth UID.
-    const staffCollection = collection(firestore, 'staff');
-    const q = query(staffCollection, where("authUid", "==", fbUser.uid));
-    
     try {
+        // Master Admin Check
+        if (fbUser.email === MASTER_ADMIN_EMAIL) {
+            const masterAdminDUI = '04451625-5';
+            const masterAdminName = "Angel Nacxit Gomez Campos";
+            const staffDocRef = doc(firestore, 'staff', masterAdminDUI);
+            
+            const staffDoc = await getDoc(staffDocRef).catch(() => null);
+
+            if (!staffDoc?.exists()) {
+                await setDoc(staffDocRef, {
+                    id: masterAdminDUI,
+                    authUid: fbUser.uid,
+                    name: masterAdminName,
+                    email: fbUser.email,
+                    role: "Admin",
+                    createdAt: serverTimestamp(),
+                    avatarUrl: "",
+                });
+            }
+            return {
+                id: masterAdminDUI,
+                authUid: fbUser.uid,
+                name: masterAdminName,
+                email: fbUser.email,
+                avatarUrl: "",
+                role: "Admin",
+            };
+        }
+
+        // For all other users, find their staff profile via their auth UID.
+        const staffCollection = collection(firestore, 'staff');
+        const q = query(staffCollection, where("authUid", "==", fbUser.uid));
+        
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
