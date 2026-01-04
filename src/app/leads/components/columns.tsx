@@ -80,9 +80,26 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lea
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem onSelect={() => setAnalyzeOpen(true)}>Analyze Lead (AI)</DropdownMenuItem>
             
-            {(user?.role === 'Admin') && (
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <span>Update Stage</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent>
+                  <DropdownMenuRadioGroup value={lead.stage} onValueChange={(stage) => handleStageUpdate(stage as Lead['stage'])}>
+                    {leadStages.map((stage) => (
+                      <DropdownMenuRadioItem key={stage} value={stage}>
+                        {stage}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
+
+            {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
               <>
-                <DropdownMenuSub>
+                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
                     <span>Update Lead Status</span>
                   </DropdownMenuSubTrigger>
@@ -92,22 +109,6 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lea
                         {leadStatuses.map((status) => (
                           <DropdownMenuRadioItem key={status} value={status}>
                             {status}
-                          </DropdownMenuRadioItem>
-                        ))}
-                      </DropdownMenuRadioGroup>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <span>Update Stage</span>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent>
-                      <DropdownMenuRadioGroup value={lead.stage} onValueChange={(stage) => handleStageUpdate(stage as Lead['stage'])}>
-                        {leadStages.map((stage) => (
-                          <DropdownMenuRadioItem key={stage} value={stage}>
-                            {stage}
                           </DropdownMenuRadioItem>
                         ))}
                       </DropdownMenuRadioGroup>
