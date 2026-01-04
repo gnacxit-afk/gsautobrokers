@@ -80,7 +80,7 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
             const user = userCredential.user;
 
             const staffCollectionRef = collection(firestore, 'staff');
-            await addDoc(staffCollectionRef, {
+            const newDocRef = await addDoc(staffCollectionRef, {
                 authUid: user.uid,
                 name: formData.name,
                 email: formData.email,
@@ -92,6 +92,10 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
                 hireDate: serverTimestamp()
             });
 
+            // The ID is the auto-generated doc ID
+            // await updateDoc(newDocRef, { id: newDocRef.id });
+
+
             toast({
                 title: "Staff Member Added",
                 description: "The new staff member has been registered.",
@@ -100,11 +104,19 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
             setFormData({});
         } catch (error: any) {
             console.error("Error adding staff member: ", error);
-            toast({
-                title: "Error",
-                description: error.message || "Could not add staff member.",
-                variant: "destructive",
-            });
+             if (error.code === 'auth/email-already-in-use') {
+                toast({
+                    title: "Registration Failed",
+                    description: "This email address is already registered. Please use a different email.",
+                    variant: "destructive",
+                });
+            } else {
+                toast({
+                    title: "Error",
+                    description: error.message || "Could not add staff member.",
+                    variant: "destructive",
+                });
+            }
         }
     }
     
@@ -221,3 +233,5 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
         </Dialog>
     );
 }
+
+    
