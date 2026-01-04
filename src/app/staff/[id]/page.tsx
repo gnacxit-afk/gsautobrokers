@@ -125,7 +125,7 @@ export default function StaffProfilePage() {
   const handleSaveChanges = async () => {
     if (!firestore || !staffDocRef) return;
     try {
-        const { password, id, authUid, ...updateData } = formData;
+        const { password, id, authUid, createdAt, hireDate, email, ...updateData } = formData;
         
         await updateDoc(staffDocRef, updateData);
         

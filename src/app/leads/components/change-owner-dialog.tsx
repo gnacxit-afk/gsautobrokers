@@ -41,7 +41,7 @@ export function ChangeOwnerDialog({
   const { toast } = useToast();
 
   const assignableStaff = staff.filter(
-    (s) => s.role === 'Broker' || s.role === 'Supervisor'
+    (s) => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin'
   );
 
   const handleSave = () => {
