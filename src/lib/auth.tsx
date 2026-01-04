@@ -45,8 +45,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Master Admin Check
     if (fbUser.email === MASTER_ADMIN_EMAIL) {
-      const masterAdminDUI = '00000000-0';
-      const masterAdminName = "Master Admin";
+      const masterAdminDUI = '04451625-5';
+      const masterAdminName = "Angel Nacxit Gomez Campos";
       const staffDocRef = doc(firestore, 'staff', masterAdminDUI);
       const staffDoc = await getDoc(staffDocRef);
       if (!staffDoc.exists()) {
