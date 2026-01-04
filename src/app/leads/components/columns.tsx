@@ -97,7 +97,7 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lea
               </DropdownMenuPortal>
             </DropdownMenuSub>
 
-            {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
+            {(user?.role === 'Admin') && (
               <>
                  <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
@@ -115,6 +115,9 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lea
                     </DropdownMenuSubContent>
                   </DropdownMenuPortal>
                 </DropdownMenuSub>
+              </>
+            )}
+            {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
                 <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
                       <Users className="mr-2 h-4 w-4" />
@@ -132,8 +135,7 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lea
                       </DropdownMenuSubContent>
                     </DropdownMenuPortal>
                 </DropdownMenuSub>
-              </>
-            )}
+              )}
 
             <DropdownMenuSeparator />
             <DropdownMenuItem 
@@ -169,12 +171,6 @@ export const getColumns = (
         leadStatus === "In Nurturing" ? "text-green-500" :
         "text-blue-500"; // Cold Lead
       
-      const variant: "destructive" | "default" | "secondary" | "outline" = 
-        leadStatus === "Hot Lead" ? "destructive" :
-        leadStatus === "Warm Lead" ? "secondary" : // Using secondary for a different bg
-        leadStatus === "In Nurturing" ? "default" : // Using default for a different bg
-        "outline";
-        
       const badgeStyle: React.CSSProperties = 
          leadStatus === "Warm Lead" ? { backgroundColor: 'hsl(48, 95%, 95%)', color: 'hsl(40, 90%, 50%)', borderColor: 'hsl(48, 90%, 85%)' } :
          leadStatus === "In Nurturing" ? { backgroundColor: 'hsl(145, 85%, 96%)', color: 'hsl(145, 63%, 42%)', borderColor: 'hsl(145, 70%, 88%)' } :
@@ -182,7 +178,7 @@ export const getColumns = (
          {};
 
       return <Badge 
-        variant={variant}
+        variant={leadStatus === "Hot Lead" ? "destructive" : "outline"}
         style={badgeStyle}
         className={cn("flex gap-1.5 items-center whitespace-nowrap", leadStatus === "Hot Lead" ? "" : "border")}
       >
@@ -190,6 +186,7 @@ export const getColumns = (
         <span>{leadStatus}</span>
       </Badge>
     },
+    filterFn: 'equalsString',
   },
   {
     accessorKey: "name",
@@ -232,6 +229,7 @@ export const getColumns = (
         </Badge>
       );
     },
+     filterFn: 'equalsString',
   },
   {
     accessorKey: "stage",
@@ -248,10 +246,12 @@ export const getColumns = (
           : "outline";
       return <Badge variant={variant}>{stage}</Badge>;
     },
+    filterFn: 'equalsString',
   },
    {
     accessorKey: "ownerName",
     header: "Owner",
+    filterFn: 'equalsString',
   },
   {
     accessorKey: "createdAt",

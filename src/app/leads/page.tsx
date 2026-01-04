@@ -31,7 +31,7 @@ const leadStatuses: NonNullable<Lead['leadStatus']>[] = ["Hot Lead", "Warm Lead"
 
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   // Rank the item
-  const itemRank = rankItem(row.getValue(columnId), value, { keys: ['name', 'email', 'phone'] });
+  const itemRank = rankItem(row.getValue(columnId), value);
 
   // Store the itemRank info
   addMeta({

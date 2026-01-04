@@ -83,7 +83,7 @@ export function DataTable<TData extends Lead, TValue>({
                 <div className="relative w-full md:w-80">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <Input
-                        placeholder="Search by name, phone, email..."
+                        placeholder="Search by name, contact, owner..."
                         value={globalFilter ?? ''}
                         onChange={event => setGlobalFilter(event.target.value)}
                         className="w-full pl-10 pr-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
