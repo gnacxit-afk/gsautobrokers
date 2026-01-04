@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from 'react';
@@ -108,3 +109,5 @@ export function BonusStatus({ allLeads, loading }: { allLeads: Lead[], loading: 
         </Card>
     );
 }
+
+    

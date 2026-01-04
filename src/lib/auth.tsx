@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useMemo, useEffect, useCall
 import { useRouter, usePathname } from "next/navigation";
 import type { Role, Staff, User } from "./types";
 import { useFirestore, useAuth } from "@/firebase";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore";
 import { 
   signInWithEmailAndPassword,
   signOut, 
@@ -43,40 +43,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchAppUser = useCallback(async (fbUser: FirebaseUser): Promise<User | null> => {
     if (!firestore) throw new Error("Firestore not initialized");
 
-    // Master Admin Check: If the email matches, grant admin access immediately.
+    // Master Admin Check
     if (fbUser.email === MASTER_ADMIN_EMAIL) {
+      const masterAdminDUI = '00000000-0';
+      const staffDocRef = doc(firestore, 'staff', masterAdminDUI);
+      const staffDoc = await getDoc(staffDocRef);
+      if (!staffDoc.exists()) {
+        await setDoc(staffDocRef, {
+          id: masterAdminDUI,
+          authUid: fbUser.uid,
+          name: "Master Admin",
+          email: fbUser.email,
+          role: "Admin",
+          createdAt: serverTimestamp(),
+          avatarUrl: "",
+        });
+      }
       return {
-        id: fbUser.uid,
+        id: masterAdminDUI,
+        authUid: fbUser.uid,
         name: "Master Admin",
         email: fbUser.email,
         avatarUrl: "",
         role: "Admin",
-        dui: "N/A",
       };
     }
     
-    // For all other users, check the 'staff' collection.
-    const staffDocRef = doc(firestore, 'staff', fbUser.uid);
+    // For all other users, find their staff profile via their auth UID.
+    const staffCollection = collection(firestore, 'staff');
+    const q = query(staffCollection, where("authUid", "==", fbUser.uid));
     
     try {
-        const staffDoc = await getDoc(staffDocRef);
+        const querySnapshot = await getDocs(q);
 
-        if (staffDoc.exists()) {
+        if (!querySnapshot.empty) {
+            const staffDoc = querySnapshot.docs[0];
             const staffData = staffDoc.data() as Staff;
-            // You can add an 'active' check here if needed in the future
-            // if (staffData.active !== true) {
-            //   throw new Error("User account is inactive.");
-            // }
+            
             return {
-                id: fbUser.uid,
+                id: staffData.id, // DUI
+                authUid: staffData.authUid,
                 name: staffData.name,
                 email: staffData.email,
                 avatarUrl: staffData.avatarUrl,
                 role: staffData.role,
-                dui: staffData.dui,
             };
         } else {
-            // If the user is not the master admin and not in staff, they have no access.
              throw new Error("User not found in staff directory.");
         }
 
@@ -127,8 +139,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthError(null);
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-        // After successful Firebase Auth, onAuthStateChanged will trigger `fetchAppUser`
-        // which contains the new logic. No need to manually set user here.
     } catch (error: any) {
         setAuthError(error.message);
         setUser(null);
@@ -142,11 +152,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!auth) return;
     setLoading(true);
     await signOut(auth);
-    // onAuthStateChanged will handle setting user to null and redirecting
   }, [auth]);
 
   const setUserRole = useCallback((role: Role) => {
-    // This is for local role-switching simulation and should only work for the master admin.
     if (user && user.email === MASTER_ADMIN_EMAIL) {
        setUser(currentUser => {
           if(!currentUser) return null;
@@ -193,3 +201,5 @@ export function useAuthContext() {
   }
   return context;
 }
+
+    

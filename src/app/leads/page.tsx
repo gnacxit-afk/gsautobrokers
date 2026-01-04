@@ -52,14 +52,12 @@ export default function LeadsPage() {
 
         let visibleLeads = allLeads;
 
-        if (user.role !== 'Admin') {
-            if (user.role === 'Supervisor') {
-                const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
-                const visibleIds = [user.id, ...teamIds];
-                visibleLeads = allLeads.filter(l => visibleIds.includes(l.ownerId));
-            } else { // Broker
-                visibleLeads = allLeads.filter(l => l.ownerId === user.id);
-            }
+        if (user.role === 'Supervisor') {
+            const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
+            const visibleIds = [user.id, ...teamIds];
+            visibleLeads = allLeads.filter(l => visibleIds.includes(l.ownerId));
+        } else if (user.role === 'Broker') {
+            visibleLeads = allLeads.filter(l => l.ownerId === user.id);
         }
         
         return visibleLeads.filter(l => {
@@ -163,3 +161,5 @@ export default function LeadsPage() {
         </main>
     );
 }
+
+    

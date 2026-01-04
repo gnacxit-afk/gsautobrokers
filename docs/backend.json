@@ -8,7 +8,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the user profile."
+          "description": "The user's DUI (Documento Unico de Identidad). Unique identifier for the user profile."
         },
         "name": {
           "type": "string",
@@ -23,16 +23,16 @@
           "type": "string",
           "description": "The user's role within the system (e.g., Admin, Supervisor, Broker)."
         },
-        "dui": {
+        "authUid": {
           "type": "string",
-          "description": "The user's DUI (Documento Unico de Identidad)."
+          "description": "The Firebase Authentication UID for the user."
         }
       },
       "required": [
         "id",
         "name",
         "role",
-        "dui"
+        "authUid"
       ]
     },
     "Lead": {
@@ -81,7 +81,7 @@
         },
         "ownerId": {
           "type": "string",
-          "description": "Reference to UserProfile. The ID of the user who owns the lead. (Relationship: UserProfile 1:N Lead)"
+          "description": "Reference to Staff. The DUI of the user who owns the lead. (Relationship: Staff 1:N Lead)"
         },
         "ownerName": {
           "type": "string",
@@ -137,15 +137,15 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the staff member."
+          "description": "The staff member's DUI (Documento Unico de Identidad). Serves as the unique identifier."
         },
         "name": {
           "type": "string",
           "description": "The staff member's full name."
         },
-        "dui": {
+        "authUid": {
           "type": "string",
-          "description": "The staff member's DUI (Documento Unico de Identidad)."
+          "description": "The Firebase Authentication UID associated with the staff member."
         },
         "role": {
           "type": "string",
@@ -153,7 +153,7 @@
         },
         "supervisorId": {
           "type": "string",
-          "description": "Reference to Staff. The ID of the staff member's supervisor. (Relationship: Staff 1:N Staff)"
+          "description": "Reference to Staff. The DUI of the staff member's supervisor. (Relationship: Staff 1:N Staff)"
         },
         "createdAt": {
           "type": "string",
@@ -164,7 +164,7 @@
       "required": [
         "id",
         "name",
-        "dui",
+        "authUid",
         "role",
         "createdAt"
       ]
@@ -193,7 +193,7 @@
             },
             {
               "name": "userId",
-              "description": "The unique user ID.  Matches the Firebase Auth UID."
+              "description": "The unique user ID. Matches the user's DUI."
             }
           ]
         }
@@ -205,7 +205,7 @@
           "schema": {
             "$ref": "#/backend/entities/Lead"
           },
-          "description": "Stores lead data. Includes denormalized 'ownerId' and 'ownerName' for authorization independence.",
+          "description": "Stores lead data. Includes denormalized 'ownerId' (DUI) and 'ownerName' for authorization independence.",
           "params": [
             {
               "name": "appId",
@@ -245,7 +245,7 @@
           "schema": {
             "$ref": "#/backend/entities/Staff"
           },
-          "description": "Stores staff member data. Accessible by administrators.",
+          "description": "Stores staff member data, where the document ID is the staff member's DUI. Accessible by administrators.",
           "params": [
             {
               "name": "appId",
@@ -253,12 +253,14 @@
             },
             {
               "name": "staffId",
-              "description": "The unique staff member ID."
+              "description": "The unique staff member ID (DUI)."
             }
           ]
         }
       }
     ],
-    "reasoning": "This Firestore structure is designed to support the AutoSales AI application, prioritizing authorization independence, clarity, and scalability. It leverages structural segregation and denormalization to simplify security rules and ensure efficient data access. The root of the database is segmented by `artifacts/{appId}`, where `appId` allows the application to be instantiated in multiple environments without conflicting documents.\n\n**Authorization Independence (CRITICAL):**\n\n*   Leads: The `leads` collection, located at `artifacts/{appId}/public/data/leads`, includes the `ownerId` and `ownerName` of the user who owns the lead. This denormalization allows security rules to validate ownership without needing to perform expensive `get()` operations to retrieve user data. This ensures that lead access can be controlled based solely on the data within the lead document itself, combined with the authenticated user's ID.\n*   Staff:  The `staff` collection includes the `supervisorId` for reporting relationships.  This is stored on the document.  While the UI only allows Admins to manage staff, we can add roles if needed.\n\n**Structural Segregation (Homogeneous Security Posture):**\n\n*   User Profiles: User profiles are stored under `artifacts/{appId}/users/{userId}/profile/data`. This segregation ensures that only the user (and potentially admins) can access their profile data.  This is where `setDoc` creates the profile documents, but in practice this would be accomplished via Firebase Authentication.\n*   Public Data:  The `knowledge_base`, `leads`, and `staff` collections are within the `/public/data/` section of the database.  While the security rules may differentiate access within those collections, this design communicates the intent that they are generally readable.\n\n**QAPs (Rules are not Filters):**\n\n*   List Operations: The segregation of user profiles and public data allows for secure `list` operations. For example, listing leads requires checking if the user has the correct role (Broker, Supervisor, Admin) and filtering based on `ownerId`.\n\n**Global Roles (DBAC):**\n\n*   Role-Based Access: While user roles are stored in the `UserProfile` document, the system can be expanded to utilize a dedicated `/roles_{role}/{uid}` collection to manage administrative or elevated rights. The UI only uses role to gate access to the Staff management features, so this functionality isn't required for compliance."
+    "reasoning": "This Firestore structure is designed to support the AutoSales AI application, prioritizing authorization independence, clarity, and scalability. It leverages structural segregation and denormalization to simplify security rules and ensure efficient data access. The root of the database is segmented by `artifacts/{appId}`, where `appId` allows the application to be instantiated in multiple environments without conflicting documents.\n\n**Authorization Independence (CRITICAL):**\n\n*   Leads: The `leads` collection, located at `artifacts/{appId}/public/data/leads`, includes the `ownerId` (DUI) and `ownerName` of the user who owns the lead. This denormalization allows security rules to validate ownership without needing to perform expensive `get()` operations to retrieve user data. This ensures that lead access can be controlled based solely on the data within the lead document itself, combined with the authenticated user's ID.\n*   Staff: The `staff` collection uses the DUI as the document ID. It includes the `supervisorId` (also a DUI) for reporting relationships. While the UI only allows Admins to manage staff, we can add roles if needed.\n\n**Structural Segregation (Homogeneous Security Posture):**\n\n*   User Data: A separate `user_uids` collection maps Firebase Auth UIDs to DUIs, allowing for efficient lookup of a user's staff profile upon authentication. Staff profiles are stored under `artifacts/{appId}/public/data/staff/{dui}`.\n*   Public Data: The `knowledge_base` and `leads` collections are within the `/public/data/` section of the database. While the security rules may differentiate access within those collections, this design communicates the intent that they are generally readable.\n\n**QAPs (Rules are not Filters):**\n\n*   List Operations: The segregation of user data and public data allows for secure `list` operations. For example, listing leads requires checking if the user has the correct role (Broker, Supervisor, Admin) and filtering based on `ownerId` (DUI).\n\n**Global Roles (DBAC):**\n\n*   Role-Based Access: User roles are stored in the `staff` document. The system can be expanded to utilize a dedicated `/roles_{role}/{uid}` collection to manage administrative or elevated rights. The UI only uses role to gate access to Staff management features, so this functionality isn't required for compliance."
   }
 }
+
+    

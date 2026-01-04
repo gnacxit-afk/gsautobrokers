@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -29,10 +30,8 @@ export default function StaffProfilePage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const staffId = params.id as string;
+  const staffId = params.id as string; // This is now the DUI
   const firestore = useFirestore();
-
-  const [showPassword, setShowPassword] = useState(false);
   
   const staffDocRef = useMemo(() => (firestore && staffId ? doc(firestore, 'staff', staffId) : null), [firestore, staffId]);
   const allStaffCollectionRef = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
@@ -56,6 +55,8 @@ export default function StaffProfilePage() {
   const admins = useMemo(() => allStaff.filter(s => s.role === 'Admin'), [allStaff]);
 
   const currentUserCanEdit = user?.role === 'Admin';
+  const isEditingSelf = user?.id === staffId;
+  const isEditingMasterAdmin = formData.email === MASTER_ADMIN_EMAIL;
 
 
   if (isUserLoading || staffMemberLoading || allStaffLoading) {
@@ -109,6 +110,11 @@ export default function StaffProfilePage() {
   };
 
   const handleRoleChange = (role: Role) => {
+    // Prevent changing Master Admin's role
+    if (isEditingMasterAdmin) {
+        toast({ title: "Action Forbidden", description: "The Master Admin's role cannot be changed.", variant: "destructive" });
+        return;
+    }
     setFormData(prev => ({ ...prev, role }));
   };
 
@@ -119,9 +125,7 @@ export default function StaffProfilePage() {
   const handleSaveChanges = async () => {
     if (!firestore || !staffDocRef) return;
     try {
-        // NOTE: Password update would require a separate, secure flow with Firebase Auth, not just Firestore.
-        // We will not update the password here.
-        const { password, id, ...updateData } = formData;
+        const { password, id, authUid, ...updateData } = formData;
         
         await updateDoc(staffDocRef, updateData);
         
@@ -141,18 +145,22 @@ export default function StaffProfilePage() {
 
   const handleDelete = async () => {
     if (!firestore || !staffDocRef) return;
+    
+    if (isEditingMasterAdmin) {
+        toast({ title: "Action Forbidden", description: "The Master Admin account cannot be deleted.", variant: "destructive" });
+        return;
+    }
+
     try {
       const masterAdmin = allStaff.find(s => s.email === MASTER_ADMIN_EMAIL);
       if (!masterAdmin) {
         throw new Error("Master Admin account not found.");
       }
 
-      // 1. Find leads owned by the deleted user
       const leadsRef = collection(firestore, 'leads');
       const q = query(leadsRef, where("ownerId", "==", staffId));
       const leadsSnapshot = await getDocs(q);
 
-      // 2. Reassign leads to Master Admin
       if (!leadsSnapshot.empty) {
         const batch = writeBatch(firestore);
         leadsSnapshot.forEach(leadDoc => {
@@ -164,16 +172,17 @@ export default function StaffProfilePage() {
         await batch.commit();
       }
 
-      // 3. Delete the staff document
       await deleteDoc(staffDocRef);
+      // NOTE: Deleting the Firebase Auth user is a separate, more complex operation
+      // that requires admin privileges and is often handled server-side.
+      // For this client-side example, we are only deleting the Firestore record.
       
       toast({
         title: "Profile Deleted",
         description: `The profile for ${formData.name} has been removed and their leads have been reassigned.`,
       });
 
-      // 4. Sign out if deleting self, otherwise redirect
-      if (user?.id === staffId && auth) {
+      if (isEditingSelf && auth) {
         await signOut(auth);
         router.push('/login');
       } else {
@@ -205,7 +214,7 @@ export default function StaffProfilePage() {
                     </div>
                     <div>
                         <CardTitle className="text-2xl">{formData.name}</CardTitle>
-                        <CardDescription>DUI (ID): {formData.dui}</CardDescription>
+                        <CardDescription>DUI (ID): {formData.id}</CardDescription>
                     </div>
                 </div>
             </CardHeader>
@@ -221,12 +230,12 @@ export default function StaffProfilePage() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="dui">DUI</Label>
-                        <Input id="dui" value={formData.dui || ''} onChange={handleChange} />
+                        <Input id="dui" value={formData.id || ''} onChange={handleChange} disabled />
                     </div>
                     
                     <div className="space-y-2">
                         <Label htmlFor="role">Role</Label>
-                        <Select value={formData.role} onValueChange={handleRoleChange}>
+                        <Select value={formData.role} onValueChange={handleRoleChange} disabled={isEditingMasterAdmin}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select a role" />
                             </SelectTrigger>
@@ -274,35 +283,37 @@ export default function StaffProfilePage() {
                     <Button onClick={handleSaveChanges}>Save Changes</Button>
                 </div>
             </CardContent>
-            <CardFooter className="bg-red-50/50 border-t p-6 rounded-b-lg flex-col items-start gap-3">
-                 <h4 className="font-bold text-red-700">Danger Zone</h4>
-                <p className="text-sm text-red-600">
-                    Deleting a staff member will reassign all their leads to the Master Admin and remove their profile.
-                </p>
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                         <Button variant="destructive">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete Profile
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the profile for
-                            <span className="font-bold"> {formData.name}</span> and reassign their leads.
-                        </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-                            Yes, delete profile
-                        </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            </CardFooter>
+            {!isEditingMasterAdmin && (
+              <CardFooter className="bg-red-50/50 border-t p-6 rounded-b-lg flex-col items-start gap-3">
+                  <h4 className="font-bold text-red-700">Danger Zone</h4>
+                  <p className="text-sm text-red-600">
+                      Deleting a staff member will reassign all their leads to the Master Admin and remove their profile. This cannot be undone.
+                  </p>
+                  <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                          <Button variant="destructive">
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete Profile
+                          </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                          <AlertDialogHeader>
+                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete the profile for
+                              <span className="font-bold"> {formData.name}</span> and reassign their leads.
+                          </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                              Yes, delete profile
+                          </AlertDialogAction>
+                          </AlertDialogFooter>
+                      </AlertDialogContent>
+                  </AlertDialog>
+              </CardFooter>
+            )}
         </Card>
 
     </main>

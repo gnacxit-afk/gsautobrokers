@@ -15,7 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from '@/hooks/use-toast';
 import { useAuthContext } from '@/lib/auth';
 
-const StaffCard = ({ member, onDelete }: { member: Staff, onDelete: (id: string, name: string) => void }) => {
+const StaffCard = ({ member, onDelete, isMasterAdmin }: { member: Staff, onDelete: (id: string, name: string) => void, isMasterAdmin: boolean }) => {
   const roleColors = {
     Admin: 'bg-red-50 text-red-600',
     Supervisor: 'bg-blue-50 text-blue-600',
@@ -34,34 +34,36 @@ const StaffCard = ({ member, onDelete }: { member: Staff, onDelete: (id: string,
         </span>
       </div>
       <h4 className="font-bold text-slate-800 text-lg">{member.name}</h4>
-      <p className="text-xs text-slate-400 mb-4">DUI: {member.dui}</p>
+      <p className="text-xs text-slate-400 mb-4">DUI: {member.id}</p>
       <div className="pt-4 border-t flex justify-between items-center">
         <Link href={`/staff/${member.id}`}>
           <Button variant="link" className="p-0 h-auto text-xs">
             View Profile
           </Button>
         </Link>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
-              <Trash2 size={16} />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the profile for <span className="font-bold">{member.name}</span> and reassign their leads.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => onDelete(member.id, member.name)} className="bg-destructive hover:bg-destructive/90">
-                Yes, delete profile
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {member.email !== 'gnacxit@gmail.com' && isMasterAdmin && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
+                <Trash2 size={16} />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the profile for <span className="font-bold">{member.name}</span> and reassign their leads.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => onDelete(member.id, member.name)} className="bg-destructive hover:bg-destructive/90">
+                  Yes, delete profile
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
     </div>
   );
@@ -106,12 +108,10 @@ export default function StaffPage() {
         throw new Error("Master Admin account not found.");
       }
 
-      // 1. Find leads owned by the deleted user
       const leadsRef = collection(firestore, 'leads');
       const q = query(leadsRef, where("ownerId", "==", id));
       const leadsSnapshot = await getDocs(q);
 
-      // 2. Reassign leads to Master Admin
       if (!leadsSnapshot.empty) {
         const batch = writeBatch(firestore);
         leadsSnapshot.forEach(leadDoc => {
@@ -123,7 +123,6 @@ export default function StaffPage() {
         await batch.commit();
       }
 
-      // 3. Delete the staff document
       const staffDocRef = doc(firestore, 'staff', id);
       await deleteDoc(staffDocRef);
 
@@ -159,7 +158,7 @@ export default function StaffPage() {
         {loading ? (
           [...Array(4)].map((_, i) => <StaffCardSkeleton key={i} />)
         ) : (
-          staff.map((member) => <StaffCard key={member.id} member={member} onDelete={handleDelete} />)
+          staff.map((member) => <StaffCard key={member.id} member={member} onDelete={handleDelete} isMasterAdmin={user?.email === MASTER_ADMIN_EMAIL}/>)
         )}
       </div>
     </main>
