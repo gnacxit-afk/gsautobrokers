@@ -165,15 +165,27 @@ export const getColumns = (
 
       const color = 
         leadStatus === "Hot Lead" ? "text-red-500" :
-        leadStatus === "Warm Lead" ? "text-orange-500" :
-        leadStatus === "In Nurturing" ? "text-yellow-500" :
-        "text-gray-500";
+        leadStatus === "Warm Lead" ? "text-yellow-500" :
+        leadStatus === "In Nurturing" ? "text-green-500" :
+        "text-blue-500"; // Cold Lead
       
-      return <Badge variant={
+      const variant: "destructive" | "default" | "secondary" | "outline" = 
         leadStatus === "Hot Lead" ? "destructive" :
-        leadStatus === "Warm Lead" ? "default" :
-        "secondary"
-      } className="flex gap-1.5 items-center whitespace-nowrap">
+        leadStatus === "Warm Lead" ? "secondary" : // Using secondary for a different bg
+        leadStatus === "In Nurturing" ? "default" : // Using default for a different bg
+        "outline";
+        
+      const badgeStyle: React.CSSProperties = 
+         leadStatus === "Warm Lead" ? { backgroundColor: 'hsl(48, 95%, 95%)', color: 'hsl(40, 90%, 50%)', borderColor: 'hsl(48, 90%, 85%)' } :
+         leadStatus === "In Nurturing" ? { backgroundColor: 'hsl(145, 85%, 96%)', color: 'hsl(145, 63%, 42%)', borderColor: 'hsl(145, 70%, 88%)' } :
+         leadStatus === "Cold Lead" ? { backgroundColor: 'hsl(210, 100%, 97%)', color: 'hsl(210, 80%, 55%)', borderColor: 'hsl(210, 90%, 88%)' } :
+         {};
+
+      return <Badge 
+        variant={variant}
+        style={badgeStyle}
+        className={cn("flex gap-1.5 items-center whitespace-nowrap", leadStatus === "Hot Lead" ? "" : "border")}
+      >
         <Star className={cn("w-3 h-3", color)} />
         <span>{leadStatus}</span>
       </Badge>
@@ -266,3 +278,5 @@ export const getColumns = (
     },
   },
 ];
+
+    
