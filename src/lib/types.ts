@@ -27,6 +27,7 @@ export type Lead = {
   channel: 'Facebook' | 'WhatsApp' | 'Call' | 'Visit' | 'Other';
   createdAt: Timestamp | Date | string;
   language: 'English' | 'Spanish';
+  leadStatus?: "Hot Lead" | "Warm Lead" | "In Nurturing" | "Cold Lead";
 };
 
 export type Article = {

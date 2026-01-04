@@ -74,6 +74,13 @@ export default function LeadsPage() {
         updateDocumentNonBlocking(leadRef, { stage });
         toast({ title: "Stage Updated", description: `Lead stage changed to ${stage}.` });
     }, [firestore, toast]);
+
+    const handleUpdateLeadStatus = useCallback(async (id: string, leadStatus: Lead['leadStatus']) => {
+        if (!firestore) return;
+        const leadRef = doc(firestore, 'leads', id);
+        updateDocumentNonBlocking(leadRef, { leadStatus });
+        toast({ title: "Lead Status Updated", description: `Lead status changed to ${leadStatus}.` });
+    }, [firestore, toast]);
     
     const handleUpdateNotes = useCallback(async (id: string, notes: string) => {
         if (!firestore) return;
@@ -114,7 +121,7 @@ export default function LeadsPage() {
     }, [firestore, toast]);
 
 
-    const columns = useMemo(() => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, allStaff), [handleUpdateStage, handleDelete, handleUpdateOwner, allStaff]);
+    const columns = useMemo(() => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, handleUpdateLeadStatus, allStaff), [handleUpdateStage, handleDelete, handleUpdateOwner, handleUpdateLeadStatus, allStaff]);
     
     const table = useReactTable({
       data: filteredLeads,

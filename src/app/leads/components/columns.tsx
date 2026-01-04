@@ -2,7 +2,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, Trash2, ChevronDown, MessageSquare, Phone, Users } from "lucide-react";
+import { MoreHorizontal, Trash2, ChevronDown, MessageSquare, Phone, Users, Star } from "lucide-react";
 import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
@@ -26,11 +26,13 @@ import React from "react";
 import { AnalyzeLeadDialog } from "./analyze-lead-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthContext } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
+const leadStatuses: Lead['leadStatus'][] = ["Hot Lead", "Warm Lead", "In Nurturing", "Cold Lead"];
 
 
-const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lead['stage']) => void, onDelete: (id: string) => void, onUpdateOwner: (id: string, newOwner: Staff) => void, staff: Staff[], row: any }> = ({ lead, onUpdateStage, onDelete, onUpdateOwner, staff, row }) => {
+const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lead['stage']) => void, onDelete: (id: string) => void, onUpdateOwner: (id: string, newOwner: Staff) => void, onUpdateLeadStatus: (id: string, leadStatus: Lead['leadStatus']) => void, staff: Staff[], row: any }> = ({ lead, onUpdateStage, onDelete, onUpdateOwner, onUpdateLeadStatus, staff, row }) => {
   const [isAnalyzeOpen, setAnalyzeOpen] = React.useState(false);
   const { toast } = useToast();
   const { user } = useAuthContext();
@@ -38,6 +40,11 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lea
   const handleStageUpdate = (stage: Lead['stage']) => {
     onUpdateStage(lead.id, stage);
     toast({ title: "Stage Updated", description: `Lead "${lead.name}" is now ${stage}.` });
+  };
+
+  const handleLeadStatusUpdate = (status: Lead['leadStatus']) => {
+    onUpdateLeadStatus(lead.id, status);
+    toast({ title: "Lead Status Updated", description: `Lead "${lead.name}" status is now ${status}.` });
   };
   
   const handleOwnerUpdate = (newOwnerId: string) => {
@@ -75,6 +82,22 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lea
             
             {(user?.role === 'Admin') && (
               <>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <span>Update Lead Status</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuRadioGroup value={lead.leadStatus} onValueChange={(status) => handleLeadStatusUpdate(status as NonNullable<Lead['leadStatus']>)}>
+                        {leadStatuses.map((status) => (
+                          <DropdownMenuRadioItem key={status} value={status}>
+                            {status}
+                          </DropdownMenuRadioItem>
+                        ))}
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
                     <span>Update Stage</span>
@@ -129,8 +152,32 @@ export const getColumns = (
   onUpdateStage: (id: string, stage: Lead['stage']) => void,
   onDelete: (id: string) => void,
   onUpdateOwner: (id: string, newOwner: Staff) => void,
+  onUpdateLeadStatus: (id: string, leadStatus: Lead['leadStatus']) => void,
   staff: Staff[]
 ): ColumnDef<Lead>[] => [
+  {
+    accessorKey: "leadStatus",
+    header: "Lead Status",
+    cell: ({ row }) => {
+      const leadStatus = row.getValue("leadStatus") as Lead['leadStatus'];
+      if (!leadStatus) return <Badge variant="outline">Not Analyzed</Badge>;
+
+      const color = 
+        leadStatus === "Hot Lead" ? "text-red-500" :
+        leadStatus === "Warm Lead" ? "text-orange-500" :
+        leadStatus === "In Nurturing" ? "text-yellow-500" :
+        "text-gray-500";
+      
+      return <Badge variant={
+        leadStatus === "Hot Lead" ? "destructive" :
+        leadStatus === "Warm Lead" ? "default" :
+        "secondary"
+      } className="flex gap-1.5 items-center whitespace-nowrap">
+        <Star className={cn("w-3 h-3", color)} />
+        <span>{leadStatus}</span>
+      </Badge>
+    },
+  },
   {
     accessorKey: "name",
     header: "Customer",
@@ -214,7 +261,7 @@ export const getColumns = (
     id: "actions",
     cell: ({ row }) => {
       const lead = row.original;
-      return <CellActions lead={lead} onUpdateStage={onUpdateStage} onDelete={onDelete} onUpdateOwner={onUpdateOwner} staff={staff} row={row} />;
+      return <CellActions lead={lead} onUpdateStage={onUpdateStage} onDelete={onDelete} onUpdateOwner={onUpdateOwner} onUpdateLeadStatus={onUpdateLeadStatus} staff={staff} row={row} />;
     },
   },
 ];
