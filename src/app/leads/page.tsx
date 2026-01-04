@@ -35,8 +35,9 @@ const globalFilterFn: FilterFn<any> = (row, columnId, filterValue) => {
     const nameMatch = value.name?.toLowerCase().includes(search);
     const emailMatch = value.email?.toLowerCase().includes(search);
     const phoneMatch = value.phone?.toLowerCase().includes(search);
+    const ownerNameMatch = value.ownerName?.toLowerCase().includes(search);
     
-    return nameMatch || emailMatch || phoneMatch;
+    return nameMatch || emailMatch || phoneMatch || ownerNameMatch;
 };
 
 
@@ -125,24 +126,34 @@ export default function LeadsPage() {
         };
 
         try {
+            // First, add the document to get its ID. This is fast.
             const docRef = await addDoc(leadsCollection, completeLeadData);
-            toast({ title: "Lead Added", description: "New lead created. Analyzing with AI..." });
+            toast({ title: "Lead Added", description: "New lead created. Analyzing with AI in background..." });
 
-            // Now, run the AI analysis
-            const leadDetails = `Name: ${newLeadData.name}, Company: ${newLeadData.company}, Stage: ${newLeadData.stage}, Notes: ${newLeadData.notes}`;
-            const analysisResult = await analyzeAndUpdateLead({ leadDetails });
+            // Now, run the AI analysis without awaiting it.
+            // This allows the UI to remain responsive.
+            (async () => {
+                try {
+                    const leadDetails = `Name: ${newLeadData.name}, Company: ${newLeadData.company}, Stage: ${newLeadData.stage}, Notes: ${newLeadData.notes}`;
+                    const analysisResult = await analyzeAndUpdateLead({ leadDetails });
 
-            // Update the lead with the analysis result
-            const newLeadRef = doc(firestore, 'leads', docRef.id);
-            updateDocumentNonBlocking(newLeadRef, { 
-                leadStatus: analysisResult.leadStatus 
-            });
-            
-            toast({ title: "AI Analysis Complete", description: `Lead status automatically set to ${analysisResult.leadStatus}.` });
+                    // Update the lead with the analysis result in a non-blocking way.
+                    const newLeadRef = doc(firestore, 'leads', docRef.id);
+                    updateDocumentNonBlocking(newLeadRef, { 
+                        leadStatus: analysisResult.leadStatus 
+                    });
+                    
+                    toast({ title: "AI Analysis Complete", description: `Lead status for ${newLeadData.name} set to ${analysisResult.leadStatus}.` });
+                } catch (aiError) {
+                    console.error("Error during background AI analysis:", aiError);
+                    // Optionally notify the user that AI analysis failed
+                    toast({ title: "AI Analysis Failed", description: "Could not automatically analyze the new lead.", variant: "destructive" });
+                }
+            })();
 
         } catch (error) {
-            console.error("Error adding or analyzing lead:", error);
-            toast({ title: "Error", description: "Could not create or analyze the lead.", variant: "destructive" });
+            console.error("Error adding lead:", error);
+            toast({ title: "Error", description: "Could not create the lead.", variant: "destructive" });
         }
     }, [allStaff, firestore, toast]);
 
