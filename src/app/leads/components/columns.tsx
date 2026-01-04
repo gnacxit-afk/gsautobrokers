@@ -27,6 +27,7 @@ import { AnalyzeLeadDialog } from "./analyze-lead-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthContext } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { ChangeOwnerDialog } from "./change-owner-dialog";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const leadStatuses: NonNullable<Lead['leadStatus']>[] = ["Hot Lead", "Warm Lead", "In Nurturing", "Cold Lead"];
@@ -34,6 +35,7 @@ const leadStatuses: NonNullable<Lead['leadStatus']>[] = ["Hot Lead", "Warm Lead"
 
 const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lead['stage']) => void, onDelete: (id: string) => void, onUpdateOwner: (id: string, newOwner: Staff) => void, onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void, staff: Staff[], row: any }> = ({ lead, onUpdateStage, onDelete, onUpdateOwner, onUpdateLeadStatus, staff, row }) => {
   const [isAnalyzeOpen, setAnalyzeOpen] = React.useState(false);
+  const [isChangeOwnerOpen, setChangeOwnerOpen] = React.useState(false);
   const { toast } = useToast();
   const { user } = useAuthContext();
 
@@ -47,19 +49,16 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lea
     toast({ title: "Lead Status Updated", description: `Lead "${lead.name}" status is now ${status}.` });
   };
   
-  const handleOwnerUpdate = (newOwnerId: string) => {
-    const newOwner = staff.find(s => s.id === newOwnerId);
-    if (newOwner) {
-      onUpdateOwner(lead.id, newOwner);
-      toast({ title: "Owner Updated", description: `Lead "${lead.name}" reassigned to ${newOwner.name}.` });
-    }
-  };
-
-  const assignableStaff = staff.filter(s => s.role === 'Broker' || s.role === 'Supervisor');
-
   return (
     <>
       <AnalyzeLeadDialog open={isAnalyzeOpen} onOpenChange={setAnalyzeOpen} lead={lead} />
+      <ChangeOwnerDialog
+        lead={lead}
+        staff={staff}
+        open={isChangeOwnerOpen}
+        onOpenChange={setChangeOwnerOpen}
+        onUpdateOwner={onUpdateOwner}
+      />
       <div className="flex items-center gap-2 justify-end">
         <Button
             onClick={() => row.toggleExpanded()}
@@ -115,23 +114,10 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lea
             </DropdownMenuSub>
             
             {user?.role === 'Admin' && (
-                <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>
-                      <Users className="mr-2 h-4 w-4" />
-                      <span>Change Owner</span>
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuPortal>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuRadioGroup value={lead.ownerId} onValueChange={handleOwnerUpdate}>
-                          {assignableStaff.map((staffMember) => (
-                            <DropdownMenuRadioItem key={staffMember.id} value={staffMember.id}>
-                              {staffMember.name}
-                            </DropdownMenuRadioItem>
-                          ))}
-                        </DropdownMenuRadioGroup>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuPortal>
-                </DropdownMenuSub>
+                <DropdownMenuItem onSelect={() => setChangeOwnerOpen(true)}>
+                  <Users className="mr-2 h-4 w-4" />
+                  <span>Change Owner</span>
+                </DropdownMenuItem>
               )}
 
             {user?.role === 'Admin' && (
@@ -201,7 +187,7 @@ export const getColumns = (
     },
   },
   {
-    accessorKey: "email",
+    accessorKey: "contact",
     header: "Contact",
     cell: ({ row }) => {
       const lead = row.original;
