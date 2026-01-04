@@ -17,10 +17,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 const calculateMetrics = (leads: Lead[]): Omit<PerformanceMetric, 'userId' | 'userName'> => {
     const leadsRecibidos = leads.length;
     const numerosObtenidos = leads.filter(l => l.phone && l.phone.trim() !== '+1').length;
-    const citasAgendadas = leads.filter(l => l.stage === 'Qualified').length;
-    const citasConfirmadas = leads.filter(l => l.stage === 'On the way' || l.stage === 'On site').length;
-    const leadsDescartados = leads.filter(l => l.stage === 'Lost').length;
-    const ventas = leads.filter(l => l.stage === 'Sale' || l.stage === 'Closed').length;
+    const citasAgendadas = leads.filter(l => l.stage === 'Citado').length;
+    const citasConfirmadas = leads.filter(l => l.stage === 'En Seguimiento').length;
+    const leadsDescartados = leads.filter(l => l.stage === 'Perdido').length;
+    const ventas = leads.filter(l => l.stage === 'Ganado').length;
 
     return {
         leadsRecibidos,

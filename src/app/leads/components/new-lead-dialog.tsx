@@ -30,18 +30,16 @@ interface NewLeadDialogProps {
 }
 
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
-const leadStages: Lead['stage'][] = ["New", "Contacted", "Qualified", "On the way", "On site", "Sale", "Closed", "Lost"];
+const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const languages: Lead['language'][] = ['English', 'Spanish'];
 
 const stageColors: Record<Lead['stage'], string> = {
-    "New": "bg-gray-400",
-    "Contacted": "bg-blue-400",
-    "Qualified": "bg-yellow-500",
-    "On the way": "bg-orange-500",
-    "On site": "bg-purple-500",
-    "Sale": "bg-green-500",
-    "Closed": "bg-green-600",
-    "Lost": "bg-red-500",
+    "Nuevo": "bg-gray-400",
+    "Calificado": "bg-blue-400",
+    "Citado": "bg-yellow-500",
+    "En Seguimiento": "bg-orange-500",
+    "Ganado": "bg-green-500",
+    "Perdido": "bg-red-500",
 };
 
 const initialFormState = {
@@ -49,7 +47,7 @@ const initialFormState = {
     phone: "+1 ",
     notes: "",
     channel: "Facebook" as Lead['channel'],
-    stage: "New" as Lead['stage'],
+    stage: "Nuevo" as Lead['stage'],
     language: "Spanish" as Lead['language'],
 };
 

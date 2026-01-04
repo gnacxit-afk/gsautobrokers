@@ -20,7 +20,7 @@ export type Lead = {
   email?: string;
   phone: string;
   company?: string;
-  stage: "New" | "Contacted" | "Qualified" | "On the way" | "On site" | "Sale" | "Closed" | "Lost";
+  stage: "Nuevo" | "Calificado" | "Citado" | "En Seguimiento" | "Ganado" | "Perdido";
   notes?: string;
   ownerId: string; // This will be the staff member's document ID
   ownerName: string;

@@ -27,7 +27,7 @@ import { AnalyzeLeadDialog } from "./analyze-lead-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthContext } from "@/lib/auth";
 
-const leadStages: Lead['stage'][] = ["New", "Contacted", "Qualified", "On the way", "On site", "Sale", "Closed", "Lost"];
+const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 
 
 const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lead['stage']) => void, onDelete: (id: string) => void, onUpdateOwner: (id: string, newOwner: Staff) => void, staff: Staff[], row: any }> = ({ lead, onUpdateStage, onDelete, onUpdateOwner, staff, row }) => {
@@ -179,11 +179,11 @@ export const getColumns = (
     cell: ({ row }) => {
       const stage = row.getValue("stage") as string;
        const variant: "default" | "secondary" | "destructive" | "outline" =
-        stage === "Closed" || stage === "Sale"
+        stage === "Ganado"
           ? "default"
-          : stage === "Lost"
+          : stage === "Perdido"
           ? "destructive"
-          : ["New", "Contacted", "Qualified"].includes(stage)
+          : ["Nuevo", "Calificado", "Citado"].includes(stage)
           ? "secondary"
           : "outline";
       return <Badge variant={variant}>{stage}</Badge>;
