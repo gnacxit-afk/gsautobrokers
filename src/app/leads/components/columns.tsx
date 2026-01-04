@@ -27,17 +27,17 @@ import { AnalyzeLeadDialog } from "./analyze-lead-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthContext } from "@/lib/auth";
 
-const leadStatuses: Lead['status'][] = ["New", "Contacted", "Qualified", "On the way", "On site", "Sale", "Closed", "Lost"];
+const leadStages: Lead['stage'][] = ["New", "Contacted", "Qualified", "On the way", "On site", "Sale", "Closed", "Lost"];
 
 
-const CellActions: React.FC<{ lead: Lead, onUpdateStatus: (id: string, status: Lead['status']) => void, onDelete: (id: string) => void, onUpdateOwner: (id: string, newOwner: Staff) => void, staff: Staff[], row: any }> = ({ lead, onUpdateStatus, onDelete, onUpdateOwner, staff, row }) => {
+const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lead['stage']) => void, onDelete: (id: string) => void, onUpdateOwner: (id: string, newOwner: Staff) => void, staff: Staff[], row: any }> = ({ lead, onUpdateStage, onDelete, onUpdateOwner, staff, row }) => {
   const [isAnalyzeOpen, setAnalyzeOpen] = React.useState(false);
   const { toast } = useToast();
   const { user } = useAuthContext();
 
-  const handleStatusUpdate = (status: Lead['status']) => {
-    onUpdateStatus(lead.id, status);
-    toast({ title: "Status Updated", description: `Lead "${lead.name}" is now ${status}.` });
+  const handleStageUpdate = (stage: Lead['stage']) => {
+    onUpdateStage(lead.id, stage);
+    toast({ title: "Stage Updated", description: `Lead "${lead.name}" is now ${stage}.` });
   };
   
   const handleOwnerUpdate = (newOwnerId: string) => {
@@ -77,14 +77,14 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStatus: (id: string, status: L
               <>
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
-                    <span>Update Status</span>
+                    <span>Update Stage</span>
                   </DropdownMenuSubTrigger>
                   <DropdownMenuPortal>
                     <DropdownMenuSubContent>
-                      <DropdownMenuRadioGroup value={lead.status} onValueChange={(status) => handleStatusUpdate(status as Lead['status'])}>
-                        {leadStatuses.map((status) => (
-                          <DropdownMenuRadioItem key={status} value={status}>
-                            {status}
+                      <DropdownMenuRadioGroup value={lead.stage} onValueChange={(stage) => handleStageUpdate(stage as Lead['stage'])}>
+                        {leadStages.map((stage) => (
+                          <DropdownMenuRadioItem key={stage} value={stage}>
+                            {stage}
                           </DropdownMenuRadioItem>
                         ))}
                       </DropdownMenuRadioGroup>
@@ -126,7 +126,7 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStatus: (id: string, status: L
 };
 
 export const getColumns = (
-  onUpdateStatus: (id: string, status: Lead['status']) => void,
+  onUpdateStage: (id: string, stage: Lead['stage']) => void,
   onDelete: (id: string) => void,
   onUpdateOwner: (id: string, newOwner: Staff) => void,
   staff: Staff[]
@@ -174,19 +174,19 @@ export const getColumns = (
     },
   },
   {
-    accessorKey: "status",
-    header: "Status",
+    accessorKey: "stage",
+    header: "Stage",
     cell: ({ row }) => {
-      const status = row.getValue("status") as string;
+      const stage = row.getValue("stage") as string;
        const variant: "default" | "secondary" | "destructive" | "outline" =
-        status === "Closed" || status === "Sale"
+        stage === "Closed" || stage === "Sale"
           ? "default"
-          : status === "Lost"
+          : stage === "Lost"
           ? "destructive"
-          : ["New", "Contacted", "Qualified"].includes(status)
+          : ["New", "Contacted", "Qualified"].includes(stage)
           ? "secondary"
           : "outline";
-      return <Badge variant={variant}>{status}</Badge>;
+      return <Badge variant={variant}>{stage}</Badge>;
     },
   },
    {
@@ -214,7 +214,7 @@ export const getColumns = (
     id: "actions",
     cell: ({ row }) => {
       const lead = row.original;
-      return <CellActions lead={lead} onUpdateStatus={onUpdateStatus} onDelete={onDelete} onUpdateOwner={onUpdateOwner} staff={staff} row={row} />;
+      return <CellActions lead={lead} onUpdateStage={onUpdateStage} onDelete={onDelete} onUpdateOwner={onUpdateOwner} staff={staff} row={row} />;
     },
   },
 ];

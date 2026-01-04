@@ -64,7 +64,7 @@ export default function DashboardPage() {
     });
 
     const totalLeads = filteredLeads.length;
-    const closedSales = filteredLeads.filter(l => l.status === 'Closed' || l.status === 'Sale').length;
+    const closedSales = filteredLeads.filter(l => l.stage === 'Closed' || l.stage === 'Sale').length;
     const conversion = totalLeads > 0 ? (closedSales / totalLeads) * 100 : 0;
     const totalRevenue = closedSales * REVENUE_PER_VEHICLE;
     const totalCommissions = closedSales * COMMISSION_PER_VEHICLE;
@@ -73,7 +73,7 @@ export default function DashboardPage() {
     filteredLeads.forEach(l => {
       if (!sellerStats[l.ownerName]) sellerStats[l.ownerName] = { leads: 0, sales: 0, id: l.ownerId, bonus: 0 };
       sellerStats[l.ownerName].leads++;
-      if (l.status === 'Closed' || l.status === 'Sale') sellerStats[l.ownerName].sales++;
+      if (l.stage === 'Closed' || l.stage === 'Sale') sellerStats[l.ownerName].sales++;
     });
 
     let totalBonuses = 0;
@@ -89,7 +89,7 @@ export default function DashboardPage() {
     filteredLeads.forEach(l => {
       if (!channels[l.channel]) channels[l.channel] = { leads: 0, sales: 0 };
       channels[l.channel].leads++;
-      if (l.status === 'Closed' || l.status === 'Sale') channels[l.channel].sales++;
+      if (l.stage === 'Closed' || l.stage === 'Sale') channels[l.channel].sales++;
     });
 
     return {
@@ -217,5 +217,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

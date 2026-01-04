@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -29,10 +30,10 @@ interface NewLeadDialogProps {
 }
 
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
-const leadStatuses: Lead['status'][] = ["New", "Contacted", "Qualified", "On the way", "On site", "Sale", "Closed", "Lost"];
+const leadStages: Lead['stage'][] = ["New", "Contacted", "Qualified", "On the way", "On site", "Sale", "Closed", "Lost"];
 const languages: Lead['language'][] = ['English', 'Spanish'];
 
-const statusColors: Record<Lead['status'], string> = {
+const stageColors: Record<Lead['stage'], string> = {
     "New": "bg-gray-400",
     "Contacted": "bg-blue-400",
     "Qualified": "bg-yellow-500",
@@ -48,7 +49,7 @@ const initialFormState = {
     phone: "+1 ",
     notes: "",
     channel: "Facebook" as Lead['channel'],
-    status: "New" as Lead['status'],
+    stage: "New" as Lead['stage'],
     language: "Spanish" as Lead['language'],
 };
 
@@ -80,7 +81,7 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
         return;
     }
 
-    if (!formData.name || !formData.phone || !formData.status || !formData.notes) {
+    if (!formData.name || !formData.phone || !formData.stage || !formData.notes) {
         toast({ title: "Missing Fields", description: "Please fill out all fields marked with an asterisk (*).", variant: "destructive"});
         return;
     }
@@ -152,19 +153,19 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
             </Select>
           </div>
            <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="status" className="text-right">
-              Status*
+            <Label htmlFor="stage" className="text-right">
+              Stage*
             </Label>
-            <Select onValueChange={(v) => handleSelectChange('status', v as Lead['status'])} value={formData.status}>
+            <Select onValueChange={(v) => handleSelectChange('stage', v as Lead['stage'])} value={formData.stage}>
               <SelectTrigger className="col-span-3">
-                <SelectValue placeholder="Select a status" />
+                <SelectValue placeholder="Select a stage" />
               </SelectTrigger>
               <SelectContent>
-                {leadStatuses.map(status => (
-                  <SelectItem key={status} value={status}>
+                {leadStages.map(stage => (
+                  <SelectItem key={stage} value={stage}>
                     <div className="flex items-center gap-2">
-                        <Circle className={cn("h-3 w-3 fill-current", statusColors[status])} />
-                        <span>{status}</span>
+                        <Circle className={cn("h-3 w-3 fill-current", stageColors[stage])} />
+                        <span>{stage}</span>
                     </div>
                   </SelectItem>
                 ))}

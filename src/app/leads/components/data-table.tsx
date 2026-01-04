@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -40,7 +41,7 @@ interface DataTableProps<TData, TValue> {
   onUpdateNotes: (id: string, notes: string) => void;
   onAddLead: (lead: Omit<Lead, 'id' | 'createdAt' | 'ownerName'>) => void;
   staff: Staff[];
-  statuses: Lead['status'][];
+  stages: Lead['stage'][];
   channels: Lead['channel'][];
   clearAllFilters: () => void;
   loading: boolean;
@@ -52,7 +53,7 @@ export function DataTable<TData extends Lead, TValue>({
   onUpdateNotes,
   onAddLead,
   staff,
-  statuses,
+  stages,
   channels,
   clearAllFilters,
   loading,
@@ -64,11 +65,11 @@ export function DataTable<TData extends Lead, TValue>({
   const setGlobalFilter = (filter: string) => table.setGlobalFilter(filter);
 
   const ownerFilter = table.getColumn("ownerName")?.getFilterValue() as string | undefined;
-  const statusFilter = table.getColumn("status")?.getFilterValue() as string | undefined;
+  const stageFilter = table.getColumn("stage")?.getFilterValue() as string | undefined;
   const channelFilter = table.getColumn("channel")?.getFilterValue() as string | undefined;
 
   const setOwnerFilter = (value: string) => table.getColumn("ownerName")?.setFilterValue(value === "all" ? undefined : value);
-  const setStatusFilter = (value: string) => table.getColumn("status")?.setFilterValue(value === "all" ? undefined : value);
+  const setStageFilter = (value: string) => table.getColumn("stage")?.setFilterValue(value === "all" ? undefined : value);
   const setChannelFilter = (value: string) => table.getColumn("channel")?.setFilterValue(value === "all" ? undefined : value);
 
   return (
@@ -114,13 +115,13 @@ export function DataTable<TData extends Lead, TValue>({
                         </Select>
                     )}
 
-                    <Select value={statusFilter || 'all'} onValueChange={setStatusFilter}>
+                    <Select value={stageFilter || 'all'} onValueChange={setStageFilter}>
                         <SelectTrigger>
-                            <SelectValue placeholder="Filter by Status" />
+                            <SelectValue placeholder="Filter by Stage" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Statuses</SelectItem>
-                            {statuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                            <SelectItem value="all">All Stages</SelectItem>
+                            {stages.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                         </SelectContent>
                     </Select>
                     

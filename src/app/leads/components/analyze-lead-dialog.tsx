@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -28,7 +29,7 @@ export function AnalyzeLeadDialog({ lead, open, onOpenChange }: AnalyzeLeadDialo
         if (open && lead) {
             setAnalysis(null);
             startTransition(async () => {
-                const leadDetails = `Name: ${lead.name}, Company: ${lead.company}, Status: ${lead.status}, Notes: ${lead.notes}`;
+                const leadDetails = `Name: ${lead.name}, Company: ${lead.company}, Stage: ${lead.stage}, Notes: ${lead.notes}`;
                 const result = await analyzeAndUpdateLead({ leadDetails });
                 setAnalysis(result);
             });

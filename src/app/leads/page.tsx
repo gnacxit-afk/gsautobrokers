@@ -21,7 +21,7 @@ import { collection, serverTimestamp } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { doc } from "firebase/firestore";
 
-const leadStatuses: Lead['status'][] = ["New", "Contacted", "Qualified", "On the way", "On site", "Sale", "Closed", "Lost"];
+const leadStages: Lead['stage'][] = ["New", "Contacted", "Qualified", "On the way", "On site", "Sale", "Closed", "Lost"];
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
 
 export default function LeadsPage() {
@@ -68,11 +68,11 @@ export default function LeadsPage() {
 
     }, [user, allLeads, allStaff, dateRange]);
 
-    const handleUpdateStatus = useCallback(async (id: string, status: Lead['status']) => {
+    const handleUpdateStage = useCallback(async (id: string, stage: Lead['stage']) => {
         if (!firestore) return;
         const leadRef = doc(firestore, 'leads', id);
-        updateDocumentNonBlocking(leadRef, { status });
-        toast({ title: "Status Updated", description: `Lead status changed to ${status}.` });
+        updateDocumentNonBlocking(leadRef, { stage });
+        toast({ title: "Stage Updated", description: `Lead stage changed to ${stage}.` });
     }, [firestore, toast]);
     
     const handleUpdateNotes = useCallback(async (id: string, notes: string) => {
@@ -114,7 +114,7 @@ export default function LeadsPage() {
     }, [firestore, toast]);
 
 
-    const columns = useMemo(() => getColumns(handleUpdateStatus, handleDelete, handleUpdateOwner, allStaff), [handleUpdateStatus, handleDelete, handleUpdateOwner, allStaff]);
+    const columns = useMemo(() => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, allStaff), [handleUpdateStage, handleDelete, handleUpdateOwner, allStaff]);
     
     const table = useReactTable({
       data: filteredLeads,
@@ -153,7 +153,7 @@ export default function LeadsPage() {
                 onUpdateNotes={handleUpdateNotes}
                 onAddLead={handleAddLead}
                 staff={allStaff}
-                statuses={leadStatuses}
+                stages={leadStages}
                 channels={channels}
                 clearAllFilters={clearAllFilters}
                 loading={leadsLoading || staffLoading}
@@ -161,5 +161,3 @@ export default function LeadsPage() {
         </main>
     );
 }
-
-    
