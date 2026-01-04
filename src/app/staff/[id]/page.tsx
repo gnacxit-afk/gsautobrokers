@@ -30,7 +30,7 @@ export default function StaffProfilePage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const staffId = params.id as string; // This is now the DUI
+  const staffId = params.id as string;
   const firestore = useFirestore();
   
   const staffDocRef = useMemo(() => (firestore && staffId ? doc(firestore, 'staff', staffId) : null), [firestore, staffId]);
@@ -214,7 +214,7 @@ export default function StaffProfilePage() {
                     </div>
                     <div>
                         <CardTitle className="text-2xl">{formData.name}</CardTitle>
-                        <CardDescription>DUI (ID): {formData.id}</CardDescription>
+                        <CardDescription>ID: {formData.id}</CardDescription>
                     </div>
                 </div>
             </CardHeader>
@@ -230,7 +230,7 @@ export default function StaffProfilePage() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="dui">DUI</Label>
-                        <Input id="dui" value={formData.id || ''} onChange={handleChange} disabled />
+                        <Input id="dui" value={formData.dui || ''} onChange={handleChange} />
                     </div>
                     
                     <div className="space-y-2">
@@ -319,5 +319,3 @@ export default function StaffProfilePage() {
     </main>
   );
 }
-
-    

@@ -5,12 +5,13 @@ import type { Timestamp } from "firebase/firestore";
 export type Role = "Admin" | "Supervisor" | "Broker";
 
 export type User = {
-  id: string; // This will now be the DUI
+  id: string; // This will now be the Firestore document ID
   authUid: string;
   name: string;
   email: string;
   avatarUrl: string;
   role: Role;
+  dui?: string;
 };
 
 export type Lead = {
@@ -21,7 +22,7 @@ export type Lead = {
   company?: string;
   status: "New" | "Contacted" | "Qualified" | "On the way" | "On site" | "Sale" | "Closed" | "Lost";
   notes?: string;
-  ownerId: string; // This will be the staff member's DUI
+  ownerId: string; // This will be the staff member's document ID
   ownerName: string;
   channel: 'Facebook' | 'WhatsApp' | 'Call' | 'Visit' | 'Other';
   createdAt: Timestamp | Date | string;
@@ -40,7 +41,7 @@ export type Article = {
 };
 
 export type Staff = {
-  id: string; // DUI
+  id: string; // Firestore document ID
   authUid: string; // Firebase Auth UID
   name: string;
   email: string;
@@ -48,8 +49,9 @@ export type Staff = {
   role: Role;
   hireDate: Timestamp | Date | string;
   avatarUrl: string;
-  supervisorId?: string; // This will be the supervisor's DUI
+  supervisorId?: string; // This will be the supervisor's document ID
   createdAt: Timestamp | Date | string;
+  dui?: string;
 };
 
 export type NavItem = {
@@ -67,7 +69,7 @@ export type KPI = {
 };
 
 export type PerformanceMetric = {
-  userId: string; // DUI
+  userId: string; // Staff document ID
   userName: string;
   leadsRecibidos: number;
   numerosObtenidos: number;
@@ -83,5 +85,3 @@ export type BonusInfo = {
   nextGoal: number;
   needed: number;
 };
-
-    

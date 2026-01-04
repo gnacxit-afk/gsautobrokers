@@ -43,7 +43,8 @@ export function BonusStatus({ allLeads, loading }: { allLeads: Lead[], loading: 
             const leadDate = (lead.createdAt as any).toDate ? (lead.createdAt as any).toDate() : new Date(lead.createdAt as string);
             const isOwner = lead.ownerId === user.id;
             const isInDateRange = isWithinInterval(leadDate, { start: thirtyDaysAgo, end: now });
-            return isOwner && (lead.status === 'Sale' || lead.status === 'Closed');
+            // For bonus, only 'Sale' should count, not 'Closed', as 'Closed' might be 'Lost'
+            return isOwner && lead.status === 'Sale';
         });
         
         const sales = userLeads.length;
@@ -109,5 +110,3 @@ export function BonusStatus({ allLeads, loading }: { allLeads: Lead[], loading: 
         </Card>
     );
 }
-
-    

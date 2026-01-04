@@ -62,7 +62,7 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
             const bonus = calculateBonus(metrics.ventas);
             
             data.push({
-                userId: staffMember.id, // DUI
+                userId: staffMember.id,
                 userName: staffMember.name,
                 ...metrics,
                 bonus
@@ -212,5 +212,3 @@ const MetricCard = ({ label, value }: { label: string, value: number }) => (
         </CardContent>
     </Card>
 );
-
-    

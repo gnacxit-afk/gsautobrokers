@@ -34,7 +34,7 @@ const StaffCard = ({ member, onDelete, isMasterAdmin }: { member: Staff, onDelet
         </span>
       </div>
       <h4 className="font-bold text-slate-800 text-lg">{member.name}</h4>
-      <p className="text-xs text-slate-400 mb-4">DUI: {member.id}</p>
+      <p className="text-xs text-slate-400 mb-4">ID: {member.id}</p>
       <div className="pt-4 border-t flex justify-between items-center">
         <Link href={`/staff/${member.id}`}>
           <Button variant="link" className="p-0 h-auto text-xs">
@@ -164,5 +164,3 @@ export default function StaffPage() {
     </main>
   );
 }
-
-    

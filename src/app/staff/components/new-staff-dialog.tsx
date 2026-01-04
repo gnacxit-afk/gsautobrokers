@@ -24,7 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import React, { useState, useMemo } from "react";
 import type { Role, Staff } from "@/lib/types";
 import { useCollection, useFirestore } from "@/firebase";
-import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { collection, serverTimestamp, addDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword, getAuth } from "firebase/auth";
 import { Eye, EyeOff } from "lucide-react";
 import { initializeApp } from "firebase/app";
@@ -39,7 +39,7 @@ interface NewStaffDialogProps {
 export function NewStaffDialog({ children }: NewStaffDialogProps) {
     const [open, setOpen] = React.useState(false);
     const { toast } = useToast();
-    const [formData, setFormData] = useState<Partial<Staff>>({});
+    const [formData, setFormData] = useState<Partial<Omit<Staff, 'id'>>>({});
     const [showPassword, setShowPassword] = useState(false);
     const firestore = useFirestore();
 
@@ -55,17 +55,17 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
       setFormData(prev => ({ ...prev, [id]: value }));
     };
 
-    const handleSelectChange = (field: keyof Staff, value: string) => {
+    const handleSelectChange = (field: keyof Omit<Staff, 'id'>, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
     const handleSave = async () => {
         if (!firestore) return;
 
-        if (!formData.name || !formData.email || !formData.password || !formData.role || !formData.id) {
+        if (!formData.name || !formData.email || !formData.password || !formData.role) {
             toast({
                 title: "Missing Fields",
-                description: "Please fill all required fields, including DUI.",
+                description: "Please fill all required fields.",
                 variant: "destructive",
             });
             return;
@@ -79,17 +79,17 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
             const userCredential = await createUserWithEmailAndPassword(secondaryAuth, formData.email, formData.password);
             const user = userCredential.user;
 
-            // Use DUI as the document ID
-            const staffDocRef = doc(firestore, 'staff', formData.id);
-            await setDoc(staffDocRef, {
-                id: formData.id, // DUI
+            const staffCollectionRef = collection(firestore, 'staff');
+            await addDoc(staffCollectionRef, {
                 authUid: user.uid,
                 name: formData.name,
                 email: formData.email,
                 role: formData.role,
                 supervisorId: formData.supervisorId || '',
                 createdAt: serverTimestamp(),
+                dui: formData.dui || '',
                 avatarUrl: '', 
+                hireDate: serverTimestamp()
             });
 
             toast({
@@ -118,7 +118,7 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
             <DialogHeader>
                 <DialogTitle>Add New Staff Member</DialogTitle>
                 <DialogDescription>
-                    Fill in the details to register a new staff member. The DUI will be their permanent ID.
+                    Fill in the details to register a new staff member. An ID will be generated automatically.
                 </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -129,10 +129,10 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
                     <Input id="name" value={formData.name || ''} onChange={handleChange} className="col-span-3" />
                 </div>
                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="id" className="text-right">
+                    <Label htmlFor="dui" className="text-right">
                         DUI
                     </Label>
-                    <Input id="id" value={formData.id || ''} onChange={handleChange} className="col-span-3" placeholder="00000000-0" />
+                    <Input id="dui" value={formData.dui || ''} onChange={handleChange} className="col-span-3" placeholder="00000000-0" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="email" className="text-right">
@@ -221,5 +221,3 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
         </Dialog>
     );
 }
-
-    

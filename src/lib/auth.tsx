@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useMemo, useEffect, useCall
 import { useRouter, usePathname } from "next/navigation";
 import type { Role, Staff, User } from "./types";
 import { useFirestore, useAuth } from "@/firebase";
-import { doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs, addDoc } from "firebase/firestore";
 import { 
   signInWithEmailAndPassword,
   signOut, 
@@ -44,38 +44,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!firestore) throw new Error("Firestore not initialized");
 
     try {
-        // Master Admin Check
-        if (fbUser.email === MASTER_ADMIN_EMAIL) {
-            const masterAdminDUI = '04451625-5';
-            const masterAdminName = "Angel Nacxit Gomez Campos";
-            const staffDocRef = doc(firestore, 'staff', masterAdminDUI);
-            
-            const staffDoc = await getDoc(staffDocRef).catch(() => null);
-
-            if (!staffDoc?.exists()) {
-                await setDoc(staffDocRef, {
-                    id: masterAdminDUI,
-                    authUid: fbUser.uid,
-                    name: masterAdminName,
-                    email: fbUser.email,
-                    role: "Admin",
-                    createdAt: serverTimestamp(),
-                    avatarUrl: "",
-                });
-            }
-            return {
-                id: masterAdminDUI,
-                authUid: fbUser.uid,
-                name: masterAdminName,
-                email: fbUser.email,
-                avatarUrl: "",
-                role: "Admin",
-            };
-        }
-
-        // For all other users, find their staff profile via their auth UID.
         const staffCollection = collection(firestore, 'staff');
-        const q = query(staffCollection, where("authUid", "==", fbUser.uid));
+        let q = query(staffCollection, where("authUid", "==", fbUser.uid));
+        
+        // Master Admin special handling
+        if (fbUser.email === MASTER_ADMIN_EMAIL) {
+            q = query(staffCollection, where("email", "==", MASTER_ADMIN_EMAIL));
+        }
         
         const querySnapshot = await getDocs(q);
 
@@ -84,35 +59,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const staffData = staffDoc.data() as Staff;
             
             return {
-                id: staffData.id, // DUI
+                id: staffDoc.id,
                 authUid: staffData.authUid,
                 name: staffData.name,
                 email: staffData.email,
                 avatarUrl: staffData.avatarUrl,
                 role: staffData.role,
+                dui: staffData.dui
             };
         } else {
-             // If user exists in Auth but not in 'staff', create a default profile.
-             const newUserId = `DUI-${fbUser.uid.slice(0, 8)}`;
-             const newStaffDocRef = doc(firestore, 'staff', newUserId);
-             const newUserProfile: Staff = {
-                 id: newUserId,
+             // If user exists in Auth but not in 'staff', create their profile.
+             // This is important for the Master Admin's first login.
+             const masterAdminName = "Angel Nacxit Gomez Campos";
+             const masterAdminDUI = "04451625-5";
+
+             const newUserProfile: Omit<Staff, 'id'> = {
                  authUid: fbUser.uid,
-                 name: fbUser.displayName || 'New User',
+                 name: fbUser.email === MASTER_ADMIN_EMAIL ? masterAdminName : (fbUser.displayName || 'New User'),
                  email: fbUser.email!,
-                 role: 'Broker',
+                 role: fbUser.email === MASTER_ADMIN_EMAIL ? 'Admin' : 'Broker',
                  createdAt: serverTimestamp(),
                  hireDate: serverTimestamp(),
-                 avatarUrl: ''
+                 avatarUrl: '',
+                 dui: fbUser.email === MASTER_ADMIN_EMAIL ? masterAdminDUI : undefined,
              };
-             await setDoc(newStaffDocRef, newUserProfile);
+             const docRef = await addDoc(staffCollection, newUserProfile);
              return {
-                 id: newUserProfile.id,
+                 id: docRef.id,
                  authUid: newUserProfile.authUid,
                  name: newUserProfile.name,
                  email: newUserProfile.email,
                  avatarUrl: newUserProfile.avatarUrl,
                  role: newUserProfile.role,
+                 dui: newUserProfile.dui,
              };
         }
 
