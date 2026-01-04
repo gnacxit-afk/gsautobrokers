@@ -16,7 +16,9 @@ import {
   getExpandedRowModel,
   type SortingState,
   type ColumnFiltersState,
+  type FilterFn,
 } from '@tanstack/react-table';
+import { rankItem } from '@tanstack/match-sorter-utils';
 import { collection, serverTimestamp, addDoc } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { doc } from "firebase/firestore";
@@ -24,6 +26,22 @@ import { analyzeAndUpdateLead } from "@/ai/flows/analyze-and-update-leads";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
+const leadStatuses: NonNullable<Lead['leadStatus']>[] = ["Hot Lead", "Warm Lead", "In Nurturing", "Cold Lead"];
+
+
+const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
+  // Rank the item
+  const itemRank = rankItem(row.getValue(columnId), value)
+
+  // Store the itemRank info
+  addMeta({
+    itemRank,
+  })
+
+  // Return if the item should be filtered in/out
+  return itemRank.passed
+}
+
 
 export default function LeadsPage() {
     const { user } = useUser();
@@ -145,11 +163,15 @@ export default function LeadsPage() {
     const table = useReactTable({
       data: filteredLeads,
       columns,
+      filterFns: {
+        fuzzy: fuzzyFilter,
+      },
       getCoreRowModel: getCoreRowModel(),
       getPaginationRowModel: getPaginationRowModel(),
       onSortingChange: setSorting,
       getSortedRowModel: getSortedRowModel(),
       onGlobalFilterChange: setGlobalFilter,
+      globalFilterFn: fuzzyFilter,
       getFilteredRowModel: getFilteredRowModel(),
       getExpandedRowModel: getExpandedRowModel(),
       onExpandedChange: setExpanded,
@@ -181,6 +203,7 @@ export default function LeadsPage() {
                 staff={allStaff}
                 stages={leadStages}
                 channels={channels}
+                leadStatuses={leadStatuses}
                 clearAllFilters={clearAllFilters}
                 loading={leadsLoading || staffLoading}
             />

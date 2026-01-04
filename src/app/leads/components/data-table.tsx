@@ -43,6 +43,7 @@ interface DataTableProps<TData, TValue> {
   staff: Staff[];
   stages: Lead['stage'][];
   channels: Lead['channel'][];
+  leadStatuses: NonNullable<Lead['leadStatus']>[];
   clearAllFilters: () => void;
   loading: boolean;
 }
@@ -55,6 +56,7 @@ export function DataTable<TData extends Lead, TValue>({
   staff,
   stages,
   channels,
+  leadStatuses,
   clearAllFilters,
   loading,
 }: DataTableProps<TData, TValue>) {
@@ -67,10 +69,12 @@ export function DataTable<TData extends Lead, TValue>({
   const ownerFilter = table.getColumn("ownerName")?.getFilterValue() as string | undefined;
   const stageFilter = table.getColumn("stage")?.getFilterValue() as string | undefined;
   const channelFilter = table.getColumn("channel")?.getFilterValue() as string | undefined;
+  const leadStatusFilter = table.getColumn("leadStatus")?.getFilterValue() as string | undefined;
 
   const setOwnerFilter = (value: string) => table.getColumn("ownerName")?.setFilterValue(value === "all" ? undefined : value);
   const setStageFilter = (value: string) => table.getColumn("stage")?.setFilterValue(value === "all" ? undefined : value);
   const setChannelFilter = (value: string) => table.getColumn("channel")?.setFilterValue(value === "all" ? undefined : value);
+  const setLeadStatusFilter = (value: string) => table.getColumn("leadStatus")?.setFilterValue(value === "all" ? undefined : value);
 
   return (
     <div className="space-y-6">
@@ -79,7 +83,7 @@ export function DataTable<TData extends Lead, TValue>({
                 <div className="relative w-full md:w-80">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <Input
-                        placeholder="Search by name, company..."
+                        placeholder="Search by name, email, phone..."
                         value={globalFilter ?? ''}
                         onChange={event => setGlobalFilter(event.target.value)}
                         className="w-full pl-10 pr-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
@@ -99,7 +103,7 @@ export function DataTable<TData extends Lead, TValue>({
                 </NewLeadDialog>
             </div>
              <div className="flex flex-col md:flex-row items-center gap-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 w-full items-center">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 w-full items-center">
                     <div className="col-span-1 xl:col-span-2">
                        <DateRangePicker />
                     </div>
@@ -132,6 +136,16 @@ export function DataTable<TData extends Lead, TValue>({
                         <SelectContent>
                              <SelectItem value="all">All Channels</SelectItem>
                             {channels.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+
+                     <Select value={leadStatusFilter || 'all'} onValueChange={setLeadStatusFilter}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Filter by Lead Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                             <SelectItem value="all">All Statuses</SelectItem>
+                            {leadStatuses.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                         </SelectContent>
                     </Select>
                      <Button
