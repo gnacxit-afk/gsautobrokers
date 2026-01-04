@@ -92,10 +92,6 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
                 hireDate: serverTimestamp()
             });
 
-            // The ID is the auto-generated doc ID
-            // await updateDoc(newDocRef, { id: newDocRef.id });
-
-
             toast({
                 title: "Staff Member Added",
                 description: "The new staff member has been registered.",
@@ -233,5 +229,3 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
         </Dialog>
     );
 }
-
-    
