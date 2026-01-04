@@ -137,13 +137,17 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lea
                 </DropdownMenuSub>
               )}
 
-            <DropdownMenuSeparator />
-            <DropdownMenuItem 
-                className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                onClick={() => onDelete(lead.id)}
-            >
-                <Trash2 className="mr-2 h-4 w-4" /> Delete Lead
-            </DropdownMenuItem>
+            {user?.role === 'Admin' && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                    className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                    onClick={() => onDelete(lead.id)}
+                >
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete Lead
+                </DropdownMenuItem>
+              </>
+            )}
             </DropdownMenuContent>
         </DropdownMenu>
       </div>
