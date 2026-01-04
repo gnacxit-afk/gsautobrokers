@@ -6,7 +6,7 @@ import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 import type { Lead, Staff } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
-import { useCollection, useFirestore, useUser, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { useCollection, useFirestore, useUser, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import {
   useReactTable,
   getCoreRowModel,
@@ -17,9 +17,10 @@ import {
   type SortingState,
   type ColumnFiltersState,
 } from '@tanstack/react-table';
-import { collection, serverTimestamp } from 'firebase/firestore';
+import { collection, serverTimestamp, addDoc } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { doc } from "firebase/firestore";
+import { analyzeAndUpdateLead } from "@/ai/flows/analyze-and-update-leads";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
@@ -108,10 +109,28 @@ export default function LeadsPage() {
             ownerName: owner.name,
         };
 
-        addDocumentNonBlocking(leadsCollection, completeLeadData);
+        try {
+            const docRef = await addDoc(leadsCollection, completeLeadData);
+            toast({ title: "Lead Added", description: "New lead created. Analyzing with AI..." });
 
-        toast({ title: "Lead Added", description: "The new lead has been created." });
+            // Now, run the AI analysis
+            const leadDetails = `Name: ${newLeadData.name}, Company: ${newLeadData.company}, Stage: ${newLeadData.stage}, Notes: ${newLeadData.notes}`;
+            const analysisResult = await analyzeAndUpdateLead({ leadDetails });
+
+            // Update the lead with the analysis result
+            const newLeadRef = doc(firestore, 'leads', docRef.id);
+            updateDocumentNonBlocking(newLeadRef, { 
+                leadStatus: analysisResult.leadStatus 
+            });
+            
+            toast({ title: "AI Analysis Complete", description: `Lead status automatically set to ${analysisResult.leadStatus}.` });
+
+        } catch (error) {
+            console.error("Error adding or analyzing lead:", error);
+            toast({ title: "Error", description: "Could not create or analyze the lead.", variant: "destructive" });
+        }
     }, [allStaff, firestore, toast]);
+
 
     const handleUpdateOwner = useCallback(async (id: string, newOwner: Staff) => {
         if (!firestore) return;
