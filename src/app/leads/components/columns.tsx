@@ -207,12 +207,7 @@ export const getColumns = (
       const lead = row.original;
       return (
         <div className="text-sm text-slate-600">
-          <div className="flex items-center gap-2">
-            <span>{lead.phone}</span>
-            <a href={`tel:${lead.phone}`} className="text-blue-500 hover:text-blue-700">
-              <Phone size={14} />
-            </a>
-          </div>
+          <div>{lead.phone}</div>
           <div className="text-xs opacity-60">{lead.email}</div>
         </div>
       );
