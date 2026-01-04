@@ -29,10 +29,10 @@ import { useAuthContext } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
-const leadStatuses: Lead['leadStatus'][] = ["Hot Lead", "Warm Lead", "In Nurturing", "Cold Lead"];
+const leadStatuses: NonNullable<Lead['leadStatus']>[] = ["Hot Lead", "Warm Lead", "In Nurturing", "Cold Lead"];
 
 
-const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lead['stage']) => void, onDelete: (id: string) => void, onUpdateOwner: (id: string, newOwner: Staff) => void, onUpdateLeadStatus: (id: string, leadStatus: Lead['leadStatus']) => void, staff: Staff[], row: any }> = ({ lead, onUpdateStage, onDelete, onUpdateOwner, onUpdateLeadStatus, staff, row }) => {
+const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lead['stage']) => void, onDelete: (id: string) => void, onUpdateOwner: (id: string, newOwner: Staff) => void, onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void, staff: Staff[], row: any }> = ({ lead, onUpdateStage, onDelete, onUpdateOwner, onUpdateLeadStatus, staff, row }) => {
   const [isAnalyzeOpen, setAnalyzeOpen] = React.useState(false);
   const { toast } = useToast();
   const { user } = useAuthContext();
@@ -42,7 +42,7 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lea
     toast({ title: "Stage Updated", description: `Lead "${lead.name}" is now ${stage}.` });
   };
 
-  const handleLeadStatusUpdate = (status: Lead['leadStatus']) => {
+  const handleLeadStatusUpdate = (status: NonNullable<Lead['leadStatus']>) => {
     onUpdateLeadStatus(lead.id, status);
     toast({ title: "Lead Status Updated", description: `Lead "${lead.name}" status is now ${status}.` });
   };
@@ -155,7 +155,7 @@ export const getColumns = (
   onUpdateStage: (id: string, stage: Lead['stage']) => void,
   onDelete: (id: string) => void,
   onUpdateOwner: (id: string, newOwner: Staff) => void,
-  onUpdateLeadStatus: (id: string, leadStatus: Lead['leadStatus']) => void,
+  onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void,
   staff: Staff[]
 ): ColumnDef<Lead>[] => [
   {
@@ -164,12 +164,6 @@ export const getColumns = (
     cell: ({ row }) => {
       const leadStatus = row.getValue("leadStatus") as Lead['leadStatus'];
       if (!leadStatus) return <Badge variant="outline">Not Analyzed</Badge>;
-
-      const color = 
-        leadStatus === "Hot Lead" ? "text-red-500" :
-        leadStatus === "Warm Lead" ? "text-yellow-500" :
-        leadStatus === "In Nurturing" ? "text-green-500" :
-        "text-blue-500"; // Cold Lead
       
       const badgeStyle: React.CSSProperties = 
          leadStatus === "Warm Lead" ? { backgroundColor: 'hsl(48, 95%, 95%)', color: 'hsl(40, 90%, 50%)', borderColor: 'hsl(48, 90%, 85%)' } :
@@ -182,7 +176,12 @@ export const getColumns = (
         style={badgeStyle}
         className={cn("flex gap-1.5 items-center whitespace-nowrap", leadStatus === "Hot Lead" ? "" : "border")}
       >
-        <Star className={cn("w-3 h-3", color)} />
+        <Star className={cn("w-3 h-3", 
+          leadStatus === "Hot Lead" ? "text-red-500" :
+          leadStatus === "Warm Lead" ? "text-yellow-500" :
+          leadStatus === "In Nurturing" ? "text-green-500" :
+          "text-blue-500"
+        )} />
         <span>{leadStatus}</span>
       </Badge>
     },
@@ -212,6 +211,7 @@ export const getColumns = (
         </div>
       );
     },
+    enableGlobalFilter: true,
   },
   {
     accessorKey: "channel",
