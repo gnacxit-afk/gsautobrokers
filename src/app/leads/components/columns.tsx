@@ -33,7 +33,7 @@ const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguim
 const leadStatuses: NonNullable<Lead['leadStatus']>[] = ["Hot Lead", "Warm Lead", "In Nurturing", "Cold Lead"];
 
 
-const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lead['stage']) => void, onDelete: (id: string) => void, onUpdateOwner: (id: string, newOwner: Staff) => void, onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void, staff: Staff[], row: any }> = ({ lead, onUpdateStage, onDelete, onUpdateOwner, onUpdateLeadStatus, staff, row }) => {
+const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lead['stage']) => void, onDelete: (id: string) => void, onUpdateOwner: (leadId: string, newOwner: Staff) => void, onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void, staff: Staff[], row: any }> = ({ lead, onUpdateStage, onDelete, onUpdateOwner, onUpdateLeadStatus, staff, row }) => {
   const [isAnalyzeOpen, setAnalyzeOpen] = React.useState(false);
   const [isChangeOwnerOpen, setChangeOwnerOpen] = React.useState(false);
   const { toast } = useToast();
@@ -141,7 +141,7 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lea
 export const getColumns = (
   onUpdateStage: (id: string, stage: Lead['stage']) => void,
   onDelete: (id: string) => void,
-  onUpdateOwner: (id: string, newOwner: Staff) => void,
+  onUpdateOwner: (leadId: string, newOwner: Staff) => void,
   onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void,
   staff: Staff[]
 ): ColumnDef<Lead>[] => [
@@ -260,5 +260,3 @@ export const getColumns = (
     },
   },
 ];
-
-    
