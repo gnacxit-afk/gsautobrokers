@@ -44,7 +44,7 @@ const stageColors: Record<Lead['stage'], string> = {
 
 const initialFormState = {
     name: "",
-    phone: "+1 ",
+    phone: "",
     notes: "",
     channel: "Facebook" as Lead['channel'],
     stage: "Nuevo" as Lead['stage'],
@@ -118,7 +118,7 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
             <Label htmlFor="phone" className="text-right">
               Phone*
             </Label>
-            <Input id="phone" type="tel" value={formData.phone} onChange={handleInputChange} placeholder="+1 (555) 123-4567" className="col-span-3" />
+            <Input id="phone" type="tel" value={formData.phone} onChange={handleInputChange} placeholder="(555) 123-4567" className="col-span-3" />
           </div>
            <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="language" className="text-right">
