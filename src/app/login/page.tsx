@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthContext } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,16 +17,19 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const { toast } = useToast();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const user = await login(email, password);
-    if (!user && !loading) {
-       toast({
+  useEffect(() => {
+    if (authError && !loading) {
+      toast({
         variant: "destructive",
         title: "Login Failed",
         description: authError || "Invalid email or password. Please try again.",
       });
     }
+  }, [authError, loading, toast]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await login(email, password);
   };
 
   return (
@@ -62,11 +65,6 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-            {authError && (
-                <div className="text-red-600 text-sm font-medium text-center">
-                    {authError}
-                </div>
-            )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign In

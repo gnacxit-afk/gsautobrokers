@@ -69,30 +69,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             };
         } else {
              // If user exists in Auth but not in 'staff', create their profile.
-             // This is important for the Master Admin's first login.
-             const masterAdminName = "Angel Nacxit Gomez Campos";
-             const masterAdminDUI = "04451625-5";
-
+             // This is important for the Master Admin's first login or any new valid user.
+             const isMasterAdmin = fbUser.email === MASTER_ADMIN_EMAIL;
              const newUserProfile: Omit<Staff, 'id'> = {
                  authUid: fbUser.uid,
-                 name: fbUser.email === MASTER_ADMIN_EMAIL ? masterAdminName : (fbUser.displayName || 'New User'),
+                 name: isMasterAdmin ? "Angel Nacxit Gomez Campos" : (fbUser.displayName || 'New User'),
                  email: fbUser.email!,
-                 role: fbUser.email === MASTER_ADMIN_EMAIL ? 'Admin' : 'Broker',
+                 role: isMasterAdmin ? 'Admin' : 'Broker',
                  createdAt: serverTimestamp(),
                  hireDate: serverTimestamp(),
                  avatarUrl: '',
-                 dui: fbUser.email === MASTER_ADMIN_EMAIL ? masterAdminDUI : undefined,
+                 dui: isMasterAdmin ? "04451625-5" : undefined,
              };
              const docRef = await addDoc(staffCollection, newUserProfile);
              return {
                  id: docRef.id,
-                 authUid: newUserProfile.authUid,
-                 name: newUserProfile.name,
-                 email: newUserProfile.email,
-                 avatarUrl: newUserProfile.avatarUrl,
-                 role: newUserProfile.role,
-                 dui: newUserProfile.dui,
-             };
+                 ...newUserProfile
+             } as User;
         }
 
     } catch (error: any) {
@@ -111,7 +104,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(true);
         if (firebaseUser) {
             const userProfile = await fetchAppUser(firebaseUser);
-            setUser(userProfile);
+            if (userProfile) {
+              setUser(userProfile);
+              setAuthError(null); // Clear any previous errors on successful login
+            }
         } else {
             setUser(null);
         }
@@ -141,7 +137,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     setAuthError(null);
     try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+        await signInWithEmailAndPassword(auth, email, pass);
+        // On success, onAuthStateChanged listener handles user state update.
     } catch (error: any) {
         setAuthError(error.message);
         setUser(null);
