@@ -45,14 +45,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Master Admin Check
     if (fbUser.email === MASTER_ADMIN_EMAIL) {
-      const masterAdminDUI = '00000000-0';
+      const masterAdminDUI = '04451625-5';
+      const masterAdminName = "Angel Nacxit Gomez Campos";
       const staffDocRef = doc(firestore, 'staff', masterAdminDUI);
       const staffDoc = await getDoc(staffDocRef);
       if (!staffDoc.exists()) {
         await setDoc(staffDocRef, {
           id: masterAdminDUI,
           authUid: fbUser.uid,
-          name: "Master Admin",
+          name: masterAdminName,
           email: fbUser.email,
           role: "Admin",
           createdAt: serverTimestamp(),
@@ -62,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return {
         id: masterAdminDUI,
         authUid: fbUser.uid,
-        name: "Master Admin",
+        name: masterAdminName,
         email: fbUser.email,
         avatarUrl: "",
         role: "Admin",
@@ -201,5 +202,3 @@ export function useAuthContext() {
   }
   return context;
 }
-
-    
