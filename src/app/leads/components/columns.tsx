@@ -2,7 +2,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, Trash2, ChevronDown, MessageSquare, Phone, Users, Star } from "lucide-react";
+import { MoreHorizontal, Trash2, ChevronDown, MessageSquare, Users, Star } from "lucide-react";
 import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
@@ -273,5 +273,3 @@ export const getColumns = (
     },
   },
 ];
-
-    
