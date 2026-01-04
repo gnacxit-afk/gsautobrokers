@@ -92,7 +92,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 role: staffData.role,
             };
         } else {
-             throw new Error("User not found in staff directory.");
+             // If user exists in Auth but not in 'staff', create a default profile.
+             const newUserId = `DUI-${fbUser.uid.slice(0, 8)}`;
+             const newStaffDocRef = doc(firestore, 'staff', newUserId);
+             const newUserProfile: Staff = {
+                 id: newUserId,
+                 authUid: fbUser.uid,
+                 name: fbUser.displayName || 'New User',
+                 email: fbUser.email!,
+                 role: 'Broker',
+                 createdAt: serverTimestamp(),
+                 hireDate: serverTimestamp(),
+                 avatarUrl: ''
+             };
+             await setDoc(newStaffDocRef, newUserProfile);
+             return {
+                 id: newUserProfile.id,
+                 authUid: newUserProfile.authUid,
+                 name: newUserProfile.name,
+                 email: newUserProfile.email,
+                 avatarUrl: newUserProfile.avatarUrl,
+                 role: newUserProfile.role,
+             };
         }
 
     } catch (error: any) {
