@@ -32,7 +32,7 @@ export default function LeadsPage() {
     const leadsQuery = useMemo(() => (firestore ? collection(firestore, 'leads') : null), [firestore]);
     const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
 
-    const { data: leadsData, loading: leadsLoading, setData: setLeadsData } = useCollection<Lead>(leadsQuery);
+    const { data: leadsData, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
     const { data: staffData, loading: staffLoading } = useCollection<Staff>(staffQuery);
     
     const allLeads = useMemo(() => leadsData || [], [leadsData]);
@@ -47,24 +47,21 @@ export default function LeadsPage() {
 
     const filteredLeads = useMemo(() => {
         if (!user) {
-            return []; // If no user, show no leads.
+            return [];
         }
 
-        let visibleLeads;
-        if (user.role === 'Admin') {
-            // Admins see all leads
-            visibleLeads = allLeads;
-        } else if (user.role === 'Supervisor') {
-            // Supervisors see their own leads and their team's leads
-            const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
-            const visibleIds = [user.id, ...teamIds];
-            visibleLeads = allLeads.filter(l => visibleIds.includes(l.ownerId));
-        } else { // Broker
-            // Brokers see only their own leads
-            visibleLeads = allLeads.filter(l => l.ownerId === user.id);
-        }
+        let visibleLeads = allLeads;
 
-        // Apply date range filter to the visible leads
+        if (user.role !== 'Admin') {
+            if (user.role === 'Supervisor') {
+                const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
+                const visibleIds = [user.id, ...teamIds];
+                visibleLeads = allLeads.filter(l => visibleIds.includes(l.ownerId));
+            } else { // Broker
+                visibleLeads = allLeads.filter(l => l.ownerId === user.id);
+            }
+        }
+        
         return visibleLeads.filter(l => {
             if (!l.createdAt) return false;
             const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
@@ -107,12 +104,9 @@ export default function LeadsPage() {
         };
 
         addDocumentNonBlocking(leadsCollection, completeLeadData);
-        
-        // Optimistically update the UI
-        setLeadsData(prevLeads => [{...completeLeadData, id: `temp-${Math.random()}`, createdAt: new Date() }, ...(prevLeads || [])]);
 
         toast({ title: "Lead Added", description: "The new lead has been created." });
-    }, [allStaff, firestore, toast, setLeadsData]);
+    }, [allStaff, firestore, toast]);
 
     const handleUpdateOwner = useCallback(async (id: string, newOwner: Staff) => {
         if (!firestore) return;

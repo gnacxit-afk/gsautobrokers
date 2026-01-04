@@ -48,5 +48,5 @@ export const useCollection = <T extends DocumentData>(
     return () => unsubscribe();
   }, [q]);
 
-  return { data, loading, error, setData };
+  return { data, loading, error };
 };
