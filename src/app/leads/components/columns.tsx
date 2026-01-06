@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef, Row } from "@tanstack/react-table";
 import { MoreHorizontal, Trash2, ChevronDown, MessageSquare, Users, Star, ChevronsUpDown } from "lucide-react";
 import { format } from "date-fns";
 
@@ -20,7 +20,7 @@ import {
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import type { Lead, Staff } from "@/lib/types";
+import type { Lead } from "@/lib/types";
 import React from "react";
 import { AnalyzeLeadDialog } from "./analyze-lead-dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -30,14 +30,19 @@ import { cn } from "@/lib/utils";
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const leadStatuses: NonNullable<Lead['leadStatus']>[] = ["Hot Lead", "Warm Lead", "In Nurturing", "Cold Lead"];
 
-const CellActions: React.FC<{ 
-  lead: Lead; 
-  onUpdateStage: (id: string, stage: Lead['stage']) => void; 
-  onDelete: (id: string) => void; 
-  onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void; 
+// Props for the CellActions component
+interface CellActionsProps {
+  row: Row<Lead>;
+  onUpdateStage: (id: string, stage: Lead['stage']) => void;
+  onDelete: (id: string) => void;
+  onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void;
   onOpenChangeOwner: (lead: Lead) => void;
-  row: any 
-}> = ({ lead, onUpdateStage, onDelete, onUpdateLeadStatus, onOpenChangeOwner, row }) => {
+}
+
+// **EXTRACTED CELLACTIONS COMPONENT**
+// Moved outside of getColumns to prevent re-creation on every render.
+const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateLeadStatus, onOpenChangeOwner }) => {
+  const lead = row.original;
   const [isAnalyzeOpen, setAnalyzeOpen] = React.useState(false);
   const { toast } = useToast();
   const { user } = useAuthContext();
@@ -58,7 +63,7 @@ const CellActions: React.FC<{
         open={isAnalyzeOpen} 
         onOpenChange={setAnalyzeOpen} 
         lead={lead} 
-        onAnalysisComplete={onUpdateLeadStatus} 
+        onAnalysisComplete={handleLeadStatusUpdate} 
       />
       <div className="flex items-center gap-2 justify-end">
         <Button
@@ -253,8 +258,16 @@ export const getColumns = (
   {
     id: "actions",
     cell: ({ row }) => {
-      const lead = row.original;
-      return <CellActions lead={lead} onUpdateStage={onUpdateStage} onDelete={onDelete} onUpdateLeadStatus={onUpdateLeadStatus} onOpenChangeOwner={onOpenChangeOwner} row={row} />;
+      // Pass all required props to the stable CellActions component
+      return <CellActions 
+        row={row} 
+        onUpdateStage={onUpdateStage} 
+        onDelete={onDelete} 
+        onUpdateLeadStatus={onUpdateLeadStatus} 
+        onOpenChangeOwner={onOpenChangeOwner} 
+      />;
     },
   },
 ];
+
+    
