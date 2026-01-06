@@ -23,12 +23,14 @@ import { useToast } from "@/hooks/use-toast";
 import { doc } from "firebase/firestore";
 import { analyzeAndUpdateLead } from "@/ai/flows/analyze-and-update-leads";
 import { ChangeOwnerDialog } from "./components/change-owner-dialog";
+import { isWithinInterval } from "date-fns";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
 const leadStatuses: NonNullable<Lead['leadStatus']>[] = ["Hot Lead", "Warm Lead", "In Nurturing", "Cold Lead"];
 
 
+// This function is now outside the component, so it's not recreated on every render.
 const globalFilterFn: FilterFn<any> = (row, columnId, filterValue) => {
     const search = filterValue.toLowerCase();
 
@@ -67,9 +69,7 @@ export default function LeadsPage() {
     const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
     const filteredLeads = useMemo(() => {
-        if (!user) {
-            return [];
-        }
+        if (!user) return [];
 
         let visibleLeads = allLeads;
 
@@ -81,10 +81,11 @@ export default function LeadsPage() {
             visibleLeads = allLeads.filter(l => l.ownerId === user.id);
         }
         
+        // Date filtering
         return visibleLeads.filter(l => {
             if (!l.createdAt) return false;
             const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
-            return leadDate >= dateRange.start && leadDate <= dateRange.end;
+            return isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end });
         });
 
     }, [user, allLeads, allStaff, dateRange]);
@@ -96,7 +97,7 @@ export default function LeadsPage() {
         toast({ title: "Stage Updated", description: `Lead stage changed to ${stage}.` });
     }, [firestore, toast]);
 
-    const handleUpdateLeadStatus = useCallback((id: string, leadStatus: Lead['leadStatus']) => {
+    const handleUpdateLeadStatus = useCallback((id: string, leadStatus: NonNullable<Lead['leadStatus']>) => {
         if (!firestore) return;
         const leadRef = doc(firestore, 'leads', id);
         updateDocumentNonBlocking(leadRef, { leadStatus });
@@ -118,9 +119,12 @@ export default function LeadsPage() {
     }, [firestore, toast]);
 
     const handleAddLead = useCallback((newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'>) => {
-        if (!firestore) return;
+        if (!firestore || !user) return;
         const owner = allStaff.find(s => s.id === newLeadData.ownerId);
-        if (!owner) return;
+        if (!owner) {
+             toast({ title: "Error", description: "Could not find lead owner.", variant: "destructive" });
+             return;
+        };
 
         const leadsCollection = collection(firestore, 'leads');
         
@@ -129,6 +133,7 @@ export default function LeadsPage() {
             createdAt: serverTimestamp(),
             ownerName: owner.name,
         }).then(docRef => {
+             if (!docRef) return;
              toast({ title: "Lead Added", description: "New lead created. Analyzing with AI in background..." });
              (async () => {
                 try {
@@ -143,13 +148,14 @@ export default function LeadsPage() {
                     toast({ title: "AI Analysis Complete", description: `Lead status for ${newLeadData.name} set to ${analysisResult.leadStatus}.` });
                 } catch (aiError) {
                     console.error("Error during background AI analysis:", aiError);
+                    // Do not show a failure toast for background task, just log it.
                 }
             })();
         }).catch(error => {
              console.error("Error adding lead:", error);
              toast({ title: "Error", description: "Could not create the lead.", variant: "destructive" });
         });
-    }, [firestore, allStaff, toast]);
+    }, [firestore, allStaff, toast, user]);
 
 
     const handleUpdateOwner = useCallback((id: string, newOwner: Staff) => {
