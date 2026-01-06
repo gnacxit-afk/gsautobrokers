@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import type { Lead } from "@/lib/types";
 import { useEffect, useState, useTransition } from "react";
 import { analyzeAndUpdateLead, AnalyzeAndUpdateLeadOutput } from "@/ai/flows/analyze-and-update-leads";
-import { Loader2, Zap, Star, ShieldCheck, TrendingUp, CircleDollarSign, UserCheck, CalendarClock, Target, BadgeCheck } from "lucide-react";
+import { Loader2, Zap, Star, ShieldCheck, TrendingUp, CircleDollarSign, UserCheck, CalendarClock, Target, BadgeCheck, AlertTriangle } from "lucide-react";
 
 interface AnalyzeLeadDialogProps {
   lead: Lead;
@@ -32,15 +32,21 @@ const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string,
 
 export function AnalyzeLeadDialog({ lead, open, onOpenChange }: AnalyzeLeadDialogProps) {
     const [analysis, setAnalysis] = useState<AnalyzeAndUpdateLeadOutput | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
 
     useEffect(() => {
         if (open && lead) {
             setAnalysis(null);
+            setError(null);
             startTransition(async () => {
-                const leadDetails = `Name: ${lead.name}, Company: ${lead.company}, Stage: ${lead.stage}, Notes: ${lead.notes}`;
-                const result = await analyzeAndUpdateLead({ leadDetails });
-                setAnalysis(result);
+                try {
+                    const leadDetails = `Name: ${lead.name}, Company: ${lead.company}, Stage: ${lead.stage}, Notes: ${lead.notes}`;
+                    const result = await analyzeAndUpdateLead({ leadDetails });
+                    setAnalysis(result);
+                } catch (e: any) {
+                    setError("The AI model is currently overloaded. Please try again in a few moments.");
+                }
             });
         }
     }, [open, lead]);
@@ -55,10 +61,17 @@ export function AnalyzeLeadDialog({ lead, open, onOpenChange }: AnalyzeLeadDialo
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-6 py-4">
-                    {isPending && (
+                    {isPending && !error && (
                         <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground h-48">
                             <Loader2 className="h-8 w-8 animate-spin" />
                             <p>Analizando...</p>
+                        </div>
+                    )}
+                    {error && (
+                         <div className="flex flex-col items-center justify-center gap-4 text-destructive-foreground bg-destructive/10 p-4 rounded-lg h-48 text-center">
+                            <AlertTriangle className="h-8 w-8 text-destructive" />
+                            <p className="font-semibold">Analysis Failed</p>
+                            <p className="text-sm text-destructive/80">{error}</p>
                         </div>
                     )}
                     {analysis && (
