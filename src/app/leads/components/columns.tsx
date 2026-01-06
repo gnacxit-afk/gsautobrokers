@@ -155,16 +155,14 @@ export const getColumns = (
       const leadStatus = row.getValue("leadStatus") as Lead['leadStatus'];
       if (!leadStatus) return <Badge variant="outline">Not Analyzed</Badge>;
       
-      const badgeStyle: React.CSSProperties = 
-         leadStatus === "Warm Lead" ? { backgroundColor: 'hsl(48, 95%, 95%)', color: 'hsl(40, 90%, 50%)', borderColor: 'hsl(48, 90%, 85%)' } :
-         leadStatus === "In Nurturing" ? { backgroundColor: 'hsl(145, 85%, 96%)', color: 'hsl(145, 63%, 42%)', borderColor: 'hsl(145, 70%, 88%)' } :
-         leadStatus === "Cold Lead" ? { backgroundColor: 'hsl(210, 100%, 97%)', color: 'hsl(210, 80%, 55%)', borderColor: 'hsl(210, 90%, 88%)' } :
-         {};
-
       return <Badge 
         variant={leadStatus === "Hot Lead" ? "destructive" : "outline"}
-        style={badgeStyle}
-        className={cn("flex gap-1.5 items-center whitespace-nowrap", leadStatus === "Hot Lead" ? "" : "border")}
+        className={cn("flex gap-1.5 items-center whitespace-nowrap",
+          leadStatus === "Hot Lead" ? "" : "border",
+          leadStatus === "Warm Lead" ? "bg-amber-50 text-amber-700 border-amber-200" : "",
+          leadStatus === "In Nurturing" ? "bg-green-50 text-green-700 border-green-200" : "",
+          leadStatus === "Cold Lead" ? "bg-blue-50 text-blue-700 border-blue-200" : ""
+        )}
       >
         <Star className={cn("w-3 h-3", 
           leadStatus === "Hot Lead" ? "text-red-500" :
