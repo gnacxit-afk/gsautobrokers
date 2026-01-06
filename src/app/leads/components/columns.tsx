@@ -13,10 +13,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-  DropdownMenuPortal,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
@@ -43,15 +39,17 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lea
     onUpdateStage(lead.id, stage);
     toast({ title: "Stage Updated", description: `Lead "${lead.name}" is now ${stage}.` });
   };
-
+  
   const handleLeadStatusUpdate = (status: NonNullable<Lead['leadStatus']>) => {
     onUpdateLeadStatus(lead.id, status);
     toast({ title: "Lead Status Updated", description: `Lead "${lead.name}" status is now ${status}.` });
   };
-  
+
+  const assignableStaff = staff.filter(s => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin');
+
   return (
     <>
-      <AnalyzeLeadDialog open={isAnalyzeOpen} onOpenChange={setAnalyzeOpen} lead={lead} />
+      <AnalyzeLeadDialog open={isAnalyzeOpen} onOpenChange={setAnalyzeOpen} lead={lead} onAnalysisComplete={onUpdateLeadStatus} />
       <ChangeOwnerDialog
         lead={lead}
         staff={staff}
@@ -79,53 +77,41 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lea
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem onSelect={() => setAnalyzeOpen(true)}>Analyze Lead (AI)</DropdownMenuItem>
             
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <span>Update Stage</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent>
-                  <DropdownMenuRadioGroup value={lead.stage} onValueChange={(stage) => handleStageUpdate(stage as Lead['stage'])}>
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                <DropdownMenuRadioGroup value={lead.stage} onValueChange={(stage) => handleStageUpdate(stage as Lead['stage'])}>
+                    <DropdownMenuLabel className="px-0 font-normal">Update Stage</DropdownMenuLabel>
                     {leadStages.map((stage) => (
                       <DropdownMenuRadioItem key={stage} value={stage}>
                         {stage}
                       </DropdownMenuRadioItem>
                     ))}
                   </DropdownMenuRadioGroup>
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
-            </DropdownMenuSub>
+            </DropdownMenuItem>
 
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <span>Update Lead Status</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent>
-                  <DropdownMenuRadioGroup value={lead.leadStatus} onValueChange={(status) => handleLeadStatusUpdate(status as NonNullable<Lead['leadStatus']>)}>
-                    {leadStatuses.map((status) => (
-                      <DropdownMenuRadioItem key={status} value={status}>
-                        {status}
-                      </DropdownMenuRadioItem>
-                    ))}
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
-            </DropdownMenuSub>
-            
-            {user?.role === 'Admin' && (
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+              <DropdownMenuRadioGroup value={lead.leadStatus} onValueChange={(status) => handleLeadStatusUpdate(status as NonNullable<Lead['leadStatus']>)}>
+                  <DropdownMenuLabel className="px-0 font-normal">Update Lead Status</DropdownMenuLabel>
+                  {leadStatuses.map((status) => (
+                    <DropdownMenuRadioItem key={status} value={status}>
+                      {status}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+            </DropdownMenuItem>
+
+            {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
                 <DropdownMenuItem onSelect={() => setChangeOwnerOpen(true)}>
                   <Users className="mr-2 h-4 w-4" />
                   <span>Change Owner</span>
                 </DropdownMenuItem>
-              )}
+            )}
 
             {user?.role === 'Admin' && (
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                     className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                    onClick={() => onDelete(lead.id)}
+                    onSelect={() => onDelete(lead.id)}
                 >
                     <Trash2 className="mr-2 h-4 w-4" /> Delete Lead
                 </DropdownMenuItem>

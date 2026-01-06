@@ -18,6 +18,7 @@ interface AnalyzeLeadDialogProps {
   lead: Lead;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onAnalysisComplete: (leadId: string, leadStatus: NonNullable<Lead['leadStatus']>) => void;
 }
 
 const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string, value: string | number }) => (
@@ -30,7 +31,7 @@ const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string,
     </div>
 );
 
-export function AnalyzeLeadDialog({ lead, open, onOpenChange }: AnalyzeLeadDialogProps) {
+export function AnalyzeLeadDialog({ lead, open, onOpenChange, onAnalysisComplete }: AnalyzeLeadDialogProps) {
     const [analysis, setAnalysis] = useState<AnalyzeAndUpdateLeadOutput | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
@@ -44,12 +45,16 @@ export function AnalyzeLeadDialog({ lead, open, onOpenChange }: AnalyzeLeadDialo
                     const leadDetails = `Name: ${lead.name}, Company: ${lead.company}, Stage: ${lead.stage}, Notes: ${lead.notes}`;
                     const result = await analyzeAndUpdateLead({ leadDetails });
                     setAnalysis(result);
+                    // On successful analysis, call the callback to update the parent state
+                    if (result.leadStatus) {
+                        onAnalysisComplete(lead.id, result.leadStatus);
+                    }
                 } catch (e: any) {
                     setError("The AI model is currently overloaded. Please try again in a few moments.");
                 }
             });
         }
-    }, [open, lead]);
+    }, [open, lead, onAnalysisComplete]);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
