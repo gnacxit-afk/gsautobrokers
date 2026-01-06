@@ -31,8 +31,7 @@ import { ChangeOwnerDialog } from "./change-owner-dialog";
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const leadStatuses: NonNullable<Lead['leadStatus']>[] = ["Hot Lead", "Warm Lead", "In Nurturing", "Cold Lead"];
 
-
-const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lead['stage']) => void, onDelete: (id: string) => void, onUpdateOwner: (leadId: string, newOwner: Staff) => void, onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void, staff: Staff[], row: any }> = ({ lead, onUpdateStage, onDelete, onUpdateOwner, onUpdateLeadStatus, staff, row }) => {
+const CellActions: React.FC<{ lead: Lead; onUpdateStage: (id: string, stage: Lead['stage']) => void; onDelete: (id: string) => void; onUpdateOwner: (leadId: string, newOwner: Staff) => void; onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void; staff: Staff[]; row: any }> = ({ lead, onUpdateStage, onDelete, onUpdateOwner, onUpdateLeadStatus, staff, row }) => {
   const [isAnalyzeOpen, setAnalyzeOpen] = React.useState(false);
   const [isChangeOwnerOpen, setChangeOwnerOpen] = React.useState(false);
   const { toast } = useToast();
@@ -47,9 +46,7 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lea
     onUpdateLeadStatus(lead.id, status);
     toast({ title: "Lead Status Updated", description: `Lead "${lead.name}" status is now ${status}.` });
   };
-
-  const assignableStaff = staff.filter(s => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin');
-
+  
   return (
     <>
       <AnalyzeLeadDialog open={isAnalyzeOpen} onOpenChange={setAnalyzeOpen} lead={lead} onAnalysisComplete={onUpdateLeadStatus} />
@@ -259,5 +256,3 @@ export const getColumns = (
     },
   },
 ];
-
-    
