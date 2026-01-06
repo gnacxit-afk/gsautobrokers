@@ -2,7 +2,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, Trash2, ChevronDown, MessageSquare, Users, Star } from "lucide-react";
+import { MoreHorizontal, Trash2, ChevronDown, MessageSquare, Users, Star, ChevronsUpDown } from "lucide-react";
 import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
@@ -77,27 +80,37 @@ const CellActions: React.FC<{ lead: Lead, onUpdateStage: (id: string, stage: Lea
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem onSelect={() => setAnalyzeOpen(true)}>Analyze Lead (AI)</DropdownMenuItem>
             
-            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                <DropdownMenuRadioGroup value={lead.stage} onValueChange={(stage) => handleStageUpdate(stage as Lead['stage'])}>
-                    <DropdownMenuLabel className="px-0 font-normal">Update Stage</DropdownMenuLabel>
-                    {leadStages.map((stage) => (
-                      <DropdownMenuRadioItem key={stage} value={stage}>
-                        {stage}
-                      </DropdownMenuRadioItem>
-                    ))}
-                  </DropdownMenuRadioGroup>
-            </DropdownMenuItem>
+            <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                    <ChevronsUpDown className="mr-2 h-4 w-4" />
+                    <span>Update Stage</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                    <DropdownMenuRadioGroup value={lead.stage} onValueChange={(stage) => handleStageUpdate(stage as Lead['stage'])}>
+                        {leadStages.map((stage) => (
+                        <DropdownMenuRadioItem key={stage} value={stage}>
+                            {stage}
+                        </DropdownMenuRadioItem>
+                        ))}
+                    </DropdownMenuRadioGroup>
+                </DropdownMenuSubContent>
+            </DropdownMenuSub>
 
-            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-              <DropdownMenuRadioGroup value={lead.leadStatus} onValueChange={(status) => handleLeadStatusUpdate(status as NonNullable<Lead['leadStatus']>)}>
-                  <DropdownMenuLabel className="px-0 font-normal">Update Lead Status</DropdownMenuLabel>
-                  {leadStatuses.map((status) => (
-                    <DropdownMenuRadioItem key={status} value={status}>
-                      {status}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-            </DropdownMenuItem>
+            <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                    <Star className="mr-2 h-4 w-4" />
+                    <span>Update Lead Status</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                    <DropdownMenuRadioGroup value={lead.leadStatus} onValueChange={(status) => handleLeadStatusUpdate(status as NonNullable<Lead['leadStatus']>)}>
+                        {leadStatuses.map((status) => (
+                        <DropdownMenuRadioItem key={status} value={status}>
+                            {status}
+                        </DropdownMenuRadioItem>
+                        ))}
+                    </DropdownMenuRadioGroup>
+                </DropdownMenuSubContent>
+            </DropdownMenuSub>
 
             {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
                 <DropdownMenuItem onSelect={() => setChangeOwnerOpen(true)}>
@@ -246,3 +259,5 @@ export const getColumns = (
     },
   },
 ];
+
+    
