@@ -6,7 +6,7 @@ import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 import type { Lead, Staff } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
-import { useCollection, useFirestore, useUser, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { useCollection, useFirestore, useUser, updateDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
 import {
   useReactTable,
   getCoreRowModel,
@@ -18,7 +18,7 @@ import {
   type ColumnFiltersState,
   type FilterFn,
 } from '@tanstack/react-table';
-import { collection, serverTimestamp, addDoc } from 'firebase/firestore';
+import { collection, serverTimestamp } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { doc } from "firebase/firestore";
 import { analyzeAndUpdateLead } from "@/ai/flows/analyze-and-update-leads";
@@ -63,7 +63,6 @@ export default function LeadsPage() {
     const [globalFilter, setGlobalFilter] = useState('');
     const [expanded, setExpanded] = useState({});
 
-    // State for ChangeOwnerDialog
     const [isChangeOwnerOpen, setChangeOwnerOpen] = useState(false);
     const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
@@ -90,28 +89,27 @@ export default function LeadsPage() {
 
     }, [user, allLeads, allStaff, dateRange]);
 
-    const handleUpdateStage = useCallback(async (id: string, stage: Lead['stage']) => {
+    const handleUpdateStage = useCallback((id: string, stage: Lead['stage']) => {
         if (!firestore) return;
         const leadRef = doc(firestore, 'leads', id);
         updateDocumentNonBlocking(leadRef, { stage });
         toast({ title: "Stage Updated", description: `Lead stage changed to ${stage}.` });
     }, [firestore, toast]);
 
-    const handleUpdateLeadStatus = useCallback(async (id: string, leadStatus: Lead['leadStatus']) => {
+    const handleUpdateLeadStatus = useCallback((id: string, leadStatus: Lead['leadStatus']) => {
         if (!firestore) return;
         const leadRef = doc(firestore, 'leads', id);
         updateDocumentNonBlocking(leadRef, { leadStatus });
-        // No toast here to avoid duplicate toasts when called from AI analysis
     }, [firestore]);
     
-    const handleUpdateNotes = useCallback(async (id: string, notes: string) => {
+    const handleUpdateNotes = useCallback((id: string, notes: string) => {
         if (!firestore) return;
         const leadRef = doc(firestore, 'leads', id);
         updateDocumentNonBlocking(leadRef, { notes });
         toast({ title: "Notes Updated", description: "Lead notes have been saved." });
     }, [firestore, toast]);
 
-    const handleDelete = useCallback(async (id: string) => {
+    const handleDelete = useCallback((id: string) => {
         if (window.confirm('Are you sure you want to delete this lead?') && firestore) {
             const leadRef = doc(firestore, 'leads', id);
             deleteDocumentNonBlocking(leadRef);
@@ -119,29 +117,24 @@ export default function LeadsPage() {
         }
     }, [firestore, toast]);
 
-    const handleAddLead = useCallback(async (newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'>) => {
+    const handleAddLead = useCallback((newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'>) => {
+        if (!firestore) return;
         const owner = allStaff.find(s => s.id === newLeadData.ownerId);
-        if (!owner || !firestore) return;
+        if (!owner) return;
 
         const leadsCollection = collection(firestore, 'leads');
-        const completeLeadData = {
+        
+        addDocumentNonBlocking(leadsCollection, {
             ...newLeadData,
             createdAt: serverTimestamp(),
             ownerName: owner.name,
-        };
-
-        try {
-            // First, add the document to get its ID. This is fast.
-            const docRef = await addDoc(leadsCollection, completeLeadData);
-            toast({ title: "Lead Added", description: "New lead created. Analyzing with AI in background..." });
-
-            // Now, run the AI analysis without awaiting it.
-            (async () => {
+        }).then(docRef => {
+             toast({ title: "Lead Added", description: "New lead created. Analyzing with AI in background..." });
+             (async () => {
                 try {
                     const leadDetails = `Name: ${newLeadData.name}, Company: ${newLeadData.company}, Stage: ${newLeadData.stage}, Notes: ${newLeadData.notes}`;
                     const analysisResult = await analyzeAndUpdateLead({ leadDetails });
 
-                    // Update the lead with the analysis result in a non-blocking way.
                     const newLeadRef = doc(firestore, 'leads', docRef.id);
                     updateDocumentNonBlocking(newLeadRef, { 
                         leadStatus: analysisResult.leadStatus 
@@ -150,18 +143,16 @@ export default function LeadsPage() {
                     toast({ title: "AI Analysis Complete", description: `Lead status for ${newLeadData.name} set to ${analysisResult.leadStatus}.` });
                 } catch (aiError) {
                     console.error("Error during background AI analysis:", aiError);
-                    toast({ title: "AI Analysis Failed", description: "Could not automatically analyze the new lead.", variant: "destructive" });
                 }
             })();
+        }).catch(error => {
+             console.error("Error adding lead:", error);
+             toast({ title: "Error", description: "Could not create the lead.", variant: "destructive" });
+        });
+    }, [firestore, allStaff, toast]);
 
-        } catch (error) {
-            console.error("Error adding lead:", error);
-            toast({ title: "Error", description: "Could not create the lead.", variant: "destructive" });
-        }
-    }, [allStaff, firestore, toast]);
 
-
-    const handleUpdateOwner = useCallback(async (id: string, newOwner: Staff) => {
+    const handleUpdateOwner = useCallback((id: string, newOwner: Staff) => {
         if (!firestore) return;
         const leadRef = doc(firestore, 'leads', id);
         updateDocumentNonBlocking(leadRef, { ownerId: newOwner.id, ownerName: newOwner.name });
@@ -172,7 +163,10 @@ export default function LeadsPage() {
       setChangeOwnerOpen(true);
     }, []);
 
-    const columns = useMemo(() => getColumns(handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleOpenChangeOwner), [handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleOpenChangeOwner]);
+    const columns = useMemo(
+        () => getColumns(handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleOpenChangeOwner), 
+        [handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleOpenChangeOwner]
+    );
     
     const table = useReactTable({
       data: filteredLeads,
