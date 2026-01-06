@@ -26,14 +26,19 @@ import { AnalyzeLeadDialog } from "./analyze-lead-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthContext } from "@/lib/auth";
 import { cn } from "@/lib/utils";
-import { ChangeOwnerDialog } from "./change-owner-dialog";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const leadStatuses: NonNullable<Lead['leadStatus']>[] = ["Hot Lead", "Warm Lead", "In Nurturing", "Cold Lead"];
 
-const CellActions: React.FC<{ lead: Lead; onUpdateStage: (id: string, stage: Lead['stage']) => void; onDelete: (id: string) => void; onUpdateOwner: (leadId: string, newOwner: Staff) => void; onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void; staff: Staff[]; row: any }> = ({ lead, onUpdateStage, onDelete, onUpdateOwner, onUpdateLeadStatus, staff, row }) => {
+const CellActions: React.FC<{ 
+  lead: Lead; 
+  onUpdateStage: (id: string, stage: Lead['stage']) => void; 
+  onDelete: (id: string) => void; 
+  onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void; 
+  onOpenChangeOwner: (lead: Lead) => void;
+  row: any 
+}> = ({ lead, onUpdateStage, onDelete, onUpdateLeadStatus, onOpenChangeOwner, row }) => {
   const [isAnalyzeOpen, setAnalyzeOpen] = React.useState(false);
-  const [isChangeOwnerOpen, setChangeOwnerOpen] = React.useState(false);
   const { toast } = useToast();
   const { user } = useAuthContext();
 
@@ -49,13 +54,11 @@ const CellActions: React.FC<{ lead: Lead; onUpdateStage: (id: string, stage: Lea
   
   return (
     <>
-      <AnalyzeLeadDialog open={isAnalyzeOpen} onOpenChange={setAnalyzeOpen} lead={lead} onAnalysisComplete={onUpdateLeadStatus} />
-      <ChangeOwnerDialog
-        lead={lead}
-        staff={staff}
-        open={isChangeOwnerOpen}
-        onOpenChange={setChangeOwnerOpen}
-        onUpdateOwner={onUpdateOwner}
+      <AnalyzeLeadDialog 
+        open={isAnalyzeOpen} 
+        onOpenChange={setAnalyzeOpen} 
+        lead={lead} 
+        onAnalysisComplete={onUpdateLeadStatus} 
       />
       <div className="flex items-center gap-2 justify-end">
         <Button
@@ -110,7 +113,7 @@ const CellActions: React.FC<{ lead: Lead; onUpdateStage: (id: string, stage: Lea
             </DropdownMenuSub>
 
             {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
-                <DropdownMenuItem onSelect={() => setChangeOwnerOpen(true)}>
+                <DropdownMenuItem onSelect={() => onOpenChangeOwner(lead)}>
                   <Users className="mr-2 h-4 w-4" />
                   <span>Change Owner</span>
                 </DropdownMenuItem>
@@ -137,9 +140,8 @@ const CellActions: React.FC<{ lead: Lead; onUpdateStage: (id: string, stage: Lea
 export const getColumns = (
   onUpdateStage: (id: string, stage: Lead['stage']) => void,
   onDelete: (id: string) => void,
-  onUpdateOwner: (leadId: string, newOwner: Staff) => void,
   onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void,
-  staff: Staff[]
+  onOpenChangeOwner: (lead: Lead) => void
 ): ColumnDef<Lead>[] => [
   {
     accessorKey: "leadStatus",
@@ -252,7 +254,7 @@ export const getColumns = (
     id: "actions",
     cell: ({ row }) => {
       const lead = row.original;
-      return <CellActions lead={lead} onUpdateStage={onUpdateStage} onDelete={onDelete} onUpdateOwner={onUpdateOwner} onUpdateLeadStatus={onUpdateLeadStatus} staff={staff} row={row} />;
+      return <CellActions lead={lead} onUpdateStage={onUpdateStage} onDelete={onDelete} onUpdateLeadStatus={onUpdateLeadStatus} onOpenChangeOwner={onOpenChangeOwner} row={row} />;
     },
   },
 ];

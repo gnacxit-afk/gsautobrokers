@@ -22,6 +22,7 @@ import { collection, serverTimestamp, addDoc } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { doc } from "firebase/firestore";
 import { analyzeAndUpdateLead } from "@/ai/flows/analyze-and-update-leads";
+import { ChangeOwnerDialog } from "./components/change-owner-dialog";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
@@ -62,6 +63,10 @@ export default function LeadsPage() {
     const [globalFilter, setGlobalFilter] = useState('');
     const [expanded, setExpanded] = useState({});
 
+    // State for ChangeOwnerDialog
+    const [isChangeOwnerOpen, setChangeOwnerOpen] = useState(false);
+    const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+
     const filteredLeads = useMemo(() => {
         if (!user) {
             return [];
@@ -96,8 +101,8 @@ export default function LeadsPage() {
         if (!firestore) return;
         const leadRef = doc(firestore, 'leads', id);
         updateDocumentNonBlocking(leadRef, { leadStatus });
-        toast({ title: "Lead Status Updated", description: `Lead status changed to ${leadStatus}.` });
-    }, [firestore, toast]);
+        // No toast here to avoid duplicate toasts when called from AI analysis
+    }, [firestore]);
     
     const handleUpdateNotes = useCallback(async (id: string, notes: string) => {
         if (!firestore) return;
@@ -131,7 +136,6 @@ export default function LeadsPage() {
             toast({ title: "Lead Added", description: "New lead created. Analyzing with AI in background..." });
 
             // Now, run the AI analysis without awaiting it.
-            // This allows the UI to remain responsive.
             (async () => {
                 try {
                     const leadDetails = `Name: ${newLeadData.name}, Company: ${newLeadData.company}, Stage: ${newLeadData.stage}, Notes: ${newLeadData.notes}`;
@@ -146,7 +150,6 @@ export default function LeadsPage() {
                     toast({ title: "AI Analysis Complete", description: `Lead status for ${newLeadData.name} set to ${analysisResult.leadStatus}.` });
                 } catch (aiError) {
                     console.error("Error during background AI analysis:", aiError);
-                    // Optionally notify the user that AI analysis failed
                     toast({ title: "AI Analysis Failed", description: "Could not automatically analyze the new lead.", variant: "destructive" });
                 }
             })();
@@ -162,11 +165,14 @@ export default function LeadsPage() {
         if (!firestore) return;
         const leadRef = doc(firestore, 'leads', id);
         updateDocumentNonBlocking(leadRef, { ownerId: newOwner.id, ownerName: newOwner.name });
-        toast({ title: "Owner Updated", description: `Lead reassigned to ${newOwner.name}.` });
-    }, [firestore, toast]);
+    }, [firestore]);
 
+    const handleOpenChangeOwner = useCallback((lead: Lead) => {
+      setSelectedLead(lead);
+      setChangeOwnerOpen(true);
+    }, []);
 
-    const columns = useMemo(() => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, handleUpdateLeadStatus, allStaff), [handleUpdateStage, handleDelete, handleUpdateOwner, handleUpdateLeadStatus, allStaff]);
+    const columns = useMemo(() => getColumns(handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleOpenChangeOwner), [handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleOpenChangeOwner]);
     
     const table = useReactTable({
       data: filteredLeads,
@@ -200,6 +206,15 @@ export default function LeadsPage() {
 
     return (
         <main className="flex flex-1 flex-col gap-4">
+            {selectedLead && (
+              <ChangeOwnerDialog
+                lead={selectedLead}
+                staff={allStaff}
+                open={isChangeOwnerOpen}
+                onOpenChange={setChangeOwnerOpen}
+                onUpdateOwner={handleUpdateOwner}
+              />
+            )}
             <DataTable 
                 table={table}
                 columns={columns}
