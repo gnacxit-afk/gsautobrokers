@@ -1,6 +1,7 @@
+
 "use client";
 
-import React, { createContext, useState, useMemo } from 'react';
+import React, { createContext, useState, useMemo, useCallback } from 'react';
 import { startOfMonth, endOfMonth } from 'date-fns';
 
 export interface DateRange {
@@ -10,7 +11,7 @@ export interface DateRange {
 
 interface DateRangeContextType {
   dateRange: DateRange;
-  setDateRange: React.Dispatch<React.SetStateAction<DateRange>>;
+  setDateRange: (newRange: DateRange) => void;
   resetDateRange: () => void;
 }
 
@@ -21,14 +22,32 @@ export const getDefaultDateRange = (): DateRange => ({
   end: endOfMonth(new Date()),
 });
 
-export function DateRangeProvider({ children }: { children: React.ReactNode }) {
-  const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange());
+interface DateRangeProviderProps {
+  children: React.ReactNode;
+  initialDateRange?: DateRange;
+  onDateChange?: (dateRange: DateRange) => void;
+}
 
-  const resetDateRange = () => {
-    setDateRange(getDefaultDateRange());
-  };
+export function DateRangeProvider({ children, initialDateRange, onDateChange }: DateRangeProviderProps) {
+  const [dateRange, setDateRangeState] = useState<DateRange>(initialDateRange || getDefaultDateRange());
 
-  const value = useMemo(() => ({ dateRange, setDateRange, resetDateRange }), [dateRange]);
+  const setDateRange = useCallback((newRange: React.SetStateAction<DateRange>) => {
+    const resolvedRange = typeof newRange === 'function' ? newRange(dateRange) : newRange;
+    setDateRangeState(resolvedRange);
+    if (onDateChange) {
+      onDateChange(resolvedRange);
+    }
+  }, [dateRange, onDateChange]);
+
+  const resetDateRange = useCallback(() => {
+    const defaultRange = getDefaultDateRange();
+    setDateRangeState(defaultRange);
+    if (onDateChange) {
+      onDateChange(defaultRange);
+    }
+  }, [onDateChange]);
+
+  const value = useMemo(() => ({ dateRange, setDateRange: setDateRange as any, resetDateRange }), [dateRange, setDateRange, resetDateRange]);
 
   return (
     <DateRangeContext.Provider value={value}>

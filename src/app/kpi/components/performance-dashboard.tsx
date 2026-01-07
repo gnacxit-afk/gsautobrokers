@@ -4,11 +4,8 @@
 import { useState, useMemo } from 'react';
 import type { Lead, Staff, PerformanceMetric } from '@/lib/types';
 import { useAuthContext } from '@/lib/auth';
-import { useDateRange } from '@/hooks/use-date-range';
-import { DateRangePicker } from '@/components/layout/date-range-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { calculateBonus } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -35,33 +32,15 @@ const calculateMetrics = (leads: Lead[]): Omit<PerformanceMetric, 'userId' | 'us
 
 export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads: Lead[], allStaff: Staff[], loading: boolean }) {
     const { user } = useAuthContext();
-    const { dateRange } = useDateRange();
     const [selectedUserId, setSelectedUserId] = useState<string>('all');
     
-    const activeDateRange = useMemo(() => {
-        if (user?.role === 'Admin' || user?.role === 'Supervisor') {
-            return dateRange;
-        }
-        // Brokers only see today's data for this specific dashboard
-        return {
-            start: startOfDay(new Date()),
-            end: endOfDay(new Date())
-        };
-    }, [user, dateRange]);
-
-
     const performanceData = useMemo(() => {
         const data: PerformanceMetric[] = [];
         
         const staffToDisplay = allStaff.filter(s => s.role === 'Broker' || s.role === 'Supervisor');
 
         staffToDisplay.forEach(staffMember => {
-            const userLeads = allLeads.filter(lead => {
-                const leadDate = (lead.createdAt as any)?.toDate ? (lead.createdAt as any).toDate() : new Date(lead.createdAt as string);
-                const isOwner = lead.ownerId === staffMember.id;
-                const isInDateRange = leadDate && isWithinInterval(leadDate, activeDateRange);
-                return isOwner && isInDateRange;
-            });
+            const userLeads = allLeads.filter(lead => lead.ownerId === staffMember.id);
             
             const metrics = calculateMetrics(userLeads);
             
@@ -75,7 +54,7 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
         // Sort data by sales (ventas) in descending order for ranking
         return data.sort((a, b) => b.ventas - a.ventas);
 
-    }, [allLeads, allStaff, activeDateRange]);
+    }, [allLeads, allStaff]);
 
     const filteredData = useMemo(() => {
         if (user?.role === 'Admin') {
@@ -102,7 +81,6 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
         return (
             <div className="space-y-4">
                 <div className="flex flex-col md:flex-row gap-4">
-                    <Skeleton className="h-10 w-full md:w-[300px]" />
                     <Skeleton className="h-10 w-full md:w-[240px]" />
                 </div>
                 <div className="rounded-lg border bg-white">
@@ -132,7 +110,7 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
     if (user.role === 'Broker') {
         const userData = filteredData[0]; // Broker sees only their data
         if (!userData || userData.leadsRecibidos === 0) {
-             return <p className="text-center text-muted-foreground py-8">No performance data for today.</p>;
+             return <p className="text-center text-muted-foreground py-8">No performance data for the selected day.</p>;
         }
         const bonus = calculateBonus(userData.ventas);
         return (
@@ -152,7 +130,6 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
     return (
         <div className="space-y-4">
             <div className="flex flex-col md:flex-row gap-4">
-                {(user.role === 'Admin' || user.role === 'Supervisor') && <DateRangePicker />}
                 {user.role === 'Admin' && (
                     <Select value={selectedUserId} onValueChange={setSelectedUserId}>
                         <SelectTrigger className="w-full md:w-[240px]">
