@@ -35,9 +35,11 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
     const [selectedUserId, setSelectedUserId] = useState<string>('all');
     
     const performanceData = useMemo(() => {
+        // Start with all staff members who should be on the dashboard
         const staffToDisplay = allStaff.filter(s => s.role === 'Broker' || s.role === 'Supervisor');
 
         const data: PerformanceMetric[] = staffToDisplay.map(staffMember => {
+            // Filter leads for this specific staff member from the provided `allLeads`
             const userLeads = allLeads.filter(lead => lead.ownerId === staffMember.id);
             const metrics = calculateMetrics(userLeads);
             
@@ -54,24 +56,31 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
     }, [allLeads, allStaff]);
 
     const filteredData = useMemo(() => {
+        // Start with the full performance data for all staff.
         let dataToFilter = performanceData;
-
+    
+        // Admin View Logic
+        if (user?.role === 'Admin') {
+            if (selectedUserId !== 'all') {
+                return dataToFilter.filter(d => d.userId === selectedUserId);
+            }
+            return dataToFilter; // Return all data if 'all' is selected
+        }
+    
+        // Supervisor View Logic
         if (user?.role === 'Supervisor') {
             const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
             const visibleIds = [user.id, ...teamIds];
-            dataToFilter = performanceData.filter(d => visibleIds.includes(d.userId));
+            return dataToFilter.filter(d => visibleIds.includes(d.userId));
         }
         
+        // Broker View Logic
         if (user?.role === 'Broker') {
-            return performanceData.filter(d => d.userId === user.id);
+            return dataToFilter.filter(d => d.userId === user.id);
         }
-
-        // For Admin, filter by selected user if not 'all'
-        if (user?.role === 'Admin' && selectedUserId !== 'all') {
-            return dataToFilter.filter(d => d.userId === selectedUserId);
-        }
-
-        return dataToFilter;
+    
+        // Default to an empty array if no role matches
+        return [];
     }, [user, performanceData, selectedUserId, allStaff]);
 
 
@@ -108,8 +117,7 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
     }
 
     if (user.role === 'Broker') {
-        const userData = filteredData[0]; // Broker sees only their data
-        // Show cards even if there is no data.
+        const userData = filteredData[0];
         const safeUserData = userData || { leadsRecibidos: 0, numerosObtenidos: 0, citasAgendadas: 0, citasConfirmadas: 0, leadsDescartados: 0, ventas: 0 };
         const bonus = calculateBonus(safeUserData.ventas);
         
