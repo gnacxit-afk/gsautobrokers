@@ -130,11 +130,11 @@ export default function DashboardPage() {
                   <th className="pb-3 font-medium text-center">Leads</th>
                   <th className="pb-3 font-medium text-center">Sales</th>
                   <th className="pb-3 font-medium text-center">Conv.</th>
-                  <th className="pb-3 font-medium text-right">To Pay</th>
+                  <th className="pb-3 font-medium text-right">Commission</th>
                   {user?.role === 'Admin' && (
                     <>
                       <th className="pb-3 font-medium text-right">Bonus</th>
-                      <th className="pb-3 font-medium text-right">Margin</th>
+                      <th className="pb-3 font-medium text-right">TTP</th>
                     </>
                   )}
                 </tr>
@@ -152,7 +152,7 @@ export default function DashboardPage() {
                     {user?.role === 'Admin' && (
                       <>
                         <td className="py-3 text-right text-violet-600 font-medium">${data.bonus.toLocaleString()}</td>
-                        <td className="py-3 text-right text-emerald-600 font-medium">${((data.sales * MARGIN_PER_VEHICLE) - data.bonus).toLocaleString()}</td>
+                        <td className="py-3 text-right text-emerald-600 font-medium">${((data.sales * COMMISSION_PER_VEHICLE) + data.bonus).toLocaleString()}</td>
                       </>
                     )}
                   </tr>
