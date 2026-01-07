@@ -131,12 +131,12 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
 
     if (user.role === 'Broker') {
         const userData = filteredData[0]; // Broker sees only their data
-        const bonus = userData ? calculateBonus(userData.ventas) : 0;
         if (!userData) {
              return <p className="text-muted-foreground">No performance data for today.</p>;
         }
+        const bonus = calculateBonus(userData.ventas);
         return (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-4">
                <MetricCard label="Leads Recibidos" value={userData.leadsRecibidos} />
                <MetricCard label="Números Obtenidos" value={userData.numerosObtenidos} />
                <MetricCard label="Citas Agendadas" value={userData.citasAgendadas} />
@@ -152,7 +152,7 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
     return (
         <div className="space-y-4">
             <div className="flex flex-col md:flex-row gap-4">
-                <DateRangePicker />
+                {(user.role === 'Admin' || user.role === 'Supervisor') && <DateRangePicker />}
                 {user.role === 'Admin' && (
                     <Select value={selectedUserId} onValueChange={setSelectedUserId}>
                         <SelectTrigger className="w-full md:w-[240px]">
