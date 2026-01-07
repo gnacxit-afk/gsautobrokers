@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const calculateMetrics = (leads: Lead[]): Omit<PerformanceMetric, 'userId' | 'userName'> => {
     const leadsRecibidos = leads.length;
-    const numerosObtenidos = leads.filter(l => l.phone).length;
+    const numerosObtenidos = leads.filter(l => l.phone && l.phone.trim() !== '').length;
     const citasAgendadas = leads.filter(l => l.stage === 'Citado').length;
     const citasConfirmadas = leads.filter(l => l.stage === 'En Seguimiento').length;
     const leadsDescartados = leads.filter(l => l.stage === 'Perdido').length;
@@ -46,7 +46,7 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
     const activeDateRange = user?.role === 'Admin' ? dateRange : todayRange;
 
     const performanceData = useMemo(() => {
-        const data: (PerformanceMetric & { bonus: number })[] = [];
+        const data: PerformanceMetric[] = [];
         
         const staffToDisplay = allStaff.filter(s => s.role === 'Broker' || s.role === 'Supervisor');
 
@@ -59,17 +59,16 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
             });
             
             const metrics = calculateMetrics(userLeads);
-            const bonus = calculateBonus(metrics.ventas);
             
             data.push({
                 userId: staffMember.id,
                 userName: staffMember.name,
                 ...metrics,
-                bonus
             });
         });
 
-        return data;
+        // Sort data by sales (ventas) in descending order for ranking
+        return data.sort((a, b) => b.ventas - a.ventas);
 
     }, [allLeads, allStaff, activeDateRange]);
 
@@ -105,7 +104,7 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
                      <Table>
                         <TableHeader>
                             <TableRow>
-                                {[...Array(user.role === 'Admin' ? 8 : 7)].map((_, i) => (
+                                {[...Array(7)].map((_, i) => (
                                     <TableHead key={i}><Skeleton className="h-5 w-20" /></TableHead>
                                 ))}
                             </TableRow>
@@ -113,7 +112,7 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
                         <TableBody>
                             {[...Array(3)].map((_, i) => (
                                 <TableRow key={i}>
-                                    {[...Array(user.role === 'Admin' ? 8 : 7)].map((_, j) => (
+                                    {[...Array(7)].map((_, j) => (
                                         <TableCell key={j}><Skeleton className="h-5 w-full" /></TableCell>
                                     ))}
                                 </TableRow>
@@ -127,6 +126,7 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
 
     if (user.role === 'Broker') {
         const userData = filteredData[0]; // Broker sees only their data
+        const bonus = userData ? calculateBonus(userData.ventas) : 0;
         if (!userData) {
              return <p className="text-muted-foreground">No performance data for today.</p>;
         }
@@ -138,7 +138,7 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
                <MetricCard label="Citas Confirmadas" value={userData.citasConfirmadas} />
                <MetricCard label="Leads Descartados" value={userData.leadsDescartados} />
                <MetricCard label="Ventas" value={userData.ventas} />
-               <MetricCard label="Bonus" value={`$${userData.bonus.toLocaleString()}`} />
+               <MetricCard label="Bonus" value={`$${bonus.toLocaleString()}`} />
             </div>
         )
     }
@@ -173,7 +173,6 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
                             <TableHead className="text-center">Citas Confirmadas</TableHead>
                             <TableHead className="text-center">Leads Descartados</TableHead>
                             <TableHead className="text-center">Ventas</TableHead>
-                            {user.role === 'Admin' && <TableHead className="text-center">Bonus</TableHead>}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -186,12 +185,11 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
                                 <TableCell className="text-center">{data.citasConfirmadas}</TableCell>
                                 <TableCell className="text-center">{data.leadsDescartados}</TableCell>
                                 <TableCell className="text-center font-bold text-green-600">{data.ventas}</TableCell>
-                                {user.role === 'Admin' && <TableCell className="text-center font-bold text-violet-600">${data.bonus.toLocaleString()}</TableCell>}
                             </TableRow>
                         ))}
                          {filteredData.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={user.role === 'Admin' ? 8 : 7} className="h-24 text-center">
+                                <TableCell colSpan={7} className="h-24 text-center">
                                     No performance data for the selected criteria.
                                 </TableCell>
                             </TableRow>
