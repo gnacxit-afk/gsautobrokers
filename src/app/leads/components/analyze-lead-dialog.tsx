@@ -42,9 +42,7 @@ export function AnalyzeLeadDialog({ lead, open, onOpenChange, onAnalysisComplete
             setError(null);
             startTransition(async () => {
                 try {
-                    // Use the latest note if available, otherwise fallback to a generic string.
-                    const latestNote = lead.notes && lead.notes.length > 0 ? lead.notes[lead.notes.length - 1].content : "No notes available.";
-                    const leadDetails = `Name: ${lead.name}, Company: ${lead.company || 'N/A'}, Stage: ${lead.stage}, Notes: ${latestNote}`;
+                    const leadDetails = `Name: ${lead.name}, Company: ${lead.company || 'N/A'}, Stage: ${lead.stage}`;
                     
                     const result = await analyzeAndUpdateLead({ leadDetails });
                     setAnalysis(result);

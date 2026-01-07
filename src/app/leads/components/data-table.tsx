@@ -29,7 +29,6 @@ import { Plus, Search, XCircle } from "lucide-react";
 import { NewLeadDialog } from "./new-lead-dialog";
 import { Input } from "@/components/ui/input";
 import type { Lead, Staff } from "@/lib/types";
-import { RenderSubComponent } from "./render-sub-component";
 import { DateRangePicker } from "@/components/layout/date-range-picker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthContext } from "@/lib/auth";
@@ -38,7 +37,6 @@ import { useAuthContext } from "@/lib/auth";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   table: ReactTable<TData>;
-  onAddNote: (leadId: string, noteContent: string) => void;
   onAddLead: (lead: Omit<Lead, 'id' | 'createdAt' | 'ownerName'>) => void;
   staff: Staff[];
   stages: Lead['stage'][];
@@ -51,7 +49,6 @@ interface DataTableProps<TData, TValue> {
 export function DataTable<TData extends Lead, TValue>({
   columns,
   table,
-  onAddNote,
   onAddLead,
   staff,
   stages,
@@ -205,13 +202,6 @@ export function DataTable<TData extends Lead, TValue>({
                     </TableCell>
                   ))}
                 </TableRow>
-                {row.getIsExpanded() && (
-                    <TableRow>
-                        <TableCell colSpan={columns.length}>
-                            <RenderSubComponent row={row as Row<Lead>} onAddNote={onAddNote} />
-                        </TableCell>
-                    </TableRow>
-                )}
                 </React.Fragment>
               ))
             ) : (

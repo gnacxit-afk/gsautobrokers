@@ -75,14 +75,6 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
         onAnalysisComplete={handleLeadStatusUpdate} 
       />
       <div className="flex items-center gap-2 justify-end">
-        <Button
-            onClick={() => row.toggleExpanded()}
-            variant="ghost"
-            size="icon"
-            className="w-8 h-8"
-            >
-            {row.getIsExpanded() ? <ChevronDown size={16} /> : <MessageSquare size={16} />}
-        </Button>
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">

@@ -45,7 +45,7 @@ const stageColors: Record<Lead['stage'], string> = {
 const initialFormState = {
     name: "",
     phone: "",
-    notes: [{ content: "", author: "", type: "Manual" as const, date: new Date() }],
+    noteContent: "",
     channel: "Facebook" as Lead['channel'],
     stage: "Nuevo" as Lead['stage'],
     language: "Spanish" as 'English' | 'Spanish',
@@ -56,20 +56,11 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
   const { toast } = useToast();
   const { user } = useAuthContext();
 
-  const [formData, setFormData] = useState<Omit<Lead, 'id' | 'createdAt' | 'ownerId' | 'ownerName' | 'email' | 'company'>>({
-    ...initialFormState
-  });
+  const [formData, setFormData] = useState<any>(initialFormState);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
-    if (id === 'notes') {
-        setFormData(prev => ({
-            ...prev,
-            notes: [{ ...prev.notes![0], content: value }]
-        }));
-    } else {
-        setFormData(prev => ({ ...prev, [id]: value }));
-    }
+    setFormData(prev => ({ ...prev, [id]: value }));
   }
   
   const handleSelectChange = (id: keyof typeof formData, value: string) => {
@@ -85,13 +76,13 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
         toast({ title: "Error", description: "You must be logged in to create a lead.", variant: "destructive"});
         return;
     }
-    const noteContent = formData.notes?.[0]?.content;
+    const { noteContent, ...leadData } = formData;
     if (!formData.name || !formData.phone || !formData.stage || !noteContent) {
         toast({ title: "Missing Fields", description: "Please fill out all fields marked with an asterisk (*).", variant: "destructive"});
         return;
     }
 
-    onAddLead({ ...formData, ownerId: user.id });
+    onAddLead({ ...leadData, ownerId: user.id, noteContent: noteContent });
 
     // The toast is now handled in the page.tsx to include AI analysis status.
     onOpenChange(false);
@@ -175,12 +166,12 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
             </Select>
           </div>
            <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="notes" className="text-right pt-2">
+              <Label htmlFor="noteContent" className="text-right pt-2">
                 Initial Note*
               </Label>
               <Textarea
-                id="notes"
-                value={formData.notes?.[0]?.content || ""}
+                id="noteContent"
+                value={formData.noteContent}
                 onChange={handleInputChange}
                 placeholder="Add any initial notes for this lead."
                 className="col-span-3"

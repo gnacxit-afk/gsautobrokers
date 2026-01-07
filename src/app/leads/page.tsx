@@ -86,38 +86,11 @@ export default function LeadsPage() {
 
     }, [user, allLeads, allStaff, dateRange]);
     
-    const handleAddNote = useCallback((leadId: string, noteContent: string) => {
-        if (!firestore || !user) return;
-        
-        const newNote: NoteEntry = {
-            content: noteContent,
-            author: user.name,
-            date: serverTimestamp(),
-            type: 'Manual',
-        };
-
-        const leadRef = doc(firestore, 'leads', leadId);
-        updateDocumentNonBlocking(leadRef, {
-            notes: arrayUnion(newNote)
-        });
-        toast({ title: "Note Added", description: "Your note has been saved." });
-    }, [firestore, user, toast]);
-
     const handleUpdateStage = useCallback((id: string, stage: Lead['stage']) => {
         if (!firestore || !user) return;
         const leadRef = doc(firestore, 'leads', id);
         
-        const systemNote: NoteEntry = {
-            content: `Stage changed to '${stage}'`,
-            author: user.name,
-            date: serverTimestamp(),
-            type: 'System'
-        };
-
-        updateDocumentNonBlocking(leadRef, { 
-            stage,
-            notes: arrayUnion(systemNote)
-        });
+        updateDocumentNonBlocking(leadRef, { stage });
         toast({ title: "Stage Updated", description: `Lead stage changed to ${stage}.` });
     }, [firestore, toast, user]);
 
@@ -126,16 +99,6 @@ export default function LeadsPage() {
         const leadRef = doc(firestore, 'leads', id);
         
         const updates: any = { leadStatus };
-
-        if (analysis) {
-            const aiNote: NoteEntry = {
-                content: `Decision: ${analysis.decision}\nRecommendation: ${analysis.recommendation}`,
-                author: 'AI Assistant',
-                date: serverTimestamp(),
-                type: 'AI Analysis'
-            };
-            updates.notes = arrayUnion(aiNote);
-        }
 
         updateDocumentNonBlocking(leadRef, updates);
     }, [firestore]);
@@ -148,7 +111,7 @@ export default function LeadsPage() {
         }
     }, [firestore, toast]);
 
-    const handleAddLead = useCallback(async (newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'>) => {
+    const handleAddLead = useCallback(async (newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'> & { noteContent: string }) => {
         if (!firestore || !user) return;
         const owner = allStaff.find(s => s.id === newLeadData.ownerId);
         if (!owner) {
@@ -156,53 +119,33 @@ export default function LeadsPage() {
              return;
         };
 
-        const leadsCollection = collection(firestore, 'leads');
-        
-        // Use a write batch to ensure atomicity
-        const batch = writeBatch(firestore);
-        const newLeadRef = doc(collection(firestore, "leads")); // Create a new doc ref with an auto-generated ID
+        const { noteContent, ...leadData } = newLeadData;
 
-        const initialNote: NoteEntry = {
-            content: newLeadData.notes?.[0]?.content || "Lead created.",
-            author: user.name,
-            date: serverTimestamp(),
-            type: 'Manual',
-        };
+        // Create a new doc ref with an auto-generated ID
+        const newLeadRef = doc(collection(firestore, "leads")); 
 
-        batch.set(newLeadRef, {
-            ...newLeadData,
-            notes: [initialNote], // Start with the initial note
+        await addDocumentNonBlocking(newLeadRef, {
+            ...leadData,
             createdAt: serverTimestamp(),
             ownerName: owner.name,
-        });
-
-        await batch.commit();
-        
-        toast({ title: "Lead Added", description: "New lead created. Analyzing with AI in background..." });
+        }).then(async () => {
+             toast({ title: "Lead Added", description: "New lead created. Analyzing with AI in background..." });
              
-        // Background AI analysis
-        try {
-            const leadDetails = `Name: ${newLeadData.name}, Company: ${newLeadData.company}, Stage: ${newLeadData.stage}, Notes: ${initialNote.content}`;
-            const analysisResult = await analyzeAndUpdateLead({ leadDetails });
+            // Background AI analysis
+            try {
+                const leadDetails = `Name: ${newLeadData.name}, Company: ${newLeadData.company}, Stage: ${newLeadData.stage}, Notes: ${noteContent}`;
+                const analysisResult = await analyzeAndUpdateLead({ leadDetails });
 
-            const aiNote: NoteEntry = {
-                content: `Decision: ${analysisResult.qualificationDecision}\nRecommendation: ${analysisResult.salesRecommendation}`,
-                author: 'AI Assistant',
-                date: serverTimestamp(),
-                type: 'AI Analysis'
-            };
-
-            updateDocumentNonBlocking(newLeadRef, { 
-                leadStatus: analysisResult.leadStatus,
-                notes: arrayUnion(aiNote)
-            });
-            
-            toast({ title: "AI Analysis Complete", description: `Lead status for ${newLeadData.name} set to ${analysisResult.leadStatus}.` });
-        } catch (aiError) {
-            console.error("Error during background AI analysis:", aiError);
-            // Do not show a failure toast for background task, just log it.
-        }
-
+                updateDocumentNonBlocking(newLeadRef, { 
+                    leadStatus: analysisResult.leadStatus,
+                });
+                
+                toast({ title: "AI Analysis Complete", description: `Lead status for ${newLeadData.name} set to ${analysisResult.leadStatus}.` });
+            } catch (aiError) {
+                console.error("Error during background AI analysis:", aiError);
+                // Do not show a failure toast for background task, just log it.
+            }
+        });
     }, [firestore, allStaff, toast, user]);
 
 
@@ -214,18 +157,10 @@ export default function LeadsPage() {
             return;
         }
         
-        const systemNote: NoteEntry = {
-            content: `Owner changed to '${newOwner.name}'`,
-            author: user.name,
-            date: serverTimestamp(),
-            type: 'System'
-        };
-
         const leadRef = doc(firestore, 'leads', id);
         updateDocumentNonBlocking(leadRef, { 
             ownerId: newOwner.id, 
             ownerName: newOwner.name,
-            notes: arrayUnion(systemNote)
         });
         toast({ title: "Owner Updated", description: `Lead reassigned to ${newOwner.name}.` });
     }, [firestore, allStaff, toast, user]);
@@ -270,7 +205,6 @@ export default function LeadsPage() {
             <DataTable 
                 table={table}
                 columns={columns}
-                onAddNote={handleAddNote}
                 onAddLead={handleAddLead}
                 staff={allStaff}
                 stages={leadStages}

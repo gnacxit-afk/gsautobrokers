@@ -28,7 +28,6 @@ export type Lead = {
   phone: string;
   company?: string;
   stage: "Nuevo" | "Calificado" | "Citado" | "En Seguimiento" | "Ganado" | "Perdido";
-  notes?: NoteEntry[];
   ownerId: string; // This will be the staff member's document ID
   ownerName: string;
   channel: 'Facebook' | 'WhatsApp' | 'Call' | 'Visit' | 'Other';
