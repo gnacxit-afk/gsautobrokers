@@ -35,11 +35,10 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
     const [selectedUserId, setSelectedUserId] = useState<string>('all');
     
     const performanceData = useMemo(() => {
-        // Start with all staff members who should be on the dashboard
+        // Correctly include all staff who can be lead owners.
         const staffToDisplay = allStaff.filter(s => s.role === 'Broker' || s.role === 'Supervisor');
 
         const data: PerformanceMetric[] = staffToDisplay.map(staffMember => {
-            // Filter leads for this specific staff member from the provided `allLeads`
             const userLeads = allLeads.filter(lead => lead.ownerId === staffMember.id);
             const metrics = calculateMetrics(userLeads);
             
@@ -50,13 +49,11 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
             };
         });
 
-        // Sort data by sales (ventas) in descending order for ranking
         return data.sort((a, b) => b.ventas - a.ventas);
 
     }, [allLeads, allStaff]);
 
     const filteredData = useMemo(() => {
-        // Explicitly handle each role for clarity and correctness.
         switch (user?.role) {
             case 'Admin':
                 if (selectedUserId === 'all') {
@@ -116,17 +113,15 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
     if (user.role === 'Broker') {
         const userData = filteredData[0];
         const safeUserData = userData || { leadsRecibidos: 0, numerosObtenidos: 0, citasAgendadas: 0, citasConfirmadas: 0, leadsDescartados: 0, ventas: 0 };
-        const bonus = calculateBonus(safeUserData.ventas);
         
         return (
-             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-4">
+             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
                <MetricCard label="Leads Recibidos" value={safeUserData.leadsRecibidos} />
                <MetricCard label="Números Obtenidos" value={safeUserData.numerosObtenidos} />
                <MetricCard label="Citas Agendadas" value={safeUserData.citasAgendadas} />
                <MetricCard label="Citas Confirmadas" value={safeUserData.citasConfirmadas} />
                <MetricCard label="Leads Descartados" value={safeUserData.leadsDescartados} />
                <MetricCard label="Ventas" value={safeUserData.ventas} />
-               <MetricCard label="Bonus" value={`$${bonus.toLocaleString()}`} />
             </div>
         )
     }
@@ -199,7 +194,5 @@ const MetricCard = ({ label, value }: { label: string, value: number | string })
         </CardContent>
     </Card>
 );
-
-    
 
     
