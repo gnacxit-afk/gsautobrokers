@@ -38,12 +38,17 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
     const { dateRange } = useDateRange();
     const [selectedUserId, setSelectedUserId] = useState<string>('all');
     
-    // For non-admins, today's date range is forced.
-    const todayRange = {
-        start: startOfDay(new Date()),
-        end: endOfDay(new Date())
-    };
-    const activeDateRange = user?.role === 'Admin' ? dateRange : todayRange;
+    const activeDateRange = useMemo(() => {
+        if (user?.role === 'Admin' || user?.role === 'Supervisor') {
+            return dateRange;
+        }
+        // Brokers only see today's data
+        return {
+            start: startOfDay(new Date()),
+            end: endOfDay(new Date())
+        };
+    }, [user, dateRange]);
+
 
     const performanceData = useMemo(() => {
         const data: PerformanceMetric[] = [];
@@ -146,9 +151,9 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
     // Admin & Supervisor View
     return (
         <div className="space-y-4">
-            {user.role === 'Admin' && (
-                <div className="flex flex-col md:flex-row gap-4">
-                    <DateRangePicker />
+            <div className="flex flex-col md:flex-row gap-4">
+                <DateRangePicker />
+                {user.role === 'Admin' && (
                     <Select value={selectedUserId} onValueChange={setSelectedUserId}>
                         <SelectTrigger className="w-full md:w-[240px]">
                             <SelectValue placeholder="Filter by user..." />
@@ -160,8 +165,8 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
                             ))}
                         </SelectContent>
                     </Select>
-                </div>
-            )}
+                )}
+            </div>
             <div className="rounded-lg border bg-white overflow-x-auto">
                 <Table>
                     <TableHeader>
