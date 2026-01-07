@@ -131,13 +131,14 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
              return <p className="text-muted-foreground">No performance data for today.</p>;
         }
         return (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
                <MetricCard label="Leads Recibidos" value={userData.leadsRecibidos} />
                <MetricCard label="Números Obtenidos" value={userData.numerosObtenidos} />
                <MetricCard label="Citas Agendadas" value={userData.citasAgendadas} />
                <MetricCard label="Citas Confirmadas" value={userData.citasConfirmadas} />
                <MetricCard label="Leads Descartados" value={userData.leadsDescartados} />
                <MetricCard label="Ventas" value={userData.ventas} />
+               <MetricCard label="Bonus" value={`$${userData.bonus.toLocaleString()}`} />
             </div>
         )
     }
@@ -202,7 +203,7 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
     );
 }
 
-const MetricCard = ({ label, value }: { label: string, value: number }) => (
+const MetricCard = ({ label, value }: { label: string, value: number | string }) => (
     <Card>
         <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>

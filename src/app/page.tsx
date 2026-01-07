@@ -100,14 +100,19 @@ export default function DashboardPage() {
 
   const topSellers = Object.entries(stats.sellerStats).sort(([, a], [, b]) => b.sales - a.sales);
   const topChannel = Object.entries(stats.channels).sort(([, a], [, b]) => (b.sales / (b.leads || 1)) - (a.sales / (a.leads || 1)))[0];
+  const brokerBonus = user && stats.sellerStats[user.name] ? stats.sellerStats[user.name].bonus : 0;
+
 
   return (
     <div className="space-y-8">
-       <div className={`grid grid-cols-1 md:grid-cols-3 ${user?.role === 'Admin' ? 'lg:grid-cols-8' : 'lg:grid-cols-4'} gap-4`}>
+       <div className={`grid grid-cols-1 md:grid-cols-3 ${user?.role === 'Admin' ? 'lg:grid-cols-8' : 'lg:grid-cols-5'} gap-4`}>
         <StatCard label="Total Leads" value={stats.totalLeads} color="blue" />
         <StatCard label="Closed Sales" value={stats.closedSales} color="green" />
         <StatCard label="Conversion" value={`${stats.conversion.toFixed(1)}%`} color="indigo" />
         <StatCard label="Commissions" value={`$${stats.totalCommissions.toLocaleString()}`} color="amber" />
+        {user?.role === 'Broker' && (
+          <StatCard label="Bonus" value={`$${brokerBonus.toLocaleString()}`} color="violet" />
+        )}
         {user?.role === 'Admin' && (
           <>
             <StatCard label="Total Bonuses" value={`$${stats.totalBonuses.toLocaleString()}`} color="violet" />
