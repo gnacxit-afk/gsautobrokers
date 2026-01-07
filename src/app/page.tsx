@@ -103,7 +103,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-       <div className={`grid grid-cols-1 md:grid-cols-3 ${user?.role === 'Admin' ? 'lg:grid-cols-7' : 'lg:grid-cols-4'} gap-4`}>
+       <div className={`grid grid-cols-1 md:grid-cols-3 ${user?.role === 'Admin' ? 'lg:grid-cols-8' : 'lg:grid-cols-4'} gap-4`}>
         <StatCard label="Total Leads" value={stats.totalLeads} color="blue" />
         <StatCard label="Closed Sales" value={stats.closedSales} color="green" />
         <StatCard label="Conversion" value={`${stats.conversion.toFixed(1)}%`} color="indigo" />
@@ -111,6 +111,7 @@ export default function DashboardPage() {
         {user?.role === 'Admin' && (
           <>
             <StatCard label="Total Bonuses" value={`$${stats.totalBonuses.toLocaleString()}`} color="violet" />
+            <StatCard label="Total To Pay" value={`$${(stats.totalCommissions + stats.totalBonuses).toLocaleString()}`} color="emerald" />
             <StatCard label="Gross Margin" value={`$${stats.totalMargin.toLocaleString()}`} color="emerald" />
             <StatCard label="Total Revenue" value={`$${stats.totalRevenue.toLocaleString()}`} color="rose" />
           </>
