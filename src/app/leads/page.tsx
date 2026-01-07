@@ -18,9 +18,8 @@ import {
   type ColumnFiltersState,
   type FilterFn,
 } from '@tanstack/react-table';
-import { collection, serverTimestamp, query, orderBy, arrayUnion, writeBatch, updateDoc } from 'firebase/firestore';
+import { collection, serverTimestamp, query, orderBy, arrayUnion, writeBatch, updateDoc, doc, setDoc } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
-import { doc } from "firebase/firestore";
 import { analyzeAndUpdateLead } from "@/ai/flows/analyze-and-update-leads";
 import { isWithinInterval } from "date-fns";
 import { RenderSubComponent } from "./components/render-sub-component";
@@ -117,7 +116,7 @@ export default function LeadsPage() {
         if (!firestore) return;
         const leadRef = doc(firestore, 'leads', id);
         
-        const updates: any = { leadStatus };
+        updateDocumentNonBlocking(leadRef, { leadStatus });
 
         if (analysis) {
             const noteContent = `AI Analysis Complete:\n- Qualification: ${analysis.decision}\n- Recommendation: ${analysis.recommendation}`;
@@ -129,8 +128,6 @@ export default function LeadsPage() {
             };
             addNote(id, note);
         }
-
-        updateDocumentNonBlocking(leadRef, updates);
     }, [firestore, addNote]);
     
     const handleDelete = useCallback((id: string) => {
@@ -151,8 +148,8 @@ export default function LeadsPage() {
 
         const { noteContent, ...leadData } = newLeadData;
 
-        // Create a new doc ref with an auto-generated ID
-        const newLeadRef = doc(collection(firestore, "leads")); 
+        const leadsCollection = collection(firestore, 'leads');
+        const newLeadRef = doc(leadsCollection); // Create a reference with a new ID
 
         const initialNote: NoteEntry = {
             content: noteContent,
@@ -161,37 +158,42 @@ export default function LeadsPage() {
             type: 'Manual'
         };
 
-        await addDocumentNonBlocking(newLeadRef, {
+        const finalLeadData = {
             ...leadData,
+            id: newLeadRef.id, // Explicitly set the ID
             createdAt: serverTimestamp(),
             ownerName: owner.name,
             notes: [initialNote]
-        }).then(async () => {
-             toast({ title: "Lead Added", description: "New lead created. Analyzing with AI in background..." });
-             
-            // Background AI analysis
-            try {
-                const leadDetails = `Name: ${newLeadData.name}, Company: ${newLeadData.company}, Stage: ${newLeadData.stage}, Notes: ${noteContent}`;
-                const analysisResult = await analyzeAndUpdateLead({ leadDetails });
+        };
 
-                const analysisNote: NoteEntry = {
-                     content: `AI Analysis Complete:\n- Qualification: ${analysisResult.qualificationDecision}\n- Recommendation: ${analysisResult.salesRecommendation}`,
-                    author: 'AI Assistant',
-                    date: serverTimestamp(),
-                    type: 'AI Analysis'
-                };
+        // Use setDoc with the new reference, which is non-blocking
+        setDocumentNonBlocking(newLeadRef, finalLeadData, {});
+        
+        toast({ title: "Lead Added", description: "New lead created. Analyzing with AI in background..." });
+         
+        // Background AI analysis
+        try {
+            const leadDetails = `Name: ${newLeadData.name}, Company: ${newLeadData.company || 'N/A'}, Stage: ${newLeadData.stage}, Notes: ${noteContent}`;
+            const analysisResult = await analyzeAndUpdateLead({ leadDetails });
 
-                updateDocumentNonBlocking(newLeadRef, { 
-                    leadStatus: analysisResult.leadStatus,
-                    notes: arrayUnion(analysisNote)
-                });
-                
-                toast({ title: "AI Analysis Complete", description: `Lead status for ${newLeadData.name} set to ${analysisResult.leadStatus}.` });
-            } catch (aiError) {
-                console.error("Error during background AI analysis:", aiError);
-                // Do not show a failure toast for background task, just log it.
-            }
-        });
+            const analysisNote: NoteEntry = {
+                 content: `AI Analysis Complete:\n- Qualification: ${analysisResult.qualificationDecision}\n- Recommendation: ${analysisResult.salesRecommendation}`,
+                author: 'AI Assistant',
+                date: serverTimestamp(),
+                type: 'AI Analysis'
+            };
+
+            updateDocumentNonBlocking(newLeadRef, { 
+                leadStatus: analysisResult.leadStatus,
+                notes: arrayUnion(analysisNote)
+            });
+            
+            toast({ title: "AI Analysis Complete", description: `Lead status for ${newLeadData.name} set to ${analysisResult.leadStatus}.` });
+        } catch (aiError) {
+            console.error("Error during background AI analysis:", aiError);
+            // Do not show a failure toast for background task, just log it.
+        }
+
     }, [firestore, allStaff, toast, user]);
 
 
@@ -286,5 +288,3 @@ export default function LeadsPage() {
         </main>
     );
 }
-
-    
