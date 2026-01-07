@@ -100,19 +100,24 @@ export default function DashboardPage() {
 
   const topSellers = Object.entries(stats.sellerStats).sort(([, a], [, b]) => b.sales - a.sales);
   const topChannel = Object.entries(stats.channels).sort(([, a], [, b]) => (b.sales / (b.leads || 1)) - (a.sales / (a.leads || 1)))[0];
-  const brokerBonus = user && stats.sellerStats[user.name] ? stats.sellerStats[user.name].bonus : 0;
 
+
+  if (user?.role === 'Broker') {
+    return (
+      <div className="space-y-8">
+        <h2 className="text-2xl font-bold">Welcome, {user.name}</h2>
+        <p className="text-muted-foreground">This is your main dashboard. Key metrics have been moved to the KPI's & Performance page.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
-       <div className={`grid grid-cols-1 md:grid-cols-3 ${user?.role === 'Admin' ? 'lg:grid-cols-8' : 'lg:grid-cols-5'} gap-4`}>
+       <div className={`grid grid-cols-1 md:grid-cols-3 ${user?.role === 'Admin' ? 'lg:grid-cols-8' : 'lg:grid-cols-4'} gap-4`}>
         <StatCard label="Total Leads" value={stats.totalLeads} color="blue" />
         <StatCard label="Closed Sales" value={stats.closedSales} color="green" />
         <StatCard label="Conversion" value={`${stats.conversion.toFixed(1)}%`} color="indigo" />
         <StatCard label="Commissions" value={`$${stats.totalCommissions.toLocaleString()}`} color="amber" />
-        {user?.role === 'Broker' && (
-          <StatCard label="Bonus" value={`$${brokerBonus.toLocaleString()}`} color="violet" />
-        )}
         {user?.role === 'Admin' && (
           <>
             <StatCard label="Total Bonuses" value={`$${stats.totalBonuses.toLocaleString()}`} color="violet" />
@@ -123,7 +128,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {user?.role !== 'Broker' && (
+      {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2">

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -11,6 +12,9 @@ import { useDoc } from '@/firebase/firestore/use-doc';
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/lib/auth';
 import { useToast } from '@/hooks/use-toast';
+import { useDateRange } from '@/hooks/use-date-range';
+import { calculateBonus, getNextBonusGoal } from '@/lib/utils';
+import { COMMISSION_PER_VEHICLE } from '@/lib/mock-data';
 
 const DEFAULT_KPIS: KPI[] = [
     { id: 'leads_recibidos', label: 'Leads recibidos', target: 'informativo', description: 'Total de leads que ingresan al sistema.' },
@@ -21,10 +25,27 @@ const DEFAULT_KPIS: KPI[] = [
     { id: 'ventas', label: 'Ventas', target: '3', description: 'Número de ventas cerradas.' },
 ];
 
+const StatCard = ({ label, value, color }: { label: string, value: string | number, color: string }) => {
+  const colors: { [key: string]: string } = {
+    blue: "text-blue-600 bg-blue-50 border-blue-100",
+    green: "text-green-600 bg-green-50 border-green-100",
+    indigo: "text-indigo-600 bg-indigo-50 border-indigo-100",
+    amber: "text-amber-600 bg-amber-50 border-amber-100",
+    violet: "text-violet-600 bg-violet-50 border-violet-100",
+  };
+  return (
+    <div className={`p-5 rounded-2xl border ${colors[color] || colors.blue} shadow-sm`}>
+      <p className="text-xs font-semibold uppercase tracking-wider opacity-70 mb-1">{label}</p>
+      <p className="text-2xl font-bold">{value}</p>
+    </div>
+  );
+};
+
 
 export default function KpiPage() {
   const firestore = useFirestore();
   const { user, MASTER_ADMIN_EMAIL } = useAuthContext();
+  const { dateRange } = useDateRange();
   const { toast } = useToast();
   const [isInitializing, setIsInitializing] = useState(false);
 
@@ -52,6 +73,26 @@ export default function KpiPage() {
   const staff = staffData || [];
 
   const loading = kpisLoading || leadsLoading || staffLoading;
+
+  const brokerStats = useMemo(() => {
+    if (!user || user.role !== 'Broker' || !leadsData) {
+      return null;
+    }
+    const brokerLeads = leadsData.filter(l => l.ownerId === user.id);
+    const totalLeads = brokerLeads.length;
+    const closedSales = brokerLeads.filter(l => l.stage === 'Ganado').length;
+    const conversion = totalLeads > 0 ? (closedSales / totalLeads) * 100 : 0;
+    const totalCommissions = closedSales * COMMISSION_PER_VEHICLE;
+    const brokerBonus = calculateBonus(closedSales);
+
+    return {
+      totalLeads,
+      closedSales,
+      conversion,
+      totalCommissions,
+      brokerBonus
+    };
+  }, [user, leadsData]);
   
   const handleInitializeKpis = async () => {
     if (!firestore || !kpisDocRef) return;
@@ -68,6 +109,16 @@ export default function KpiPage() {
 
   return (
     <main className="flex-1 space-y-8">
+       {user?.role === 'Broker' && brokerStats && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+            <StatCard label="Total Leads" value={brokerStats.totalLeads} color="blue" />
+            <StatCard label="Closed Sales" value={brokerStats.closedSales} color="green" />
+            <StatCard label="Conversion" value={`${brokerStats.conversion.toFixed(1)}%`} color="indigo" />
+            <StatCard label="Commissions" value={`$${brokerStats.totalCommissions.toLocaleString()}`} color="amber" />
+            <StatCard label="Bonus" value={`$${brokerStats.brokerBonus.toLocaleString()}`} color="violet" />
+        </div>
+      )}
+
       <div>
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold">Daily Goals</h1>
