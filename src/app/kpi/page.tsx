@@ -45,6 +45,7 @@ const StatCard = ({ label, value, color }: { label: string, value: string | numb
 };
 
 function BrokerMonthlyGoals() {
+  const firestore = useFirestore();
   const { user } = useUser();
   const { data: leadsData } = useCollection<Lead>(
     useMemo(() => (firestore ? collection(firestore, 'leads') : null), [firestore])
@@ -257,4 +258,3 @@ export default function KpiPage() {
     </main>
   );
 }
-
