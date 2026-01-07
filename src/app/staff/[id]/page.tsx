@@ -53,6 +53,8 @@ export default function StaffProfilePage() {
 
   const supervisors = useMemo(() => allStaff.filter(s => s.role === 'Supervisor'), [allStaff]);
   const admins = useMemo(() => allStaff.filter(s => s.role === 'Admin'), [allStaff]);
+  const managers = useMemo(() => allStaff.filter(s => s.role === 'Supervisor' || s.role === 'Admin'), [allStaff]);
+
 
   const currentUserCanEdit = user?.role === 'Admin';
   const isEditingSelf = user?.id === staffId;
@@ -249,14 +251,14 @@ export default function StaffProfilePage() {
 
                     {formData.role === 'Broker' && (
                         <div className="space-y-2">
-                            <Label htmlFor="supervisorId">Supervisor</Label>
+                            <Label htmlFor="supervisorId">Supervisor / Admin</Label>
                             <Select value={formData.supervisorId} onValueChange={handleSupervisorChange}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Select a supervisor" />
+                                    <SelectValue placeholder="Select a supervisor or admin" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {supervisors.map(s => (
-                                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                    {managers.map(s => (
+                                        <SelectItem key={s.id} value={s.id}>{s.name} ({s.role})</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -319,3 +321,4 @@ export default function StaffProfilePage() {
     </main>
   );
 }
+
