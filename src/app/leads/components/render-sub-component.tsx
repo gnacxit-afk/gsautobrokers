@@ -19,7 +19,10 @@ interface RenderSubComponentProps {
 const Note = ({ note }: { note: NoteEntry }) => {
     const renderDate = (date: any) => {
         if (!date) return 'N/A';
+        // Handles Firestore Timestamps, JS Dates, and date strings
         const d = date.toDate ? date.toDate() : new Date(date);
+        // Check if the date is valid before formatting
+        if (isNaN(d.getTime())) return 'Saving...';
         return format(d, "MMM d, yyyy 'at' h:mm a");
     }
 
@@ -59,12 +62,26 @@ export const RenderSubComponent: React.FC<RenderSubComponentProps> = ({ row, onA
     }
 
     const sortedNotes = React.useMemo(() => {
+        // Defensive sorting to handle various date types during optimistic updates
+        const toDate = (date: any): Date | null => {
+            if (!date) return null;
+            if (date.toDate) return date.toDate(); // Firestore Timestamp
+            const d = new Date(date);
+            return isNaN(d.getTime()) ? null : d; // JS Date or ISO string
+        };
+
         return [...(row.original.notes || [])].sort((a, b) => {
-            const dateA = a.date.toDate ? a.date.toDate() : new Date(a.date);
-            const dateB = b.date.toDate ? b.date.toDate() : new Date(b.date);
+            const dateA = toDate(a.date);
+            const dateB = toDate(b.date);
+
+            // Keep notes without a valid client-side date (like serverTimestamps) at the top
+            if (!dateB) return 1;
+            if (!dateA) return -1;
+            
             return dateB.getTime() - dateA.getTime();
         });
     }, [row.original.notes]);
+
 
     return (
         <Card className="m-4 bg-slate-50/50">
@@ -96,4 +113,3 @@ export const RenderSubComponent: React.FC<RenderSubComponentProps> = ({ row, onA
     );
 };
 
-    
