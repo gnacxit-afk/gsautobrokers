@@ -12,10 +12,12 @@ import { useDoc } from '@/firebase/firestore/use-doc';
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/lib/auth';
 import { useToast } from '@/hooks/use-toast';
-import { useDateRange } from '@/hooks/use-date-range';
+import { useDateRange, getDefaultDateRange } from '@/hooks/use-date-range';
 import { calculateBonus, getNextBonusGoal } from '@/lib/utils';
 import { COMMISSION_PER_VEHICLE } from '@/lib/mock-data';
-import { startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import { startOfDay, endOfDay, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
+import { DateRangePicker } from '@/components/layout/date-range-picker';
+import { DateRangeProvider } from '@/providers/date-range-provider';
 
 const DEFAULT_KPIS: KPI[] = [
     { id: 'leads_recibidos', label: 'Leads recibidos', target: 'informativo', description: 'Total de leads que ingresan al sistema.' },
@@ -42,11 +44,67 @@ const StatCard = ({ label, value, color }: { label: string, value: string | numb
   );
 };
 
+function BrokerMonthlyGoals() {
+  const { user } = useUser();
+  const { data: leadsData } = useCollection<Lead>(
+    useMemo(() => (firestore ? collection(firestore, 'leads') : null), [firestore])
+  );
+  
+  const { dateRange } = useDateRange();
+
+  const brokerStats = useMemo(() => {
+    if (!user || user.role !== 'Broker' || !leadsData) {
+      return null;
+    }
+
+    const brokerLeads = leadsData.filter(l => {
+        const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
+        return l.ownerId === user.id && isWithinInterval(leadDate, dateRange);
+    });
+      
+    const totalLeads = brokerLeads.length;
+    const closedSales = brokerLeads.filter(l => l.stage === 'Ganado').length;
+    const conversion = totalLeads > 0 ? (closedSales / totalLeads) * 100 : 0;
+    const totalCommissions = closedSales * COMMISSION_PER_VEHICLE;
+    const brokerBonus = calculateBonus(closedSales);
+
+    return {
+      totalLeads,
+      closedSales,
+      conversion,
+      totalCommissions,
+      brokerBonus
+    };
+  }, [user, leadsData, dateRange]);
+
+  if (!brokerStats) return null;
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Monthly Goals</h1>
+            <p className="text-muted-foreground">Your performance for the selected date range.</p>
+          </div>
+          <DateRangePicker />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <StatCard label="Total Leads" value={brokerStats.totalLeads} color="blue" />
+            <StatCard label="Closed Sales" value={brokerStats.closedSales} color="green" />
+            <StatCard label="Conversion" value={`${brokerStats.conversion.toFixed(1)}%`} color="indigo" />
+            <StatCard label="Commissions" value={`$${brokerStats.totalCommissions.toLocaleString()}`} color="amber" />
+            <StatCard label="Bonus" value={`$${brokerStats.brokerBonus.toLocaleString()}`} color="violet" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 
 export default function KpiPage() {
   const firestore = useFirestore();
   const { user, MASTER_ADMIN_EMAIL } = useAuthContext();
-  const { dateRange } = useDateRange();
   const { toast } = useToast();
   const [isInitializing, setIsInitializing] = useState(false);
 
@@ -74,33 +132,6 @@ export default function KpiPage() {
   const staff = staffData || [];
 
   const loading = kpisLoading || leadsLoading || staffLoading;
-
-  const brokerStats = useMemo(() => {
-    if (!user || user.role !== 'Broker' || !leadsData) {
-      return null;
-    }
-    const todayStart = startOfDay(new Date());
-    const todayEnd = endOfDay(new Date());
-
-    const brokerLeadsToday = leadsData.filter(l => {
-        const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
-        return l.ownerId === user.id && isWithinInterval(leadDate, { start: todayStart, end: todayEnd });
-    });
-      
-    const totalLeads = brokerLeadsToday.length;
-    const closedSales = brokerLeadsToday.filter(l => l.stage === 'Ganado').length;
-    const conversion = totalLeads > 0 ? (closedSales / totalLeads) * 100 : 0;
-    const totalCommissions = closedSales * COMMISSION_PER_VEHICLE;
-    const brokerBonus = calculateBonus(closedSales);
-
-    return {
-      totalLeads,
-      closedSales,
-      conversion,
-      totalCommissions,
-      brokerBonus
-    };
-  }, [user, leadsData]);
   
   const handleInitializeKpis = async () => {
     if (!firestore || !kpisDocRef) return;
@@ -115,18 +146,61 @@ export default function KpiPage() {
     }
   }
 
+  if (user?.role === 'Broker') {
+    return (
+      <DateRangeProvider>
+        <main className="flex-1 space-y-8">
+          <BrokerMonthlyGoals />
+           <div>
+              <div className="mb-6 text-center">
+                <h1 className="text-2xl font-bold">Daily Goals</h1>
+                <p className="text-muted-foreground max-w-2xl mx-auto">
+                  Cada vendedor profesional genera resultados todos los días, porque
+                  entiende que el éxito no se espera, se provoca.
+                </p>
+              </div>
+              <KpiClient initialKpis={kpis} loading={kpisLoading} />
+               <div className="mt-8 p-4 bg-gray-100 border border-gray-200 rounded-lg text-center">
+                <p className="text-sm font-semibold text-gray-700">
+                  👉 “Los vendedores que ganan saben esto: sin número no hay control,
+                  y sin control no hay ventas.”
+                </p>
+              </div>
+           </div>
+           <div className="border-t pt-8">
+              <div className="mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold">Bonus Status</h1>
+                  <p className="text-muted-foreground">
+                    Your sales bonus progress over the last 30 days.
+                  </p>
+                </div>
+              </div>
+              <BonusStatus allLeads={leads} loading={loading} />
+            </div>
+
+            <div className="border-t pt-8">
+              <div className="mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold">Real-Time Dashboard</h1>
+                  <p className="text-muted-foreground">Daily performance overview.</p>
+                </div>
+              </div>
+              <PerformanceDashboard
+                allLeads={leads}
+                allStaff={staff}
+                loading={loading}
+              />
+            </div>
+        </main>
+      </DateRangeProvider>
+    )
+  }
+
+
   return (
     <main className="flex-1 space-y-8">
-       {user?.role === 'Broker' && brokerStats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-            <StatCard label="Total Leads" value={brokerStats.totalLeads} color="blue" />
-            <StatCard label="Closed Sales" value={brokerStats.closedSales} color="green" />
-            <StatCard label="Conversion" value={`${brokerStats.conversion.toFixed(1)}%`} color="indigo" />
-            <StatCard label="Commissions" value={`$${brokerStats.totalCommissions.toLocaleString()}`} color="amber" />
-            <StatCard label="Bonus" value={`$${brokerStats.brokerBonus.toLocaleString()}`} color="violet" />
-        </div>
-      )}
-
+       
       <div>
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold">Daily Goals</h1>
@@ -183,3 +257,4 @@ export default function KpiPage() {
     </main>
   );
 }
+

@@ -35,11 +35,9 @@ export default function RootLayout({
       >
         <FirebaseProvider>
           <AuthProvider>
-            <DateRangeProvider>
-              <AppShell>
-                {children}
-              </AppShell>
-            </DateRangeProvider>
+            <AppShell>
+              {children}
+            </AppShell>
           </AuthProvider>
         </FirebaseProvider>
         <Toaster />
@@ -47,3 +45,4 @@ export default function RootLayout({
     </html>
   );
 }
+

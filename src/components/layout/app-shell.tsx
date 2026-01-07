@@ -24,6 +24,7 @@ import { DateRangePicker } from "./date-range-picker";
 import { RoleSwitcher } from "./role-switcher";
 import { Logo } from "../icons";
 import { Loader2 } from "lucide-react";
+import { DateRangeProvider } from "@/providers/date-range-provider";
 
 const navItems: NavItemType[] = [
   { href: "/", title: "Dashboard", icon: LayoutDashboard, role: ["Admin", "Supervisor"] },
@@ -154,7 +155,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   const pagesWithDateFilter = ['/'];
-  const showDateFilter = pagesWithDateFilter.includes(pathname);
+  const showDateFilter = (user.role === 'Admin' || user.role === 'Supervisor') && pagesWithDateFilter.includes(pathname);
 
 
   const getPageTitle = () => {
@@ -166,36 +167,39 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans text-slate-900">
-      <Sidebar />
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 bg-white border-b flex items-center justify-between px-4 sm:px-8 shrink-0">
-          <div className="flex items-center gap-4">
-            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-              <SheetTrigger asChild>
-                <Button size="icon" variant="outline" className="lg:hidden">
-                  <PanelLeft className="h-5 w-5" />
-                  <span className="sr-only">Toggle Menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="sm:max-w-xs p-0 bg-slate-900 text-white border-r-0 flex flex-col">
-                <SheetHeader className="sr-only">
-                    <SheetTitle>Mobile Menu</SheetTitle>
-                </SheetHeader>
-                <SidebarContent onLinkClick={() => setIsSheetOpen(false)} />
-              </SheetContent>
-            </Sheet>
-            <h2 className="text-xl font-semibold text-slate-800 capitalize hidden sm:block">{getPageTitle()}</h2>
-          </div>
-          <div className="flex items-center gap-4">
-            {showDateFilter && <DateRangePicker />}
-          </div>
-        </header>
+    <DateRangeProvider>
+      <div className="flex h-screen bg-gray-50 overflow-hidden font-sans text-slate-900">
+        <Sidebar />
+        <main className="flex-1 flex flex-col overflow-hidden">
+          <header className="h-16 bg-white border-b flex items-center justify-between px-4 sm:px-8 shrink-0">
+            <div className="flex items-center gap-4">
+              <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                <SheetTrigger asChild>
+                  <Button size="icon" variant="outline" className="lg:hidden">
+                    <PanelLeft className="h-5 w-5" />
+                    <span className="sr-only">Toggle Menu</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="sm:max-w-xs p-0 bg-slate-900 text-white border-r-0 flex flex-col">
+                  <SheetHeader className="sr-only">
+                      <SheetTitle>Mobile Menu</SheetTitle>
+                  </SheetHeader>
+                  <SidebarContent onLinkClick={() => setIsSheetOpen(false)} />
+                </SheetContent>
+              </Sheet>
+              <h2 className="text-xl font-semibold text-slate-800 capitalize hidden sm:block">{getPageTitle()}</h2>
+            </div>
+            <div className="flex items-center gap-4">
+              {showDateFilter && <DateRangePicker />}
+            </div>
+          </header>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-8">
-          {children}
-        </div>
-      </main>
-    </div>
+          <div className="flex-1 overflow-y-auto p-4 md:p-8">
+            {children}
+          </div>
+        </main>
+      </div>
+    </DateRangeProvider>
   );
 }
+
