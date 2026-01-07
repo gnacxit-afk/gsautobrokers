@@ -56,31 +56,28 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
     }, [allLeads, allStaff]);
 
     const filteredData = useMemo(() => {
-        // Start with the full performance data for all staff.
-        let dataToFilter = performanceData;
-    
-        // Admin View Logic
-        if (user?.role === 'Admin') {
-            if (selectedUserId !== 'all') {
-                return dataToFilter.filter(d => d.userId === selectedUserId);
-            }
-            return dataToFilter; // Return all data if 'all' is selected
+        // Explicitly handle each role for clarity and correctness.
+        switch (user?.role) {
+            case 'Admin':
+                if (selectedUserId === 'all') {
+                    // Admin with "All" selected sees everyone's performance data.
+                    return performanceData;
+                } else {
+                    // Admin filtering for a specific user.
+                    return performanceData.filter(d => d.userId === selectedUserId);
+                }
+            case 'Supervisor':
+                // Supervisor sees their own data plus their team's data.
+                const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
+                const visibleIds = [user.id, ...teamIds];
+                return performanceData.filter(d => visibleIds.includes(d.userId));
+            case 'Broker':
+                // Broker sees only their own data.
+                return performanceData.filter(d => d.userId === user.id);
+            default:
+                // If no role or an unknown role, return an empty array.
+                return [];
         }
-    
-        // Supervisor View Logic
-        if (user?.role === 'Supervisor') {
-            const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
-            const visibleIds = [user.id, ...teamIds];
-            return dataToFilter.filter(d => visibleIds.includes(d.userId));
-        }
-        
-        // Broker View Logic
-        if (user?.role === 'Broker') {
-            return dataToFilter.filter(d => d.userId === user.id);
-        }
-    
-        // Default to an empty array if no role matches
-        return [];
     }, [user, performanceData, selectedUserId, allStaff]);
 
 
@@ -122,7 +119,7 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
         const bonus = calculateBonus(safeUserData.ventas);
         
         return (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-4">
+             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-4">
                <MetricCard label="Leads Recibidos" value={safeUserData.leadsRecibidos} />
                <MetricCard label="Números Obtenidos" value={safeUserData.numerosObtenidos} />
                <MetricCard label="Citas Agendadas" value={safeUserData.citasAgendadas} />
@@ -202,5 +199,7 @@ const MetricCard = ({ label, value }: { label: string, value: number | string })
         </CardContent>
     </Card>
 );
+
+    
 
     
