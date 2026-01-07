@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useDateRange } from '@/hooks/use-date-range';
 import { calculateBonus, getNextBonusGoal } from '@/lib/utils';
 import { COMMISSION_PER_VEHICLE } from '@/lib/mock-data';
-import { startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 
 const DEFAULT_KPIS: KPI[] = [
     { id: 'leads_recibidos', label: 'Leads recibidos', target: 'informativo', description: 'Total de leads que ingresan al sistema.' },
@@ -79,16 +79,16 @@ export default function KpiPage() {
     if (!user || user.role !== 'Broker' || !leadsData) {
       return null;
     }
-    const currentMonthStart = startOfMonth(new Date());
-    const currentMonthEnd = endOfMonth(new Date());
+    const todayStart = startOfDay(new Date());
+    const todayEnd = endOfDay(new Date());
 
-    const brokerLeadsThisMonth = leadsData.filter(l => {
+    const brokerLeadsToday = leadsData.filter(l => {
         const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
-        return l.ownerId === user.id && isWithinInterval(leadDate, { start: currentMonthStart, end: currentMonthEnd });
+        return l.ownerId === user.id && isWithinInterval(leadDate, { start: todayStart, end: todayEnd });
     });
       
-    const totalLeads = brokerLeadsThisMonth.length;
-    const closedSales = brokerLeadsThisMonth.filter(l => l.stage === 'Ganado').length;
+    const totalLeads = brokerLeadsToday.length;
+    const closedSales = brokerLeadsToday.filter(l => l.stage === 'Ganado').length;
     const conversion = totalLeads > 0 ? (closedSales / totalLeads) * 100 : 0;
     const totalCommissions = closedSales * COMMISSION_PER_VEHICLE;
     const brokerBonus = calculateBonus(closedSales);
@@ -129,7 +129,7 @@ export default function KpiPage() {
 
       <div>
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold">{user?.role === 'Broker' ? 'Monthly Goals' : 'Daily Goals'}</h1>
+          <h1 className="text-2xl font-bold">Daily Goals</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Cada vendedor profesional genera resultados todos los días, porque
             entiende que el éxito no se espera, se provoca.
