@@ -123,103 +123,107 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-          <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-            <Users size={18} className="text-blue-500" /> Seller Performance
-          </h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-gray-500 border-b">
-                  <th className="pb-3 font-medium">Name</th>
-                  <th className="pb-3 font-medium text-center">Leads</th>
-                  <th className="pb-3 font-medium text-center">Sales</th>
-                  <th className="pb-3 font-medium text-center">Conv.</th>
-                  <th className="pb-3 font-medium text-right">Commission</th>
-                  {user?.role === 'Admin' && (
-                    <>
-                      <th className="pb-3 font-medium text-right">Bonus</th>
-                      <th className="pb-3 font-medium text-right">TTP</th>
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {topSellers.map(([name, data]) => (
-                  <tr key={name}>
-                    <td className="py-3 font-medium text-slate-700">{name}</td>
-                    <td className="py-3 text-center">{data.leads}</td>
-                    <td className="py-3 text-center">{data.sales}</td>
-                    <td className="py-3 text-center font-bold text-blue-600">
-                      {data.leads > 0 ? ((data.sales / data.leads) * 100).toFixed(1) : 0}%
-                    </td>
-                    <td className="py-3 text-right text-amber-600 font-medium">${(data.sales * COMMISSION_PER_VEHICLE).toLocaleString()}</td>
+      {user?.role !== 'Broker' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <Users size={18} className="text-blue-500" /> Seller Performance
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-gray-500 border-b">
+                    <th className="pb-3 font-medium">Name</th>
+                    <th className="pb-3 font-medium text-center">Leads</th>
+                    <th className="pb-3 font-medium text-center">Sales</th>
+                    <th className="pb-3 font-medium text-center">Conv.</th>
+                    <th className="pb-3 font-medium text-right">Commission</th>
                     {user?.role === 'Admin' && (
                       <>
-                        <td className="py-3 text-right text-violet-600 font-medium">${data.bonus.toLocaleString()}</td>
-                        <td className="py-3 text-right text-emerald-600 font-medium">${((data.sales * COMMISSION_PER_VEHICLE) + data.bonus).toLocaleString()}</td>
+                        <th className="pb-3 font-medium text-right">Bonus</th>
+                        <th className="pb-3 font-medium text-right">TTP</th>
                       </>
                     )}
                   </tr>
-                ))}
-                 {topSellers.length === 0 && (
-                  <tr>
-                    <td colSpan={user?.role === 'Admin' ? 7 : 5} className="text-center py-8 text-gray-500">No seller data for this period.</td>
-                  </tr>
-                 )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y">
+                  {topSellers.map(([name, data]) => (
+                    <tr key={name}>
+                      <td className="py-3 font-medium text-slate-700">{name}</td>
+                      <td className="py-3 text-center">{data.leads}</td>
+                      <td className="py-3 text-center">{data.sales}</td>
+                      <td className="py-3 text-center font-bold text-blue-600">
+                        {data.leads > 0 ? ((data.sales / data.leads) * 100).toFixed(1) : 0}%
+                      </td>
+                      <td className="py-3 text-right text-amber-600 font-medium">${(data.sales * COMMISSION_PER_VEHICLE).toLocaleString()}</td>
+                      {user?.role === 'Admin' && (
+                        <>
+                          <td className="py-3 text-right text-violet-600 font-medium">${data.bonus.toLocaleString()}</td>
+                          <td className="py-3 text-right text-emerald-600 font-medium">${((data.sales * COMMISSION_PER_VEHICLE) + data.bonus).toLocaleString()}</td>
+                        </>
+                      )}
+                    </tr>
+                  ))}
+                  {topSellers.length === 0 && (
+                    <tr>
+                      <td colSpan={user?.role === 'Admin' ? 7 : 5} className="text-center py-8 text-gray-500">No seller data for this period.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-          <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-            <BarChart3 size={18} className="text-indigo-500" /> Channel Conversion
-          </h3>
-          <div className="space-y-4">
-            {Object.entries(stats.channels).map(([channel, data]) => (
-              <div key={channel}>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="font-medium text-slate-600 capitalize">{channel}</span>
-                  <span className="text-slate-400">{data.sales} sales / {data.leads} leads</span>
-                </div>
-                <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <BarChart3 size={18} className="text-indigo-500" /> Channel Conversion
+            </h3>
+            <div className="space-y-4">
+              {Object.entries(stats.channels).map(([channel, data]) => (
+                <div key={channel}>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="font-medium text-slate-600 capitalize">{channel}</span>
+                    <span className="text-slate-400">{data.sales} sales / {data.leads} leads</span>
+                  </div>
                   <div 
-                    className="h-full bg-indigo-500 rounded-full transition-all duration-1000" 
-                    style={{ width: `${(data.sales / (data.leads || 1)) * 100}%` }}
-                  ></div>
+                    className="h-2 w-full bg-gray-100 rounded-full overflow-hidden"
+                  >
+                    <div 
+                      className="h-full bg-indigo-500 rounded-full transition-all duration-1000" 
+                      style={{ width: `${(data.sales / (data.leads || 1)) * 100}%` }}
+                    ></div>
+                  </div>
                 </div>
-              </div>
-            ))}
-             {Object.keys(stats.channels).length === 0 && (
-                <div className="text-center py-8 text-gray-500">No channel data for this period.</div>
-             )}
-          </div>
+              ))}
+              {Object.keys(stats.channels).length === 0 && (
+                  <div className="text-center py-8 text-gray-500">No channel data for this period.</div>
+              )}
+            </div>
 
-          <div className="mt-8 p-4 bg-slate-50 rounded-xl border border-slate-100">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Executive Summary</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-slate-500">Most Profitable Channel</p>
-                <p className="font-bold text-slate-800 capitalize">{topChannel ? topChannel[0] : 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">Estimated Revenue</p>
-                <p className="font-bold text-slate-800">${stats.totalRevenue.toLocaleString()}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">Top Seller</p>
-                <p className="font-bold text-emerald-600">{topSellers[0] ? topSellers[0][0] : 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">Lagging Seller</p>
-                <p className="font-bold text-red-400">{topSellers.length > 1 ? topSellers[topSellers.length - 1][0] : 'N/A'}</p>
+            <div className="mt-8 p-4 bg-slate-50 rounded-xl border border-slate-100">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Executive Summary</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-slate-500">Most Profitable Channel</p>
+                  <p className="font-bold text-slate-800 capitalize">{topChannel ? topChannel[0] : 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Estimated Revenue</p>
+                  <p className="font-bold text-slate-800">${stats.totalRevenue.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Top Seller</p>
+                  <p className="font-bold text-emerald-600">{topSellers[0] ? topSellers[0][0] : 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Lagging Seller</p>
+                  <p className="font-bold text-red-400">{topSellers.length > 1 ? topSellers[topSellers.length - 1][0] : 'N/A'}</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
