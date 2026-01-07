@@ -22,7 +22,6 @@ import { collection, serverTimestamp } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { doc } from "firebase/firestore";
 import { analyzeAndUpdateLead } from "@/ai/flows/analyze-and-update-leads";
-import { ChangeOwnerDialog } from "./components/change-owner-dialog";
 import { isWithinInterval } from "date-fns";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
@@ -64,9 +63,6 @@ export default function LeadsPage() {
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [globalFilter, setGlobalFilter] = useState('');
     const [expanded, setExpanded] = useState({});
-
-    const [isChangeOwnerOpen, setChangeOwnerOpen] = useState(false);
-    const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
     const filteredLeads = useMemo(() => {
         if (!user) return [];
@@ -158,20 +154,21 @@ export default function LeadsPage() {
     }, [firestore, allStaff, toast, user]);
 
 
-    const handleUpdateOwner = useCallback((id: string, newOwner: Staff) => {
+    const handleUpdateOwner = useCallback((id: string, newOwnerId: string) => {
         if (!firestore) return;
+        const newOwner = allStaff.find(s => s.id === newOwnerId);
+        if (!newOwner) {
+            toast({ title: "Error", description: "Selected owner not found.", variant: "destructive" });
+            return;
+        }
         const leadRef = doc(firestore, 'leads', id);
         updateDocumentNonBlocking(leadRef, { ownerId: newOwner.id, ownerName: newOwner.name });
-    }, [firestore]);
-
-    const handleOpenChangeOwner = useCallback((lead: Lead) => {
-      setSelectedLead(lead);
-      setChangeOwnerOpen(true);
-    }, []);
+        toast({ title: "Owner Updated", description: `Lead reassigned to ${newOwner.name}.` });
+    }, [firestore, allStaff, toast]);
 
     const columns = useMemo(
-        () => getColumns(handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleOpenChangeOwner), 
-        [handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleOpenChangeOwner]
+        () => getColumns(handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleUpdateOwner, allStaff), 
+        [handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleUpdateOwner, allStaff]
     );
     
     const table = useReactTable({
@@ -206,15 +203,6 @@ export default function LeadsPage() {
 
     return (
         <main className="flex flex-1 flex-col gap-4">
-            {selectedLead && (
-              <ChangeOwnerDialog
-                lead={selectedLead}
-                staff={allStaff}
-                open={isChangeOwnerOpen}
-                onOpenChange={setChangeOwnerOpen}
-                onUpdateOwner={handleUpdateOwner}
-              />
-            )}
             <DataTable 
                 table={table}
                 columns={columns}

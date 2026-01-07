@@ -20,7 +20,7 @@ import {
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import type { Lead } from "@/lib/types";
+import type { Lead, Staff } from "@/lib/types";
 import React from "react";
 import { AnalyzeLeadDialog } from "./analyze-lead-dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -36,12 +36,13 @@ interface CellActionsProps {
   onUpdateStage: (id: string, stage: Lead['stage']) => void;
   onDelete: (id: string) => void;
   onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void;
-  onOpenChangeOwner: (lead: Lead) => void;
+  onUpdateOwner: (leadId: string, newOwnerId: string) => void;
+  staff: Staff[];
 }
 
 // **EXTRACTED CELLACTIONS COMPONENT**
 // Moved outside of getColumns to prevent re-creation on every render.
-const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateLeadStatus, onOpenChangeOwner }) => {
+const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateLeadStatus, onUpdateOwner, staff }) => {
   const lead = row.original;
   const [isAnalyzeOpen, setAnalyzeOpen] = React.useState(false);
   const { toast } = useToast();
@@ -54,8 +55,16 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
   
   const handleLeadStatusUpdate = (status: NonNullable<Lead['leadStatus']>) => {
     onUpdateLeadStatus(lead.id, status);
-    toast({ title: "Lead Status Updated", description: `Lead "${lead.name}" status is now ${status}.` });
+    // No toast here as it's often called from the dialog
   };
+
+  const handleOwnerUpdate = (newOwnerId: string) => {
+    onUpdateOwner(lead.id, newOwnerId);
+  }
+
+  const assignableStaff = staff.filter(
+    (s) => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin'
+  );
   
   return (
     <>
@@ -118,10 +127,21 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
             </DropdownMenuSub>
 
             {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
-                <DropdownMenuItem onSelect={() => onOpenChangeOwner(lead)}>
-                  <Users className="mr-2 h-4 w-4" />
-                  <span>Change Owner</span>
-                </DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <Users className="mr-2 h-4 w-4" />
+                    <span>Change Owner</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                      <DropdownMenuRadioGroup value={lead.ownerId} onValueChange={handleOwnerUpdate}>
+                          {assignableStaff.map((staffMember) => (
+                              <DropdownMenuRadioItem key={staffMember.id} value={staffMember.id}>
+                                  {staffMember.name}
+                              </DropdownMenuRadioItem>
+                          ))}
+                      </DropdownMenuRadioGroup>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
             )}
 
             {user?.role === 'Admin' && (
@@ -146,7 +166,8 @@ export const getColumns = (
   onUpdateStage: (id: string, stage: Lead['stage']) => void,
   onDelete: (id: string) => void,
   onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void,
-  onOpenChangeOwner: (lead: Lead) => void
+  onUpdateOwner: (leadId: string, newOwnerId: string) => void,
+  staff: Staff[]
 ): ColumnDef<Lead>[] => [
   {
     accessorKey: "leadStatus",
@@ -262,10 +283,9 @@ export const getColumns = (
         onUpdateStage={onUpdateStage} 
         onDelete={onDelete} 
         onUpdateLeadStatus={onUpdateLeadStatus} 
-        onOpenChangeOwner={onOpenChangeOwner} 
+        onUpdateOwner={onUpdateOwner}
+        staff={staff}
       />;
     },
   },
 ];
-
-    
