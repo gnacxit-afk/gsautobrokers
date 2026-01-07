@@ -103,12 +103,7 @@ export default function DashboardPage() {
 
 
   if (user?.role === 'Broker') {
-    return (
-      <div className="space-y-8">
-        <h2 className="text-2xl font-bold">Welcome, {user.name}</h2>
-        <p className="text-muted-foreground">This is your main dashboard. Key metrics have been moved to the KPI's & Performance page.</p>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -212,17 +207,19 @@ export default function DashboardPage() {
                   <p className="text-xs text-slate-500">Most Profitable Channel</p>
                   <p className="font-bold text-slate-800 capitalize">{topChannel ? topChannel[0] : 'N/A'}</p>
                 </div>
-                <div>
-                  <p className="text-xs text-slate-500">Estimated Revenue</p>
-                  <p className="font-bold text-slate-800">${stats.totalRevenue.toLocaleString()}</p>
-                </div>
+                {user?.role === 'Admin' && (
+                  <div>
+                    <p className="text-xs text-slate-500">Estimated Revenue</p>
+                    <p className="font-bold text-slate-800">${stats.totalRevenue.toLocaleString()}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-xs text-slate-500">Top Seller</p>
                   <p className="font-bold text-emerald-600">{topSellers[0] ? topSellers[0][0] : 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-500">Lagging Seller</p>
-                  <p className="font-bold text-red-400">{topSellers.length > 1 ? topSellers[topSellers.length - 1][0] : 'N/A'}</p>
+                  <p className="font-bold text-red-400">{topSellers.length > 1 ? topSellers[topSellers.length - 1][0] : 'N-A'}</p>
                 </div>
               </div>
             </div>
