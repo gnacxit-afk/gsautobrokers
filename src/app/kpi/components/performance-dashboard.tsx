@@ -36,7 +36,7 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
     
     const performanceData = useMemo(() => {
         // Correctly include all staff who can be lead owners.
-        const staffToDisplay = allStaff.filter(s => s.role === 'Broker' || s.role === 'Supervisor');
+        const staffToDisplay = allStaff.filter(s => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin');
 
         const data: PerformanceMetric[] = staffToDisplay.map(staffMember => {
             const userLeads = allLeads.filter(lead => lead.ownerId === staffMember.id);
@@ -137,7 +137,7 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Salespeople</SelectItem>
-                            {allStaff.filter(s => s.role === 'Broker' || s.role === 'Supervisor').map(s => (
+                            {allStaff.filter(s => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin').map(s => (
                                 <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                             ))}
                         </SelectContent>
@@ -194,5 +194,7 @@ const MetricCard = ({ label, value }: { label: string, value: number | string })
         </CardContent>
     </Card>
 );
+
+    
 
     
