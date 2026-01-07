@@ -137,7 +137,7 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Salespeople</SelectItem>
-                            {allStaff.filter(s => s.role !== 'Admin').map(s => (
+                            {allStaff.filter(s => s.role === 'Broker' || s.role === 'Supervisor').map(s => (
                                 <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                             ))}
                         </SelectContent>
