@@ -37,13 +37,14 @@ import { useAuthContext } from "@/lib/auth";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   table: ReactTable<TData>;
-  onAddLead: (lead: Omit<Lead, 'id' | 'createdAt' | 'ownerName'>) => void;
+  onAddLead: (lead: Omit<Lead, 'id' | 'createdAt' | 'ownerName' | 'notes'>) => void;
   staff: Staff[];
   stages: Lead['stage'][];
   channels: Lead['channel'][];
   leadStatuses: NonNullable<Lead['leadStatus']>[];
   clearAllFilters: () => void;
   loading: boolean;
+  renderSubComponent: (props: { row: Row<TData> }) => React.ReactNode;
 }
 
 export function DataTable<TData extends Lead, TValue>({
@@ -56,6 +57,7 @@ export function DataTable<TData extends Lead, TValue>({
   leadStatuses,
   clearAllFilters,
   loading,
+  renderSubComponent,
 }: DataTableProps<TData, TValue>) {
   
   const { user } = useAuthContext();
@@ -202,6 +204,13 @@ export function DataTable<TData extends Lead, TValue>({
                     </TableCell>
                   ))}
                 </TableRow>
+                 {row.getIsExpanded() && (
+                    <TableRow>
+                        <TableCell colSpan={columns.length}>
+                            {renderSubComponent({ row: row as Row<TData> })}
+                        </TableCell>
+                    </TableRow>
+                )}
                 </React.Fragment>
               ))
             ) : (
@@ -238,5 +247,4 @@ export function DataTable<TData extends Lead, TValue>({
     </div>
   );
 }
-
     

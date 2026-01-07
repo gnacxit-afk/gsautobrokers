@@ -26,6 +26,7 @@ import { AnalyzeLeadDialog } from "./analyze-lead-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthContext } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { AddNoteDialog } from "./add-note-dialog";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const leadStatuses: NonNullable<Lead['leadStatus']>[] = ["Hot Lead", "Warm Lead", "In Nurturing", "Cold Lead"];
@@ -37,14 +38,16 @@ interface CellActionsProps {
   onDelete: (id: string) => void;
   onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>, analysis?: { decision: string, recommendation: string }) => void;
   onUpdateOwner: (leadId: string, newOwnerId: string) => void;
+  onAddNote: (leadId: string, noteContent: string) => void;
   staff: Staff[];
 }
 
 // **EXTRACTED CELLACTIONS COMPONENT**
 // Moved outside of getColumns to prevent re-creation on every render.
-const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateLeadStatus, onUpdateOwner, staff }) => {
+const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateLeadStatus, onUpdateOwner, onAddNote, staff }) => {
   const lead = row.original;
   const [isAnalyzeOpen, setAnalyzeOpen] = React.useState(false);
+  const [isAddNoteOpen, setAddNoteOpen] = React.useState(false);
   const { toast } = useToast();
   const { user } = useAuthContext();
 
@@ -74,7 +77,26 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
         lead={lead} 
         onAnalysisComplete={handleLeadStatusUpdate} 
       />
+      <AddNoteDialog 
+        open={isAddNoteOpen}
+        onOpenChange={setAddNoteOpen}
+        leadId={lead.id}
+        onAddNote={onAddNote}
+      />
       <div className="flex items-center gap-2 justify-end">
+        <Button
+            variant="ghost"
+            size="sm"
+            className="flex items-center gap-2"
+            onClick={() => row.toggleExpanded(!row.getIsExpanded())}
+        >
+            <MessageSquare size={14} />
+            Notes ({lead.notes?.length || 0})
+            <ChevronDown
+                size={14}
+                className={cn("transition-transform", row.getIsExpanded() && 'rotate-180')}
+            />
+        </Button>
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
@@ -84,7 +106,12 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onSelect={() => setAnalyzeOpen(true)}>Analyze Lead (AI)</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setAddNoteOpen(true)}>
+                <MessageSquare className="mr-2 h-4 w-4" /> Add Note
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setAnalyzeOpen(true)}>
+                <Star className="mr-2 h-4 w-4" /> Analyze Lead (AI)
+            </DropdownMenuItem>
             
             <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
@@ -96,22 +123,6 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
                         {leadStages.map((stage) => (
                         <DropdownMenuRadioItem key={stage} value={stage}>
                             {stage}
-                        </DropdownMenuRadioItem>
-                        ))}
-                    </DropdownMenuRadioGroup>
-                </DropdownMenuSubContent>
-            </DropdownMenuSub>
-
-            <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                    <Star className="mr-2 h-4 w-4" />
-                    <span>Update Lead Status</span>
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                    <DropdownMenuRadioGroup value={lead.leadStatus} onValueChange={(status) => handleLeadStatusUpdate(status as NonNullable<Lead['leadStatus']>)}>
-                        {leadStatuses.map((status) => (
-                        <DropdownMenuRadioItem key={status} value={status}>
-                            {status}
                         </DropdownMenuRadioItem>
                         ))}
                     </DropdownMenuRadioGroup>
@@ -159,6 +170,7 @@ export const getColumns = (
   onDelete: (id: string) => void,
   onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>, analysis?: { decision: string, recommendation: string }) => void,
   onUpdateOwner: (leadId: string, newOwnerId: string) => void,
+  onAddNote: (leadId: string, noteContent: string) => void,
   staff: Staff[]
 ): ColumnDef<Lead>[] => [
   {
@@ -276,10 +288,10 @@ export const getColumns = (
         onDelete={onDelete} 
         onUpdateLeadStatus={onUpdateLeadStatus} 
         onUpdateOwner={onUpdateOwner}
+        onAddNote={onAddNote}
         staff={staff}
       />;
     },
   },
 ];
-
     

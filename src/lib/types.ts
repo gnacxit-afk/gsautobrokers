@@ -34,6 +34,7 @@ export type Lead = {
   createdAt: Timestamp | Date | string;
   language: 'English' | 'Spanish';
   leadStatus?: "Hot Lead" | "Warm Lead" | "In Nurturing" | "Cold Lead";
+  notes: NoteEntry[];
 };
 
 export type Article = {
