@@ -108,14 +108,16 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-       <div className={`grid grid-cols-1 md:grid-cols-3 ${user?.role === 'Admin' ? 'lg:grid-cols-8' : 'lg:grid-cols-4'} gap-4`}>
+       <div className={`grid grid-cols-1 md:grid-cols-3 ${user?.role === 'Admin' ? 'lg:grid-cols-8' : 'lg:grid-cols-5'} gap-4`}>
         <StatCard label="Total Leads" value={stats.totalLeads} color="blue" />
         <StatCard label="Closed Sales" value={stats.closedSales} color="green" />
         <StatCard label="Conversion" value={`${stats.conversion.toFixed(1)}%`} color="indigo" />
         <StatCard label="Commissions" value={`$${stats.totalCommissions.toLocaleString()}`} color="amber" />
+        {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
+            <StatCard label="Total Bonuses" value={`$${stats.totalBonuses.toLocaleString()}`} color="violet" />
+        )}
         {user?.role === 'Admin' && (
           <>
-            <StatCard label="Total Bonuses" value={`$${stats.totalBonuses.toLocaleString()}`} color="violet" />
             <StatCard label="Total To Pay" value={`$${(stats.totalCommissions + stats.totalBonuses).toLocaleString()}`} color="emerald" />
             <StatCard label="Gross Margin" value={`$${stats.totalMargin.toLocaleString()}`} color="emerald" />
             <StatCard label="Total Revenue" value={`$${stats.totalRevenue.toLocaleString()}`} color="rose" />
@@ -138,11 +140,9 @@ export default function DashboardPage() {
                     <th className="pb-3 font-medium text-center">Sales</th>
                     <th className="pb-3 font-medium text-center">Conv.</th>
                     <th className="pb-3 font-medium text-right">Commission</th>
+                    <th className="pb-3 font-medium text-right">Bonus</th>
                     {user?.role === 'Admin' && (
-                      <>
-                        <th className="pb-3 font-medium text-right">Bonus</th>
-                        <th className="pb-3 font-medium text-right">TTP</th>
-                      </>
+                      <th className="pb-3 font-medium text-right">TTP</th>
                     )}
                   </tr>
                 </thead>
@@ -156,17 +156,15 @@ export default function DashboardPage() {
                         {data.leads > 0 ? ((data.sales / data.leads) * 100).toFixed(1) : 0}%
                       </td>
                       <td className="py-3 text-right text-amber-600 font-medium">${(data.sales * COMMISSION_PER_VEHICLE).toLocaleString()}</td>
+                      <td className="py-3 text-right text-violet-600 font-medium">${data.bonus.toLocaleString()}</td>
                       {user?.role === 'Admin' && (
-                        <>
-                          <td className="py-3 text-right text-violet-600 font-medium">${data.bonus.toLocaleString()}</td>
-                          <td className="py-3 text-right text-emerald-600 font-medium">${((data.sales * COMMISSION_PER_VEHICLE) + data.bonus).toLocaleString()}</td>
-                        </>
+                        <td className="py-3 text-right text-emerald-600 font-medium">${((data.sales * COMMISSION_PER_VEHICLE) + data.bonus).toLocaleString()}</td>
                       )}
                     </tr>
                   ))}
                   {topSellers.length === 0 && (
                     <tr>
-                      <td colSpan={user?.role === 'Admin' ? 7 : 5} className="text-center py-8 text-gray-500">No seller data for this period.</td>
+                      <td colSpan={user?.role === 'Admin' ? 7 : 6} className="text-center py-8 text-gray-500">No seller data for this period.</td>
                     </tr>
                   )}
                 </tbody>
