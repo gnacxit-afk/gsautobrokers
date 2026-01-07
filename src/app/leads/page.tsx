@@ -18,7 +18,7 @@ import {
   type ColumnFiltersState,
   type FilterFn,
 } from '@tanstack/react-table';
-import { collection, serverTimestamp } from 'firebase/firestore';
+import { collection, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { doc } from "firebase/firestore";
 import { analyzeAndUpdateLead } from "@/ai/flows/analyze-and-update-leads";
@@ -48,7 +48,7 @@ export default function LeadsPage() {
     const firestore = useFirestore();
     const { toast } = useToast();
 
-    const leadsQuery = useMemo(() => (firestore ? collection(firestore, 'leads') : null), [firestore]);
+    const leadsQuery = useMemo(() => (firestore ? query(collection(firestore, 'leads'), orderBy('createdAt', 'desc')) : null), [firestore]);
     const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
 
     const { data: leadsData, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
