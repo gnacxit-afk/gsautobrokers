@@ -5,8 +5,6 @@ import * as React from "react";
 import type { Row } from "@tanstack/react-table";
 import { format } from 'date-fns';
 import { Card, CardContent } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import type { Lead, NoteEntry } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Bot, User, Cog } from "lucide-react";
@@ -53,13 +51,6 @@ const Note = ({ note }: { note: NoteEntry }) => {
 }
 
 export const RenderSubComponent: React.FC<RenderSubComponentProps> = ({ row, onAddNote }) => {
-    const [newNote, setNewNote] = React.useState("");
-
-    const handleSaveNote = () => {
-        if (newNote.trim() === "") return;
-        onAddNote(row.original.id, newNote);
-        setNewNote("");
-    }
 
     const sortedNotes = React.useMemo(() => {
         // Defensive sorting to handle various date types during optimistic updates
@@ -86,31 +77,14 @@ export const RenderSubComponent: React.FC<RenderSubComponentProps> = ({ row, onA
     return (
         <Card className="m-4 bg-slate-50/50 shadow-inner">
             <CardContent className="p-6">
-                <div className="space-y-4">
-                    <div>
-                        <h3 className="font-semibold text-lg mb-1">Add a New Record</h3>
-                         <div className="space-y-2">
-                            <Textarea
-                                id={`new-note-${row.id}`}
-                                value={newNote}
-                                onChange={(e) => setNewNote(e.target.value)}
-                                placeholder="Create a new note for this lead..."
-                                className="h-24 bg-white"
-                            />
-                            <div className="flex justify-end">
-                                <Button size="sm" onClick={handleSaveNote} disabled={!newNote.trim()}>Save New Record</Button>
-                            </div>
-                        </div>
-                    </div>
-                     <div className="space-y-3 pt-4 border-t">
-                        <h3 className="font-semibold text-lg">Lead Records</h3>
-                        <div className="space-y-3 max-h-96 overflow-y-auto pr-2 rounded-lg">
-                           {sortedNotes.length > 0 ? (
-                               sortedNotes.map((note, index) => <Note key={index} note={note} />)
-                           ) : (
-                               <div className="text-sm text-gray-500 text-center py-8 bg-gray-100 rounded-lg">No records for this lead yet.</div>
-                           )}
-                        </div>
+                 <div className="space-y-3">
+                    <h3 className="font-semibold text-lg">Lead Records</h3>
+                    <div className="space-y-3 max-h-96 overflow-y-auto pr-2 rounded-lg">
+                       {sortedNotes.length > 0 ? (
+                           sortedNotes.map((note, index) => <Note key={index} note={note} />)
+                       ) : (
+                           <div className="text-sm text-gray-500 text-center py-8 bg-gray-100 rounded-lg">No records for this lead yet.</div>
+                       )}
                     </div>
                 </div>
             </CardContent>
