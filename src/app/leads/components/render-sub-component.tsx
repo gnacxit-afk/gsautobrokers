@@ -41,13 +41,13 @@ const Note = ({ note }: { note: NoteEntry }) => {
     return (
         <div className={cn("p-4 rounded-lg border", colors[note.type])}>
             <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2 text-sm font-semibold">
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
                     {icons[note.type]}
                     <span>{note.author}</span>
                 </div>
-                <span className="text-xs text-gray-500">{renderDate(note.date)}</span>
+                <span className="text-xs text-slate-500">{renderDate(note.date)}</span>
             </div>
-            <p className="text-sm whitespace-pre-wrap">{note.content}</p>
+            <p className="text-sm whitespace-pre-wrap text-slate-800">{note.content}</p>
         </div>
     )
 }
@@ -84,27 +84,32 @@ export const RenderSubComponent: React.FC<RenderSubComponentProps> = ({ row, onA
 
 
     return (
-        <Card className="m-4 bg-slate-50/50">
+        <Card className="m-4 bg-slate-50/50 shadow-inner">
             <CardContent className="p-6">
                 <div className="space-y-4">
-                    <h3 className="font-semibold text-lg">Lead History</h3>
-                    <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-                       {sortedNotes.length > 0 ? (
-                           sortedNotes.map((note, index) => <Note key={index} note={note} />)
-                       ) : (
-                           <p className="text-sm text-gray-500 text-center py-4">No notes for this lead yet.</p>
-                       )}
+                    <div>
+                        <h3 className="font-semibold text-lg mb-1">Add a New Record</h3>
+                         <div className="space-y-2">
+                            <Textarea
+                                id={`new-note-${row.id}`}
+                                value={newNote}
+                                onChange={(e) => setNewNote(e.target.value)}
+                                placeholder="Create a new note for this lead..."
+                                className="h-24 bg-white"
+                            />
+                            <div className="flex justify-end">
+                                <Button size="sm" onClick={handleSaveNote} disabled={!newNote.trim()}>Save New Record</Button>
+                            </div>
+                        </div>
                     </div>
-                     <div className="space-y-2 pt-4 border-t">
-                        <Textarea
-                            id={`new-note-${row.id}`}
-                            value={newNote}
-                            onChange={(e) => setNewNote(e.target.value)}
-                            placeholder="Add a new note..."
-                            className="h-24 bg-white"
-                        />
-                        <div className="flex justify-end">
-                            <Button size="sm" onClick={handleSaveNote} disabled={!newNote.trim()}>Add Note</Button>
+                     <div className="space-y-3 pt-4 border-t">
+                        <h3 className="font-semibold text-lg">Lead Records</h3>
+                        <div className="space-y-3 max-h-96 overflow-y-auto pr-2 rounded-lg">
+                           {sortedNotes.length > 0 ? (
+                               sortedNotes.map((note, index) => <Note key={index} note={note} />)
+                           ) : (
+                               <div className="text-sm text-gray-500 text-center py-8 bg-gray-100 rounded-lg">No records for this lead yet.</div>
+                           )}
                         </div>
                     </div>
                 </div>
@@ -112,4 +117,3 @@ export const RenderSubComponent: React.FC<RenderSubComponentProps> = ({ row, onA
         </Card>
     );
 };
-
