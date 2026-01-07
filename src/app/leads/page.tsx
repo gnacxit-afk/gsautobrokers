@@ -154,7 +154,7 @@ export default function LeadsPage() {
         const initialNote: NoteEntry = {
             content: noteContent,
             author: owner.name,
-            date: serverTimestamp(),
+            date: new Date(), // Use client-side timestamp for initial note creation
             type: 'Manual'
         };
 
