@@ -131,12 +131,14 @@ export default function LeadsPage() {
         }).then(docRef => {
              if (!docRef) return;
              toast({ title: "Lead Added", description: "New lead created. Analyzing with AI in background..." });
+             
              (async () => {
                 try {
+                    const newLeadId = docRef.id;
                     const leadDetails = `Name: ${newLeadData.name}, Company: ${newLeadData.company}, Stage: ${newLeadData.stage}, Notes: ${newLeadData.notes}`;
                     const analysisResult = await analyzeAndUpdateLead({ leadDetails });
 
-                    const newLeadRef = doc(firestore, 'leads', docRef.id);
+                    const newLeadRef = doc(firestore, 'leads', newLeadId);
                     updateDocumentNonBlocking(newLeadRef, { 
                         leadStatus: analysisResult.leadStatus 
                     });
