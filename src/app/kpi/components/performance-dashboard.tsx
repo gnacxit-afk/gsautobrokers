@@ -42,7 +42,7 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
         if (user?.role === 'Admin' || user?.role === 'Supervisor') {
             return dateRange;
         }
-        // Brokers only see today's data
+        // Brokers only see today's data for this specific dashboard
         return {
             start: startOfDay(new Date()),
             end: endOfDay(new Date())
@@ -57,9 +57,9 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
 
         staffToDisplay.forEach(staffMember => {
             const userLeads = allLeads.filter(lead => {
-                const leadDate = (lead.createdAt as any).toDate ? (lead.createdAt as any).toDate() : new Date(lead.createdAt as string);
+                const leadDate = (lead.createdAt as any)?.toDate ? (lead.createdAt as any).toDate() : new Date(lead.createdAt as string);
                 const isOwner = lead.ownerId === staffMember.id;
-                const isInDateRange = isWithinInterval(leadDate, activeDateRange);
+                const isInDateRange = leadDate && isWithinInterval(leadDate, activeDateRange);
                 return isOwner && isInDateRange;
             });
             
@@ -131,8 +131,8 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
 
     if (user.role === 'Broker') {
         const userData = filteredData[0]; // Broker sees only their data
-        if (!userData) {
-             return <p className="text-muted-foreground">No performance data for today.</p>;
+        if (!userData || userData.leadsRecibidos === 0) {
+             return <p className="text-center text-muted-foreground py-8">No performance data for today.</p>;
         }
         const bonus = calculateBonus(userData.ventas);
         return (
@@ -181,18 +181,19 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredData.map(data => (
-                            <TableRow key={data.userId}>
-                                <TableCell className="font-medium">{data.userName}</TableCell>
-                                <TableCell className="text-center">{data.leadsRecibidos}</TableCell>
-                                <TableCell className="text-center">{data.numerosObtenidos}</TableCell>
-                                <TableCell className="text-center">{data.citasAgendadas}</TableCell>
-                                <TableCell className="text-center">{data.citasConfirmadas}</TableCell>
-                                <TableCell className="text-center">{data.leadsDescartados}</TableCell>
-                                <TableCell className="text-center font-bold text-green-600">{data.ventas}</TableCell>
-                            </TableRow>
-                        ))}
-                         {filteredData.length === 0 && (
+                        {filteredData.length > 0 ? (
+                            filteredData.map(data => (
+                                <TableRow key={data.userId}>
+                                    <TableCell className="font-medium">{data.userName}</TableCell>
+                                    <TableCell className="text-center">{data.leadsRecibidos}</TableCell>
+                                    <TableCell className="text-center">{data.numerosObtenidos}</TableCell>
+                                    <TableCell className="text-center">{data.citasAgendadas}</TableCell>
+                                    <TableCell className="text-center">{data.citasConfirmadas}</TableCell>
+                                    <TableCell className="text-center">{data.leadsDescartados}</TableCell>
+                                    <TableCell className="text-center font-bold text-green-600">{data.ventas}</TableCell>
+                                </TableRow>
+                            ))
+                         ) : (
                             <TableRow>
                                 <TableCell colSpan={7} className="h-24 text-center">
                                     No performance data for the selected criteria.
@@ -216,5 +217,3 @@ const MetricCard = ({ label, value }: { label: string, value: number | string })
         </CardContent>
     </Card>
 );
-
-    
