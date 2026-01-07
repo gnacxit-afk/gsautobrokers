@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { KpiClient } from './components/kpi-client';
 import { PerformanceDashboard } from './components/performance-dashboard';
 import { BonusStatus } from './components/bonus-status';
@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useDateRange, getDefaultDateRange } from '@/hooks/use-date-range';
 import { calculateBonus } from '@/lib/utils';
 import { COMMISSION_PER_VEHICLE } from '@/lib/mock-data';
-import { startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import { startOfDay, endOfDay, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
 import { DateRangePicker } from '@/components/layout/date-range-picker';
 import { DateRangeProvider } from '@/providers/date-range-provider';
 
@@ -121,13 +121,38 @@ function KpiPage() {
   const { toast } = useToast();
   const [isInitializing, setIsInitializing] = useState(false);
 
-  const { dateRange, setDateRange } = useDateRange();
+  const { dateRange } = useDateRange();
 
-  // New state for the performance dashboard's date range
-  const [perfDateRange, setPerfDateRange] = useState({
+  // State for the performance dashboard's date range, with role-based default
+  const [perfDateRange, setPerfDateRange] = useState(() => {
+    if (user?.role === 'Admin') {
+      return {
+        start: startOfMonth(new Date()),
+        end: endOfMonth(new Date()),
+      };
+    }
+    return {
       start: startOfDay(new Date()),
       end: endOfDay(new Date()),
+    };
   });
+
+  // Effect to reset the date range if the user role changes
+  useEffect(() => {
+    setPerfDateRange(() => {
+        if (user?.role === 'Admin') {
+            return {
+                start: startOfMonth(new Date()),
+                end: endOfMonth(new Date()),
+            };
+        }
+        return {
+            start: startOfDay(new Date()),
+            end: endOfDay(new Date()),
+        };
+    });
+  }, [user?.role]);
+
 
   const kpisDocRef = useMemo(
     () => (firestore ? doc(firestore, 'kpis', 'kpi-doc') : null),
