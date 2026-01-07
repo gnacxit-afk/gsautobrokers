@@ -35,20 +35,17 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
     const [selectedUserId, setSelectedUserId] = useState<string>('all');
     
     const performanceData = useMemo(() => {
-        const data: PerformanceMetric[] = [];
-        
         const staffToDisplay = allStaff.filter(s => s.role === 'Broker' || s.role === 'Supervisor');
 
-        staffToDisplay.forEach(staffMember => {
+        const data: PerformanceMetric[] = staffToDisplay.map(staffMember => {
             const userLeads = allLeads.filter(lead => lead.ownerId === staffMember.id);
-            
             const metrics = calculateMetrics(userLeads);
             
-            data.push({
+            return {
                 userId: staffMember.id,
                 userName: staffMember.name,
                 ...metrics,
-            });
+            };
         });
 
         // Sort data by sales (ventas) in descending order for ranking
@@ -57,21 +54,24 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
     }, [allLeads, allStaff]);
 
     const filteredData = useMemo(() => {
-        if (user?.role === 'Admin') {
-            if (selectedUserId === 'all') {
-                return performanceData;
-            }
-            return performanceData.filter(d => d.userId === selectedUserId);
-        }
+        let dataToFilter = performanceData;
+
         if (user?.role === 'Supervisor') {
             const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
             const visibleIds = [user.id, ...teamIds];
-            return performanceData.filter(d => visibleIds.includes(d.userId));
+            dataToFilter = performanceData.filter(d => visibleIds.includes(d.userId));
         }
+        
         if (user?.role === 'Broker') {
             return performanceData.filter(d => d.userId === user.id);
         }
-        return [];
+
+        // For Admin, filter by selected user if not 'all'
+        if (user?.role === 'Admin' && selectedUserId !== 'all') {
+            return dataToFilter.filter(d => d.userId === selectedUserId);
+        }
+
+        return dataToFilter;
     }, [user, performanceData, selectedUserId, allStaff]);
 
 
@@ -109,18 +109,18 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
 
     if (user.role === 'Broker') {
         const userData = filteredData[0]; // Broker sees only their data
-        if (!userData || userData.leadsRecibidos === 0) {
-             return <p className="text-center text-muted-foreground py-8">No performance data for the selected day.</p>;
-        }
-        const bonus = calculateBonus(userData.ventas);
+        // Show cards even if there is no data.
+        const safeUserData = userData || { leadsRecibidos: 0, numerosObtenidos: 0, citasAgendadas: 0, citasConfirmadas: 0, leadsDescartados: 0, ventas: 0 };
+        const bonus = calculateBonus(safeUserData.ventas);
+        
         return (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-4">
-               <MetricCard label="Leads Recibidos" value={userData.leadsRecibidos} />
-               <MetricCard label="Números Obtenidos" value={userData.numerosObtenidos} />
-               <MetricCard label="Citas Agendadas" value={userData.citasAgendadas} />
-               <MetricCard label="Citas Confirmadas" value={userData.citasConfirmadas} />
-               <MetricCard label="Leads Descartados" value={userData.leadsDescartados} />
-               <MetricCard label="Ventas" value={userData.ventas} />
+               <MetricCard label="Leads Recibidos" value={safeUserData.leadsRecibidos} />
+               <MetricCard label="Números Obtenidos" value={safeUserData.numerosObtenidos} />
+               <MetricCard label="Citas Agendadas" value={safeUserData.citasAgendadas} />
+               <MetricCard label="Citas Confirmadas" value={safeUserData.citasConfirmadas} />
+               <MetricCard label="Leads Descartados" value={safeUserData.leadsDescartados} />
+               <MetricCard label="Ventas" value={safeUserData.ventas} />
                <MetricCard label="Bonus" value={`$${bonus.toLocaleString()}`} />
             </div>
         )
@@ -194,3 +194,5 @@ const MetricCard = ({ label, value }: { label: string, value: number | string })
         </CardContent>
     </Card>
 );
+
+    
