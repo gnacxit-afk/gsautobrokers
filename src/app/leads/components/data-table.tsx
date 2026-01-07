@@ -38,7 +38,7 @@ import { useAuthContext } from "@/lib/auth";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   table: ReactTable<TData>;
-  onUpdateNotes: (id: string, notes: string) => void;
+  onAddNote: (leadId: string, noteContent: string) => void;
   onAddLead: (lead: Omit<Lead, 'id' | 'createdAt' | 'ownerName'>) => void;
   staff: Staff[];
   stages: Lead['stage'][];
@@ -51,7 +51,7 @@ interface DataTableProps<TData, TValue> {
 export function DataTable<TData extends Lead, TValue>({
   columns,
   table,
-  onUpdateNotes,
+  onAddNote,
   onAddLead,
   staff,
   stages,
@@ -208,7 +208,7 @@ export function DataTable<TData extends Lead, TValue>({
                 {row.getIsExpanded() && (
                     <TableRow>
                         <TableCell colSpan={columns.length}>
-                            <RenderSubComponent row={row as Row<Lead>} onUpdateNotes={onUpdateNotes} />
+                            <RenderSubComponent row={row as Row<Lead>} onAddNote={onAddNote} />
                         </TableCell>
                     </TableRow>
                 )}
@@ -248,3 +248,5 @@ export function DataTable<TData extends Lead, TValue>({
     </div>
   );
 }
+
+    

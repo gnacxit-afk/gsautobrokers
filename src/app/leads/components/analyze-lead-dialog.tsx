@@ -18,7 +18,7 @@ interface AnalyzeLeadDialogProps {
   lead: Lead;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAnalysisComplete: (leadId: string, leadStatus: NonNullable<Lead['leadStatus']>) => void;
+  onAnalysisComplete: (leadId: string, leadStatus: NonNullable<Lead['leadStatus']>, analysis: { decision: string; recommendation: string }) => void;
 }
 
 const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string, value: string | number }) => (
@@ -42,12 +42,19 @@ export function AnalyzeLeadDialog({ lead, open, onOpenChange, onAnalysisComplete
             setError(null);
             startTransition(async () => {
                 try {
-                    const leadDetails = `Name: ${lead.name}, Company: ${lead.company}, Stage: ${lead.stage}, Notes: ${lead.notes}`;
+                    // Use the latest note if available, otherwise fallback to a generic string.
+                    const latestNote = lead.notes && lead.notes.length > 0 ? lead.notes[lead.notes.length - 1].content : "No notes available.";
+                    const leadDetails = `Name: ${lead.name}, Company: ${lead.company || 'N/A'}, Stage: ${lead.stage}, Notes: ${latestNote}`;
+                    
                     const result = await analyzeAndUpdateLead({ leadDetails });
                     setAnalysis(result);
-                    // On successful analysis, call the callback to update the parent state
+                    
+                    // On successful analysis, call the callback to update the parent state and add a note
                     if (result.leadStatus) {
-                        onAnalysisComplete(lead.id, result.leadStatus);
+                        onAnalysisComplete(lead.id, result.leadStatus, {
+                            decision: result.qualificationDecision,
+                            recommendation: result.salesRecommendation
+                        });
                     }
                 } catch (e: any) {
                     setError("The AI model is currently overloaded. Please try again in a few moments.");
@@ -112,3 +119,5 @@ export function AnalyzeLeadDialog({ lead, open, onOpenChange, onAnalysisComplete
         </Dialog>
     );
 }
+
+    

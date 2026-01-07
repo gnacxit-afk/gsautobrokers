@@ -35,7 +35,7 @@ interface CellActionsProps {
   row: Row<Lead>;
   onUpdateStage: (id: string, stage: Lead['stage']) => void;
   onDelete: (id: string) => void;
-  onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void;
+  onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>, analysis?: { decision: string, recommendation: string }) => void;
   onUpdateOwner: (leadId: string, newOwnerId: string) => void;
   staff: Staff[];
 }
@@ -53,9 +53,9 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
     toast({ title: "Stage Updated", description: `Lead "${lead.name}" is now ${stage}.` });
   };
   
-  const handleLeadStatusUpdate = (status: NonNullable<Lead['leadStatus']>) => {
-    onUpdateLeadStatus(lead.id, status);
-    // No toast here as it's often called from the dialog
+  const handleLeadStatusUpdate = (status: NonNullable<Lead['leadStatus']>, analysis?: { decision: string, recommendation: string }) => {
+    onUpdateLeadStatus(lead.id, status, analysis);
+    // Toast is now handled in the dialog to show completion
   };
 
   const handleOwnerUpdate = (newOwnerId: string) => {
@@ -165,7 +165,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
 export const getColumns = (
   onUpdateStage: (id: string, stage: Lead['stage']) => void,
   onDelete: (id: string) => void,
-  onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void,
+  onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>, analysis?: { decision: string, recommendation: string }) => void,
   onUpdateOwner: (leadId: string, newOwnerId: string) => void,
   staff: Staff[]
 ): ColumnDef<Lead>[] => [
@@ -289,3 +289,5 @@ export const getColumns = (
     },
   },
 ];
+
+    

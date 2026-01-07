@@ -14,6 +14,13 @@ export type User = {
   dui?: string;
 };
 
+export type NoteEntry = {
+  content: string;
+  author: string;
+  date: Timestamp | Date | string;
+  type: 'Manual' | 'AI Analysis' | 'System';
+}
+
 export type Lead = {
   id: string;
   name: string;
@@ -21,7 +28,7 @@ export type Lead = {
   phone: string;
   company?: string;
   stage: "Nuevo" | "Calificado" | "Citado" | "En Seguimiento" | "Ganado" | "Perdido";
-  notes?: string;
+  notes?: NoteEntry[];
   ownerId: string; // This will be the staff member's document ID
   ownerName: string;
   channel: 'Facebook' | 'WhatsApp' | 'Call' | 'Visit' | 'Other';
@@ -86,3 +93,5 @@ export type BonusInfo = {
   nextGoal: number;
   needed: number;
 };
+
+    

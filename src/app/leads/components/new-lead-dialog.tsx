@@ -31,7 +31,7 @@ interface NewLeadDialogProps {
 
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
-const languages: Lead['language'][] = ['English', 'Spanish'];
+const languages: Array<'English' | 'Spanish'> = ['English', 'Spanish'];
 
 const stageColors: Record<Lead['stage'], string> = {
     "Nuevo": "bg-gray-400",
@@ -45,10 +45,10 @@ const stageColors: Record<Lead['stage'], string> = {
 const initialFormState = {
     name: "",
     phone: "",
-    notes: "",
+    notes: [{ content: "", author: "", type: "Manual" as const, date: new Date() }],
     channel: "Facebook" as Lead['channel'],
     stage: "Nuevo" as Lead['stage'],
-    language: "Spanish" as Lead['language'],
+    language: "Spanish" as 'English' | 'Spanish',
 };
 
 
@@ -62,7 +62,14 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
-    setFormData(prev => ({ ...prev, [id]: value }));
+    if (id === 'notes') {
+        setFormData(prev => ({
+            ...prev,
+            notes: [{ ...prev.notes![0], content: value }]
+        }));
+    } else {
+        setFormData(prev => ({ ...prev, [id]: value }));
+    }
   }
   
   const handleSelectChange = (id: keyof typeof formData, value: string) => {
@@ -78,18 +85,15 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
         toast({ title: "Error", description: "You must be logged in to create a lead.", variant: "destructive"});
         return;
     }
-
-    if (!formData.name || !formData.phone || !formData.stage || !formData.notes) {
+    const noteContent = formData.notes?.[0]?.content;
+    if (!formData.name || !formData.phone || !formData.stage || !noteContent) {
         toast({ title: "Missing Fields", description: "Please fill out all fields marked with an asterisk (*).", variant: "destructive"});
         return;
     }
 
     onAddLead({ ...formData, ownerId: user.id });
 
-    toast({
-        title: "Lead Saved",
-        description: "The new lead has been successfully saved.",
-    });
+    // The toast is now handled in the page.tsx to include AI analysis status.
     onOpenChange(false);
     resetForm();
   }
@@ -172,11 +176,11 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
           </div>
            <div className="grid grid-cols-4 items-start gap-4">
               <Label htmlFor="notes" className="text-right pt-2">
-                Notes*
+                Initial Note*
               </Label>
               <Textarea
                 id="notes"
-                value={formData.notes}
+                value={formData.notes?.[0]?.content || ""}
                 onChange={handleInputChange}
                 placeholder="Add any initial notes for this lead."
                 className="col-span-3"
@@ -194,3 +198,5 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
     </Dialog>
   );
 }
+
+    
