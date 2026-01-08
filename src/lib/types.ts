@@ -98,8 +98,10 @@ export type Notification = {
     id: string;
     userId: string; // Staff document ID this notification is for
     content: string;
-    leadId: string;
-    leadName: string;
+    leadId?: string;
+    leadName?: string;
     createdAt: Timestamp;
     read: boolean;
+    author: string;
 };
+

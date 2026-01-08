@@ -5,7 +5,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { AccessDenied } from '@/components/access-denied';
 import { NewStaffDialog } from './components/new-staff-dialog';
 import { Button } from '@/components/ui/button';
-import { UserPlus, Users, Trash2 } from 'lucide-react';
+import { UserPlus, Users, Trash2, MessageSquare } from 'lucide-react';
 import type { Staff } from '@/lib/types';
 import Link from 'next/link';
 import { useFirestore, useUser, useCollection } from '@/firebase';
@@ -14,6 +14,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { useAuthContext } from '@/lib/auth';
+import { SendNotificationDialog } from './components/send-notification-dialog';
+
 
 const StaffCard = ({ member, onDelete, isMasterAdmin }: { member: Staff, onDelete: (id: string, name: string) => void, isMasterAdmin: boolean }) => {
   const roleColors = {
@@ -142,11 +144,18 @@ export default function StaffPage() {
     <main className="flex flex-1 flex-col gap-6">
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-bold">Staff Management</h3>
-        <NewStaffDialog>
-          <Button className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-200">
-            <UserPlus size={18} /> Register Employee
-          </Button>
-        </NewStaffDialog>
+        <div className="flex items-center gap-2">
+           <SendNotificationDialog allStaff={staff || []}>
+             <Button variant="outline" className="text-indigo-600 border-indigo-200 px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-50 hover:text-indigo-700">
+              <MessageSquare size={18} /> Send Notification
+            </Button>
+          </SendNotificationDialog>
+          <NewStaffDialog>
+            <Button className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-200">
+              <UserPlus size={18} /> Register Employee
+            </Button>
+          </NewStaffDialog>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

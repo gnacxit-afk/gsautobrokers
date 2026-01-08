@@ -4,7 +4,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
-import type { Lead, Staff } from "@/lib/types";
+import type { Lead, Staff, Notification } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
 import { useFirestore, useUser, useCollection } from '@/firebase';
 import { useRouter } from "next/navigation";
@@ -79,7 +79,8 @@ const createNotification = async (
     firestore: any,
     userId: string,
     lead: Lead,
-    content: string
+    content: string,
+    author: string,
 ) => {
     const notificationsCollection = collection(firestore, 'notifications');
     await addDoc(notificationsCollection, {
@@ -87,6 +88,7 @@ const createNotification = async (
         leadId: lead.id,
         leadName: lead.name,
         content,
+        author,
         createdAt: serverTimestamp(),
         read: false,
     });
@@ -165,7 +167,8 @@ function LeadsPageContent() {
                     firestore,
                     lead.ownerId,
                     lead,
-                    `Stage for lead ${lead.name} was changed to ${newStage} by ${user.name}.`
+                    `Stage for lead ${lead.name} was changed to ${newStage} by ${user.name}.`,
+                    user.name
                 );
             }
             toast({ title: "Stage Updated", description: `Lead "${lead.name}" is now ${newStage}.` });
@@ -237,7 +240,8 @@ function LeadsPageContent() {
                     firestore,
                     newOwnerId,
                     leadDoc,
-                    `You have been assigned a new lead: ${leadDoc.name}.`
+                    `You have been assigned a new lead: ${leadDoc.name}.`,
+                    user.name
                 );
             }
             // Notify old owner
@@ -247,7 +251,8 @@ function LeadsPageContent() {
                     firestore,
                     oldOwner.id,
                     leadDoc,
-                    `Lead ${leadDoc.name} was reassigned to ${newOwnerName}.`
+                    `Lead ${leadDoc.name} was reassigned to ${newOwnerName}.`,
+                    user.name
                 );
             }
             

@@ -4,18 +4,20 @@
 import React, { useState, useMemo } from 'react';
 import { useFirestore, useUser } from '@/firebase';
 import { useCollection } from '@/firebase';
-import { collection, query, where, orderBy, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy, updateDoc, doc, writeBatch } from 'firebase/firestore';
 import type { Notification } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { Bell, CheckCheck } from 'lucide-react';
+import { Bell, CheckCheck, MessageSquare } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 export function Notifications() {
   const { user } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const [open, setOpen] = useState(false);
 
   const notificationsQuery = useMemo(() => {
     if (!firestore || !user) return null;
@@ -31,27 +33,31 @@ export function Notifications() {
 
   const handleNotificationClick = async (notification: Notification) => {
     if (!firestore) return;
+    setOpen(false);
 
     if (!notification.read) {
       const notifRef = doc(firestore, 'notifications', notification.id);
       await updateDoc(notifRef, { read: true });
     }
-    router.push(`/leads/${notification.leadId}/notes`);
+    
+    if (notification.leadId) {
+      router.push(`/leads/${notification.leadId}/notes`);
+    }
   };
 
   const markAllAsRead = async () => {
-    if (!firestore || !notifications) return;
+    if (!firestore || !notifications || unreadCount === 0) return;
+    const batch = writeBatch(firestore);
     const unreadNotifications = notifications.filter(n => !n.read);
-    const batch = [];
-    for (const notif of unreadNotifications) {
-      const notifRef = doc(firestore, 'notifications', notif.id);
-      batch.push(updateDoc(notifRef, { read: true }));
-    }
-    await Promise.all(batch);
+    unreadNotifications.forEach(notif => {
+        const notifRef = doc(firestore, 'notifications', notif.id);
+        batch.update(notifRef, { read: true });
+    });
+    await batch.commit();
   };
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
@@ -81,14 +87,23 @@ export function Notifications() {
               <div
                 key={n.id}
                 onClick={() => handleNotificationClick(n)}
-                className={`p-2 rounded-lg cursor-pointer ${
-                  n.read ? 'opacity-60' : 'bg-blue-50'
-                } hover:bg-slate-100 transition-colors`}
+                className={cn("p-3 rounded-lg", {
+                  "cursor-pointer hover:bg-slate-100 transition-colors": n.leadId,
+                  "bg-blue-50": !n.read,
+                  "opacity-70": n.read && !n.leadId
+                })}
               >
-                <p className="text-xs text-slate-800">{n.content}</p>
-                <p className="text-xs text-slate-400 mt-1">
-                  {formatDistanceToNow((n.createdAt as any)?.toDate() || new Date(), { addSuffix: true })}
-                </p>
+                <div className="flex items-start gap-3">
+                   <div className="h-8 w-8 rounded-full bg-slate-100 flex-shrink-0 flex items-center justify-center text-slate-500 mt-1">
+                      <MessageSquare size={16} />
+                  </div>
+                  <div>
+                      <p className="text-xs text-slate-800 leading-snug">{n.content}</p>
+                      <p className="text-[10px] text-slate-400 mt-1.5">
+                        <span className="font-semibold">{n.author}</span> - {formatDistanceToNow((n.createdAt as any)?.toDate() || new Date(), { addSuffix: true })}
+                      </p>
+                  </div>
+                </div>
               </div>
             ))
           ) : (
