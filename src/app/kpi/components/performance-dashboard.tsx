@@ -54,7 +54,8 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
     }, [allLeads, allStaff]);
 
     const filteredData = useMemo(() => {
-        switch (user?.role) {
+        if (!user) return [];
+        switch (user.role) {
             case 'Admin':
                 if (selectedUserId === 'all') {
                     // Admin with "All" selected sees everyone's performance data.
@@ -80,6 +81,19 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
                 return [];
         }
     }, [user, performanceData, selectedUserId, allStaff]);
+
+    const selectableUsers = useMemo(() => {
+        if (!user) return [];
+         if (user.role === 'Admin') {
+            return allStaff.filter(s => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin');
+         }
+         if (user.role === 'Supervisor') {
+             const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
+             const visibleIds = [user.id, ...teamIds];
+             return allStaff.filter(s => visibleIds.includes(s.id));
+         }
+         return [];
+    }, [user, allStaff]);
 
 
     if (!user) return null;
@@ -119,7 +133,7 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
         const safeUserData = userData || { leadsRecibidos: 0, numerosObtenidos: 0, citasAgendadas: 0, citasConfirmadas: 0, leadsDescartados: 0, ventas: 0 };
         
         return (
-             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
+             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                <MetricCard label="Leads Recibidos" value={safeUserData.leadsRecibidos} />
                <MetricCard label="Números Obtenidos" value={safeUserData.numerosObtenidos} />
                <MetricCard label="Citas Agendadas" value={safeUserData.citasAgendadas} />
@@ -129,19 +143,6 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
             </div>
         )
     }
-
-    const selectableUsers = useMemo(() => {
-         if (user.role === 'Admin') {
-            return allStaff.filter(s => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin');
-         }
-         if (user.role === 'Supervisor') {
-             const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
-             const visibleIds = [user.id, ...teamIds];
-             return allStaff.filter(s => visibleIds.includes(s.id));
-         }
-         return [];
-    }, [user, allStaff]);
-
 
     // Admin & Supervisor View
     return (
