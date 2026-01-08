@@ -66,126 +66,93 @@ service cloud.firestore {
      * Note: This performs a 'get' operation, which has cost and performance
      * implications. Use judiciously.
      */
-    function isAdmin(appId) {
-      // This function assumes staff profile is the source of truth for roles.
-      // It finds the staff doc based on the auth UID. This is costly.
-      // TODO: Consider custom claims for roles to avoid this lookup.
-      let staffList = get(/databases/$(database)/documents/artifacts/$(appId)/public/data/staff?orderBy="authUid"&equalTo=request.auth.uid).docs;
-      return isSignedIn() && staffList.size() > 0 && staffList[0].data.role == 'Admin';
+    function getStaffDocByAuthUid(authUid) {
+      // This is not performant, but required for role checking without custom claims.
+      // It queries the staff collection to find the document matching the auth UID.
+      let staffDocs = firestore.collection('staff').where('authUid', '==', authUid).get();
+      if (staffDocs.size() > 0) {
+        return staffDocs.docs[0];
+      }
+      return null;
     }
-    
-    function getStaffDocId(authUid) {
-        // This is a placeholder for a more efficient way to get a document ID from an auth UID.
-        // In a real app, you might use a /user_mappings/{authUid} collection.
-        // For now, this is inefficient and should be used with caution.
-        return get(/databases/$(database)/documents/staff?orderBy="authUid"&equalTo=authUid).docs[0].id;
+
+    function getUserRole() {
+      let staffDoc = getStaffDocByAuthUid(request.auth.uid);
+      if (staffDoc != null) {
+        return staffDoc.data.role;
+      }
+      return null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && getUserRole() == 'Admin';
     }
 
 
     // ----------------------------------------------------------------------
     // Application Rules
     // ----------------------------------------------------------------------
-
-    match /artifacts/{appId} {
-
-      /**
-       * @description Controls access to a user's private profile data.
-       * @path        /artifacts/{appId}/users/{userId}/profile/data
-       * @allow       (create) A newly authenticated user creating their own profile.
-       * @deny        (get) A user trying to read another user's profile.
-       * @principle   Restricts access to a user's own data tree and enforces relational integrity.
-       */
-      match /users/{userId}/profile/data {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isOwner(userId) && request.resource.data.id == userId;
-        allow update: if isOwner(userId) && resource != null && request.resource.data.id == resource.data.id;
-        allow delete: if false; // Profiles are generally not deleted by users.
-      }
       
-      /**
-       * @description Controls access to the single KPI document.
-       * @path /kpis/kpi-doc
-       */
-      match /kpis/{docId} {
-        allow get: if isSignedIn();
-        allow write: if isAdmin(appId);
-      }
-
-
-      // Match all public data collections
-      match /public/data {
-
-        /**
-         * @description Controls access to sales leads. Leads can be read by any authenticated user,
-         *              but can only be created, updated, or deleted by their assigned owner.
-         * @path        /artifacts/{appId}/public/data/leads/{leadId}
-         * @allow       (update) An authenticated user with UID 'user123' updating a lead where `resource.data.ownerId` is 'user123'.
-         * @deny        (update) User 'user456' trying to update a lead owned by 'user123'.
-         * @principle   Enforces document ownership for writes using a denormalized 'ownerId' field.
-         */
-        match /leads/{leadId} {
-          allow get: if isSignedIn();
-          allow list: if isSignedIn();
-          allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-          allow update: if isExistingOwner(resource.data.ownerId) && request.resource.data.ownerId == resource.data.ownerId;
-          allow delete: if isExistingOwner(resource.data.ownerId);
-
-            /**
-            * @description Controls access to a lead's note history.
-            * @path        /artifacts/{appId}/public/data/leads/{leadId}/noteHistory/{noteId}
-            * @allow       (create, list) The owner of the lead can create and read notes.
-            * @principle   Subcollection access is gated by ownership of the parent document.
-            */
-            match /noteHistory/{noteId} {
-              allow list: if isSignedIn();
-              allow get: if isSignedIn();
-              // Only the lead owner can create new notes
-              allow create: if isLeadOwner(leadId);
-              // Notes are immutable
-              allow update: if false;
-              allow delete: if false;
-            }
-        }
-
-        /**
-         * @description Controls access to knowledge base articles. These are public and read-only for all clients.
-         * @path        /artifacts/{appId}/public/data/knowledge_base/{articleId}
-         * @allow       (get) Any user, signed in or not, reading an article.
-         * @deny        (create) Any user trying to create a new article.
-         * @principle   Provides public read access while preventing all client-side modifications.
-         */
-        match /knowledge_base/{articleId} {
-          // CRITICAL: Cannot implement owner-only writes. The 'KnowledgeBaseArticle' entity is missing an 'ownerId' or 'authorId' field.
-          // Writes are disabled until the schema is updated to include an ownership field.
-          allow get: if true;
-          allow list: if true;
-          allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-          allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-          allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-        }
-
-        /**
-         * @description Controls access to staff member data. Only administrators can read or manage staff.
-         * @path        /artifacts/{appId}/public/data/staff/{staffId}
-         * @allow       (list) An authenticated user whose profile has `role == 'Admin'` listing all staff.
-         * @deny        (get) A non-admin user trying to read a staff document.
-         * @principle   Enforces role-based access control (RBAC) for sensitive data.
-         */
-        match /staff/{staffId} {
-          allow get: if isAdmin(appId);
-          allow list: if isAdmin(appId);
-          allow create: if isAdmin(appId);
-          allow update: if isAdmin(appId) && resource != null;
-          allow delete: if isAdmin(appId) && resource != null;
-        }
-      }
+    /**
+      * @description Controls access to the single KPI document.
+      * @path /kpis/kpi-doc
+      */
+    match /kpis/{docId} {
+      allow get: if isSignedIn();
+      allow write: if isAdmin();
     }
-     match /notifications/{notificationId} {
-        allow get, update, delete: if isOwner(resource.data.userId);
-        allow create: if isSignedIn();
-        // Allow a user to list only their own notifications
-        allow list: if isSignedIn() && request.query.where.size() == 1 && request.query.where[0][0] == 'userId' && request.query.where[0][1] == '==' && request.query.where[0][2] == request.auth.uid;
+    
+    match /articles/{articleId} {
+        allow get, list: if isSignedIn();
+        allow create, update, delete: if isAdmin();
+    }
+
+
+    /**
+      * @description Controls access to sales leads.
+      */
+    match /leads/{leadId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isOwner(request.resource.data.ownerId);
+      allow update: if isOwner(resource.data.ownerId) || isAdmin();
+      allow delete: if isOwner(resource.data.ownerId) || isAdmin();
+
+        /**
+        * @description Controls access to a lead's note history.
+        */
+        match /noteHistory/{noteId} {
+          allow list: if isSignedIn();
+          allow get: if isSignedIn();
+          allow create: if isOwner(get(/databases/$(database)/documents/leads/$(leadId)).data.ownerId) || isAdmin();
+          allow update: if false;
+          allow delete: if false;
+        }
+    }
+
+    /**
+      * @description Controls access to staff member data.
+      */
+    match /staff/{staffId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow get, update, delete: if isOwner(resource.data.userId);
+      allow create: if isSignedIn();
+      // Allow a user to list only their own notifications
+      allow list: if isSignedIn() && request.query.where.size() == 1 && request.query.where[0][0] == 'userId' && request.query.where[0][1] == '==' && request.query.where[0][2] == request.auth.uid;
+    }
+
+    match /todos/{todoId} {
+      allow get, update, delete: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId);
+      // Allow a user to list only their own todos
+      allow list: if isSignedIn() && request.query.where.size() == 1 && request.query.where[0][0] == 'userId' && request.query.where[0][1] == '==' && request.query.where[0][2] == request.auth.uid;
     }
   }
 }

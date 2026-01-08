@@ -183,15 +183,15 @@ service cloud.firestore {
     }
      match /notifications/{notificationId} {
         allow get, update, delete: if isOwner(resource.data.userId);
-        // Allow Admins to create notifications for anyone. Others can create notifications for lead owner changes.
         allow create: if isSignedIn();
         // Allow a user to list only their own notifications
         allow list: if isSignedIn() && request.query.where.size() == 1 && request.query.where[0][0] == 'userId' && request.query.where[0][1] == '==' && request.query.where[0][2] == request.auth.uid;
     }
-    
     match /todos/{todoId} {
-      allow get, list, update, delete: if isOwner(resource.data.userId);
+      allow get, update, delete: if isOwner(resource.data.userId);
       allow create: if isOwner(request.resource.data.userId);
+      // Allow a user to list only their own todos
+      allow list: if isSignedIn() && request.query.where.size() == 1 && request.query.where[0][0] == 'userId' && request.query.where[0][1] == '==' && request.query.where[0][2] == request.auth.uid;
     }
   }
 }
