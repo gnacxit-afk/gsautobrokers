@@ -116,7 +116,7 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
                       logout();
                     }}
                     variant="ghost"
-                    className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors w-full justify-start mt-2 text-sm p-2 h-auto"
+                    className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors w-full justify-start text-sm p-2 h-auto"
                 >
                     <LogOut size={16} /> Cerrar Sesión
                 </Button>
@@ -158,8 +158,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  const pagesWithDateFilter = ['/', '/kpi'];
-  const showDateFilter = (user.role === 'Admin' || user.role === 'Supervisor' || user.role === 'Broker') && pagesWithDateFilter.includes(pathname);
+  const pagesWithDateFilter = ['/'];
+  const showDateFilter = (user.role === 'Admin' || user.role === 'Supervisor') && pagesWithDateFilter.includes(pathname);
 
 
   const getPageTitle = () => {
