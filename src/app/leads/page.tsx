@@ -82,7 +82,9 @@ function LeadsPageContent() {
         
         return visibleLeads.filter(l => {
             if (!l.createdAt) return false;
+            // Safely convert Firestore Timestamp to JS Date before comparison
             const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
+            if (isNaN(leadDate.getTime())) return false; // Invalid date check
             return isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end });
         });
 

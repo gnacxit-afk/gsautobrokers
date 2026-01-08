@@ -60,6 +60,7 @@ function BrokerMonthlyGoals() {
 
     const brokerLeads = leadsData.filter(l => {
         const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
+        if (isNaN(leadDate.getTime())) return false;
         return l.ownerId === user.id && isWithinInterval(leadDate, dateRange);
     });
       
@@ -139,6 +140,7 @@ function KpiPage() {
     return allLeads.filter(l => {
         if (!l.createdAt) return false;
         const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
+        if (isNaN(leadDate.getTime())) return false;
         return isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end });
     });
   }, [allLeads, dateRange]);
@@ -278,5 +280,3 @@ const KpiPageWithProvider = () => {
 };
 
 export default KpiPageWithProvider;
-
-    
