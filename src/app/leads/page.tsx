@@ -22,7 +22,6 @@ import { collection, query, orderBy, updateDoc, doc, deleteDoc, addDoc, serverTi
 import { useToast } from "@/hooks/use-toast";
 import { isWithinInterval, isValid } from "date-fns";
 import { AddNoteDialog } from "./components/add-note-dialog";
-import { AnalyzeLeadDialog } from "./components/analyze-lead-dialog";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
@@ -84,7 +83,6 @@ function LeadsPageContent() {
     const [staffData, setStaffData] = useState<Staff[]>([]);
     
     const [editingLead, setEditingLead] = useState<Lead | null>(null);
-    const [analyzingLead, setAnalyzingLead] = useState<Lead | null>(null);
 
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -223,28 +221,10 @@ function LeadsPageContent() {
         setEditingLead(lead);
     }, []);
     
-    const handleBeginAnalyze = useCallback((lead: Lead) => {
-        setAnalyzingLead(lead);
-    }, []);
-    
-    const handleAnalysisComplete = useCallback((leadId: string, leadStatus: string) => {
-        // This function is for potential future use, like updating lead status after analysis.
-    }, []);
-    
-    const handleAddAINote = useCallback((leadId: string, analysisContent: string) => {
-        const lead = leadsData?.find(l => l.id === leadId);
-        if (!lead) return;
-
-        const separator = "\n\n---\n\n";
-        const newNoteContent = `${lead.note || ''}${separator}**AI Analysis Result:**\n${analysisContent}`;
-        handleSaveNote(leadId, newNoteContent);
-
-    }, [leadsData, handleSaveNote]);
-
 
     const columns = useMemo(
-        () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, handleBeginAddNote, handleBeginAnalyze, staffData), 
-        [handleUpdateStage, handleDelete, handleUpdateOwner, handleBeginAddNote, handleBeginAnalyze, staffData]
+        () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, handleBeginAddNote, staffData), 
+        [handleUpdateStage, handleDelete, handleUpdateOwner, handleBeginAddNote, staffData]
     );
     
     const { dateRange, setDateRange } = useDateRange();
@@ -308,19 +288,6 @@ function LeadsPageContent() {
                 }}
                 onSaveNote={handleSaveNote}
             />
-             {analyzingLead && (
-                <AnalyzeLeadDialog
-                    lead={analyzingLead}
-                    open={!!analyzingLead}
-                    onOpenChange={(isOpen) => {
-                        if (!isOpen) {
-                            setAnalyzingLead(null);
-                        }
-                    }}
-                    onAnalysisComplete={handleAnalysisComplete}
-                    onAddNote={handleAddAINote}
-                />
-            )}
         </main>
     );
 }

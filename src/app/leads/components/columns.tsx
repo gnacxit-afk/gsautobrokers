@@ -35,13 +35,12 @@ interface CellActionsProps {
   onDelete: (id: string) => void;
   onUpdateOwner: (leadId: string, newOwnerId: string) => void;
   onBeginAddNote: (lead: Lead) => void;
-  onBeginAnalyze: (lead: Lead) => void;
   staff: Staff[];
 }
 
 // **EXTRACTED CELLACTIONS COMPONENT**
 // Moved outside of getColumns to prevent re-creation on every render.
-const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateOwner, onBeginAddNote, onBeginAnalyze, staff }) => {
+const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateOwner, onBeginAddNote, staff }) => {
   const lead = row.original;
   const { toast } = useToast();
   const { user } = useAuthContext();
@@ -56,21 +55,12 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
   }
 
   const assignableStaff = staff.filter(
-    (s) => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin'
+    (s) => s.role === 'Broker' || s.role === 'Supervisor' || s_role === 'Admin'
   );
   
   return (
     <>
       <div className="flex items-center gap-2 justify-end">
-        <Button
-            variant="ghost"
-            size="sm"
-            className="flex items-center gap-2"
-            onClick={() => onBeginAddNote(lead)}
-        >
-            <MessageSquare size={14} />
-            Notes
-        </Button>
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
@@ -81,10 +71,10 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
             <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             
-            <DropdownMenuItem onSelect={() => onBeginAnalyze(lead)}>
-                <Star className="mr-2 h-4 w-4" /> Analyze Lead (AI)
+            <DropdownMenuItem onSelect={() => onBeginAddNote(lead)}>
+                <MessageSquare className="mr-2 h-4 w-4" /> Add/Edit Note
             </DropdownMenuItem>
-            
+
             <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                     <ChevronsUpDown className="mr-2 h-4 w-4" />
@@ -142,7 +132,6 @@ export const getColumns = (
   onDelete: (id: string) => void,
   onUpdateOwner: (leadId: string, newOwnerId: string) => void,
   onBeginAddNote: (lead: Lead) => void,
-  onBeginAnalyze: (lead: Lead) => void,
   staff: Staff[]
 ): ColumnDef<Lead>[] => [
   {
@@ -239,7 +228,6 @@ export const getColumns = (
         onDelete={onDelete} 
         onUpdateOwner={onUpdateOwner}
         onBeginAddNote={onBeginAddNote}
-        onBeginAnalyze={onBeginAnalyze}
         staff={staff}
       />;
     },
