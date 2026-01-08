@@ -18,7 +18,7 @@ import {
   type ColumnFiltersState,
   type FilterFn,
 } from '@tanstack/react-table';
-import { collection, query, orderBy, updateDoc, doc, arrayUnion, deleteDoc, addDoc } from 'firebase/firestore';
+import { collection, query, orderBy, updateDoc, doc, arrayUnion, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { analyzeAndUpdateLead } from "@/ai/flows/analyze-and-update-leads";
 import { isWithinInterval } from "date-fns";
@@ -93,7 +93,7 @@ export default function LeadsPage() {
 
     }, [user, leads, allStaff, dateRange]);
     
-    const addNote = useCallback(async (leadId: string, noteContent: string, noteType: NoteEntry['type']) => {
+    const addNote = useCallback((leadId: string, noteContent: string, noteType: NoteEntry['type']) => {
         if (!firestore || !user) return;
         
         const authorName = noteType === 'AI Analysis' ? 'AI Assistant' : (user.name || 'System');
@@ -114,22 +114,19 @@ export default function LeadsPage() {
             );
         });
 
-        try {
-            const leadRef = doc(firestore, 'leads', leadId);
-            await updateDoc(leadRef, {
-                notes: arrayUnion(newNote)
-            });
-             toast({ title: "Note Added", description: "Your note has been saved." });
-        } catch (error) {
+        const leadRef = doc(firestore, 'leads', leadId);
+        // Non-blocking update
+        updateDoc(leadRef, {
+            notes: arrayUnion({ ...newNote, date: serverTimestamp() })
+        }).catch(error => {
             console.error("Failed to add note:", error);
             toast({
                 title: "Error Adding Note",
-                description: "There was a problem saving your note.",
+                description: "There was a problem saving your note. Please refresh.",
                 variant: "destructive",
             });
-            // Consider reverting optimistic update on failure
-            // For this app, we'll assume writes succeed most of the time.
-        }
+            // Optional: Add logic to revert the optimistic update here if needed.
+        });
     }, [firestore, user, toast]);
 
 
@@ -195,7 +192,11 @@ export default function LeadsPage() {
         };
 
         try {
-            const newDocRef = await addDoc(leadsCollection, finalLeadData);
+            const newDocRef = await addDoc(leadsCollection, {
+                ...finalLeadData,
+                createdAt: serverTimestamp(),
+                notes: [{ ...initialNote, date: serverTimestamp() }],
+            });
             
             toast({ title: "Lead Added", description: "New lead created. Analyzing with AI in background..." });
 
@@ -205,13 +206,12 @@ export default function LeadsPage() {
                 
                 const analysisNoteContent = `AI Analysis Complete:\n- Qualification: ${analysisResult.qualificationDecision}\n- Recommendation: ${analysisResult.salesRecommendation}`;
                 
-                await addNote(newDocRef.id, analysisNoteContent, 'AI Analysis');
+                addNote(newDocRef.id, analysisNoteContent, 'AI Analysis');
 
                 await updateDoc(newDocRef, { leadStatus: analysisResult.leadStatus });
 
             } catch (aiError) {
                 console.error("Error during background AI analysis:", aiError);
-                 toast({ title: "AI Analysis Failed", description: "Could not analyze the lead.", variant: "destructive" });
             }
 
         } catch (error) {
