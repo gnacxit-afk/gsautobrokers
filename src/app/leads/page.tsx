@@ -55,6 +55,7 @@ function LeadsPageContent() {
     const { data: leadsDataFromHook, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
     const { data: staffData, loading: staffLoading } = useCollection<Staff>(staffQuery);
 
+    const [leads, setLeads] = useState<Lead[]>([]);
     const allStaff = useMemo(() => staffData || [], [staffData]);
 
     const { dateRange, setDateRange } = useDateRange();
@@ -64,9 +65,12 @@ function LeadsPageContent() {
     const [globalFilter, setGlobalFilter] = useState('');
     const [expanded, setExpanded] = useState({});
 
-    const filteredLeads = useMemo(() => {
+    useEffect(() => {
         const allLeads = leadsDataFromHook || [];
-        if (!user) return [];
+        if (!user) {
+            setLeads([]);
+            return;
+        };
 
         let visibleLeads = allLeads;
 
@@ -78,11 +82,13 @@ function LeadsPageContent() {
             visibleLeads = allLeads.filter(l => l.ownerId === user.id);
         }
         
-        return visibleLeads.filter(l => {
+        const filteredByDate = visibleLeads.filter(l => {
             if (!l.createdAt) return false;
             const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
             return isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end });
         });
+
+        setLeads(filteredByDate);
 
     }, [user, leadsDataFromHook, allStaff, dateRange]);
     
@@ -104,6 +110,7 @@ function LeadsPageContent() {
             await updateDoc(leadRef, {
                 notes: arrayUnion(newNote)
             });
+            console.log(`Note added successfully to lead ${leadId}`);
         } catch (error) {
             console.error("Failed to add note:", error);
             toast({
@@ -170,13 +177,13 @@ function LeadsPageContent() {
         const initialNote: NoteEntry = {
             content: noteContent,
             author: owner.name,
-            date: Timestamp.now(), // Correct: Use Timestamp.now() for arrayUnion
+            date: Timestamp.now(),
             type: 'Manual'
         };
 
         const finalLeadData = {
             ...leadData,
-            createdAt: serverTimestamp(), // Correct: Use serverTimestamp for top-level field
+            createdAt: serverTimestamp(),
             ownerName: owner.name,
             notes: [initialNote]
         };
@@ -211,8 +218,7 @@ function LeadsPageContent() {
     const handleUpdateOwner = useCallback(async (id: string, newOwnerId: string) => {
         if (!firestore || !user) return;
 
-        const allLeads = leadsDataFromHook || [];
-        const oldOwnerName = allLeads.find(l => l.id === id)?.ownerName || 'Unknown';
+        const oldOwnerName = leads.find(l => l.id === id)?.ownerName || 'Unknown';
         const newOwner = allStaff.find(s => s.id === newOwnerId);
         
         if (!newOwner) {
@@ -237,7 +243,7 @@ function LeadsPageContent() {
             toast({ title: "Error", description: "Could not update lead owner.", variant: "destructive"});
         }
 
-    }, [firestore, allStaff, toast, user, leadsDataFromHook, addNote]);
+    }, [firestore, allStaff, toast, user, leads, addNote]);
 
     const columns = useMemo(
         () => getColumns(handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleUpdateOwner, addNote, allStaff), 
@@ -245,7 +251,7 @@ function LeadsPageContent() {
     );
     
     const table = useReactTable({
-      data: filteredLeads,
+      data: leads,
       columns,
       globalFilterFn: globalFilterFn,
       getCoreRowModel: getCoreRowModel(),
