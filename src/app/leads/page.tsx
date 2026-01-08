@@ -18,6 +18,7 @@ import {
   type SortingState,
   type ColumnFiltersState,
   type FilterFn,
+  type PaginationState,
 } from '@tanstack/react-table';
 import { collection, query, orderBy, updateDoc, doc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
@@ -106,6 +107,10 @@ function LeadsPageContent() {
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [globalFilter, setGlobalFilter] = useState('');
     const [expanded, setExpanded] = useState({});
+    const [pagination, setPagination] = useState<PaginationState>({
+      pageIndex: 0,
+      pageSize: 100,
+    });
 
     // Stabilize the query object with useMemo.
     const leadsQuery = useMemo(() => 
@@ -307,6 +312,7 @@ function LeadsPageContent() {
       getCoreRowModel: getCoreRowModel(),
       getPaginationRowModel: getPaginationRowModel(),
       onSortingChange: setSorting,
+      onPaginationChange: setPagination,
       getSortedRowModel: getSortedRowModel(),
       onGlobalFilterChange: setGlobalFilter,
       getFilteredRowModel: getFilteredRowModel(),
@@ -317,7 +323,8 @@ function LeadsPageContent() {
         sorting,
         globalFilter,
         expanded,
-        columnFilters
+        columnFilters,
+        pagination,
       },
       getRowCanExpand: () => false, // No expandable rows in this table
       // Pass memoized meta data to the table for the global filter
@@ -355,3 +362,5 @@ export default function LeadsPage() {
         <LeadsPageContent />
     )
 }
+
+    
