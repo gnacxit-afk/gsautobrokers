@@ -24,7 +24,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Bot, User, Edit, ArrowRight, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { enhanceLeadNotes } from "@/ai/flows/enhance-lead-notes";
 import { useToast } from "@/hooks/use-toast";
 
 
@@ -33,7 +32,7 @@ const getIconForType = (type: NoteEntry['type']) => {
         case 'Manual': return <User size={14} />;
         case 'Stage Change': return <ArrowRight size={14} />;
         case 'Owner Change': return <Edit size={14} />;
-        case 'AI Analysis': return <Bot size={14} />;
+        case 'System': return <Bot size={14} />;
         default: return <Bot size={14} />;
     }
 };
@@ -43,7 +42,7 @@ const getColorForType = (type: NoteEntry['type']) => {
         case 'Manual': return "bg-sky-100 text-sky-800";
         case 'Stage Change': return "bg-amber-100 text-amber-800";
         case 'Owner Change': return "bg-purple-100 text-purple-800";
-        case 'AI Analysis': return "bg-slate-100 text-slate-800";
+        case 'System': return "bg-slate-100 text-slate-800";
         default: return "bg-slate-100 text-slate-800";
     }
 }
@@ -87,24 +86,10 @@ export default function LeadNotesPage() {
 
   const handleSaveNote = useCallback(async () => {
     if (newNote.trim() && leadId && firestore && user) {
-        const noteContent = newNote;
-        setNewNote(""); // Clear input immediately
-        
-        // Save manual note
-        await addNoteEntry(leadId, noteContent, 'Manual');
+        await addNoteEntry(leadId, newNote, 'Manual');
         toast({ title: "Note Saved", description: "Your note has been added to the history." });
-
-        // Trigger AI analysis
-        try {
-            const { enhancedNotes } = await enhanceLeadNotes({ leadNotes: noteContent });
-            if (enhancedNotes) {
-                await addNoteEntry(leadId, enhancedNotes, 'AI Analysis', 'AI Assistant');
-                toast({ title: "AI Analysis Complete", description: "AI-powered suggestions have been added." });
-            }
-        } catch (error) {
-            console.error("AI analysis failed:", error);
-            toast({ title: "AI Analysis Failed", description: "Could not get AI suggestions for this note.", variant: "destructive" });
-        }
+        setNewNote("");
+        // No longer navigating back automatically to allow for multiple notes
     }
   }, [newNote, leadId, firestore, user, addNoteEntry, toast]);
   
@@ -129,7 +114,7 @@ export default function LeadNotesPage() {
             </Button>
             <div>
               <h3 className="text-xl font-bold">Notes & History</h3>
-              <div className="text-sm text-muted-foreground">For lead: {lead?.name || <div className="animate-pulse rounded-md bg-muted h-4 w-32 inline-block" />}</div>
+              <div className="text-sm text-muted-foreground">For lead: {lead?.name || <Skeleton className="h-4 w-32 inline-block" />}</div>
             </div>
         </div>
 
@@ -175,7 +160,7 @@ export default function LeadNotesPage() {
                         className="mb-2"
                     />
                     <Button onClick={handleSaveNote} className="w-full" disabled={!newNote.trim()}>
-                        Save Note & Get AI Analysis
+                        Save Note
                     </Button>
                 </div>
             </CardContent>
