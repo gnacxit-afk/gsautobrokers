@@ -1,8 +1,7 @@
-
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback } from 'react';
-import { startOfMonth, endOfMonth } from 'date-fns';
+import { startOfDay, endOfDay } from 'date-fns';
 
 export interface DateRange {
   start: Date;
@@ -18,8 +17,8 @@ interface DateRangeContextType {
 export const DateRangeContext = createContext<DateRangeContextType | undefined>(undefined);
 
 export const getDefaultDateRange = (): DateRange => ({
-  start: startOfMonth(new Date()),
-  end: endOfMonth(new Date()),
+  start: startOfDay(new Date()),
+  end: endOfDay(new Date()),
 });
 
 interface DateRangeProviderProps {
