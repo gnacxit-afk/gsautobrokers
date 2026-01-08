@@ -105,3 +105,12 @@ export type Notification = {
     author: string;
 };
 
+export type Todo = {
+  id: string;
+  title: string;
+  completed: boolean;
+  createdAt: Timestamp;
+  userId: string;
+  leadId?: string;
+  leadName?: string;
+};

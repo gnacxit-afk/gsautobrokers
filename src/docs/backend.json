@@ -213,6 +213,22 @@
         "read": { "type": "boolean", "description": "Whether the user has read the notification." }
       },
       "required": ["userId", "content", "author", "createdAt", "read"]
+    },
+    "Todo": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Todo",
+        "type": "object",
+        "description": "Represents a single to-do item for a user.",
+        "properties": {
+            "id": { "type": "string", "description": "Unique identifier for the to-do item." },
+            "title": { "type": "string", "description": "The content of the to-do item." },
+            "completed": { "type": "boolean", "description": "Whether the to-do item is completed." },
+            "createdAt": { "type": "string", "description": "The timestamp of when the to-do was created.", "format": "date-time" },
+            "userId": { "type": "string", "description": "The ID of the user who owns this to-do item." },
+            "leadId": { "type": "string", "description": "Optional. The ID of the lead related to this to-do." },
+            "leadName": { "type": "string", "description": "Optional. The name of the lead related to this to-do." }
+        },
+        "required": ["id", "title", "completed", "createdAt", "userId"]
     }
   },
   "auth": {
@@ -339,6 +355,22 @@
                 {
                     "name": "notificationId",
                     "description": "The unique notification ID."
+                }
+            ]
+        }
+      },
+       {
+        "path": "todos/{todoId}",
+        "definition": {
+            "entityName": "Todo",
+            "schema": {
+                "$ref": "#/backend/entities/Todo"
+            },
+            "description": "Stores to-do items for users. Each document is a task for a specific user.",
+             "params": [
+                {
+                    "name": "todoId",
+                    "description": "The unique to-do ID."
                 }
             ]
         }

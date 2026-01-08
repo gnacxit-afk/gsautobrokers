@@ -188,5 +188,10 @@ service cloud.firestore {
         // Allow a user to list only their own notifications
         allow list: if isSignedIn() && request.query.where.size() == 1 && request.query.where[0][0] == 'userId' && request.query.where[0][1] == '==' && request.query.where[0][2] == request.auth.uid;
     }
+    
+    match /todos/{todoId} {
+      allow get, list, update, delete: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId);
+    }
   }
 }

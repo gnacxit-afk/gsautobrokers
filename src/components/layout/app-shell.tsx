@@ -13,6 +13,7 @@ import {
   PhoneCall,
   UserCircle2,
   TrendingUp,
+  CheckSquare,
 } from "lucide-react";
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -30,6 +31,7 @@ import { Notifications } from "./notifications";
 const navItems: NavItemType[] = [
   { href: "/", title: "Dashboard", icon: LayoutDashboard, role: ["Admin", "Supervisor"] },
   { href: "/leads", title: "Leads / CRM", icon: PhoneCall, role: ["Admin", "Supervisor", "Broker"] },
+  { href: "/todos", title: "Daily To-Do", icon: CheckSquare, role: ["Admin", "Supervisor", "Broker"] },
   { href: "/kpi", title: "KPI's & Performance", icon: TrendingUp, role: ["Admin", "Supervisor", "Broker"] },
   { href: "/knowledge", title: "Knowledge Base", icon: BookOpen, role: ["Admin", "Supervisor", "Broker"] },
   { href: "/staff", title: "Staff", icon: Users, role: ["Admin"] },
