@@ -80,8 +80,8 @@ function LeadsPageContent() {
     const firestore = useFirestore();
     const { toast } = useToast();
 
+    // The stable state that will be passed to the table
     const [data, setData] = useState<Lead[]>([]);
-    const [staffData, setStaffData] = useState<Staff[]>([]);
     
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -101,15 +101,14 @@ function LeadsPageContent() {
     [firestore]);
 
     const { data: leadsData, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
-    const { data: staffResult, loading: staffLoading } = useCollection<Staff>(staffQuery);
+    const { data: staffData, loading: staffLoading } = useCollection<Staff>(staffQuery);
 
+    // This effect synchronizes the live Firestore data with our stable table data state.
     useEffect(() => {
-        if (leadsData) setData(leadsData);
+        if (leadsData) {
+            setData(leadsData);
+        }
     }, [leadsData]);
-
-    useEffect(() => {
-        if (staffResult) setStaffData(staffResult);
-    }, [staffResult]);
     
     const addNoteEntry = useCallback(async (leadId: string, content: string, type: 'Manual' | 'Stage Change' | 'Owner Change' | 'System') => {
         if (!firestore || !user) return;
@@ -158,7 +157,7 @@ function LeadsPageContent() {
     }, [firestore, toast]);
 
     const handleAddLead = useCallback(async (newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'>) => {
-        if (!firestore || !user) return;
+        if (!firestore || !user || !staffData) return;
         const owner = staffData.find(s => s.id === newLeadData.ownerId);
         if (!owner) {
              toast({ title: "Error", description: "Could not find lead owner.", variant: "destructive" });
@@ -221,16 +220,21 @@ function LeadsPageContent() {
             setIsNoteHistoryOpen(true);
         }
     }, [data]);
+
+    const handleSaveNote = useCallback((leadId: string, content: string) => {
+        addNoteEntry(leadId, content, 'Manual');
+        setIsNoteHistoryOpen(false); // Close dialog after saving
+    }, [addNoteEntry]);
     
     const columns = useMemo(
-        () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, handleOpenNoteHistory, staffData), 
+        () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, handleOpenNoteHistory, staffData || []), 
         [handleUpdateStage, handleDelete, handleUpdateOwner, handleOpenNoteHistory, staffData]
     );
     
     const { dateRange, setDateRange } = useDateRange();
     
     const table = useReactTable({
-      data,
+      data, // Use the stable 'data' state here
       columns,
       globalFilterFn: globalFilterFn,
       getCoreRowModel: getCoreRowModel(),
@@ -270,7 +274,7 @@ function LeadsPageContent() {
                     table={table}
                     columns={columns}
                     onAddLead={handleAddLead}
-                    staff={staffData}
+                    staff={staffData || []}
                     stages={leadStages}
                     channels={channels}
                     clearAllFilters={clearAllFilters}
@@ -282,7 +286,7 @@ function LeadsPageContent() {
                     lead={selectedLeadForNotes}
                     open={isNoteHistoryOpen}
                     onOpenChange={setIsNoteHistoryOpen}
-                    onAddNote={(leadId, content) => addNoteEntry(leadId, content, 'Manual')}
+                    onAddNote={handleSaveNote}
                  />
             )}
         </>
