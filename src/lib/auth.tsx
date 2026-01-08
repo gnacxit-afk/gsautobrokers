@@ -123,7 +123,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!user && pathname !== "/login") {
         router.push("/login");
       } else if (user && pathname === "/login") {
-        router.push("/leads");
+        // Redirect to /leads for all roles except Broker. Broker goes to /kpi
+        const destination = user.role === 'Broker' ? '/kpi' : '/leads';
+        router.push(destination);
       }
     }
   }, [user, loading, pathname, router]);
