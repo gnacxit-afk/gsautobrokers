@@ -92,7 +92,7 @@ function LeadsPageContent() {
 
     }, [user, leadsDataFromHook, allStaff, dateRange]);
     
-    const addNote = useCallback(async (leadId: string, noteContent: string, noteType: NoteEntry['type']) => {
+    const addNote = useCallback((leadId: string, noteContent: string, noteType: NoteEntry['type']) => {
         if (!firestore || !user) return;
         
         const authorName = noteType === 'AI Analysis' ? 'AI Assistant' : (user.name || 'System');
@@ -106,19 +106,19 @@ function LeadsPageContent() {
         
         const leadRef = doc(firestore, 'leads', leadId);
         
-        try {
-            await updateDoc(leadRef, {
-                notes: arrayUnion(newNote)
-            });
+        // NON-BLOCKING: Call updateDoc without await and chain a .catch for error handling.
+        updateDoc(leadRef, {
+            notes: arrayUnion(newNote)
+        }).then(() => {
             console.log(`Note added successfully to lead ${leadId}`);
-        } catch (error) {
+        }).catch((error) => {
             console.error("Failed to add note:", error);
             toast({
                 title: "Error Adding Note",
                 description: "There was a problem saving your note. Please try again.",
                 variant: "destructive",
             });
-        }
+        });
 
     }, [firestore, user, toast]);
 
@@ -131,7 +131,7 @@ function LeadsPageContent() {
             await updateDoc(leadRef, { stage });
             toast({ title: "Stage Updated", description: `Lead stage changed to ${stage}.` });
             const noteContent = `Stage changed to '${stage}'`;
-            await addNote(id, noteContent, 'System');
+            addNote(id, noteContent, 'System');
         } catch (error) {
              console.error("Error updating stage:", error);
              toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
@@ -198,13 +198,13 @@ function LeadsPageContent() {
                 const analysisResult = await analyzeAndUpdateLead({ leadDetails });
                 
                 const analysisNoteContent = `AI Analysis Complete:\n- Qualification: ${analysisResult.qualificationDecision}\n- Recommendation: ${analysisResult.salesRecommendation}`;
-                await addNote(newDocRef.id, analysisNoteContent, 'AI Analysis');
+                addNote(newDocRef.id, analysisNoteContent, 'AI Analysis');
                 
                 await updateDoc(newDocRef, { leadStatus: analysisResult.leadStatus });
 
             } catch (aiError) {
                 console.error("Error during background AI analysis:", aiError);
-                await addNote(newDocRef.id, "Background AI analysis failed to run.", 'System');
+                addNote(newDocRef.id, "Background AI analysis failed to run.", 'System');
             }
 
         } catch (error) {
@@ -237,7 +237,7 @@ function LeadsPageContent() {
             await updateDoc(leadRef, updateData);
             toast({ title: "Owner Updated", description: `Lead reassigned to ${newOwner.name}.` });
             const noteContent = `Owner changed from ${oldOwnerName} to ${newOwner.name}`;
-            await addNote(id, noteContent, 'System');
+            addNote(id, noteContent, 'System');
         } catch (error) {
             console.error("Error updating owner:", error);
             toast({ title: "Error", description: "Could not update lead owner.", variant: "destructive"});
