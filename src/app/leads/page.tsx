@@ -18,7 +18,7 @@ import {
   type ColumnFiltersState,
   type FilterFn,
 } from '@tanstack/react-table';
-import { collection, serverTimestamp, query, orderBy, updateDoc, doc, getDoc } from 'firebase/firestore';
+import { collection, serverTimestamp, query, orderBy, updateDoc, doc, arrayUnion } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { analyzeAndUpdateLead } from "@/ai/flows/analyze-and-update-leads";
 import { isWithinInterval } from "date-fns";
@@ -92,20 +92,15 @@ export default function LeadsPage() {
         const leadRef = doc(firestore, 'leads', leadId);
 
         try {
-            // CORRECT PATTERN: Read the doc, get the array, append new note, and update the whole array.
-            const leadSnap = await getDoc(leadRef);
-            if (leadSnap.exists()) {
-                const existingNotes = leadSnap.data().notes || [];
-                const newNote = {
-                    content: noteContent,
-                    author: authorName || user.name,
-                    date: serverTimestamp(),
-                    type: noteType,
-                };
-                // @ts-ignore - This is a workaround because serverTimestamp() can cause type issues in arrays on creation.
-                const updatedNotes = [...existingNotes, newNote];
-                await updateDoc(leadRef, { notes: updatedNotes });
-            }
+            const newNote = {
+                content: noteContent,
+                author: authorName || user.name,
+                date: serverTimestamp(),
+                type: noteType,
+            };
+            await updateDoc(leadRef, {
+                notes: arrayUnion(newNote)
+            });
         } catch (error) {
             console.error("Failed to add note:", error);
             toast({
