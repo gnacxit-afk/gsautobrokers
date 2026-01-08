@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
@@ -17,7 +18,7 @@ import {
   type ColumnFiltersState,
   type FilterFn,
 } from '@tanstack/react-table';
-import { collection, serverTimestamp, query, orderBy, updateDoc, doc, arrayUnion, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, serverTimestamp, query, orderBy, updateDoc, doc, arrayUnion, getDoc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { analyzeAndUpdateLead } from "@/ai/flows/analyze-and-update-leads";
 import { isWithinInterval } from "date-fns";
@@ -85,13 +86,15 @@ export default function LeadsPage() {
 
     }, [user, allLeads, allStaff, dateRange]);
     
-    const addNote = useCallback(async (leadId: string, noteContent: string, noteType: NoteEntry['type'], authorName?: string) => {
+    const addNote = useCallback(async (leadId: string, noteContent: string, noteType: NoteEntry['type']) => {
         if (!firestore || !user) return;
+        
         const leadRef = doc(firestore, 'leads', leadId);
+        const authorName = noteType === 'AI Analysis' ? 'AI Assistant' : user.name;
 
         const newNote: NoteEntry = {
             content: noteContent,
-            author: authorName || user.name,
+            author: authorName,
             date: new Date(), // Use client-side date for optimistic update
             type: noteType,
         };
@@ -107,9 +110,12 @@ export default function LeadsPage() {
         });
 
         try {
+            // Use serverTimestamp for the actual database write
+            const dbNotePayload = { ...newNote, date: serverTimestamp() };
             await updateDoc(leadRef, {
-                notes: arrayUnion(newNote)
+                notes: arrayUnion(dbNotePayload)
             });
+             toast({ title: "Note Added", description: "Your note has been saved." });
         } catch (error) {
             console.error("Failed to add note:", error);
             toast({
@@ -135,17 +141,13 @@ export default function LeadsPage() {
         toast({ title: "Stage Updated", description: `Lead stage changed to ${stage}.` });
     }, [firestore, toast, user, addNote]);
 
-    const handleUpdateLeadStatus = useCallback((id: string, leadStatus: NonNullable<Lead['leadStatus']>, analysis?: { decision: string; recommendation: string }) => {
+    const handleUpdateLeadStatus = useCallback((id: string, leadStatus: NonNullable<Lead['leadStatus']>) => {
         if (!firestore) return;
         const leadRef = doc(firestore, 'leads', id);
         
         updateDoc(leadRef, { leadStatus });
 
-        if (analysis) {
-            const noteContent = `AI Analysis Complete:\n- Qualification: ${analysis.decision}\n- Recommendation: ${analysis.recommendation}`;
-            addNote(id, noteContent, 'AI Analysis', 'AI Assistant');
-        }
-    }, [firestore, addNote]);
+    }, [firestore]);
     
     const handleDelete = useCallback(async (id: string) => {
         if (window.confirm('Are you sure you want to delete this lead?') && firestore) {
@@ -165,51 +167,50 @@ export default function LeadsPage() {
 
         const { noteContent, ...leadData } = newLeadData;
 
+        // Use addDoc to let Firestore generate the ID
         const leadsCollection = collection(firestore, 'leads');
-        const newLeadRef = doc(leadsCollection);
-
+        
         const initialNote: NoteEntry = {
             content: noteContent,
             author: owner.name,
-            date: new Date(), // Use client-side date for initial creation
+            date: new Date(), // Use client-side date for creation to avoid array limitation
             type: 'Manual'
         };
 
-        const finalLeadData = {
+        const finalLeadData: Omit<Lead, 'id'> = {
             ...leadData,
-            id: newLeadRef.id,
             createdAt: serverTimestamp(),
             ownerName: owner.name,
             notes: [initialNote]
         };
 
-        await setDoc(newLeadRef, finalLeadData);
-        
-        toast({ title: "Lead Added", description: "New lead created. Analyzing with AI in background..." });
-         
         try {
-            const leadDetails = `Name: ${newLeadData.name}, Company: ${newLeadData.company || 'N/A'}, Stage: ${newLeadData.stage}, Notes: ${noteContent}`;
-            const analysisResult = await analyzeAndUpdateLead({ leadDetails });
+            const newDocRef = await addDoc(leadsCollection, finalLeadData);
             
-            const analysisNoteContent = `AI Analysis Complete:\n- Qualification: ${analysisResult.qualificationDecision}\n- Recommendation: ${analysisResult.salesRecommendation}`;
-            const analysisNote: NoteEntry = {
-                content: analysisNoteContent,
-                author: 'AI Assistant',
-                date: new Date(),
-                type: 'AI Analysis'
-            };
-            
-            await updateDoc(newLeadRef, { 
-                leadStatus: analysisResult.leadStatus,
-                notes: arrayUnion(analysisNote)
-            });
-            
-            toast({ title: "AI Analysis Complete", description: `Lead status for ${newLeadData.name} set to ${analysisResult.leadStatus}.` });
-        } catch (aiError) {
-            console.error("Error during background AI analysis:", aiError);
+            // Now we have an ID, we can do the background analysis
+            toast({ title: "Lead Added", description: "New lead created. Analyzing with AI in background..." });
+
+            try {
+                const leadDetails = `Name: ${newLeadData.name}, Company: ${newLeadData.company || 'N/A'}, Stage: ${newLeadData.stage}, Notes: ${noteContent}`;
+                const analysisResult = await analyzeAndUpdateLead({ leadDetails });
+                
+                const analysisNoteContent = `AI Analysis Complete:\n- Qualification: ${analysisResult.qualificationDecision}\n- Recommendation: ${analysisResult.salesRecommendation}`;
+                
+                await addNote(newDocRef.id, analysisNoteContent, 'AI Analysis');
+
+                await updateDoc(newDocRef, { leadStatus: analysisResult.leadStatus });
+                
+                toast({ title: "AI Analysis Complete", description: `Lead status for ${newLeadData.name} set to ${analysisResult.leadStatus}.` });
+
+            } catch (aiError) {
+                console.error("Error during background AI analysis:", aiError);
+            }
+
+        } catch (error) {
+             toast({ title: "Error creating lead", description: "Could not save the new lead.", variant: "destructive" });
         }
 
-    }, [firestore, allStaff, toast, user]);
+    }, [firestore, allStaff, toast, user, addNote]);
 
 
     const handleUpdateOwner = useCallback((id: string, newOwnerId: string) => {
@@ -233,11 +234,10 @@ export default function LeadsPage() {
         toast({ title: "Owner Updated", description: `Lead reassigned to ${newOwner.name}.` });
     }, [firestore, allStaff, toast, user, allLeads, addNote]);
 
-    const handleAddNote = useCallback((leadId: string, noteContent: string) => {
+    const handleAddNote = useCallback((leadId: string, noteContent: string, noteType: NoteEntry['type']) => {
         if (!user) return;
-        addNote(leadId, noteContent, 'Manual', user.name);
-        toast({ title: "Note Added", description: "Your note has been saved." });
-    }, [user, addNote, toast]);
+        addNote(leadId, noteContent, noteType);
+    }, [user, addNote]);
 
     const columns = useMemo(
         () => getColumns(handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleUpdateOwner, handleAddNote, allStaff), 
@@ -275,6 +275,11 @@ export default function LeadsPage() {
         });
     }, [table, setDateRange]);
 
+    const renderSub = useCallback((props) => {
+       return <RenderSubComponent {...props} onAddNote={(leadId, content) => addNote(leadId, content, 'Manual')} />;
+    }, [addNote]);
+
+
     return (
         <main className="flex flex-1 flex-col gap-4">
             <DataTable 
@@ -287,7 +292,7 @@ export default function LeadsPage() {
                 leadStatuses={leadStatuses}
                 clearAllFilters={clearAllFilters}
                 loading={leadsLoading || staffLoading}
-                renderSubComponent={(props) => <RenderSubComponent {...props} onAddNote={handleAddNote} />}
+                renderSubComponent={renderSub}
             />
         </main>
     );

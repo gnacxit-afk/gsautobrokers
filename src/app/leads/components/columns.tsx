@@ -36,9 +36,9 @@ interface CellActionsProps {
   row: Row<Lead>;
   onUpdateStage: (id: string, stage: Lead['stage']) => void;
   onDelete: (id: string) => void;
-  onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>, analysis?: { decision: string, recommendation: string }) => void;
+  onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void;
   onUpdateOwner: (leadId: string, newOwnerId: string) => void;
-  onAddNote: (leadId: string, noteContent: string) => void;
+  onAddNote: (leadId: string, noteContent: string, noteType: 'Manual' | 'AI Analysis' | 'System') => void;
   staff: Staff[];
 }
 
@@ -56,13 +56,21 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
     toast({ title: "Stage Updated", description: `Lead "${lead.name}" is now ${stage}.` });
   };
   
-  const handleLeadStatusUpdate = (status: NonNullable<Lead['leadStatus']>, analysis?: { decision: string, recommendation: string }) => {
-    onUpdateLeadStatus(lead.id, status, analysis);
+  const handleLeadStatusUpdate = (status: NonNullable<Lead['leadStatus']>) => {
+    onUpdateLeadStatus(lead.id, status);
     // Toast is now handled in the dialog to show completion
   };
 
   const handleOwnerUpdate = (newOwnerId: string) => {
     onUpdateOwner(lead.id, newOwnerId);
+  }
+
+  const handleManualNoteAdd = (leadId: string, noteContent: string) => {
+    onAddNote(leadId, noteContent, 'Manual');
+  }
+
+  const handleAINoteAdd = (leadId: string, noteContent: string) => {
+    onAddNote(leadId, noteContent, 'AI Analysis');
   }
 
   const assignableStaff = staff.filter(
@@ -76,12 +84,13 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
         onOpenChange={setAnalyzeOpen} 
         lead={lead} 
         onAnalysisComplete={handleLeadStatusUpdate} 
+        onAddNote={handleAINoteAdd}
       />
       <AddNoteDialog 
         open={isAddNoteOpen}
         onOpenChange={setAddNoteOpen}
         leadId={lead.id}
-        onAddNote={onAddNote}
+        onAddNote={handleManualNoteAdd}
       />
       <div className="flex items-center gap-2 justify-end">
         <Button
@@ -168,9 +177,9 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
 export const getColumns = (
   onUpdateStage: (id: string, stage: Lead['stage']) => void,
   onDelete: (id: string) => void,
-  onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>, analysis?: { decision: string, recommendation: string }) => void,
+  onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void,
   onUpdateOwner: (leadId: string, newOwnerId: string) => void,
-  onAddNote: (leadId: string, noteContent: string) => void,
+  onAddNote: (leadId: string, noteContent: string, noteType: 'Manual' | 'AI Analysis' | 'System') => void,
   staff: Staff[]
 ): ColumnDef<Lead>[] => [
   {
@@ -294,5 +303,3 @@ export const getColumns = (
     },
   },
 ];
-    
-    

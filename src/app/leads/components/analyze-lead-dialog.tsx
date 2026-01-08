@@ -5,6 +5,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -12,13 +13,14 @@ import { Button } from "@/components/ui/button";
 import type { Lead } from "@/lib/types";
 import { useEffect, useState, useTransition } from "react";
 import { analyzeAndUpdateLead, AnalyzeAndUpdateLeadOutput } from "@/ai/flows/analyze-and-update-leads";
-import { Loader2, Zap, Star, ShieldCheck, TrendingUp, CircleDollarSign, UserCheck, CalendarClock, Target, BadgeCheck, AlertTriangle } from "lucide-react";
+import { Loader2, Zap, Star, ShieldCheck, TrendingUp, CircleDollarSign, UserCheck, CalendarClock, Target, BadgeCheck, AlertTriangle, Save } from "lucide-react";
 
 interface AnalyzeLeadDialogProps {
   lead: Lead;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAnalysisComplete: (leadId: string, leadStatus: NonNullable<Lead['leadStatus']>, analysis: { decision: string; recommendation: string }) => void;
+  onAnalysisComplete: (leadId: string, leadStatus: NonNullable<Lead['leadStatus']>) => void;
+  onAddNote: (leadId: string, noteContent: string) => void;
 }
 
 const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string, value: string | number }) => (
@@ -31,7 +33,7 @@ const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string,
     </div>
 );
 
-export function AnalyzeLeadDialog({ lead, open, onOpenChange, onAnalysisComplete }: AnalyzeLeadDialogProps) {
+export function AnalyzeLeadDialog({ lead, open, onOpenChange, onAnalysisComplete, onAddNote }: AnalyzeLeadDialogProps) {
     const [analysis, setAnalysis] = useState<AnalyzeAndUpdateLeadOutput | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
@@ -42,17 +44,14 @@ export function AnalyzeLeadDialog({ lead, open, onOpenChange, onAnalysisComplete
             setError(null);
             startTransition(async () => {
                 try {
-                    const leadDetails = `Name: ${lead.name}, Company: ${lead.company || 'N/A'}, Stage: ${lead.stage}`;
+                    const leadDetails = `Name: ${lead.name}, Company: ${lead.company || 'N/A'}, Stage: ${lead.stage}, Notes: ${lead.notes?.map(n => n.content).join('\\n') || 'N/A'}`;
                     
                     const result = await analyzeAndUpdateLead({ leadDetails });
                     setAnalysis(result);
                     
-                    // On successful analysis, call the callback to update the parent state and add a note
+                    // On successful analysis, call the callback to update the lead status
                     if (result.leadStatus) {
-                        onAnalysisComplete(lead.id, result.leadStatus, {
-                            decision: result.qualificationDecision,
-                            recommendation: result.salesRecommendation
-                        });
+                        onAnalysisComplete(lead.id, result.leadStatus);
                     }
                 } catch (e: any) {
                     setError("The AI model is currently overloaded. Please try again in a few moments.");
@@ -60,6 +59,14 @@ export function AnalyzeLeadDialog({ lead, open, onOpenChange, onAnalysisComplete
             });
         }
     }, [open, lead, onAnalysisComplete]);
+
+    const handleSaveNote = () => {
+        if (!analysis || !lead) return;
+
+        const noteContent = `AI Analysis Complete:\n- Qualification: ${analysis.qualificationDecision}\n- Recommendation: ${analysis.salesRecommendation}`;
+        onAddNote(lead.id, noteContent);
+        onOpenChange(false); // Close dialog after saving
+    };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -112,10 +119,14 @@ export function AnalyzeLeadDialog({ lead, open, onOpenChange, onAnalysisComplete
                         </div>
                     )}
                 </div>
-                 <Button onClick={() => onOpenChange(false)}>Cerrar</Button>
+                 <DialogFooter>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cerrar</Button>
+                    <Button onClick={handleSaveNote} disabled={!analysis || isPending}>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save as Note
+                    </Button>
+                 </DialogFooter>
             </DialogContent>
         </Dialog>
     );
 }
-
-    
