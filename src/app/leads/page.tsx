@@ -253,7 +253,7 @@ function LeadsPageContent() {
         columnFilters
       },
       getRowCanExpand: () => false,
-      globalFilterFnContext: {
+      meta: {
         user,
         allStaff: staffData,
         dateRange
@@ -281,14 +281,14 @@ function LeadsPageContent() {
                     loading={leadsLoading || staffLoading}
                 />
             </main>
-            {selectedLeadForNotes && (
-                 <NoteHistoryDialog
-                    lead={selectedLeadForNotes}
-                    open={isNoteHistoryOpen}
-                    onOpenChange={setIsNoteHistoryOpen}
-                    onAddNote={handleSaveNote}
-                 />
-            )}
+            
+            <NoteHistoryDialog
+                lead={selectedLeadForNotes}
+                open={isNoteHistoryOpen}
+                onOpenChange={setIsNoteHistoryOpen}
+                onAddNote={handleSaveNote}
+            />
+            
         </>
     );
 }

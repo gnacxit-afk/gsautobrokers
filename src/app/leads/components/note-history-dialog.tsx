@@ -24,7 +24,7 @@ import { Bot, User, Edit, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NoteHistoryDialogProps {
-  lead: Lead;
+  lead: Lead | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAddNote: (leadId: string, content: string) => void;
@@ -61,15 +61,13 @@ export function NoteHistoryDialog({ lead, open, onOpenChange, onAddNote }: NoteH
   const { data: noteHistory, loading } = useCollection<NoteEntry>(notesQuery);
 
   const handleSaveNote = () => {
-    if (newNote.trim()) {
+    if (newNote.trim() && lead) {
       onAddNote(lead.id, newNote);
       setNewNote("");
-      // The parent component now handles closing the dialog.
     }
   };
   
   useEffect(() => {
-    // Scroll to bottom when new notes are added
     if (scrollAreaRef.current) {
         scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
     }
@@ -79,7 +77,7 @@ export function NoteHistoryDialog({ lead, open, onOpenChange, onAddNote }: NoteH
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Notes & History for {lead.name}</DialogTitle>
+          <DialogTitle>Notes & History for {lead?.name}</DialogTitle>
           <DialogDescription>
             View the activity log and add new notes for this lead.
           </DialogDescription>
