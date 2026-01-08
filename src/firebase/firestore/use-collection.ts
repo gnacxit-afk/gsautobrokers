@@ -16,7 +16,7 @@ export const useCollection = <T extends DocumentData>(
   const [error, setError] = useState<Error | null>(null);
 
   // Use a ref to track the previous query to prevent unnecessary loading states
-  const prevQueryRef = useRef<string | null>(null);
+  const prevQueryKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (q === null) {
@@ -24,14 +24,16 @@ export const useCollection = <T extends DocumentData>(
       return;
     };
     
-    const queryKey = (q as any)._query.canonicalId();
+    // Using JSON.stringify on the query object provides a stable key for comparison.
+    // This is safer than relying on internal, private properties like _query.
+    const queryKey = JSON.stringify(q);
     
     // Only set loading to true if the query has actually changed.
     // This prevents re-renders from dialogs, etc., from causing a loading flash.
-    if (prevQueryRef.current !== queryKey) {
+    if (prevQueryKeyRef.current !== queryKey) {
         setLoading(true);
         setData(null); // Clear previous data when query changes
-        prevQueryRef.current = queryKey;
+        prevQueryKeyRef.current = queryKey;
     }
 
     setError(null);

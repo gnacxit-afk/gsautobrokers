@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { onSnapshot, type DocumentReference, type DocumentData, type FirestoreError } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -12,15 +12,23 @@ export const useDoc = <T extends DocumentData>(
   const [data, setData] = useState<WithId<T> | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
+  const prevPathRef = useRef<string | null>(null);
 
   useEffect(() => {
+    const currentPath = ref ? ref.path : null;
+
     if (ref === null) {
-      // Reference is not ready yet, stay in loading state.
       setLoading(true);
       return;
     };
     
-    setLoading(true);
+    // Only set loading to true if the document path has actually changed.
+    if (prevPathRef.current !== currentPath) {
+        setLoading(true);
+        setData(null); // Clear previous data
+        prevPathRef.current = currentPath;
+    }
+
     setError(null);
     const unsubscribe = onSnapshot(
       ref,
