@@ -11,7 +11,7 @@ import type { Lead, Staff, KPI } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/lib/auth';
 import { useToast } from '@/hooks/use-toast';
-import { useDateRange, getDefaultDateRange } from '@/hooks/use-date-range';
+import { useDateRange } from '@/hooks/use-date-range';
 import { calculateBonus } from '@/lib/utils';
 import { COMMISSION_PER_VEHICLE } from '@/lib/mock-data';
 import { isWithinInterval, isValid } from 'date-fns';

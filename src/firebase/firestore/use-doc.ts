@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import {
@@ -15,8 +16,6 @@ export function useDoc<T>(ref: DocumentReference<DocumentData> | null) {
   const [data, setData] = useState<WithId<T> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const prevRefPath = useRef<string | null>(null);
-
 
   useEffect(() => {
     if (ref === null) {
@@ -25,13 +24,7 @@ export function useDoc<T>(ref: DocumentReference<DocumentData> | null) {
       return;
     }
     
-    if (prevRefPath.current === ref.path && data !== null) {
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
-    prevRefPath.current = ref.path;
 
     const unsubscribe = onSnapshot(
       ref,
@@ -57,7 +50,7 @@ export function useDoc<T>(ref: DocumentReference<DocumentData> | null) {
     );
 
     return () => unsubscribe();
-  }, [ref, data]);
+  }, [ref]);
 
   return { data, loading, error };
 }

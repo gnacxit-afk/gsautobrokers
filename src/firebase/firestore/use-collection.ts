@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import {
@@ -23,24 +24,14 @@ export function useCollection<T>(q: Query<DocumentData> | null) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const prevQueryKeyRef = useRef<string | null>(null);
-
   useEffect(() => {
     if (q === null) {
       setData([]);
       setLoading(false);
       return;
     }
-
-    const queryKey = JSON.stringify(q);
-
-    if (prevQueryKeyRef.current === queryKey) {
-      setLoading(false);
-      return;
-    }
     
     setLoading(true);
-    prevQueryKeyRef.current = queryKey;
     
     const unsubscribe = onSnapshot(
       q,
