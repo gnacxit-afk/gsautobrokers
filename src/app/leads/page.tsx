@@ -55,7 +55,6 @@ function LeadsPageContent() {
     const { data: leadsDataFromHook, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
     const { data: staffData, loading: staffLoading } = useCollection<Staff>(staffQuery);
 
-    const [leads, setLeads] = useState<Lead[]>([]);
     const allStaff = useMemo(() => staffData || [], [staffData]);
 
     const { dateRange, setDateRange } = useDateRange();
@@ -65,11 +64,10 @@ function LeadsPageContent() {
     const [globalFilter, setGlobalFilter] = useState('');
     const [expanded, setExpanded] = useState({});
 
-    useEffect(() => {
+    const leads = useMemo(() => {
         const allLeads = leadsDataFromHook || [];
         if (!user) {
-            setLeads([]);
-            return;
+            return [];
         };
 
         let visibleLeads = allLeads;
@@ -82,13 +80,11 @@ function LeadsPageContent() {
             visibleLeads = allLeads.filter(l => l.ownerId === user.id);
         }
         
-        const filteredByDate = visibleLeads.filter(l => {
+        return visibleLeads.filter(l => {
             if (!l.createdAt) return false;
             const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
             return isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end });
         });
-
-        setLeads(filteredByDate);
 
     }, [user, leadsDataFromHook, allStaff, dateRange]);
     
@@ -122,7 +118,6 @@ function LeadsPageContent() {
                 variant: "destructive",
             });
         });
-
     }, [firestore, user, toast]);
 
 
