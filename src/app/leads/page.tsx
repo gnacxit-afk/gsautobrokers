@@ -104,7 +104,8 @@ export default function LeadsPage() {
             date: Timestamp.now(), // Use client-side Timestamp
             type: noteType,
         };
-
+        
+        const originalLeads = leads;
         // Optimistic UI update
         setLeads(currentLeads => {
             return currentLeads.map(lead => 
@@ -116,7 +117,7 @@ export default function LeadsPage() {
 
         const leadRef = doc(firestore, 'leads', leadId);
         
-        // Non-blocking update with arrayUnion
+        // Non-blocking update with arrayUnion and error handling
         updateDoc(leadRef, {
             notes: arrayUnion(newNote)
         }).catch(error => {
@@ -127,52 +128,65 @@ export default function LeadsPage() {
                 variant: "destructive",
             });
             // Revert optimistic update on failure
-            setLeads(currentLeads => {
-                 return currentLeads.map(lead => 
-                    lead.id === leadId 
-                        ? { ...lead, notes: lead.notes.filter(n => n !== newNote) }
-                        : lead
-                );
-            });
+            setLeads(originalLeads);
         });
 
-    }, [firestore, user, toast]);
+    }, [firestore, user, toast, leads]);
 
 
     const handleUpdateStage = useCallback((id: string, stage: Lead['stage']) => {
         if (!firestore || !user) return;
         const leadRef = doc(firestore, 'leads', id);
         
+        // Optimistic update for stage
+        setLeads(currentLeads => currentLeads.map(l => l.id === id ? {...l, stage} : l));
+
         updateDoc(leadRef, { stage }).catch(error => {
             console.error("Error updating stage:", error);
             toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
+            // Revert on fail
+             setLeads(currentLeads => currentLeads.map(l => l.id === id ? {...l, stage: leads.find(lead => lead.id === id)!.stage} : l));
         });
 
         const noteContent = `Stage changed to '${stage}'`;
         addNote(id, noteContent, 'System');
         
         toast({ title: "Stage Updated", description: `Lead stage changed to ${stage}.` });
-    }, [firestore, toast, user, addNote]);
+    }, [firestore, toast, user, addNote, leads]);
 
     const handleUpdateLeadStatus = useCallback((id: string, leadStatus: NonNullable<Lead['leadStatus']>) => {
         if (!firestore) return;
         const leadRef = doc(firestore, 'leads', id);
+
+        // Optimistic update
+        setLeads(currentLeads => currentLeads.map(l => l.id === id ? {...l, leadStatus} : l));
         
         updateDoc(leadRef, { leadStatus }).catch(error => {
              console.error("Error updating lead status:", error);
              toast({ title: "Error", description: "Could not update lead status.", variant: "destructive"});
+             // Revert
+             setLeads(currentLeads => currentLeads.map(l => l.id === id ? {...l, leadStatus: leads.find(lead => lead.id === id)?.leadStatus} : l));
         });
         
-        toast({ title: "Lead Status Updated", description: "AI analysis has been applied." });
-    }, [firestore, toast]);
+    }, [firestore, toast, leads]);
     
     const handleDelete = useCallback(async (id: string) => {
         if (window.confirm('Are you sure you want to delete this lead?') && firestore) {
+
+            // Optimistic deletion
+            const originalLeads = leads;
+            setLeads(currentLeads => currentLeads.filter(l => l.id !== id));
+
             const leadRef = doc(firestore, 'leads', id);
-            await deleteDoc(leadRef);
-            toast({ title: "Lead Deleted", description: "The lead has been removed." });
+            try {
+                await deleteDoc(leadRef);
+                toast({ title: "Lead Deleted", description: "The lead has been removed." });
+            } catch (error) {
+                 toast({ title: "Error Deleting Lead", description: "Could not remove the lead.", variant: "destructive" });
+                 setLeads(originalLeads); // Revert
+            }
         }
-    }, [firestore, toast]);
+    }, [firestore, toast, leads]);
 
     const handleAddLead = useCallback(async (newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName' | 'notes'> & { noteContent: string }) => {
         if (!firestore || !user) return;
@@ -193,24 +207,17 @@ export default function LeadsPage() {
             type: 'Manual'
         };
 
-        const finalLeadData: Omit<Lead, 'id'> = {
+        const finalLeadData = {
             ...leadData,
-            createdAt: new Date(), // Use client date for the initial array
+            createdAt: serverTimestamp(),
             ownerName: owner.name,
             notes: [initialNote]
         };
 
         try {
-            // We can't use serverTimestamp() inside an array on creation.
-            // So we create the doc with client-side dates first.
-            const newDocRef = await addDoc(leadsCollection, {
-                ...finalLeadData,
-                createdAt: serverTimestamp(),
-                notes: [initialNote], // Still use client-date note for creation
-            });
-            
             toast({ title: "Lead Added", description: "New lead created. Analyzing with AI in background..." });
-
+            const newDocRef = await addDoc(leadsCollection, finalLeadData);
+            
             // Now, run the AI analysis in the background
             try {
                 const leadDetails = `Name: ${newLeadData.name}, Company: ${newLeadData.company || 'N/A'}, Stage: ${newLeadData.stage}, Notes: ${noteContent}`;
@@ -247,12 +254,23 @@ export default function LeadsPage() {
         }
         
         const leadRef = doc(firestore, 'leads', id);
-        updateDoc(leadRef, { 
+
+        const updateData = { 
             ownerId: newOwner.id, 
             ownerName: newOwner.name,
-        }).catch(error => {
+        };
+
+        // Optimistic update
+        setLeads(currentLeads => currentLeads.map(l => l.id === id ? {...l, ...updateData} : l));
+
+        updateDoc(leadRef, updateData).catch(error => {
             console.error("Error updating owner:", error);
             toast({ title: "Error", description: "Could not update lead owner.", variant: "destructive"});
+            // Revert
+            const originalLead = leads.find(lead => lead.id === id);
+            if (originalLead) {
+              setLeads(currentLeads => currentLeads.map(l => l.id === id ? {...l, ownerId: originalLead.ownerId, ownerName: originalLead.ownerName } : l));
+            }
         });
 
         const noteContent = `Owner changed from ${oldOwnerName} to ${newOwner.name}`;
@@ -324,3 +342,5 @@ export default function LeadsPage() {
         </main>
     );
 }
+
+    
