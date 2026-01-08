@@ -37,29 +37,22 @@ export function AnalyzeLeadDialog({ lead, open, onOpenChange, onAnalysisComplete
     const [analysis, setAnalysis] = useState<AnalyzeAndUpdateLeadOutput | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
-    const [hasAnalyzed, setHasAnalyzed] = useState(false);
 
     useEffect(() => {
-        if (open && lead && !hasAnalyzed) {
+        if (open && lead) {
             setAnalysis(null);
             setError(null);
-            setHasAnalyzed(true); // Set flag to prevent re-running
             startTransition(async () => {
                 try {
                     const leadDetails = `Name: ${lead.name}, Company: ${lead.company || 'N/A'}, Stage: ${lead.stage}, Note: ${lead.note || 'N/A'}`;
-                    
                     const result = await analyzeAndUpdateLead({ leadDetails });
                     setAnalysis(result);
-                    
                 } catch (e: any) {
                     setError("The AI model is currently overloaded. Please try again in a few moments.");
                 }
             });
-        } else if (!open) {
-            // Reset the flag when the dialog is closed
-            setHasAnalyzed(false);
         }
-    }, [open, lead, hasAnalyzed]);
+    }, [open, lead?.id]); // Depend on open status and the specific lead ID
 
     const handleSaveNote = () => {
         if (!analysis || !lead) return;
@@ -72,7 +65,7 @@ export function AnalyzeLeadDialog({ lead, open, onOpenChange, onAnalysisComplete
     // Wrapper for onOpenChange to reset state
     const handleOpenChange = (isOpen: boolean) => {
         if (!isOpen) {
-            setHasAnalyzed(false);
+            // Reset state when closing
             setAnalysis(null);
             setError(null);
         }
