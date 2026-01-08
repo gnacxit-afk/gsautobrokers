@@ -186,28 +186,21 @@ function LeadsPageContent() {
         }
     }, [firestore, staffData, user, toast, addNoteEntry]);
 
-    const handleUpdateOwner = useCallback(async (id: string, oldOwnerName: string, newOwnerId: string) => {
+    const handleUpdateOwner = useCallback(async (id: string, oldOwnerName: string, newOwnerId: string, newOwnerName: string) => {
         if (!firestore || !user || !staffData) return;
-        
-        const newOwner = staffData.find(s => s.id === newOwnerId);
-        
-        if (!newOwner) {
-            toast({ title: "Error", description: "Selected owner not found.", variant: "destructive" });
-            return;
-        }
         
         const leadRef = doc(firestore, 'leads', id);
 
         const updateData = { 
-            ownerId: newOwner.id, 
-            ownerName: newOwner.name,
+            ownerId: newOwnerId, 
+            ownerName: newOwnerName,
         };
         
         try {
             await updateDoc(leadRef, updateData);
-            const noteContent = `Owner changed from '${oldOwnerName}' to '${newOwner.name}'`;
+            const noteContent = `Owner changed from '${oldOwnerName}' to '${newOwnerName}'`;
             await addNoteEntry(id, noteContent, 'Owner Change');
-            // Toast is now in CellActions
+            // Toast is handled in CellActions
         } catch (error) {
             console.error("Error updating owner:", error);
             toast({ title: "Error", description: "Could not update lead owner.", variant: "destructive"});

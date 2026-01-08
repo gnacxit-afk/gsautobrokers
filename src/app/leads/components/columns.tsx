@@ -34,7 +34,7 @@ interface CellActionsProps {
   row: Row<Lead>;
   onUpdateStage: (lead: Lead, newStage: Lead['stage']) => void;
   onDelete: (id: string) => void;
-  onUpdateOwner: (leadId: string, oldOwnerName: string, newOwnerId: string) => void;
+  onUpdateOwner: (leadId: string, oldOwnerName: string, newOwnerId: string, newOwnerName: string) => void;
   staff: Staff[];
 }
 
@@ -52,7 +52,11 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
   };
   
   const handleOwnerUpdate = (newOwnerId: string) => {
-    onUpdateOwner(lead.id, lead.ownerName, newOwnerId);
+    const newOwner = staff.find(s => s.id === newOwnerId);
+    if (newOwner) {
+      onUpdateOwner(lead.id, lead.ownerName, newOwnerId, newOwner.name);
+      toast({ title: "Owner Updated", description: `${lead.name} is now assigned to ${newOwner.name}.` });
+    }
   }
 
   const assignableStaff = staff.filter(
@@ -137,7 +141,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
 export const getColumns = (
   onUpdateStage: (lead: Lead, newStage: Lead['stage']) => void,
   onDelete: (id: string) => void,
-  onUpdateOwner: (leadId: string, oldOwnerName: string, newOwnerId: string) => void,
+  onUpdateOwner: (leadId: string, oldOwnerName: string, newOwnerId: string, newOwnerName: string) => void,
   staff: Staff[]
 ): ColumnDef<Lead>[] => [
   {
