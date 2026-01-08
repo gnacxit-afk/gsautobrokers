@@ -55,7 +55,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
   }
 
   const assignableStaff = staff.filter(
-    (s) => s.role === 'Broker' || s.role === 'Supervisor' || s_role === 'Admin'
+    (s) => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin'
   );
   
   return (
