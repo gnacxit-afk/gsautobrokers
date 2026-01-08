@@ -18,7 +18,7 @@ import {
   type ColumnFiltersState,
   type FilterFn,
 } from '@tanstack/react-table';
-import { collection, query, orderBy, updateDoc, doc, arrayUnion, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, updateDoc, doc, arrayUnion, deleteDoc, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { analyzeAndUpdateLead } from "@/ai/flows/analyze-and-update-leads";
 import { isWithinInterval } from "date-fns";
@@ -101,7 +101,7 @@ export default function LeadsPage() {
         const newNote: NoteEntry = {
             content: noteContent,
             author: authorName,
-            date: new Date(),
+            date: Timestamp.now(), // Use client-side Timestamp
             type: noteType,
         };
 
@@ -115,9 +115,10 @@ export default function LeadsPage() {
         });
 
         const leadRef = doc(firestore, 'leads', leadId);
-        // Non-blocking update
+        
+        // Non-blocking update with arrayUnion
         updateDoc(leadRef, {
-            notes: arrayUnion({ ...newNote, date: serverTimestamp() })
+            notes: arrayUnion(newNote)
         }).catch(error => {
             console.error("Failed to add note:", error);
             toast({
@@ -125,8 +126,16 @@ export default function LeadsPage() {
                 description: "There was a problem saving your note. Please refresh.",
                 variant: "destructive",
             });
-            // Optional: Add logic to revert the optimistic update here if needed.
+            // Revert optimistic update on failure
+            setLeads(currentLeads => {
+                 return currentLeads.map(lead => 
+                    lead.id === leadId 
+                        ? { ...lead, notes: lead.notes.filter(n => n !== newNote) }
+                        : lead
+                );
+            });
         });
+
     }, [firestore, user, toast]);
 
 
@@ -180,38 +189,44 @@ export default function LeadsPage() {
         const initialNote: NoteEntry = {
             content: noteContent,
             author: owner.name,
-            date: new Date(),
+            date: new Date(), // Use client date for the initial array
             type: 'Manual'
         };
 
         const finalLeadData: Omit<Lead, 'id'> = {
             ...leadData,
-            createdAt: new Date(),
+            createdAt: new Date(), // Use client date for the initial array
             ownerName: owner.name,
             notes: [initialNote]
         };
 
         try {
+            // We can't use serverTimestamp() inside an array on creation.
+            // So we create the doc with client-side dates first.
             const newDocRef = await addDoc(leadsCollection, {
                 ...finalLeadData,
                 createdAt: serverTimestamp(),
-                notes: [{ ...initialNote, date: serverTimestamp() }],
+                notes: [initialNote], // Still use client-date note for creation
             });
             
             toast({ title: "Lead Added", description: "New lead created. Analyzing with AI in background..." });
 
+            // Now, run the AI analysis in the background
             try {
                 const leadDetails = `Name: ${newLeadData.name}, Company: ${newLeadData.company || 'N/A'}, Stage: ${newLeadData.stage}, Notes: ${noteContent}`;
                 const analysisResult = await analyzeAndUpdateLead({ leadDetails });
                 
+                // Add the AI analysis note using the now reliable addNote function
                 const analysisNoteContent = `AI Analysis Complete:\n- Qualification: ${analysisResult.qualificationDecision}\n- Recommendation: ${analysisResult.salesRecommendation}`;
-                
                 addNote(newDocRef.id, analysisNoteContent, 'AI Analysis');
-
+                
+                // Update the lead status separately
                 await updateDoc(newDocRef, { leadStatus: analysisResult.leadStatus });
 
             } catch (aiError) {
                 console.error("Error during background AI analysis:", aiError);
+                // Optionally add a note saying the AI analysis failed
+                addNote(newDocRef.id, "Background AI analysis failed to run.", 'System');
             }
 
         } catch (error) {
