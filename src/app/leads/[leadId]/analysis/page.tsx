@@ -8,7 +8,7 @@ import type { Lead, NoteEntry } from '@/lib/types';
 import { qualifyLead } from '@/ai/flows/qualify-lead-flow';
 import type { QualifyLeadOutput } from '@/ai/flows/qualify-lead-flow';
 import { doc, collection, query, orderBy, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { ArrowLeft, Bot, Zap, Star, ShieldCheck, TrendingUp, Lightbulb, Users, FileText } from 'lucide-react';
+import { ArrowLeft, Bot, Zap, Star, TrendingUp, Lightbulb, Users, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -52,7 +52,12 @@ export default function LeadAnalysisPage() {
         if (lead && noteHistory && !leadLoading && !notesLoading) {
             setLoading(true);
             const leadDetails = JSON.stringify(lead);
-            const conversationHistory = JSON.stringify(noteHistory.map(n => `[${n.author} at ${n.date.toString()}]: ${n.content}`).join('\n')));
+            const conversationHistory = JSON.stringify(
+              noteHistory.map(n => {
+                const noteDate = n.date ? new Date((n.date as any).toDate ? (n.date as any).toDate() : n.date).toString() : new Date().toString();
+                return `[${n.author} at ${noteDate}]: ${n.content}`;
+              }).join('\n')
+            );
             
             qualifyLead({ leadDetails, conversationHistory })
                 .then(async (result) => {
