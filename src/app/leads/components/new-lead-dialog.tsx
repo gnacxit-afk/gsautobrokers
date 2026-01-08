@@ -45,7 +45,7 @@ const stageColors: Record<Lead['stage'], string> = {
 const initialFormState = {
     name: "",
     phone: "",
-    noteContent: "",
+    note: "",
     channel: "Facebook" as Lead['channel'],
     stage: "Nuevo" as Lead['stage'],
     language: "Spanish" as 'English' | 'Spanish',
@@ -76,13 +76,13 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
         toast({ title: "Error", description: "You must be logged in to create a lead.", variant: "destructive"});
         return;
     }
-    const { noteContent, ...leadData } = formData;
-    if (!formData.name || !formData.phone || !formData.stage || !noteContent) {
+    const { ...leadData } = formData;
+    if (!formData.name || !formData.phone || !formData.stage || !formData.note) {
         toast({ title: "Missing Fields", description: "Please fill out all fields marked with an asterisk (*).", variant: "destructive"});
         return;
     }
 
-    onAddLead({ ...leadData, ownerId: user.id, noteContent: noteContent });
+    onAddLead({ ...leadData, ownerId: user.id });
 
     // The toast is now handled in the page.tsx to include AI analysis status.
     onOpenChange(false);
@@ -166,12 +166,12 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
             </Select>
           </div>
            <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="noteContent" className="text-right pt-2">
+              <Label htmlFor="note" className="text-right pt-2">
                 Initial Note*
               </Label>
               <Textarea
-                id="noteContent"
-                value={formData.noteContent}
+                id="note"
+                value={formData.note}
                 onChange={handleInputChange}
                 placeholder="Add any initial notes for this lead."
                 className="col-span-3"
@@ -189,5 +189,3 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
     </Dialog>
   );
 }
-
-    

@@ -12,31 +12,39 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import type { Lead } from "@/lib/types";
 
 interface AddNoteDialogProps {
-  leadId: string;
+  lead: Lead | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddNote: (leadId: string, noteContent: string) => void;
+  onSaveNote: (leadId: string, noteContent: string) => void;
 }
 
 
-export function AddNoteDialog({ leadId, open, onOpenChange, onAddNote }: AddNoteDialogProps) {
+export function AddNoteDialog({ lead, open, onOpenChange, onSaveNote }: AddNoteDialogProps) {
   const { toast } = useToast();
   const [noteContent, setNoteContent] = useState("");
+  
+  useEffect(() => {
+    if (lead) {
+      setNoteContent(lead.note || "");
+    }
+  }, [lead]);
 
 
   const handleSave = () => {
+    if (!lead) return;
+    
     if (!noteContent) {
         toast({ title: "Note is empty", description: "Please enter some content for the note.", variant: "destructive"});
         return;
     }
 
-    onAddNote(leadId, noteContent);
+    onSaveNote(lead.id, noteContent);
     onOpenChange(false);
-    setNoteContent("");
   }
 
   return (
@@ -46,9 +54,9 @@ export function AddNoteDialog({ leadId, open, onOpenChange, onAddNote }: AddNote
     }}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add New Note</DialogTitle>
+          <DialogTitle>Edit Note for {lead?.name}</DialogTitle>
           <DialogDescription>
-            Enter the details for your new note. It will be timestamped automatically.
+            You can modify the lead's main note here.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -61,7 +69,7 @@ export function AddNoteDialog({ leadId, open, onOpenChange, onAddNote }: AddNote
                 value={noteContent}
                 onChange={(e) => setNoteContent(e.target.value)}
                 placeholder="Add your note here..."
-                className="col-span-3 min-h-[120px]"
+                className="col-span-3 min-h-[200px]"
               />
             </div>
         </div>
@@ -73,5 +81,3 @@ export function AddNoteDialog({ leadId, open, onOpenChange, onAddNote }: AddNote
     </Dialog>
   );
 }
-
-    

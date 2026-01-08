@@ -1,0 +1,270 @@
+
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user profile within the AutoSales AI application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The user's DUI (Documento Unico de Identidad). Unique identifier for the user profile."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role within the system (e.g., Admin, Supervisor, Broker)."
+        },
+        "authUid": {
+          "type": "string",
+          "description": "The Firebase Authentication UID for the user."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "role",
+        "authUid"
+      ]
+    },
+    "Lead": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Lead",
+      "type": "object",
+      "description": "Represents a sales lead within the AutoSales AI application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the lead."
+        },
+        "name": {
+          "type": "string",
+          "description": "The lead's name."
+        },
+        "phone": {
+          "type": "string",
+          "description": "The lead's phone number."
+        },
+        "email": {
+          "type": "string",
+          "description": "The lead's email address.",
+          "format": "email"
+        },
+        "channel": {
+          "type": "string",
+          "description": "The channel through which the lead was acquired (e.g., Facebook, WhatsApp)."
+        },
+        "company": {
+          "type": "string",
+          "description": "The lead's company name."
+        },
+        "stage": {
+          "type": "string",
+          "description": "The current stage of the lead (e.g., active, closed)."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time the lead was created.",
+          "format": "date-time"
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Reference to Staff. The document ID of the user who owns the lead. (Relationship: Staff 1:N Lead)"
+        },
+        "ownerName": {
+          "type": "string",
+          "description": "The name of the user who owns the lead."
+        },
+        "note": {
+          "type": "string",
+          "description": "A single, editable note field for the lead."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "phone",
+        "channel",
+        "stage",
+        "createdAt",
+        "ownerId",
+        "ownerName",
+        "note"
+      ]
+    },
+    "KnowledgeBaseArticle": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "KnowledgeBaseArticle",
+      "type": "object",
+      "description": "Represents an article in the knowledge base.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the knowledge base article."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the knowledge base article."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the knowledge base article (e.g., Sales, Product)."
+        },
+        "content": {
+          "type": "string",
+          "description": "The content of the knowledge base article."
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "category",
+        "content"
+      ]
+    },
+    "Staff": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Staff",
+      "type": "object",
+      "description": "Represents a staff member within the AutoSales AI application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The staff member's unique Firestore document ID."
+        },
+        "name": {
+          "type": "string",
+          "description": "The staff member's full name."
+        },
+        "authUid": {
+          "type": "string",
+          "description": "The Firebase Authentication UID associated with the staff member."
+        },
+        "role": {
+          "type": "string",
+          "description": "The staff member's role within the system (e.g., Admin, Supervisor, Broker)."
+        },
+        "supervisorId": {
+          "type": "string",
+          "description": "Reference to Staff. The document ID of the staff member's supervisor. (Relationship: Staff 1:N Staff)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time the staff member was created.",
+          "format": "date-time"
+        },
+        "dui": {
+          "type": "string",
+          "description": "The staff member's DUI (Documento Unico de Identidad)."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "authUid",
+        "role",
+        "createdAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "artifacts/{appId}/users/{userId}/profile/data",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile data. Accessible only by the user (and potentially admins).",
+          "params": [
+            {
+              "name": "appId",
+              "description": "The application ID."
+            },
+            {
+              "name": "userId",
+              "description": "The unique user ID. Matches the user's document ID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "artifacts/{appId}/public/data/leads/{leadId}",
+        "definition": {
+          "entityName": "Lead",
+          "schema": {
+            "$ref": "#/backend/entities/Lead"
+          },
+          "description": "Stores lead data. Includes denormalized 'ownerId' (document ID) and 'ownerName' for authorization independence.",
+          "params": [
+            {
+              "name": "appId",
+              "description": "The application ID."
+            },
+            {
+              "name": "leadId",
+              "description": "The unique lead ID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "artifacts/{appId}/public/data/knowledge_base/{articleId}",
+        "definition": {
+          "entityName": "KnowledgeBaseArticle",
+          "schema": {
+            "$ref": "#/backend/entities/KnowledgeBaseArticle"
+          },
+          "description": "Stores knowledge base articles.",
+          "params": [
+            {
+              "name": "appId",
+              "description": "The application ID."
+            },
+            {
+              "name": "articleId",
+              "description": "The unique article ID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "artifacts/{appId}/public/data/staff/{staffId}",
+        "definition": {
+          "entityName": "Staff",
+          "schema": {
+            "$ref": "#/backend/entities/Staff"
+          },
+          "description": "Stores staff member data, where the document ID is auto-generated by Firestore. Accessible by administrators.",
+          "params": [
+            {
+              "name": "appId",
+              "description": "The application ID."
+            },
+            {
+              "name": "staffId",
+              "description": "The unique staff member ID (auto-generated)."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This Firestore structure is designed to support the AutoSales AI application, prioritizing authorization independence, clarity, and scalability. It leverages structural segregation and denormalization to simplify security rules and ensure efficient data access. The root of the database is segmented by `artifacts/{appId}`, where `appId` allows the application to be instantiated in multiple environments without conflicting documents.\n\n**Authorization Independence (CRITICAL):**\n\n*   Leads: The `leads` collection, located at `artifacts/{appId}/public/data/leads`, includes the `ownerId` (auto-generated staff document ID) and `ownerName` of the user who owns the lead. This denormalization allows security rules to validate ownership without needing to perform expensive `get()` operations to retrieve user data. This ensures that lead access can be controlled based solely on the data within the lead document itself, combined with the authenticated user's ID.\n*   Staff: The `staff` collection uses an auto-generated document ID. It includes the `supervisorId` (also an auto-generated ID) for reporting relationships. While the UI only allows Admins to manage staff, we can add roles if needed.\n\n**Structural Segregation (Homogeneous Security Posture):**\n\n*   User Data: User profiles are stored within the `staff` collection. The mapping between a Firebase Auth UID and the staff document ID happens at login.\n*   Public Data: The `knowledge_base` and `leads` collections are within the `/public/data/` section of the database. While the security rules may differentiate access within those collections, this design communicates the intent that they are generally readable.\n\n**QAPs (Rules are not Filters):**\n\n*   List Operations: The segregation of user data and public data allows for secure `list` operations. For example, listing leads requires checking if the user has the correct role (Broker, Supervisor, Admin) and filtering based on `ownerId`.\n\n**Global Roles (DBAC):**\n\n*   Role-Based Access: User roles are stored in the `staff` document. The system can be expanded to utilize a dedicated `/roles_{role}/{uid}` collection to manage administrative or elevated rights. The UI only uses role to gate access to Staff management features, so this functionality isn't required for compliance."
+  }
+}

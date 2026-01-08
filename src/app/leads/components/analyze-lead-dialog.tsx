@@ -46,7 +46,7 @@ export function AnalyzeLeadDialog({ lead, open, onOpenChange, onAnalysisComplete
             setHasAnalyzed(true); // Set flag to prevent re-running
             startTransition(async () => {
                 try {
-                    const leadDetails = `Name: ${lead.name}, Company: ${lead.company || 'N/A'}, Stage: ${lead.stage}, Notes: ${lead.notes?.map(n => n.content).join('\\n') || 'N/A'}`;
+                    const leadDetails = `Name: ${lead.name}, Company: ${lead.company || 'N/A'}, Stage: ${lead.stage}, Note: ${lead.note || 'N/A'}`;
                     
                     const result = await analyzeAndUpdateLead({ leadDetails });
                     setAnalysis(result);
@@ -64,8 +64,8 @@ export function AnalyzeLeadDialog({ lead, open, onOpenChange, onAnalysisComplete
     const handleSaveNote = () => {
         if (!analysis || !lead) return;
 
-        const noteContent = `AI Analysis Complete:\n- Qualification: ${analysis.qualificationDecision}\n- Recommendation: ${analysis.salesRecommendation}`;
-        onAddNote(lead.id, noteContent);
+        const analysisContent = `Qualification: ${analysis.qualificationDecision}\nRecommendation: ${analysis.salesRecommendation}`;
+        onAddNote(lead.id, analysisContent);
         onOpenChange(false); // Close dialog after saving
     };
     
@@ -134,7 +134,7 @@ export function AnalyzeLeadDialog({ lead, open, onOpenChange, onAnalysisComplete
                     <Button variant="outline" onClick={() => handleOpenChange(false)}>Cerrar</Button>
                     <Button onClick={handleSaveNote} disabled={!analysis || isPending}>
                         <Save className="mr-2 h-4 w-4" />
-                        Save as Note
+                        Append to Note
                     </Button>
                  </DialogFooter>
             </DialogContent>

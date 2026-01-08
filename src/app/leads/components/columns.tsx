@@ -34,7 +34,7 @@ interface CellActionsProps {
   onUpdateStage: (id: string, stage: Lead['stage']) => void;
   onDelete: (id: string) => void;
   onUpdateOwner: (leadId: string, newOwnerId: string) => void;
-  onBeginAddNote: (leadId: string) => void;
+  onBeginAddNote: (lead: Lead) => void;
   onBeginAnalyze: (lead: Lead) => void;
   staff: Staff[];
 }
@@ -66,14 +66,10 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
             variant="ghost"
             size="sm"
             className="flex items-center gap-2"
-            onClick={() => row.toggleExpanded(!row.getIsExpanded())}
+            onClick={() => onBeginAddNote(lead)}
         >
             <MessageSquare size={14} />
-            Notes ({lead.notes?.length || 0})
-            <ChevronDown
-                size={14}
-                className={cn("transition-transform", row.getIsExpanded() && 'rotate-180')}
-            />
+            Notes
         </Button>
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -123,12 +119,6 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
                 </DropdownMenuSub>
             )}
 
-            <DropdownMenuSeparator />
-
-            <DropdownMenuItem onSelect={() => onBeginAddNote(lead.id)}>
-                <MessageSquare className="mr-2 h-4 w-4" /> Add Note
-            </DropdownMenuItem>
-
             {user?.role === 'Admin' && (
               <>
                 <DropdownMenuSeparator />
@@ -151,7 +141,7 @@ export const getColumns = (
   onUpdateStage: (id: string, stage: Lead['stage']) => void,
   onDelete: (id: string) => void,
   onUpdateOwner: (leadId: string, newOwnerId: string) => void,
-  onBeginAddNote: (leadId: string) => void,
+  onBeginAddNote: (lead: Lead) => void,
   onBeginAnalyze: (lead: Lead) => void,
   staff: Staff[]
 ): ColumnDef<Lead>[] => [
