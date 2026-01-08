@@ -63,10 +63,10 @@ export function Notifications() {
     return () => unsubscribe();
   }, [firestore, user]);
 
-  // Listener for the notification data
+  // Listener for the notification data - only fetches unread notifications when opened
   useEffect(() => {
     if (!firestore || !user || !open) {
-        if (!open) setLoading(true); // Reset loading state when closed
+        if (!open) setLoading(true);
         return;
     }
     
@@ -74,26 +74,28 @@ export function Notifications() {
     const q = query(
       collection(firestore, 'notifications'),
       where('userId', '==', user.id),
+      where('read', '==', false), // Only fetch unread notifications
       orderBy('createdAt', 'desc')
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
         const newNotifications = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Notification));
         setNotifications(newNotifications);
         setLoading(false);
+    }, (error) => {
+        console.error("Error fetching notifications:", error);
+        setLoading(false);
     });
     return () => unsubscribe();
   }, [firestore, user, open]);
   
-  const handleMarkAllReadClick = async () => {
+  const handleMarkAllReadClick = async (e: React.MouseEvent) => {
+      e.stopPropagation(); // Prevent dropdown from closing
       if (!firestore || !user) return;
       await markAllAsRead(firestore, user.id);
   }
 
   const handleNotificationClick = async (notification: Notification) => {
-    if (!firestore || notification.read) {
-        if(notification.leadId) router.push(`/leads/${notification.leadId}/notes`);
-        return;
-    }
+    if (!firestore) return;
     const notifRef = doc(firestore, 'notifications', notification.id);
     await updateDoc(notifRef, { read: true });
     if(notification.leadId) router.push(`/leads/${notification.leadId}/notes`);
@@ -115,15 +117,12 @@ export function Notifications() {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-screen max-w-sm sm:max-w-md" align="end">
+      <DropdownMenuContent className="w-screen max-w-sm sm:max-w-md bg-white" align="end">
         <div className="flex justify-between items-center px-2 py-1.5">
             <DropdownMenuLabel className="p-0">Notifications</DropdownMenuLabel>
             {unreadCount > 0 && (
                 <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleMarkAllReadClick();
-                    }}
+                    onClick={handleMarkAllReadClick}
                     className="flex items-center text-xs text-blue-600 hover:underline focus:outline-none"
                 >
                     <CheckCheck size={14} className="mr-1" />
@@ -144,10 +143,7 @@ export function Notifications() {
               <DropdownMenuItem
                 key={n.id}
                 onSelect={() => handleNotificationClick(n)}
-                className={cn(
-                  "p-3 rounded-lg w-full cursor-pointer",
-                  !n.read ? "bg-blue-50/50" : "",
-                )}
+                className="p-3 rounded-lg w-full cursor-pointer"
               >
                 <div className="flex items-start gap-3">
                    <div className="h-8 w-8 rounded-full bg-slate-100 flex-shrink-0 flex items-center justify-center text-slate-500 mt-1">
@@ -163,7 +159,7 @@ export function Notifications() {
               </DropdownMenuItem>
             ))
           ) : (
-            <p className="text-sm text-center text-slate-500 py-4 px-2">No notifications.</p>
+            <p className="text-sm text-center text-slate-500 py-4 px-2">No unread notifications.</p>
           )}
         </div>
       </DropdownMenuContent>
