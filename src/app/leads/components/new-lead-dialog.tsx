@@ -26,7 +26,7 @@ interface NewLeadDialogProps {
   children: React.ReactNode;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddLead: (lead: Omit<Lead, 'id' | 'createdAt' | 'ownerName'>, callback: (lead: Lead) => void) => void;
+  onAddLead: (lead: Omit<Lead, 'id' | 'createdAt' | 'ownerName'> & { initialNotes?: string }, callback: (lead: Lead) => void) => void;
   onLeadCreated?: (lead: Lead) => void; // Optional: Callback for when a lead is created
 }
 
@@ -49,6 +49,7 @@ const initialFormState = {
     channel: "Facebook" as Lead['channel'],
     stage: "Nuevo" as Lead['stage'],
     language: "Spanish" as 'English' | 'Spanish',
+    initialNotes: "",
 };
 
 
@@ -102,7 +103,7 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead, onLeadC
         if (!isOpen) resetForm();
     }}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Create New Lead</DialogTitle>
           <DialogDescription>
@@ -110,24 +111,18 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead, onLeadC
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
-              Full Name*
-            </Label>
-            <Input id="name" value={formData.name} onChange={handleInputChange} className="col-span-3" />
+          <div className="space-y-2">
+            <Label htmlFor="name">Full Name*</Label>
+            <Input id="name" value={formData.name} onChange={handleInputChange} />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="phone" className="text-right">
-              Phone*
-            </Label>
-            <Input id="phone" type="tel" value={formData.phone} onChange={handleInputChange} placeholder="5551234567" className="col-span-3" />
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone*</Label>
+            <Input id="phone" type="tel" value={formData.phone} onChange={handleInputChange} placeholder="5551234567" />
           </div>
-           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="language" className="text-right">
-              Language
-            </Label>
+          <div className="space-y-2">
+            <Label htmlFor="language">Language</Label>
             <Select onValueChange={(v) => handleSelectChange('language', v as Lead['language'])} value={formData.language}>
-              <SelectTrigger className="col-span-3">
+              <SelectTrigger>
                 <SelectValue placeholder="Select a language" />
               </SelectTrigger>
               <SelectContent>
@@ -137,12 +132,10 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead, onLeadC
               </SelectContent>
             </Select>
           </div>
-           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="channel" className="text-right">
-              Channel
-            </Label>
+          <div className="space-y-2">
+            <Label htmlFor="channel">Channel</Label>
             <Select onValueChange={(v) => handleSelectChange('channel', v as Lead['channel'])} value={formData.channel}>
-              <SelectTrigger className="col-span-3">
+              <SelectTrigger>
                 <SelectValue placeholder="Select a channel" />
               </SelectTrigger>
               <SelectContent>
@@ -152,12 +145,10 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead, onLeadC
               </SelectContent>
             </Select>
           </div>
-           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="stage" className="text-right">
-              Stage*
-            </Label>
+          <div className="space-y-2">
+            <Label htmlFor="stage">Stage*</Label>
             <Select onValueChange={(v) => handleSelectChange('stage', v as Lead['stage'])} value={formData.stage}>
-              <SelectTrigger className="col-span-3">
+              <SelectTrigger>
                 <SelectValue placeholder="Select a stage" />
               </SelectTrigger>
               <SelectContent>
@@ -172,6 +163,15 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead, onLeadC
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="initialNotes">Initial Notes</Label>
+            <Textarea 
+                id="initialNotes" 
+                placeholder="Add any initial comments or details here..." 
+                value={formData.initialNotes} 
+                onChange={handleInputChange}
+            />
+          </div>
             <div>
                 <p className="text-xs text-muted-foreground text-center pt-2">Fields marked with an asterisk (*) are mandatory.</p>
             </div>
@@ -184,5 +184,3 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead, onLeadC
     </Dialog>
   );
 }
-
-    

@@ -190,7 +190,7 @@ function LeadsPageContent() {
         }
     }, [firestore, toast]);
 
-    const handleAddLead = useCallback(async (newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'>, callback: (lead: Lead) => void) => {
+    const handleAddLead = useCallback(async (newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'> & { initialNotes?: string }, callback: (lead: Lead) => void) => {
         if (!firestore || !user || !staffData) return;
         const owner = staffData.find(s => s.id === newLeadData.ownerId);
         if (!owner) {
@@ -199,16 +199,25 @@ function LeadsPageContent() {
         };
 
         const leadsCollection = collection(firestore, 'leads');
+        const { initialNotes, ...leadData } = newLeadData;
         
         const finalLeadData = {
-            ...newLeadData,
+            ...leadData,
             createdAt: serverTimestamp(),
             ownerName: owner.name,
         };
 
         try {
             const newDocRef = await addDoc(leadsCollection, finalLeadData);
+            
+            // Add system note for creation
             await addNoteEntry(newDocRef.id, "Lead created.", "System");
+
+            // Add initial note if provided
+            if (initialNotes && initialNotes.trim() !== '') {
+                await addNoteEntry(newDocRef.id, initialNotes, 'Manual');
+            }
+
             toast({ title: "Lead Added", description: "New lead created successfully." });
             
             const createdLead: Lead = {
@@ -346,5 +355,3 @@ export default function LeadsPage() {
         <LeadsPageContent />
     )
 }
-
-    
