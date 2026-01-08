@@ -173,7 +173,7 @@ export default function LeadsPage() {
         const initialNote: NoteEntry = {
             content: noteContent,
             author: owner.name,
-            date: new Date(), // Use client-side date for creation to avoid array limitation
+            date: serverTimestamp(),
             type: 'Manual'
         };
 
