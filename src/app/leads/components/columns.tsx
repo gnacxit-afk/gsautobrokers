@@ -84,9 +84,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onSelect={() => onBeginAddNote(lead.id)}>
-                <MessageSquare className="mr-2 h-4 w-4" /> Add Note
-            </DropdownMenuItem>
+            
             <DropdownMenuItem onSelect={() => onBeginAnalyze(lead)}>
                 <Star className="mr-2 h-4 w-4" /> Analyze Lead (AI)
             </DropdownMenuItem>
@@ -124,6 +122,12 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
             )}
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem onSelect={() => onBeginAddNote(lead.id)}>
+                <MessageSquare className="mr-2 h-4 w-4" /> Add Note
+            </DropdownMenuItem>
 
             {user?.role === 'Admin' && (
               <>
