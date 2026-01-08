@@ -19,7 +19,7 @@ export type NoteEntry = {
   content: string;
   author: string;
   date: Timestamp | Date | string;
-  type: 'Manual' | 'Stage Change' | 'Owner Change' | 'System';
+  type: 'Manual' | 'Stage Change' | 'Owner Change' | 'System' | 'AI Analysis';
 }
 
 export type Lead = {
