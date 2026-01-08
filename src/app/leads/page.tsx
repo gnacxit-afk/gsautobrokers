@@ -7,6 +7,7 @@ import { DataTable } from "./components/data-table";
 import type { Lead, Staff } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
 import { useFirestore, useUser, useCollection } from '@/firebase';
+import { useRouter } from "next/navigation";
 import {
   useReactTable,
   getCoreRowModel,
@@ -80,6 +81,7 @@ function LeadsPageContent() {
     const firestore = useFirestore();
     const { toast } = useToast();
     const { dateRange } = useDateRange();
+    const router = useRouter();
     
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
