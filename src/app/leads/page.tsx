@@ -111,7 +111,7 @@ function LeadsPageContent() {
         updateDoc(leadRef, {
             notes: arrayUnion(newNote)
         }).then(() => {
-            console.log('Note added successfully to Firestore.');
+            console.log("Note added to Firestore successfully");
             toast({
                 title: "Note Added",
                 description: "Your note has been successfully saved.",
@@ -126,7 +126,7 @@ function LeadsPageContent() {
         });
     }, [firestore, user, toast]);
 
-    const handleAddNote = useCallback((leadId: string, noteContent: string) => {
+    const handleManualNoteAdd = useCallback((leadId: string, noteContent: string) => {
         addNote(leadId, noteContent, 'Manual');
     }, [addNote]);
 
@@ -144,7 +144,7 @@ function LeadsPageContent() {
              toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
         }
         
-    }, [firestore, toast, user, addNote]);
+    }, [firestore, user, addNote, toast]);
 
     const handleUpdateLeadStatus = useCallback(async (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => {
         if (!firestore) return;
@@ -218,7 +218,7 @@ function LeadsPageContent() {
              toast({ title: "Error creating lead", description: "Could not save the new lead.", variant: "destructive" });
         }
 
-    }, [firestore, allStaff, toast, user, addNote]);
+    }, [firestore, allStaff, user, addNote, toast]);
 
 
     const handleUpdateOwner = useCallback(async (id: string, newOwnerId: string) => {
@@ -248,7 +248,7 @@ function LeadsPageContent() {
             toast({ title: "Error", description: "Could not update lead owner.", variant: "destructive"});
         }
 
-    }, [firestore, allStaff, toast, user, leads, addNote]);
+    }, [firestore, user, allStaff, leads, addNote, toast]);
     
     const handleBeginAddNote = useCallback((leadId: string) => {
         setNoteLeadId(leadId);
@@ -309,18 +309,16 @@ function LeadsPageContent() {
                 loading={leadsLoading || staffLoading}
                 renderSubComponent={renderSub}
             />
-            {noteLeadId && (
-                <AddNoteDialog
-                    leadId={noteLeadId}
-                    open={!!noteLeadId}
-                    onOpenChange={(isOpen) => {
-                        if (!isOpen) {
-                            setNoteLeadId(null);
-                        }
-                    }}
-                    onAddNote={handleAddNote}
-                />
-            )}
+            <AddNoteDialog
+                leadId={noteLeadId!}
+                open={!!noteLeadId}
+                onOpenChange={(isOpen) => {
+                    if (!isOpen) {
+                        setNoteLeadId(null);
+                    }
+                }}
+                onAddNote={handleManualNoteAdd}
+            />
         </main>
     );
 }
@@ -333,3 +331,5 @@ export default function LeadsPage() {
         </DateRangeProvider>
     )
 }
+
+    
