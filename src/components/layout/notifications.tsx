@@ -29,7 +29,9 @@ export function Notifications() {
   }, [firestore, user]);
 
   const { data: notifications } = useCollection<Notification>(notificationsQuery);
-  const unreadCount = useMemo(() => notifications?.filter(n => !n.read).length || 0, [notifications]);
+  
+  const unreadNotifications = useMemo(() => notifications?.filter(n => !n.read) || [], [notifications]);
+  const unreadCount = unreadNotifications.length;
 
   const handleNotificationClick = async (notification: Notification) => {
     if (!firestore) return;
@@ -48,7 +50,6 @@ export function Notifications() {
   const markAllAsRead = async () => {
     if (!firestore || !notifications || unreadCount === 0) return;
     const batch = writeBatch(firestore);
-    const unreadNotifications = notifications.filter(n => !n.read);
     unreadNotifications.forEach(notif => {
         const notifRef = doc(firestore, 'notifications', notif.id);
         batch.update(notifRef, { read: true });
@@ -82,8 +83,8 @@ export function Notifications() {
             )}
         </div>
         <div className="max-h-80 overflow-y-auto space-y-2">
-          {notifications && notifications.length > 0 ? (
-            notifications.map(n => (
+          {unreadCount > 0 ? (
+            unreadNotifications.map(n => (
               <div
                 key={n.id}
                 onClick={() => handleNotificationClick(n)}
