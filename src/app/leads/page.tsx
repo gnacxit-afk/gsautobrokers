@@ -6,7 +6,7 @@ import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 import type { Lead, Staff } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
-import { useFirestore, useUser } from '@/firebase';
+import { useFirestore, useUser, useCollection } from '@/firebase';
 import {
   useReactTable,
   getCoreRowModel,
@@ -21,7 +21,7 @@ import {
 import { collection, query, orderBy, updateDoc, doc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { isWithinInterval, isValid } from "date-fns";
-import { useCollection } from "react-firebase-hooks/firestore";
+
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
@@ -95,17 +95,17 @@ function LeadsPageContent() {
         firestore ? query(collection(firestore, 'staff')) : null,
     [firestore]);
 
-    const [leadsSnapshot, leadsLoading] = useCollection(leadsQuery);
-    const [staffSnapshot, staffLoading] = useCollection(staffQuery);
+    const { data: leadsSnapshot, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
+    const { data: staffSnapshot, loading: staffLoading } = useCollection<Staff>(staffQuery);
 
     const [data, setData] = useState<Lead[]>([]);
-    const staffData = useMemo(() => staffSnapshot?.docs.map(d => ({id: d.id, ...d.data()} as Staff)) || [], [staffSnapshot]);
+    const staffData = useMemo(() => staffSnapshot || [], [staffSnapshot]);
 
     useEffect(() => {
         if (!leadsSnapshot) return;
-        const nextData = leadsSnapshot.docs.map(doc => ({
+        const nextData = leadsSnapshot.map(doc => ({
             id: doc.id,
-            ...(doc.data() as Omit<Lead, "id">),
+            ...(doc as Omit<Lead, "id">),
         }));
         setData(prev => JSON.stringify(prev) === JSON.stringify(nextData) ? prev : nextData);
     }, [leadsSnapshot]);
@@ -120,6 +120,10 @@ function LeadsPageContent() {
             date: serverTimestamp(),
             type,
         });
+        
+        // Also update the parent lead to trigger real-time updates on the table
+        const leadRef = doc(firestore, 'leads', leadId);
+        await updateDoc(leadRef, { lastActivity: serverTimestamp() });
 
     }, [firestore, user]);
 

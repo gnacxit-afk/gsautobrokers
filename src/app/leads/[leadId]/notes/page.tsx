@@ -14,8 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useFirestore, useUser } from "@/firebase";
-import { useCollection, useDocumentData } from "react-firebase-hooks/firestore";
+import { useFirestore, useUser, useCollection, useDoc } from "@/firebase";
 
 import type { Lead, NoteEntry } from "@/lib/types";
 import { collection, orderBy, query, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
@@ -55,16 +54,14 @@ export default function LeadNotesPage() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const leadDocRef = useMemo(() => firestore && leadId ? doc(firestore, 'leads', leadId) : null, [firestore, leadId]);
-  const [lead, leadLoading] = useDocumentData(leadDocRef);
+  const {data: lead, loading: leadLoading} = useDoc<Lead>(leadDocRef);
 
   const notesQuery = useMemo(() => {
     if (!firestore || !leadId) return null;
     return query(collection(firestore, "leads", leadId, "noteHistory"), orderBy("date", "desc"));
   }, [firestore, leadId]);
 
-  const [notesSnapshot, notesLoading] = useCollection(notesQuery);
-
-  const noteHistory = useMemo(() => notesSnapshot?.docs.map(d => ({id: d.id, ...d.data()} as NoteEntry)) || [], [notesSnapshot]);
+  const {data: noteHistory, loading: notesLoading} = useCollection<NoteEntry>(notesQuery);
 
   const handleSaveNote = useCallback(async () => {
     if (newNote.trim() && leadId && firestore && user) {
@@ -159,4 +156,3 @@ export default function LeadNotesPage() {
     </main>
   );
 }
-
