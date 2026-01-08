@@ -51,10 +51,6 @@ export function AnalyzeLeadDialog({ lead, open, onOpenChange, onAnalysisComplete
                     const result = await analyzeAndUpdateLead({ leadDetails });
                     setAnalysis(result);
                     
-                    // On successful analysis, call the callback to update the lead status
-                    if (result.leadStatus) {
-                        onAnalysisComplete(lead.id, result.leadStatus);
-                    }
                 } catch (e: any) {
                     setError("The AI model is currently overloaded. Please try again in a few moments.");
                 }
@@ -63,7 +59,7 @@ export function AnalyzeLeadDialog({ lead, open, onOpenChange, onAnalysisComplete
             // Reset the flag when the dialog is closed
             setHasAnalyzed(false);
         }
-    }, [open, lead, hasAnalyzed, onAnalysisComplete]);
+    }, [open, lead, hasAnalyzed]);
 
     const handleSaveNote = () => {
         if (!analysis || !lead) return;
