@@ -7,12 +7,13 @@ import { useDoc, useCollection, useFirestore } from '@/firebase';
 import type { Lead, NoteEntry } from '@/lib/types';
 import { qualifyLead } from '@/ai/flows/qualify-lead-flow';
 import type { QualifyLeadOutput } from '@/ai/flows/qualify-lead-flow';
-import { doc, collection, query, orderBy, updateDoc } from 'firebase/firestore';
-import { ArrowLeft, Bot, Zap, Star, ShieldCheck, TrendingUp, Lightbulb, Users } from 'lucide-react';
+import { doc, collection, query, orderBy, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { ArrowLeft, Bot, Zap, Star, ShieldCheck, TrendingUp, Lightbulb, Users, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { useAuthContext } from '@/lib/auth';
 
 const AnalysisItem = ({ icon, title, content }: { icon: React.ReactNode, title: string, content: string }) => (
     <div className="flex items-start gap-4">
@@ -31,10 +32,12 @@ export default function LeadAnalysisPage() {
     const router = useRouter();
     const leadId = params.leadId as string;
     const firestore = useFirestore();
+    const { user } = useAuthContext();
     const { toast } = useToast();
 
     const [analysis, setAnalysis] = useState<QualifyLeadOutput | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
 
     const leadDocRef = useMemo(() => (firestore && leadId ? doc(firestore, 'leads', leadId) : null), [firestore, leadId]);
     const { data: lead, loading: leadLoading } = useDoc<Lead>(leadDocRef);
@@ -67,8 +70,58 @@ export default function LeadAnalysisPage() {
                     setLoading(false);
                 });
         }
-    }, [lead, noteHistory, leadLoading, notesLoading, leadDocRef, toast]);
+    }, [lead, noteHistory, leadLoading, notesLoading, toast]);
     
+    const handleSaveAnalysisToNotes = async () => {
+        if (!analysis || !firestore || !user || !leadId) return;
+
+        setIsSaving(true);
+        try {
+            const formattedAnalysis = `
+AI Lead Qualification Report
+-----------------------------
+- Lead Status: ${analysis.leadStatus}
+- Total Score: ${analysis.totalScore}
+- Qualification: ${analysis.qualificationDecision}
+
+BANT Breakdown:
+- Budget: ${analysis.budget}
+- Authority: ${analysis.authority}
+- Need: ${analysis.need}
+- Timing: ${analysis.timing}
+
+Sales Recommendation:
+- ${analysis.salesRecommendation}
+            `.trim();
+
+            const noteHistoryRef = collection(firestore, 'leads', leadId, 'noteHistory');
+            await addDoc(noteHistoryRef, {
+                content: formattedAnalysis,
+                author: 'AI Assistant',
+                date: serverTimestamp(),
+                type: 'AI Analysis',
+            });
+            
+            const leadRef = doc(firestore, 'leads', leadId);
+            await updateDoc(leadRef, { lastActivity: serverTimestamp() });
+
+            toast({
+                title: "Analysis Saved",
+                description: "The AI analysis has been added to the lead's note history.",
+            });
+
+        } catch (error) {
+            console.error("Error saving analysis to notes:", error);
+            toast({
+                title: "Save Failed",
+                description: "Could not save the AI analysis to the notes.",
+                variant: "destructive"
+            });
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
     const renderContent = () => {
         if (loading || leadLoading) {
             return (
@@ -104,18 +157,24 @@ export default function LeadAnalysisPage() {
 
         return (
             <div className="space-y-8">
-                <div className="flex flex-col md:flex-row gap-4 md:items-center md:justify-between p-6 bg-slate-50 rounded-2xl border">
+                <div className="flex flex-col md:flex-row gap-4 md:items-start md:justify-between p-6 bg-slate-50 rounded-2xl border">
                     <div>
                         <p className="text-sm font-semibold text-slate-500">AI Qualification Analysis</p>
                         <h3 className="text-2xl font-bold text-slate-900">Lead: {lead?.name}</h3>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className={`px-4 py-2 rounded-lg text-sm font-bold ${statusColors[analysis.leadStatus] || 'bg-gray-100'}`}>
-                           {analysis.leadStatus} ({analysis.totalScore} pts)
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className={`px-4 py-2 rounded-lg text-sm font-bold ${statusColors[analysis.leadStatus] || 'bg-gray-100'}`}>
+                               {analysis.leadStatus} ({analysis.totalScore} pts)
+                            </div>
+                             <div className={`px-4 py-2 rounded-lg text-sm font-bold ${qualificationColors[analysis.qualificationDecision]}`}>
+                               {analysis.qualificationDecision}
+                            </div>
                         </div>
-                         <div className={`px-4 py-2 rounded-lg text-sm font-bold ${qualificationColors[analysis.qualificationDecision]}`}>
-                           {analysis.qualificationDecision}
-                        </div>
+                        <Button onClick={handleSaveAnalysisToNotes} disabled={isSaving}>
+                            <FileText size={16} />
+                            {isSaving ? 'Saving...' : 'Save Analysis to Notes'}
+                        </Button>
                     </div>
                 </div>
 
