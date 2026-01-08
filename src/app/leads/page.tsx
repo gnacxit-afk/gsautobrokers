@@ -1,12 +1,12 @@
 
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 import type { Lead, Staff, NoteEntry } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
-import { useCollection, useFirestore, useUser } from '@/firebase';
+import { useFirestore, useUser, useCollection } from '@/firebase';
 import {
   useReactTable,
   getCoreRowModel,
@@ -19,11 +19,10 @@ import {
   type FilterFn,
   type Row,
 } from '@tanstack/react-table';
-import { collection, query, orderBy, updateDoc, doc, arrayUnion, deleteDoc, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, updateDoc, doc, arrayUnion, deleteDoc, addDoc, serverTimestamp, Timestamp, onSnapshot } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { isWithinInterval, isValid } from "date-fns";
 import { RenderSubComponent } from "./components/render-sub-component";
-import { DateRangeProvider } from "@/providers/date-range-provider";
 import { AddNoteDialog } from "./components/add-note-dialog";
 import { AnalyzeLeadDialog } from "./components/analyze-lead-dialog";
 
@@ -84,28 +83,34 @@ function LeadsPageContent() {
     const firestore = useFirestore();
     const { toast } = useToast();
 
-    const leadsQuery = useMemo(() => {
-      if (!firestore) return null;
-      return query(collection(firestore, 'leads'), orderBy('createdAt', 'desc'));
-    }, [firestore]);
-    const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
-
-    const { data: leadsData, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
-    const { data: staffData, loading: staffLoading } = useCollection<Staff>(staffQuery);
-
-    const allStaff = useMemo(() => staffData || [], [staffData]);
-    const allLeads = useMemo(() => leadsData || [], [leadsData]);
-
-    const { dateRange, setDateRange } = useDateRange();
+    const [staffData, setStaffData] = useState<Staff[]>([]);
     
     const [noteLeadId, setNoteLeadId] = useState<string | null>(null);
     const [analyzingLead, setAnalyzingLead] = useState<Lead | null>(null);
-
 
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [globalFilter, setGlobalFilter] = useState('');
     const [expanded, setExpanded] = useState({});
+
+    // Stabilize the query object with useMemo.
+    const leadsQuery = useMemo(() => 
+        firestore ? query(collection(firestore, 'leads'), orderBy('createdAt', 'desc')) : null,
+    [firestore]);
+
+    const { data: leadsData, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
+
+    useEffect(() => {
+        if (!firestore) return;
+        
+        const staffQuery = collection(firestore, 'staff');
+        const unsubStaff = onSnapshot(staffQuery, (snapshot) => {
+            const staff = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Staff));
+            setStaffData(staff);
+        });
+
+        return () => unsubStaff();
+    }, [firestore]);
     
     const addNote = useCallback((leadId: string, noteContent: string, noteType: NoteEntry['type']) => {
         if (!firestore || !user) return;
@@ -172,7 +177,7 @@ function LeadsPageContent() {
 
     const handleAddLead = useCallback(async (newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName' | 'notes'> & { noteContent: string }) => {
         if (!firestore || !user) return;
-        const owner = allStaff.find(s => s.id === newLeadData.ownerId);
+        const owner = staffData.find(s => s.id === newLeadData.ownerId);
         if (!owner) {
              toast({ title: "Error", description: "Could not find lead owner.", variant: "destructive" });
              return;
@@ -197,21 +202,21 @@ function LeadsPageContent() {
         };
 
         try {
-            const newDocRef = await addDoc(leadsCollection, finalLeadData);
+            await addDoc(leadsCollection, finalLeadData);
             toast({ title: "Lead Added", description: "New lead created successfully." });
         } catch (error) {
              console.error("Error creating lead:", error);
              toast({ title: "Error creating lead", description: "Could not save the new lead.", variant: "destructive" });
         }
 
-    }, [firestore, allStaff, user, toast]);
+    }, [firestore, staffData, user, toast]);
 
 
     const handleUpdateOwner = useCallback(async (id: string, newOwnerId: string) => {
-        if (!firestore || !user) return;
+        if (!firestore || !user || !leadsData) return;
 
-        const oldOwnerName = allLeads.find(l => l.id === id)?.ownerName || 'Unknown';
-        const newOwner = allStaff.find(s => s.id === newOwnerId);
+        const oldOwnerName = leadsData.find(l => l.id === id)?.ownerName || 'Unknown';
+        const newOwner = staffData.find(s => s.id === newOwnerId);
         
         if (!newOwner) {
             toast({ title: "Error", description: "Selected owner not found.", variant: "destructive" });
@@ -234,7 +239,7 @@ function LeadsPageContent() {
             toast({ title: "Error", description: "Could not update lead owner.", variant: "destructive"});
         }
 
-    }, [firestore, user, allStaff, allLeads, addNote, toast]);
+    }, [firestore, user, staffData, leadsData, addNote, toast]);
     
     const handleBeginAddNote = useCallback((leadId: string) => {
         setNoteLeadId(leadId);
@@ -245,12 +250,14 @@ function LeadsPageContent() {
     }, []);
 
     const columns = useMemo(
-        () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, handleBeginAddNote, handleBeginAnalyze, allStaff), 
-        [handleUpdateStage, handleDelete, handleUpdateOwner, handleBeginAddNote, handleBeginAnalyze, allStaff]
+        () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, handleBeginAddNote, handleBeginAnalyze, staffData), 
+        [handleUpdateStage, handleDelete, handleUpdateOwner, handleBeginAddNote, handleBeginAnalyze, staffData]
     );
     
+    const { dateRange, setDateRange } = useDateRange();
+    
     const table = useReactTable({
-      data: allLeads,
+      data: leadsData || [],
       columns,
       globalFilterFn: globalFilterFn,
       getCoreRowModel: getCoreRowModel(),
@@ -272,7 +279,7 @@ function LeadsPageContent() {
        // Pass context to the global filter function
       globalFilterFnContext: {
         user,
-        allStaff,
+        allStaff: staffData,
         dateRange
       }
     });
@@ -306,11 +313,11 @@ function LeadsPageContent() {
                 table={table}
                 columns={columns}
                 onAddLead={handleAddLead}
-                staff={allStaff}
+                staff={staffData}
                 stages={leadStages}
                 channels={channels}
                 clearAllFilters={clearAllFilters}
-                loading={leadsLoading || staffLoading}
+                loading={leadsLoading}
                 renderSubComponent={renderSub}
             />
             <AddNoteDialog
@@ -343,8 +350,6 @@ function LeadsPageContent() {
 
 export default function LeadsPage() {
     return (
-        <DateRangeProvider>
-            <LeadsPageContent />
-        </DateRangeProvider>
+        <LeadsPageContent />
     )
 }

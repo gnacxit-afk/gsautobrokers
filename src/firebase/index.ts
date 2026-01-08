@@ -19,8 +19,8 @@ function initializeFirebaseServices() {
 export const { app, auth, firestore } = initializeFirebaseServices();
 
 export * from './provider';
+export * from './auth/use-user';
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';
-export * from './auth/use-user';
 export * from './errors';
 export * from './error-emitter';

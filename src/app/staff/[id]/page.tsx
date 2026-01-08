@@ -1,11 +1,10 @@
 
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { Staff, Role } from "@/lib/types";
-import { useUser, useAuth } from "@/firebase";
+import { useUser, useAuth, useDoc, useCollection } from "@/firebase";
 import { AccessDenied } from "@/components/access-denied";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -15,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, UserCircle2, Eye, EyeOff, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { useCollection, useDoc, useFirestore, updateDocumentNonBlocking } from "@/firebase";
+import { useFirestore } from "@/firebase";
 import { collection, deleteDoc, doc, getDocs, query, updateDoc, where, writeBatch } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { signOut } from "firebase/auth";
@@ -33,27 +32,24 @@ export default function StaffProfilePage() {
   const staffId = params.id as string;
   const firestore = useFirestore();
   
-  const staffDocRef = useMemo(() => (firestore && staffId ? doc(firestore, 'staff', staffId) : null), [firestore, staffId]);
-  const allStaffCollectionRef = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
+  const staffDocRef = useMemo(() => (firestore && staffId) ? doc(firestore, 'staff', staffId) : null, [firestore, staffId]);
+  const { data: staffMember, loading: staffMemberLoading } = useDoc<Staff>(staffDocRef);
 
-  const { data: staffMemberData, loading: staffMemberLoading } = useDoc<Staff>(staffDocRef);
-  const { data: allStaffData, loading: allStaffLoading } = useCollection<Staff>(allStaffCollectionRef);
-  
-  const staffMember = staffMemberData;
-  const allStaff = allStaffData || [];
+  const allStaffCollectionRef = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
+  const { data: allStaff, loading: allStaffLoading } = useCollection<Staff>(allStaffCollectionRef);
 
   const [formData, setFormData] = useState<Partial<Staff>>({});
-
+  
   useEffect(() => {
     if (staffMember) {
-      setFormData(staffMember);
+        setFormData(staffMember);
     }
   }, [staffMember]);
 
 
-  const supervisors = useMemo(() => allStaff.filter(s => s.role === 'Supervisor'), [allStaff]);
-  const admins = useMemo(() => allStaff.filter(s => s.role === 'Admin'), [allStaff]);
-  const managers = useMemo(() => allStaff.filter(s => s.role === 'Supervisor' || s.role === 'Admin'), [allStaff]);
+  const supervisors = useMemo(() => allStaff?.filter(s => s.role === 'Supervisor') || [], [allStaff]);
+  const admins = useMemo(() => allStaff?.filter(s => s.role === 'Admin') || [], [allStaff]);
+  const managers = useMemo(() => allStaff?.filter(s => s.role === 'Supervisor' || s.role === 'Admin') || [], [allStaff]);
 
 
   const currentUserCanEdit = user?.role === 'Admin';
@@ -125,7 +121,8 @@ export default function StaffProfilePage() {
   };
 
   const handleSaveChanges = async () => {
-    if (!firestore || !staffDocRef) return;
+    if (!firestore || !staffId) return;
+    const staffDocRef = doc(firestore, 'staff', staffId);
     try {
         const { password, id, authUid, createdAt, hireDate, email, ...updateData } = formData;
         
@@ -146,7 +143,8 @@ export default function StaffProfilePage() {
   };
 
   const handleDelete = async () => {
-    if (!firestore || !staffDocRef) return;
+    if (!firestore || !staffId || !allStaff) return;
+    const staffDocRef = doc(firestore, 'staff', staffId);
     
     if (isEditingMasterAdmin) {
         toast({ title: "Action Forbidden", description: "The Master Admin account cannot be deleted.", variant: "destructive" });
@@ -321,4 +319,3 @@ export default function StaffProfilePage() {
     </main>
   );
 }
-

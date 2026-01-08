@@ -5,19 +5,17 @@ import { useMemo, useState, useEffect } from 'react';
 import { KpiClient } from './components/kpi-client';
 import { PerformanceDashboard } from './components/performance-dashboard';
 import { BonusStatus } from './components/bonus-status';
-import { useCollection, useFirestore, useUser } from '@/firebase';
-import { collection, doc, setDoc } from 'firebase/firestore';
+import { useFirestore, useUser, useCollection, useDoc } from '@/firebase';
+import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
 import type { Lead, Staff, KPI } from '@/lib/types';
-import { useDoc } from '@/firebase/firestore/use-doc';
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/lib/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useDateRange, getDefaultDateRange } from '@/hooks/use-date-range';
 import { calculateBonus } from '@/lib/utils';
 import { COMMISSION_PER_VEHICLE } from '@/lib/mock-data';
-import { isWithinInterval } from 'date-fns';
+import { isWithinInterval, isValid } from 'date-fns';
 import { DateRangePicker } from '@/components/layout/date-range-picker';
-import { DateRangeProvider } from '@/providers/date-range-provider';
 
 const DEFAULT_KPIS: KPI[] = [
     { id: 'leads_recibidos', label: 'Leads recibidos', target: 'informativo', description: 'Total de leads que ingresan al sistema.' },
@@ -47,11 +45,10 @@ const StatCard = ({ label, value, color }: { label: string, value: string | numb
 function BrokerMonthlyGoals() {
   const firestore = useFirestore();
   const { user } = useUser();
-  const { data: leadsData } = useCollection<Lead>(
-    useMemo(() => (firestore ? collection(firestore, 'leads') : null), [firestore])
-  );
-  
   const { dateRange } = useDateRange();
+  
+  const leadsQuery = useMemo(() => firestore ? collection(firestore, 'leads') : null, [firestore]);
+  const { data: leadsData } = useCollection<Lead>(leadsQuery);
 
   const brokerStats = useMemo(() => {
     if (!user || user.role !== 'Broker' || !leadsData) {
@@ -108,27 +105,16 @@ function KpiPage() {
   const { user, MASTER_ADMIN_EMAIL } = useAuthContext();
   const { toast } = useToast();
   const [isInitializing, setIsInitializing] = useState(false);
-
   const { dateRange, setDateRange } = useDateRange();
-  
-  const kpisDocRef = useMemo(
-    () => (firestore ? doc(firestore, 'kpis', 'kpi-doc') : null),
-    [firestore]
-  );
-  const leadsQuery = useMemo(
-    () => (firestore ? collection(firestore, 'leads') : null),
-    [firestore]
-  );
-  const staffQuery = useMemo(
-    () => (firestore ? collection(firestore, 'staff') : null),
-    [firestore]
-  );
 
-  const { data: kpisData, loading: kpisLoading } = useDoc<{ list: KPI[] }>(kpisDocRef);
-  const { data: leadsData, loading: leadsLoading } =
-    useCollection<Lead>(leadsQuery);
-  const { data: staffData, loading: staffLoading } =
-    useCollection<Staff>(staffQuery);
+  const kpisDocRef = useMemo(() => firestore ? doc(firestore, 'kpis', 'kpi-doc') : null, [firestore]);
+  const { data: kpisData, loading: kpisLoading } = useDoc<{list: KPI[]}>(kpisDocRef);
+
+  const leadsQuery = useMemo(() => firestore ? collection(firestore, 'leads') : null, [firestore]);
+  const { data: leadsData, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
+  
+  const staffQuery = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
+  const { data: staffData, loading: staffLoading } = useCollection<Staff>(staffQuery);
 
   const kpis = kpisData?.list || [];
   const allLeads = leadsData || [];
@@ -140,13 +126,14 @@ function KpiPage() {
     return allLeads.filter(l => {
         if (!l.createdAt) return false;
         const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
-        if (isNaN(leadDate.getTime())) return false;
+        if (!isValid(leadDate)) return false;
         return isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end });
     });
   }, [allLeads, dateRange]);
   
   const handleInitializeKpis = async () => {
-    if (!firestore || !kpisDocRef) return;
+    if (!firestore) return;
+    const kpisDocRef = doc(firestore, 'kpis', 'kpi-doc');
     setIsInitializing(true);
     try {
         await setDoc(kpisDocRef, { list: DEFAULT_KPIS });
@@ -271,11 +258,8 @@ function KpiPage() {
 }
 
 const KpiPageWithProvider = () => {
-    const { user } = useAuthContext();
     return (
-        <DateRangeProvider key={user?.id}>
-            <KpiPage />
-        </DateRangeProvider>
+        <KpiPage />
     );
 };
 

@@ -1,14 +1,14 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { AccessDenied } from '@/components/access-denied';
 import { NewStaffDialog } from './components/new-staff-dialog';
 import { Button } from '@/components/ui/button';
 import { UserPlus, Users, Trash2 } from 'lucide-react';
 import type { Staff } from '@/lib/types';
 import Link from 'next/link';
-import { useCollection, useFirestore, useUser } from '@/firebase';
+import { useFirestore, useUser, useCollection } from '@/firebase';
 import { collection, deleteDoc, doc, getDocs, query, where, writeBatch } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -91,17 +91,12 @@ export default function StaffPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const { MASTER_ADMIN_EMAIL } = useAuthContext();
-
-  const staffQuery = useMemo(
-    () => (firestore ? collection(firestore, 'staff') : null),
-    [firestore]
-  );
-  const { data: staffData, loading } = useCollection<Staff>(staffQuery);
-
-  const staff = staffData || [];
+  
+  const staffQuery = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
+  const { data: staff, loading } = useCollection<Staff>(staffQuery);
 
   const handleDelete = async (id: string, name: string) => {
-    if (!firestore) return;
+    if (!firestore || !staff) return;
     try {
       const masterAdmin = staff.find(s => s.email === MASTER_ADMIN_EMAIL);
       if (!masterAdmin) {
@@ -158,7 +153,7 @@ export default function StaffPage() {
         {loading ? (
           [...Array(4)].map((_, i) => <StaffCardSkeleton key={i} />)
         ) : (
-          staff.map((member) => <StaffCard key={member.id} member={member} onDelete={handleDelete} isMasterAdmin={user?.email === MASTER_ADMIN_EMAIL}/>)
+          (staff || []).map((member) => <StaffCard key={member.id} member={member} onDelete={handleDelete} isMasterAdmin={user?.email === MASTER_ADMIN_EMAIL}/>)
         )}
       </div>
     </main>

@@ -1,66 +1,71 @@
-
 'use client';
-
 import { useState, useEffect, useRef } from 'react';
-import { onSnapshot, type Query, type DocumentData, type FirestoreError } from 'firebase/firestore';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import {
+  onSnapshot,
+  query,
+  collection,
+  orderBy,
+  where,
+  limit,
+  startAfter,
+  endBefore,
+  Query,
+  DocumentData,
+  QueryConstraint,
+} from 'firebase/firestore';
 import type { WithId, InternalQuery } from './types';
+import { useFirestore } from '../provider';
+import { errorEmitter } from '../error-emitter';
+import { FirestorePermissionError } from '../errors';
 
-
-export const useCollection = <T extends DocumentData>(
-  q: Query<T> | null
-) => {
+export function useCollection<T>(q: Query<DocumentData> | null) {
   const [data, setData] = useState<WithId<T>[] | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // Use a ref to track the previous query to prevent unnecessary loading states
   const prevQueryKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (q === null) {
-      setLoading(true);
+      setData([]);
+      setLoading(false);
       return;
-    };
-    
-    // Using JSON.stringify on the query object provides a stable key for comparison.
-    // This is safer than relying on internal, private properties like _query.
-    const queryKey = JSON.stringify(q);
-    
-    // Only set loading to true if the query has actually changed.
-    // This prevents re-renders from dialogs, etc., from causing a loading flash.
-    if (prevQueryKeyRef.current !== queryKey) {
-        setLoading(true);
-        setData(null); // Clear previous data when query changes
-        prevQueryKeyRef.current = queryKey;
     }
 
-    setError(null);
+    const queryKey = JSON.stringify(q);
 
+    if (prevQueryKeyRef.current === queryKey && data !== null) {
+      setLoading(false);
+      return;
+    }
+    
+    setLoading(true);
+    prevQueryKeyRef.current = queryKey;
+    
     const unsubscribe = onSnapshot(
       q,
-      (querySnapshot) => {
-        const documents = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as WithId<T>[];
-        setData(documents);
+      (snapshot) => {
+        const docs = snapshot.docs.map((doc) => {
+          return { id: doc.id, ...doc.data() } as WithId<T>;
+        });
+        setData(docs);
         setLoading(false);
+        setError(null);
       },
-      (err: FirestoreError) => {
-        const path = (q as unknown as InternalQuery)._query.path.canonicalString();
-        const contextualError = new FirestorePermissionError({ operation: 'list', path });
-        
-        setError(contextualError);
-        setData(null);
+      (err) => {
+        console.error(err);
+        const permissionError = new FirestorePermissionError({
+          path: (q as InternalQuery)._query.path.canonicalString(),
+          operation: 'list',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        setError(permissionError);
         setLoading(false);
-        errorEmitter.emit('permission-error', contextualError);
       }
     );
 
     return () => unsubscribe();
-  }, [q]);
+  }, [q, data]);
 
-  return { data, loading, error, setData };
-};
+  return { data, loading, error };
+}

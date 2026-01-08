@@ -21,9 +21,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import type { Role, Staff } from "@/lib/types";
-import { useCollection, useFirestore } from "@/firebase";
+import { useFirestore, useCollection } from "@/firebase";
 import { collection, serverTimestamp, addDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword, getAuth } from "firebase/auth";
 import { Eye, EyeOff } from "lucide-react";
@@ -42,13 +42,12 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
     const [formData, setFormData] = useState<Partial<Omit<Staff, 'id'>>>({});
     const [showPassword, setShowPassword] = useState(false);
     const firestore = useFirestore();
-
-    const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
-    const { data: allStaffData } = useCollection<Staff>(staffQuery);
-    const allStaff = allStaffData || [];
     
-    const supervisors = useMemo(() => allStaff.filter(s => s.role === 'Supervisor'), [allStaff]);
-    const admins = useMemo(() => allStaff.filter(s => s.role === 'Admin'), [allStaff]);
+    const staffQuery = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
+    const { data: allStaff } = useCollection<Staff>(staffQuery);
+    
+    const supervisors = useMemo(() => allStaff?.filter(s => s.role === 'Supervisor') || [], [allStaff]);
+    const admins = useMemo(() => allStaff?.filter(s => s.role === 'Admin') || [], [allStaff]);
     
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const { id, value } = e.target;

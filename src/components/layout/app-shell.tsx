@@ -154,8 +154,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  const pagesWithDateFilter = ['/'];
-  const showDateFilter = (user.role === 'Admin' || user.role === 'Supervisor') && pagesWithDateFilter.includes(pathname);
+  const pagesWithDateFilter = ['/', '/leads', '/kpi'];
+  const showDateFilter = (user.role === 'Admin' || user.role === 'Supervisor' || user.role === 'Broker') && pagesWithDateFilter.includes(pathname);
 
 
   const getPageTitle = () => {
@@ -202,4 +202,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </DateRangeProvider>
   );
 }
-

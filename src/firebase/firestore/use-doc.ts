@@ -1,56 +1,63 @@
 'use client';
-
 import { useState, useEffect, useRef } from 'react';
-import { onSnapshot, type DocumentReference, type DocumentData, type FirestoreError } from 'firebase/firestore';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import {
+  doc,
+  onSnapshot,
+  DocumentReference,
+  DocumentData,
+} from 'firebase/firestore';
 import type { WithId } from './types';
+import { useFirestore } from '../provider';
+import { errorEmitter } from '../error-emitter';
+import { FirestorePermissionError } from '../errors';
 
-export const useDoc = <T extends DocumentData>(
-  ref: DocumentReference<T> | null
-) => {
+export function useDoc<T>(ref: DocumentReference<DocumentData> | null) {
   const [data, setData] = useState<WithId<T> | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const prevPathRef = useRef<string | null>(null);
+  const prevRefPath = useRef<string | null>(null);
+
 
   useEffect(() => {
-    const currentPath = ref ? ref.path : null;
-
     if (ref === null) {
-      setLoading(true);
+      setData(null);
+      setLoading(false);
       return;
-    };
+    }
     
-    // Only set loading to true if the document path has actually changed.
-    if (prevPathRef.current !== currentPath) {
-        setLoading(true);
-        setData(null); // Clear previous data
-        prevPathRef.current = currentPath;
+    if (prevRefPath.current === ref.path && data !== null) {
+      setLoading(false);
+      return;
     }
 
-    setError(null);
+    setLoading(true);
+    prevRefPath.current = ref.path;
+
     const unsubscribe = onSnapshot(
       ref,
-      (docSnapshot) => {
-        if (docSnapshot.exists()) {
-          setData({ id: docSnapshot.id, ...docSnapshot.data() } as WithId<T>);
+      (snapshot) => {
+        if (snapshot.exists()) {
+          setData({ id: snapshot.id, ...snapshot.data() } as WithId<T>);
         } else {
-          setData(null); // Document does not exist
+          setData(null);
         }
         setLoading(false);
+        setError(null);
       },
-      (err: FirestoreError) => {
-        const contextualError = new FirestorePermissionError({ operation: 'get', path: ref.path });
-        setError(contextualError);
-        setData(null);
+      (err) => {
+        console.error(err);
+        const permissionError = new FirestorePermissionError({
+          path: ref.path,
+          operation: 'get',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        setError(permissionError);
         setLoading(false);
-        errorEmitter.emit('permission-error', contextualError);
       }
     );
 
     return () => unsubscribe();
-  }, [ref]);
+  }, [ref, data]);
 
   return { data, loading, error };
-};
+}
