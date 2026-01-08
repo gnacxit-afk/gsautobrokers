@@ -8,7 +8,7 @@ import type { Lead, NoteEntry, LeadStatus } from '@/lib/types';
 import { qualifyLead } from '@/ai/flows/qualify-lead-flow';
 import type { QualifyLeadOutput } from '@/ai/flows/qualify-lead-flow';
 import { doc, collection, query, orderBy, updateDoc } from 'firebase/firestore';
-import { ArrowLeft, Bot, Zap, Star, ShieldCheck, TrendingUp, Lightbulb } from 'lucide-react';
+import { ArrowLeft, Bot, Zap, Star, ShieldCheck, TrendingUp, Lightbulb, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
