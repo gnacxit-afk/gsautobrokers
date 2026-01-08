@@ -64,6 +64,7 @@ export function NoteHistoryDialog({ lead, open, onOpenChange, onAddNote }: NoteH
     if (newNote.trim()) {
       onAddNote(lead.id, newNote);
       setNewNote("");
+      onOpenChange(false);
     }
   };
   
