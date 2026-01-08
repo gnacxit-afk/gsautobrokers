@@ -6,7 +6,7 @@ import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 import type { Lead, Staff, NoteEntry } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
-import { useCollection, useFirestore, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { useCollection, useFirestore, useUser } from '@/firebase';
 import {
   useReactTable,
   getCoreRowModel,
@@ -18,7 +18,7 @@ import {
   type ColumnFiltersState,
   type FilterFn,
 } from '@tanstack/react-table';
-import { collection, serverTimestamp, query, orderBy, updateDoc, doc, arrayUnion, getDoc, setDoc } from 'firebase/firestore';
+import { collection, serverTimestamp, query, orderBy, updateDoc, doc, arrayUnion, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { analyzeAndUpdateLead } from "@/ai/flows/analyze-and-update-leads";
 import { isWithinInterval } from "date-fns";
@@ -87,7 +87,7 @@ export default function LeadsPage() {
 
     }, [user, allLeads, allStaff, dateRange]);
     
-    const addNote = useCallback(async (leadId: string, noteContent: string, noteType: NoteEntry['type'], authorName?: string) => {
+    const addNote = useCallback((leadId: string, noteContent: string, noteType: NoteEntry['type'], authorName?: string) => {
         if (!firestore || !user) return;
         const leadRef = doc(firestore, 'leads', leadId);
 
@@ -95,17 +95,27 @@ export default function LeadsPage() {
             const newNote: NoteEntry = {
                 content: noteContent,
                 author: authorName || user.name,
-                date: new Date(), // Using client-side date to avoid serverTimestamp issues in arrays
+                date: new Date(), // Use client-side date to avoid serverTimestamp issues.
                 type: noteType,
             };
-            await updateDoc(leadRef, {
+            
+            // Non-blocking update
+            updateDoc(leadRef, {
                 notes: arrayUnion(newNote)
+            }).catch(error => {
+                console.error("Failed to add note:", error);
+                toast({
+                    title: "Error Adding Note",
+                    description: "There was a problem saving your note in the background.",
+                    variant: "destructive",
+                });
             });
+
         } catch (error: any) {
-            console.error("Failed to add note:", error);
+            console.error("Failed to construct note:", error);
             toast({
-                title: "Error adding note",
-                description: error.message || "There was a problem saving your note. Please try again.",
+                title: "Error Preparing Note",
+                description: error.message || "There was a local problem before saving your note.",
                 variant: "destructive",
             });
         }
@@ -136,10 +146,10 @@ export default function LeadsPage() {
         }
     }, [firestore, addNote]);
     
-    const handleDelete = useCallback((id: string) => {
+    const handleDelete = useCallback(async (id: string) => {
         if (window.confirm('Are you sure you want to delete this lead?') && firestore) {
             const leadRef = doc(firestore, 'leads', id);
-            deleteDocumentNonBlocking(leadRef);
+            await deleteDoc(leadRef);
             toast({ title: "Lead Deleted", description: "The lead has been removed." });
         }
     }, [firestore, toast]);
@@ -180,7 +190,7 @@ export default function LeadsPage() {
             const leadDetails = `Name: ${newLeadData.name}, Company: ${newLeadData.company || 'N/A'}, Stage: ${newLeadData.stage}, Notes: ${noteContent}`;
             const analysisResult = await analyzeAndUpdateLead({ leadDetails });
             
-            await addNote(newLeadRef.id, `AI Analysis Complete:\n- Qualification: ${analysisResult.qualificationDecision}\n- Recommendation: ${analysisResult.salesRecommendation}`, 'AI Analysis', 'AI Assistant');
+            addNote(newLeadRef.id, `AI Analysis Complete:\n- Qualification: ${analysisResult.qualificationDecision}\n- Recommendation: ${analysisResult.salesRecommendation}`, 'AI Analysis', 'AI Assistant');
             
             await updateDoc(newLeadRef, { leadStatus: analysisResult.leadStatus });
             
