@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -17,40 +18,38 @@ export function Notifications() {
   const firestore = useFirestore();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Listener specifically for the unread count, as per user's spec
+  // Listener for the unread count
   useEffect(() => {
     if (!firestore || !user) return;
-
     const q = query(
       collection(firestore, "notifications"),
       where("userId", "==", user.id),
       where("read", "==", false)
     );
-
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setUnreadCount(snapshot.size);
     });
-
     return () => unsubscribe();
   }, [firestore, user]);
 
-
-  // Listener for the actual notification data to display
-  const notificationsQuery = useMemo(() => {
-    if (!firestore || !user) return null;
-    return query(
+  // Listener for the notification data
+  useEffect(() => {
+    if (!firestore || !user) return;
+    const q = query(
       collection(firestore, 'notifications'),
       where('userId', '==', user.id),
       orderBy('createdAt', 'desc')
     );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const newNotifications = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Notification));
+        setNotifications(newNotifications);
+    });
+    return () => unsubscribe();
   }, [firestore, user]);
-
-  const { data: notifications } = useCollection<Notification>(notificationsQuery);
   
-  const unreadNotifications = useMemo(() => notifications?.filter(n => !n.read) || [], [notifications]);
-
   const handleNotificationClick = async (notification: Notification) => {
     if (!firestore) return;
     setOpen(false);
@@ -67,25 +66,18 @@ export function Notifications() {
 
   const markAllAsRead = async () => {
     if (!firestore || !user) return;
-
     const q = query(
         collection(firestore, "notifications"),
         where("userId", "==", user.id),
         where("read", "==", false)
     );
-
     const snapshot = await getDocs(q);
-    
-    if (snapshot.empty) {
-        return; // Nothing to mark as read
-    }
+    if (snapshot.empty) return;
     
     const batch = writeBatch(firestore);
-
     snapshot.docs.forEach((doc) => {
         batch.update(doc.ref, { read: true });
     });
-
     await batch.commit();
   };
 
