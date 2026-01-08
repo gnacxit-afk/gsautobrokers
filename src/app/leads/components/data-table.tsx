@@ -69,6 +69,10 @@ export function DataTable<TData extends Lead, TValue>({
   const setStageFilter = (value: string) => table.getColumn("stage")?.setFilterValue(value === "all" ? undefined : value);
   const setChannelFilter = (value: string) => table.getColumn("channel")?.setFilterValue(value === "all" ? undefined : value);
 
+  const assignableStaff = staff.filter(
+    (s) => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin'
+  );
+
   return (
     <div className="space-y-6">
         <div className="space-y-4">
@@ -76,7 +80,7 @@ export function DataTable<TData extends Lead, TValue>({
                 <div className="relative w-full md:w-80">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <Input
-                        placeholder="Search by name, contact, owner..."
+                        placeholder="Search by name, contact..."
                         value={globalFilter ?? ''}
                         onChange={event => setGlobalFilter(event.target.value)}
                         className="w-full pl-10 pr-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
@@ -100,14 +104,14 @@ export function DataTable<TData extends Lead, TValue>({
                     <div className="col-span-1 xl:col-span-2">
                        <DateRangePicker />
                     </div>
-                    {user?.role === 'Admin' && (
+                    {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
                         <Select value={ownerFilter || 'all'} onValueChange={setOwnerFilter}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Filter by Owner" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All Owners</SelectItem>
-                                {staff.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
+                                {assignableStaff.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     )}
