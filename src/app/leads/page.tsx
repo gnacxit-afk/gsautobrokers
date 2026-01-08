@@ -98,6 +98,12 @@ function LeadsPageContent() {
 
     const { data: leadsData, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
 
+    const [data, setData] = useState<Lead[]>([]);
+    useEffect(() => {
+        setData(leadsData || []);
+    }, [leadsData]);
+
+
     useEffect(() => {
         if (!firestore) return;
         
@@ -244,7 +250,7 @@ function LeadsPageContent() {
     const { dateRange, setDateRange } = useDateRange();
     
     const table = useReactTable({
-      data: leadsData || [],
+      data,
       columns,
       globalFilterFn: globalFilterFn,
       getCoreRowModel: getCoreRowModel(),
