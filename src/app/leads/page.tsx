@@ -19,7 +19,7 @@ import {
   type ColumnFiltersState,
   type FilterFn,
 } from '@tanstack/react-table';
-import { collection, query, orderBy, updateDoc, doc, deleteDoc, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, updateDoc, doc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { isWithinInterval, isValid } from "date-fns";
 
@@ -79,6 +79,7 @@ function LeadsPageContent() {
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
+    const { dateRange } = useDateRange();
 
     // The stable state that will be passed to the table
     const [data, setData] = useState<Lead[]>([]);
@@ -144,8 +145,6 @@ function LeadsPageContent() {
 
     const handleDelete = useCallback(async (id: string) => {
         if (window.confirm('Are you sure you want to delete this lead?') && firestore) {
-            // Note: In a real app, you might want to handle subcollections like noteHistory.
-            // Firestore Functions are better for such cascading deletes.
             const leadRef = doc(firestore, 'leads', id);
             try {
                 await deleteDoc(leadRef);
@@ -164,12 +163,10 @@ function LeadsPageContent() {
              return;
         };
 
-        const { ...leadData } = newLeadData;
-
         const leadsCollection = collection(firestore, 'leads');
         
         const finalLeadData = {
-            ...leadData,
+            ...newLeadData,
             createdAt: serverTimestamp(),
             ownerName: owner.name,
         };
@@ -231,10 +228,16 @@ function LeadsPageContent() {
         [handleUpdateStage, handleDelete, handleUpdateOwner, handleOpenNoteHistory, staffData]
     );
     
-    const { dateRange, setDateRange } = useDateRange();
+    const memoizedData = useMemo(() => data, [data]);
+
+    const memoizedMeta = useMemo(() => ({
+      user,
+      allStaff: staffData,
+      dateRange
+    }), [user, staffData, dateRange]);
     
     const table = useReactTable({
-      data, // Use the stable 'data' state here
+      data: memoizedData, 
       columns,
       globalFilterFn: globalFilterFn,
       getCoreRowModel: getCoreRowModel(),
@@ -253,18 +256,12 @@ function LeadsPageContent() {
         columnFilters
       },
       getRowCanExpand: () => false,
-      meta: {
-        user,
-        allStaff: staffData,
-        dateRange
-      }
+      meta: memoizedMeta
     });
 
     const clearAllFilters = useCallback(() => {
         table.setGlobalFilter('');
         table.setColumnFilters([]);
-        // Resetting date range might be desired, but depends on UX preference.
-        // For now, let's keep the date range as is.
     }, [table]);
 
     return (
@@ -299,5 +296,3 @@ export default function LeadsPage() {
         <LeadsPageContent />
     )
 }
-
-    
