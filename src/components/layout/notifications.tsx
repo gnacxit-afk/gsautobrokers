@@ -1,10 +1,8 @@
-
-'use client';
+"use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useFirestore, useUser } from '@/firebase';
-import { useCollection } from '@/firebase';
-import { collection, query, where, orderBy, updateDoc, doc, writeBatch, getDocs, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, orderBy, updateDoc, doc, writeBatch, getDocs, onSnapshot, type Firestore } from 'firebase/firestore';
 import type { Notification } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -12,6 +10,26 @@ import { Bell, CheckCheck, MessageSquare } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
+
+async function markAllAsRead(firestore: Firestore, userId: string): Promise<void> {
+    const q = query(
+        collection(firestore, "notifications"),
+        where("userId", "==", userId),
+        where("read", "==", false)
+    );
+
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return;
+
+    const batch = writeBatch(firestore);
+    snapshot.docs.forEach((doc) => {
+        batch.update(doc.ref, { read: true });
+    });
+
+    await batch.commit();
+}
+
 
 export function Notifications() {
   const { user } = useUser();
@@ -20,6 +38,7 @@ export function Notifications() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   // Listener for the unread count
   useEffect(() => {
@@ -37,7 +56,12 @@ export function Notifications() {
 
   // Listener for the notification data
   useEffect(() => {
-    if (!firestore || !user) return;
+    if (!firestore || !user || !open) {
+        if (!open) setLoading(true); // Reset loading state when closed
+        return;
+    }
+    
+    setLoading(true);
     const q = query(
       collection(firestore, 'notifications'),
       where('userId', '==', user.id),
@@ -46,9 +70,10 @@ export function Notifications() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
         const newNotifications = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Notification));
         setNotifications(newNotifications);
+        setLoading(false);
     });
     return () => unsubscribe();
-  }, [firestore, user]);
+  }, [firestore, user, open]);
   
   const handleNotificationClick = async (notification: Notification) => {
     if (!firestore) return;
@@ -64,22 +89,10 @@ export function Notifications() {
     }
   };
 
-  const markAllAsRead = async () => {
-    if (!firestore || !user) return;
-    const q = query(
-        collection(firestore, "notifications"),
-        where("userId", "==", user.id),
-        where("read", "==", false)
-    );
-    const snapshot = await getDocs(q);
-    if (snapshot.empty) return;
-    
-    const batch = writeBatch(firestore);
-    snapshot.docs.forEach((doc) => {
-        batch.update(doc.ref, { read: true });
-    });
-    await batch.commit();
-  };
+  const handleMarkAllReadClick = async () => {
+      if (!firestore || !user) return;
+      await markAllAsRead(firestore, user.id);
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -101,14 +114,23 @@ export function Notifications() {
         <div className="flex flex-wrap justify-between items-center mb-2 gap-2">
             <h4 className="font-medium text-sm">Notifications</h4>
             {unreadCount > 0 && (
-                 <button onClick={markAllAsRead} className="flex items-center text-xs text-blue-600 hover:underline focus:outline-none">
+                <button
+                    onClick={handleMarkAllReadClick}
+                    className="flex items-center text-xs text-blue-600 hover:underline focus:outline-none"
+                >
                     <CheckCheck size={14} className="mr-1" />
                     <span>Mark all as read</span>
                 </button>
             )}
         </div>
         <div className="max-h-80 overflow-y-auto space-y-2">
-          {notifications && notifications.length > 0 ? (
+          {loading ? (
+             <div className="space-y-2 p-2">
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+             </div>
+          ) : notifications.length > 0 ? (
             notifications.map(n => (
               <div
                 key={n.id}
