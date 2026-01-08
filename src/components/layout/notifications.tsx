@@ -73,17 +73,17 @@ export function Notifications() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80" align="end">
-        <div className="flex justify-between items-center mb-2">
+      <PopoverContent className="w-screen max-w-sm sm:max-w-md" align="end">
+        <div className="flex flex-wrap justify-between items-center mb-2 gap-2">
             <h4 className="font-medium text-sm">Notifications</h4>
             {unreadCount > 0 && (
-                 <Button variant="link" size="sm" className="p-0 h-auto" onClick={markAllAsRead}>
+                 <Button variant="link" size="sm" className="p-0 h-auto text-xs" onClick={markAllAsRead}>
                     <CheckCheck size={14} className="mr-1" /> Mark all as read
                 </Button>
             )}
         </div>
         <div className="max-h-80 overflow-y-auto space-y-2">
-          {unreadCount > 0 ? (
+          {unreadNotifications.length > 0 ? (
             unreadNotifications.map(n => (
               <div
                 key={n.id}
@@ -101,7 +101,7 @@ export function Notifications() {
                   <div>
                       <p className="text-xs text-slate-800 leading-snug">{n.content}</p>
                       <p className="text-[10px] text-slate-400 mt-1.5">
-                        <span className="font-semibold">{n.author}</span> - {formatDistanceToNow((n.createdAt as any)?.toDate() || new Date(), { addSuffix: true })}
+                        <span className="font-semibold">{n.author}</span> - {n.createdAt ? formatDistanceToNow((n.createdAt as any)?.toDate() || new Date(), { addSuffix: true }) : ''}
                       </p>
                   </div>
                 </div>
