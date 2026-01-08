@@ -92,22 +92,47 @@ export default function LeadsPage() {
         const leadRef = doc(firestore, 'leads', leadId);
 
         try {
+            const newNote: NoteEntry = {
+                content: noteContent,
+                author: authorName || user.name,
+                date: serverTimestamp(),
+                type: noteType,
+            };
             await updateDoc(leadRef, {
-                notes: arrayUnion({
+                notes: arrayUnion(newNote)
+            });
+        } catch (error: any) {
+            console.error("Failed to add note:", error);
+            // Check for the specific error to provide a better message.
+            if (error.code === 'invalid-argument' && error.message.includes('serverTimestamp()')) {
+                toast({
+                    title: "Error: Timestamp issue",
+                    description: "Failed to add note due to a server timestamp conflict. Trying a client-side timestamp.",
+                    variant: "destructive",
+                });
+                // Fallback to client-side timestamp if serverTimestamp fails in arrayUnion
+                const fallbackNote: NoteEntry = {
                     content: noteContent,
                     author: authorName || user.name,
-                    date: serverTimestamp(),
+                    date: new Date(),
                     type: noteType,
-                })
-            });
-        } catch (error) {
-            console.error("Failed to add note:", error);
-            // This is the user-facing error.
-             toast({
-                title: "Error adding note",
-                description: "There was a problem saving your note. Please try again.",
-                variant: "destructive",
-            });
+                };
+                try {
+                  await updateDoc(leadRef, { notes: arrayUnion(fallbackNote) });
+                } catch (fallbackError) {
+                   toast({
+                        title: "Error adding note",
+                        description: "There was a problem saving your note. Please try again.",
+                        variant: "destructive",
+                    });
+                }
+            } else {
+                 toast({
+                    title: "Error adding note",
+                    description: error.message || "There was a problem saving your note. Please try again.",
+                    variant: "destructive",
+                });
+            }
         }
     }, [firestore, user, toast]);
 
@@ -160,7 +185,7 @@ export default function LeadsPage() {
         const initialNote: NoteEntry = {
             content: noteContent,
             author: owner.name,
-            date: new Date(),
+            date: new Date(), // Use client-side date for initial creation
             type: 'Manual'
         };
 
@@ -172,7 +197,7 @@ export default function LeadsPage() {
             notes: [initialNote]
         };
 
-        setDocumentNonBlocking(newLeadRef, finalLeadData, {});
+        await setDoc(newLeadRef, finalLeadData);
         
         toast({ title: "Lead Added", description: "New lead created. Analyzing with AI in background..." });
          
