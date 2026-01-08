@@ -99,51 +99,49 @@ export function DataTable<TData extends Lead, TValue>({
                     </Button>
                 </NewLeadDialog>
             </div>
-             <div className="flex flex-col md:flex-row items-center gap-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 w-full items-center">
-                    <div className="col-span-1 xl:col-span-2">
-                       <DateRangePicker />
-                    </div>
-                    {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
-                        <Select value={ownerFilter || 'all'} onValueChange={setOwnerFilter}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Filter by Owner" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Owners</SelectItem>
-                                {assignableStaff.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    )}
-
-                    <Select value={stageFilter || 'all'} onValueChange={setStageFilter}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Filter by Stage" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Stages</SelectItem>
-                            {stages.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                    
-                    <Select value={channelFilter || 'all'} onValueChange={setChannelFilter}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Filter by Channel" />
-                        </SelectTrigger>
-                        <SelectContent>
-                             <SelectItem value="all">All Channels</SelectItem>
-                            {channels.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-
-                     <Button
-                        onClick={clearAllFilters}
-                        variant="ghost"
-                        className="text-muted-foreground hover:text-foreground col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-1"
-                    >
-                        <XCircle className="mr-2 h-4 w-4" /> Clear Filters
-                    </Button>
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 w-full">
+                <div className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-1">
+                   <DateRangePicker />
                 </div>
+                {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
+                    <Select value={ownerFilter || 'all'} onValueChange={setOwnerFilter}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Filter by Owner" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Owners</SelectItem>
+                            {assignableStaff.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                )}
+
+                <Select value={stageFilter || 'all'} onValueChange={setStageFilter}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Filter by Stage" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Stages</SelectItem>
+                        {stages.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+                
+                <Select value={channelFilter || 'all'} onValueChange={setChannelFilter}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Filter by Channel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                         <SelectItem value="all">All Channels</SelectItem>
+                        {channels.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+
+                 <Button
+                    onClick={clearAllFilters}
+                    variant="ghost"
+                    className="text-muted-foreground hover:text-foreground col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-1"
+                >
+                    <XCircle className="mr-2 h-4 w-4" /> Clear Filters
+                </Button>
             </div>
         </div>
       <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">

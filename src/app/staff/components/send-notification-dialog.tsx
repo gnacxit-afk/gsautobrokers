@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -95,7 +96,7 @@ export function SendNotificationDialog({ children, allStaff }: SendNotificationD
             }
         }}>
         <DialogTrigger asChild>{children}</DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-md">
             <DialogHeader>
                 <DialogTitle>Send a Notification</DialogTitle>
                 <DialogDescription>

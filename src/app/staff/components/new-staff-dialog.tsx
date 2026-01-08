@@ -121,7 +121,7 @@ export function NewStaffDialog({ children }: NewStaffDialogProps) {
             if (!isOpen) setFormData({});
         }}>
         <DialogTrigger asChild>{children}</DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-md">
             <DialogHeader>
                 <DialogTitle>Add New Staff Member</DialogTitle>
                 <DialogDescription>
