@@ -1,15 +1,11 @@
 {
   "indexes": [
     {
-      "collectionGroup": "notifications",
+      "collectionGroup": "todos",
       "queryScope": "COLLECTION",
       "fields": [
         {
           "fieldPath": "userId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "read",
           "order": "ASCENDING"
         },
         {
@@ -19,11 +15,15 @@
       ]
     },
     {
-      "collectionGroup": "todos",
+      "collectionGroup": "notifications",
       "queryScope": "COLLECTION",
       "fields": [
         {
           "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "read",
           "order": "ASCENDING"
         },
         {
