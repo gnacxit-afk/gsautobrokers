@@ -94,8 +94,6 @@ export function Notifications() {
       if (!firestore || !user) return;
       await markAllAsRead(firestore, user.id);
   }
-  
-  const unreadNotifications = notifications.filter(n => !n.read);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
