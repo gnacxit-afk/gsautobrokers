@@ -17,10 +17,10 @@ import {
   type SortingState,
   type ColumnFiltersState,
   type FilterFn,
+  type Row,
 } from '@tanstack/react-table';
 import { collection, query, orderBy, updateDoc, doc, arrayUnion, deleteDoc, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
-import { analyzeAndUpdateLead } from "@/ai/flows/analyze-and-update-leads";
 import { isWithinInterval, isValid } from "date-fns";
 import { RenderSubComponent } from "./components/render-sub-component";
 import { DateRangeProvider } from "@/providers/date-range-provider";
@@ -30,14 +30,49 @@ const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguim
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
 
 // This function is now outside the component, so it's not recreated on every render.
-const globalFilterFn: FilterFn<any> = (row, columnId, filterValue) => {
+const globalFilterFn: FilterFn<any> = (row, columnId, filterValue, addMeta) => {
     const search = filterValue.toLowerCase();
 
-    const value = row.original;
-    const nameMatch = value.name?.toLowerCase().includes(search);
-    const emailMatch = value.email?.toLowerCase().includes(search);
-    const phoneMatch = value.phone?.toLowerCase().includes(search);
-    const ownerNameMatch = value.ownerName?.toLowerCase().includes(search);
+    // Access the full original data object
+    const lead = row.original as Lead;
+    
+    // Access global filter context if needed (passed from table options)
+    const { user, allStaff, dateRange } = addMeta as any;
+
+    // Date Range Filtering
+    if (lead.createdAt) {
+        const leadDate = (lead.createdAt as any).toDate ? (lead.createdAt as any).toDate() : new Date(lead.createdAt as string);
+        if (isValid(leadDate)) {
+            if (!isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end })) {
+                return false; // Exclude if outside date range
+            }
+        }
+    }
+
+    // Role-based Filtering
+    if (user) {
+        let isVisible = false;
+        if (user.role === 'Admin') {
+            isVisible = true;
+        } else if (user.role === 'Supervisor') {
+            const teamIds = allStaff.filter((s: Staff) => s.supervisorId === user.id).map((s: Staff) => s.id);
+            const visibleIds = [user.id, ...teamIds];
+            isVisible = visibleIds.includes(lead.ownerId);
+        } else if (user.role === 'Broker') {
+            isVisible = lead.ownerId === user.id;
+        }
+        if (!isVisible) {
+            return false; // Exclude if not visible to the user's role
+        }
+    } else {
+        return false; // No user, no data
+    }
+
+    // Original search filtering
+    const nameMatch = lead.name?.toLowerCase().includes(search);
+    const emailMatch = lead.email?.toLowerCase().includes(search);
+    const phoneMatch = lead.phone?.toLowerCase().includes(search);
+    const ownerNameMatch = lead.ownerName?.toLowerCase().includes(search);
     
     return nameMatch || emailMatch || phoneMatch || ownerNameMatch;
 };
@@ -55,42 +90,16 @@ function LeadsPageContent() {
     const { data: staffData, loading: staffLoading } = useCollection<Staff>(staffQuery);
 
     const allStaff = useMemo(() => staffData || [], [staffData]);
+    const allLeads = useMemo(() => leadsData || [], [leadsData]);
 
     const { dateRange, setDateRange } = useDateRange();
     
-    // State for the AddNoteDialog
     const [noteLeadId, setNoteLeadId] = useState<string | null>(null);
 
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [globalFilter, setGlobalFilter] = useState('');
     const [expanded, setExpanded] = useState({});
-
-    const leads = useMemo(() => {
-        const allLeads = leadsData || [];
-        if (!user) {
-            return [];
-        };
-
-        let visibleLeads = allLeads;
-
-        if (user.role === 'Supervisor') {
-            const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
-            const visibleIds = [user.id, ...teamIds];
-            visibleLeads = allLeads.filter(l => visibleIds.includes(l.ownerId));
-        } else if (user.role === 'Broker') {
-            visibleLeads = allLeads.filter(l => l.ownerId === user.id);
-        }
-        
-        return visibleLeads.filter(l => {
-            if (!l.createdAt) return false;
-            // Safely convert Firestore Timestamp to JS Date before comparison
-            const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
-            if (!isValid(leadDate)) return false; // Invalid date check
-            return isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end });
-        });
-
-    }, [user, leadsData, allStaff, dateRange]);
     
     const addNote = useCallback((leadId: string, noteContent: string, noteType: NoteEntry['type']) => {
         if (!firestore || !user) return;
@@ -109,7 +118,6 @@ function LeadsPageContent() {
         updateDoc(leadRef, {
             notes: arrayUnion(newNote)
         }).then(() => {
-            console.log("Note added to Firestore successfully");
             toast({
                 title: "Note Added",
                 description: "Your note has been successfully saved.",
@@ -184,34 +192,19 @@ function LeadsPageContent() {
 
         try {
             const newDocRef = await addDoc(leadsCollection, finalLeadData);
-            toast({ title: "Lead Added", description: "New lead created. Analyzing with AI..." });
-            
-            try {
-                const leadDetails = `Name: ${newLeadData.name}, Company: ${newLeadData.company || 'N/A'}, Stage: ${newLeadData.stage}, Notes: ${noteContent}`;
-                const analysisResult = await analyzeAndUpdateLead({ leadDetails });
-                
-                const analysisNoteContent = `AI Analysis Complete:\n- Qualification: ${analysisResult.qualificationDecision}\n- Recommendation: ${analysisResult.salesRecommendation}`;
-                addNote(newDocRef.id, analysisNoteContent, 'AI Analysis');
-                
-                await updateDoc(newDocRef, { leadStatus: analysisResult.leadStatus });
-
-            } catch (aiError) {
-                console.error("Error during background AI analysis:", aiError);
-                addNote(newDocRef.id, "Background AI analysis failed to run.", 'System');
-            }
-
+            toast({ title: "Lead Added", description: "New lead created successfully." });
         } catch (error) {
              console.error("Error creating lead:", error);
              toast({ title: "Error creating lead", description: "Could not save the new lead.", variant: "destructive" });
         }
 
-    }, [firestore, allStaff, user, addNote, toast]);
+    }, [firestore, allStaff, user, toast]);
 
 
     const handleUpdateOwner = useCallback(async (id: string, newOwnerId: string) => {
         if (!firestore || !user) return;
 
-        const oldOwnerName = leads.find(l => l.id === id)?.ownerName || 'Unknown';
+        const oldOwnerName = allLeads.find(l => l.id === id)?.ownerName || 'Unknown';
         const newOwner = allStaff.find(s => s.id === newOwnerId);
         
         if (!newOwner) {
@@ -235,7 +228,7 @@ function LeadsPageContent() {
             toast({ title: "Error", description: "Could not update lead owner.", variant: "destructive"});
         }
 
-    }, [firestore, user, allStaff, leads, addNote, toast]);
+    }, [firestore, user, allStaff, allLeads, addNote, toast]);
     
     const handleBeginAddNote = useCallback((leadId: string) => {
         setNoteLeadId(leadId);
@@ -247,7 +240,7 @@ function LeadsPageContent() {
     );
     
     const table = useReactTable({
-      data: leads,
+      data: allLeads,
       columns,
       globalFilterFn: globalFilterFn,
       getCoreRowModel: getCoreRowModel(),
@@ -266,6 +259,12 @@ function LeadsPageContent() {
         columnFilters
       },
       getRowCanExpand: () => true,
+       // Pass context to the global filter function
+      globalFilterFnContext: {
+        user,
+        allStaff,
+        dateRange
+      }
     });
 
     const clearAllFilters = useCallback(() => {
@@ -277,7 +276,7 @@ function LeadsPageContent() {
         });
     }, [table, setDateRange]);
 
-    const renderSub = useCallback((props: { row: any }) => {
+    const renderSub = useCallback((props: { row: Row<Lead> }) => {
        return <RenderSubComponent {...props} onAddNote={(leadId, content) => addNote(leadId, content, 'Manual')} />;
     }, [addNote]);
 
