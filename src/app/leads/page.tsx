@@ -244,7 +244,7 @@ function LeadsPageContent() {
 
     const columns = useMemo(
         () => getColumns(handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleUpdateOwner, addNote, allStaff), 
-        [handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleUpdateOwner, allStaff]
+        [handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleUpdateOwner, addNote, allStaff]
     );
     
     const table = useReactTable({
