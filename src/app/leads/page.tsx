@@ -101,14 +101,13 @@ export default function LeadsPage() {
         const newNote: NoteEntry = {
             content: noteContent,
             author: authorName,
-            date: new Date(), // Use client-side date for optimistic update
+            date: new Date(), // Use client-side date for optimistic update and to avoid serverTimestamp issues
             type: noteType,
         };
 
         // Optimistic UI update
-        const originalLeads = leads;
+        const originalLeads = [...leads];
         setLeads(currentLeads => {
-            if (!currentLeads) return [];
             return currentLeads.map(lead => 
                 lead.id === leadId 
                     ? { ...lead, notes: [...(lead.notes || []), newNote] } 
@@ -118,9 +117,9 @@ export default function LeadsPage() {
 
         try {
             const leadRef = doc(firestore, 'leads', leadId);
-            const dbNotePayload = { ...newNote, date: serverTimestamp() };
+            // Use arrayUnion to add the note. The timestamp is now a client-side date, which is safe.
             await updateDoc(leadRef, {
-                notes: arrayUnion(dbNotePayload)
+                notes: arrayUnion(newNote)
             });
              toast({ title: "Note Added", description: "Your note has been saved." });
         } catch (error) {
@@ -139,7 +138,10 @@ export default function LeadsPage() {
         if (!firestore || !user) return;
         const leadRef = doc(firestore, 'leads', id);
         
-        updateDoc(leadRef, { stage });
+        updateDoc(leadRef, { stage }).catch(error => {
+            console.error("Error updating stage:", error);
+            toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
+        });
 
         const noteContent = `Stage changed to '${stage}'`;
         addNote(id, noteContent, 'System');
@@ -151,7 +153,10 @@ export default function LeadsPage() {
         if (!firestore) return;
         const leadRef = doc(firestore, 'leads', id);
         
-        updateDoc(leadRef, { leadStatus });
+        updateDoc(leadRef, { leadStatus }).catch(error => {
+             console.error("Error updating lead status:", error);
+             toast({ title: "Error", description: "Could not update lead status.", variant: "destructive"});
+        });
         
         toast({ title: "Lead Status Updated", description: "AI analysis has been applied." });
     }, [firestore, toast]);
@@ -174,19 +179,18 @@ export default function LeadsPage() {
 
         const { noteContent, ...leadData } = newLeadData;
 
-        // Use addDoc to let Firestore generate the ID
         const leadsCollection = collection(firestore, 'leads');
         
         const initialNote: NoteEntry = {
             content: noteContent,
             author: owner.name,
-            date: serverTimestamp(),
+            date: new Date(), // Use client-side timestamp
             type: 'Manual'
         };
 
         const finalLeadData: Omit<Lead, 'id'> = {
             ...leadData,
-            createdAt: serverTimestamp(),
+            createdAt: new Date(), // Use client-side timestamp
             ownerName: owner.name,
             notes: [initialNote]
         };
@@ -202,10 +206,8 @@ export default function LeadsPage() {
                 
                 const analysisNoteContent = `AI Analysis Complete:\n- Qualification: ${analysisResult.qualificationDecision}\n- Recommendation: ${analysisResult.salesRecommendation}`;
                 
-                // Add the AI note using the robust addNote function
                 await addNote(newDocRef.id, analysisNoteContent, 'AI Analysis');
 
-                // Update the lead status
                 await updateDoc(newDocRef, { leadStatus: analysisResult.leadStatus });
                 
                 toast({ title: "AI Analysis Complete", description: `Lead status for ${newLeadData.name} set to ${analysisResult.leadStatus}.` });
@@ -216,6 +218,7 @@ export default function LeadsPage() {
             }
 
         } catch (error) {
+             console.error("Error creating lead:", error);
              toast({ title: "Error creating lead", description: "Could not save the new lead.", variant: "destructive" });
         }
 
@@ -235,6 +238,9 @@ export default function LeadsPage() {
         updateDoc(leadRef, { 
             ownerId: newOwner.id, 
             ownerName: newOwner.name,
+        }).catch(error => {
+            console.error("Error updating owner:", error);
+            toast({ title: "Error", description: "Could not update lead owner.", variant: "destructive"});
         });
 
         const noteContent = `Owner changed from ${oldOwnerName} to ${newOwner.name}`;
@@ -245,6 +251,8 @@ export default function LeadsPage() {
 
     const handleAddNote = useCallback((leadId: string, noteContent: string, noteType: NoteEntry['type']) => {
         if (!user) return;
+        // Use user.name directly if it's a manual note
+        const authorName = noteType === 'Manual' ? (user.name || 'User') : (noteType === 'AI Analysis' ? 'AI Assistant' : 'System');
         addNote(leadId, noteContent, noteType);
     }, [user, addNote]);
 
