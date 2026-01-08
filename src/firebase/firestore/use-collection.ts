@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -45,8 +46,4 @@ export const useCollection = <T extends DocumentData>(
       }
     );
 
-    return () => unsubscribe();
-  }, [q]);
-
-  return { data, loading, error };
-};
+    

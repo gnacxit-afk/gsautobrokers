@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
@@ -23,7 +22,6 @@ import { useToast } from "@/hooks/use-toast";
 import { analyzeAndUpdateLead } from "@/ai/flows/analyze-and-update-leads";
 import { isWithinInterval } from "date-fns";
 import { RenderSubComponent } from "./components/render-sub-component";
-import { AddNoteDialog } from "./components/add-note-dialog";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
@@ -52,7 +50,7 @@ export default function LeadsPage() {
     const leadsQuery = useMemo(() => (firestore ? query(collection(firestore, 'leads'), orderBy('createdAt', 'desc')) : null), [firestore]);
     const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
 
-    const { data: leadsData, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
+    const { data: leadsData, loading: leadsLoading, setData: setLeadsData } = useCollection<Lead>(leadsQuery);
     const { data: staffData, loading: staffLoading } = useCollection<Staff>(staffQuery);
     
     const allLeads = useMemo(() => leadsData || [], [leadsData]);
@@ -87,39 +85,42 @@ export default function LeadsPage() {
 
     }, [user, allLeads, allStaff, dateRange]);
     
-    const addNote = useCallback((leadId: string, noteContent: string, noteType: NoteEntry['type'], authorName?: string) => {
+    const addNote = useCallback(async (leadId: string, noteContent: string, noteType: NoteEntry['type'], authorName?: string) => {
         if (!firestore || !user) return;
         const leadRef = doc(firestore, 'leads', leadId);
 
-        try {
-            const newNote: NoteEntry = {
-                content: noteContent,
-                author: authorName || user.name,
-                date: new Date(), // Use client-side date to avoid serverTimestamp issues.
-                type: noteType,
-            };
-            
-            // Non-blocking update
-            updateDoc(leadRef, {
-                notes: arrayUnion(newNote)
-            }).catch(error => {
-                console.error("Failed to add note:", error);
-                toast({
-                    title: "Error Adding Note",
-                    description: "There was a problem saving your note in the background.",
-                    variant: "destructive",
-                });
-            });
+        const newNote: NoteEntry = {
+            content: noteContent,
+            author: authorName || user.name,
+            date: new Date(), // Use client-side date for optimistic update
+            type: noteType,
+        };
 
-        } catch (error: any) {
-            console.error("Failed to construct note:", error);
+        // Optimistic UI update
+        setLeadsData(currentLeads => {
+            if (!currentLeads) return null;
+            return currentLeads.map(lead => 
+                lead.id === leadId 
+                    ? { ...lead, notes: [...(lead.notes || []), newNote] } 
+                    : lead
+            );
+        });
+
+        try {
+            await updateDoc(leadRef, {
+                notes: arrayUnion(newNote)
+            });
+        } catch (error) {
+            console.error("Failed to add note:", error);
             toast({
-                title: "Error Preparing Note",
-                description: error.message || "There was a local problem before saving your note.",
+                title: "Error Adding Note",
+                description: "There was a problem saving your note. Reverting changes.",
                 variant: "destructive",
             });
+            // Revert optimistic update on failure
+            setLeadsData(allLeads);
         }
-    }, [firestore, user, toast]);
+    }, [firestore, user, setLeadsData, allLeads, toast]);
 
 
     const handleUpdateStage = useCallback((id: string, stage: Lead['stage']) => {
@@ -190,16 +191,25 @@ export default function LeadsPage() {
             const leadDetails = `Name: ${newLeadData.name}, Company: ${newLeadData.company || 'N/A'}, Stage: ${newLeadData.stage}, Notes: ${noteContent}`;
             const analysisResult = await analyzeAndUpdateLead({ leadDetails });
             
-            addNote(newLeadRef.id, `AI Analysis Complete:\n- Qualification: ${analysisResult.qualificationDecision}\n- Recommendation: ${analysisResult.salesRecommendation}`, 'AI Analysis', 'AI Assistant');
+            const analysisNoteContent = `AI Analysis Complete:\n- Qualification: ${analysisResult.qualificationDecision}\n- Recommendation: ${analysisResult.salesRecommendation}`;
+            const analysisNote: NoteEntry = {
+                content: analysisNoteContent,
+                author: 'AI Assistant',
+                date: new Date(),
+                type: 'AI Analysis'
+            };
             
-            await updateDoc(newLeadRef, { leadStatus: analysisResult.leadStatus });
+            await updateDoc(newLeadRef, { 
+                leadStatus: analysisResult.leadStatus,
+                notes: arrayUnion(analysisNote)
+            });
             
             toast({ title: "AI Analysis Complete", description: `Lead status for ${newLeadData.name} set to ${analysisResult.leadStatus}.` });
         } catch (aiError) {
             console.error("Error during background AI analysis:", aiError);
         }
 
-    }, [firestore, allStaff, toast, user, addNote]);
+    }, [firestore, allStaff, toast, user]);
 
 
     const handleUpdateOwner = useCallback((id: string, newOwnerId: string) => {
