@@ -34,7 +34,7 @@ export function useCollection<T>(q: Query<DocumentData> | null) {
 
     const queryKey = JSON.stringify(q);
 
-    if (prevQueryKeyRef.current === queryKey && data !== null) {
+    if (prevQueryKeyRef.current === queryKey) {
       setLoading(false);
       return;
     }
@@ -65,7 +65,7 @@ export function useCollection<T>(q: Query<DocumentData> | null) {
     );
 
     return () => unsubscribe();
-  }, [q, data]);
+  }, [q]);
 
   return { data, loading, error };
 }

@@ -34,6 +34,19 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
     const { user } = useAuthContext();
     const [selectedUserId, setSelectedUserId] = useState<string>('all');
     
+     const selectableUsers = useMemo(() => {
+        if (!user) return [];
+         if (user.role === 'Admin') {
+            return allStaff.filter(s => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin');
+         }
+         if (user.role === 'Supervisor') {
+             const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
+             const visibleIds = [user.id, ...teamIds];
+             return allStaff.filter(s => visibleIds.includes(s.id));
+         }
+         return [];
+    }, [user, allStaff]);
+
     const performanceData = useMemo(() => {
         // Correctly include all staff who can be lead owners.
         const staffToDisplay = allStaff.filter(s => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin');
@@ -81,19 +94,6 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
                 return [];
         }
     }, [user, performanceData, selectedUserId, allStaff]);
-
-    const selectableUsers = useMemo(() => {
-        if (!user) return [];
-         if (user.role === 'Admin') {
-            return allStaff.filter(s => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin');
-         }
-         if (user.role === 'Supervisor') {
-             const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
-             const visibleIds = [user.id, ...teamIds];
-             return allStaff.filter(s => visibleIds.includes(s.id));
-         }
-         return [];
-    }, [user, allStaff]);
 
 
     if (!user) return null;
