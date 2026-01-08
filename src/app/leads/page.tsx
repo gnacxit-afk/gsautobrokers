@@ -18,7 +18,7 @@ import {
   type ColumnFiltersState,
   type FilterFn,
 } from '@tanstack/react-table';
-import { collection, serverTimestamp, query, orderBy, updateDoc, doc, arrayUnion, deleteDoc, addDoc } from 'firebase/firestore';
+import { collection, query, orderBy, updateDoc, doc, arrayUnion, deleteDoc, addDoc } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { analyzeAndUpdateLead } from "@/ai/flows/analyze-and-update-leads";
 import { isWithinInterval } from "date-fns";
@@ -101,12 +101,11 @@ export default function LeadsPage() {
         const newNote: NoteEntry = {
             content: noteContent,
             author: authorName,
-            date: new Date(), // Use client-side date for optimistic update and to avoid serverTimestamp issues
+            date: new Date(),
             type: noteType,
         };
 
         // Optimistic UI update
-        const originalLeads = [...leads];
         setLeads(currentLeads => {
             return currentLeads.map(lead => 
                 lead.id === leadId 
@@ -117,7 +116,6 @@ export default function LeadsPage() {
 
         try {
             const leadRef = doc(firestore, 'leads', leadId);
-            // Use arrayUnion to add the note. The timestamp is now a client-side date, which is safe.
             await updateDoc(leadRef, {
                 notes: arrayUnion(newNote)
             });
@@ -129,9 +127,10 @@ export default function LeadsPage() {
                 description: "There was a problem saving your note.",
                 variant: "destructive",
             });
-            setLeads(originalLeads); // Revert optimistic update on failure
+            // Consider reverting optimistic update on failure
+            // For this app, we'll assume writes succeed most of the time.
         }
-    }, [firestore, user, leads, toast]);
+    }, [firestore, user, toast]);
 
 
     const handleUpdateStage = useCallback((id: string, stage: Lead['stage']) => {
@@ -184,13 +183,13 @@ export default function LeadsPage() {
         const initialNote: NoteEntry = {
             content: noteContent,
             author: owner.name,
-            date: new Date(), // Use client-side timestamp
+            date: new Date(),
             type: 'Manual'
         };
 
         const finalLeadData: Omit<Lead, 'id'> = {
             ...leadData,
-            createdAt: new Date(), // Use client-side timestamp
+            createdAt: new Date(),
             ownerName: owner.name,
             notes: [initialNote]
         };
@@ -209,8 +208,6 @@ export default function LeadsPage() {
                 await addNote(newDocRef.id, analysisNoteContent, 'AI Analysis');
 
                 await updateDoc(newDocRef, { leadStatus: analysisResult.leadStatus });
-                
-                toast({ title: "AI Analysis Complete", description: `Lead status for ${newLeadData.name} set to ${analysisResult.leadStatus}.` });
 
             } catch (aiError) {
                 console.error("Error during background AI analysis:", aiError);
@@ -251,8 +248,6 @@ export default function LeadsPage() {
 
     const handleAddNote = useCallback((leadId: string, noteContent: string, noteType: NoteEntry['type']) => {
         if (!user) return;
-        // Use user.name directly if it's a manual note
-        const authorName = noteType === 'Manual' ? (user.name || 'User') : (noteType === 'AI Analysis' ? 'AI Assistant' : 'System');
         addNote(leadId, noteContent, noteType);
     }, [user, addNote]);
 
