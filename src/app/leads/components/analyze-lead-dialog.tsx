@@ -37,11 +37,13 @@ export function AnalyzeLeadDialog({ lead, open, onOpenChange, onAnalysisComplete
     const [analysis, setAnalysis] = useState<AnalyzeAndUpdateLeadOutput | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
+    const [hasAnalyzed, setHasAnalyzed] = useState(false);
 
     useEffect(() => {
-        if (open && lead) {
+        if (open && lead && !hasAnalyzed) {
             setAnalysis(null);
             setError(null);
+            setHasAnalyzed(true); // Set flag to prevent re-running
             startTransition(async () => {
                 try {
                     const leadDetails = `Name: ${lead.name}, Company: ${lead.company || 'N/A'}, Stage: ${lead.stage}, Notes: ${lead.notes?.map(n => n.content).join('\\n') || 'N/A'}`;
@@ -57,8 +59,11 @@ export function AnalyzeLeadDialog({ lead, open, onOpenChange, onAnalysisComplete
                     setError("The AI model is currently overloaded. Please try again in a few moments.");
                 }
             });
+        } else if (!open) {
+            // Reset the flag when the dialog is closed
+            setHasAnalyzed(false);
         }
-    }, [open, lead, onAnalysisComplete]);
+    }, [open, lead, hasAnalyzed, onAnalysisComplete]);
 
     const handleSaveNote = () => {
         if (!analysis || !lead) return;
@@ -67,9 +72,19 @@ export function AnalyzeLeadDialog({ lead, open, onOpenChange, onAnalysisComplete
         onAddNote(lead.id, noteContent);
         onOpenChange(false); // Close dialog after saving
     };
+    
+    // Wrapper for onOpenChange to reset state
+    const handleOpenChange = (isOpen: boolean) => {
+        if (!isOpen) {
+            setHasAnalyzed(false);
+            setAnalysis(null);
+            setError(null);
+        }
+        onOpenChange(isOpen);
+    };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2"><Zap className="text-primary"/>AI Lead Analysis: {lead.name}</DialogTitle>
@@ -120,7 +135,7 @@ export function AnalyzeLeadDialog({ lead, open, onOpenChange, onAnalysisComplete
                     )}
                 </div>
                  <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cerrar</Button>
+                    <Button variant="outline" onClick={() => handleOpenChange(false)}>Cerrar</Button>
                     <Button onClick={handleSaveNote} disabled={!analysis || isPending}>
                         <Save className="mr-2 h-4 w-4" />
                         Save as Note
