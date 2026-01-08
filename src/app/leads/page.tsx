@@ -4,6 +4,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
+import { NoteHistoryDialog } from "./components/note-history-dialog";
 import type { Lead, Staff } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
 import { useFirestore, useUser, useCollection } from '@/firebase';
@@ -18,7 +19,7 @@ import {
   type ColumnFiltersState,
   type FilterFn,
 } from '@tanstack/react-table';
-import { collection, query, orderBy, updateDoc, doc, deleteDoc, addDoc, serverTimestamp, Timestamp, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, updateDoc, doc, deleteDoc, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { isWithinInterval, isValid } from "date-fns";
 
@@ -79,6 +80,7 @@ function LeadsPageContent() {
     const firestore = useFirestore();
     const { toast } = useToast();
 
+    const [data, setData] = useState<Lead[]>([]);
     const [staffData, setStaffData] = useState<Staff[]>([]);
     
     const [sorting, setSorting] = useState<SortingState>([]);
@@ -86,51 +88,59 @@ function LeadsPageContent() {
     const [globalFilter, setGlobalFilter] = useState('');
     const [expanded, setExpanded] = useState({});
 
+    const [isNoteHistoryOpen, setIsNoteHistoryOpen] = useState(false);
+    const [selectedLeadForNotes, setSelectedLeadForNotes] = useState<Lead | null>(null);
+
     // Stabilize the query object with useMemo.
     const leadsQuery = useMemo(() => 
         firestore ? query(collection(firestore, 'leads'), orderBy('createdAt', 'desc')) : null,
     [firestore]);
 
-    const { data: leadsData, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
+    const staffQuery = useMemo(() => 
+        firestore ? query(collection(firestore, 'staff')) : null,
+    [firestore]);
 
-    const [data, setData] = useState<Lead[]>([]);
+    const { data: leadsData, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
+    const { data: staffResult, loading: staffLoading } = useCollection<Staff>(staffQuery);
+
     useEffect(() => {
-        if (leadsData) {
-            setData(leadsData);
-        }
+        if (leadsData) setData(leadsData);
     }, [leadsData]);
 
-
     useEffect(() => {
-        if (!firestore) return;
-        
-        const staffQuery = collection(firestore, 'staff');
-        const unsubStaff = onSnapshot(staffQuery, (snapshot) => {
-            const staff = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Staff));
-            setStaffData(staff);
-        });
-
-        return () => unsubStaff();
-    }, [firestore]);
+        if (staffResult) setStaffData(staffResult);
+    }, [staffResult]);
     
-
-
-    const handleUpdateStage = useCallback(async (id: string, stage: Lead['stage']) => {
+    const addNoteEntry = useCallback(async (leadId: string, content: string, type: 'Manual' | 'Stage Change' | 'Owner Change' | 'System') => {
         if (!firestore || !user) return;
-        const leadRef = doc(firestore, 'leads', id);
+        const noteHistoryRef = collection(firestore, 'leads', leadId, 'noteHistory');
+        await addDoc(noteHistoryRef, {
+            content,
+            author: user.name,
+            date: serverTimestamp(),
+            type,
+        });
+    }, [firestore, user]);
+
+    const handleUpdateStage = useCallback(async (lead: Lead, newStage: Lead['stage']) => {
+        if (!firestore || !user) return;
+        const leadRef = doc(firestore, 'leads', lead.id);
         
         try {
-            await updateDoc(leadRef, { stage });
-            toast({ title: "Stage Updated", description: `Lead stage changed to '${stage}'.` });
+            await updateDoc(leadRef, { stage: newStage });
+            const noteContent = `Stage changed from '${lead.stage}' to '${newStage}'`;
+            await addNoteEntry(lead.id, noteContent, 'Stage Change');
+            toast({ title: "Stage Updated", description: noteContent });
         } catch (error) {
              console.error("Error updating stage:", error);
              toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
         }
-        
-    }, [firestore, user, toast]);
+    }, [firestore, user, toast, addNoteEntry]);
 
     const handleDelete = useCallback(async (id: string) => {
         if (window.confirm('Are you sure you want to delete this lead?') && firestore) {
+            // Note: In a real app, you might want to handle subcollections like noteHistory.
+            // Firestore Functions are better for such cascading deletes.
             const leadRef = doc(firestore, 'leads', id);
             try {
                 await deleteDoc(leadRef);
@@ -160,18 +170,17 @@ function LeadsPageContent() {
         };
 
         try {
-            await addDoc(leadsCollection, finalLeadData);
+            const newDocRef = await addDoc(leadsCollection, finalLeadData);
+            await addNoteEntry(newDocRef.id, "Lead created.", "System");
             toast({ title: "Lead Added", description: "New lead created successfully." });
         } catch (error) {
              console.error("Error creating lead:", error);
              toast({ title: "Error creating lead", description: "Could not save the new lead.", variant: "destructive" });
         }
+    }, [firestore, staffData, user, toast, addNoteEntry]);
 
-    }, [firestore, staffData, user, toast]);
-
-
-    const handleUpdateOwner = useCallback(async (id: string, newOwnerId: string) => {
-        if (!firestore || !user) return;
+    const handleUpdateOwner = useCallback(async (id: string, oldOwnerName: string, newOwnerId: string) => {
+        if (!firestore || !user || !staffData) return;
         
         const newOwner = staffData.find(s => s.id === newOwnerId);
         
@@ -189,19 +198,27 @@ function LeadsPageContent() {
         
         try {
             await updateDoc(leadRef, updateData);
-            toast({ title: "Owner Updated", description: `Lead owner changed to ${newOwner.name}.` });
+            const noteContent = `Owner changed from '${oldOwnerName}' to '${newOwner.name}'`;
+            await addNoteEntry(id, noteContent, 'Owner Change');
+            toast({ title: "Owner Updated", description: noteContent });
         } catch (error) {
             console.error("Error updating owner:", error);
             toast({ title: "Error", description: "Could not update lead owner.", variant: "destructive"});
         }
 
-    }, [firestore, user, staffData, toast]);
-    
-    
+    }, [firestore, user, staffData, toast, addNoteEntry]);
 
+    const handleOpenNoteHistory = useCallback((leadId: string) => {
+        const lead = data.find(l => l.id === leadId);
+        if (lead) {
+            setSelectedLeadForNotes(lead);
+            setIsNoteHistoryOpen(true);
+        }
+    }, [data]);
+    
     const columns = useMemo(
-        () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, staffData), 
-        [handleUpdateStage, handleDelete, handleUpdateOwner, staffData]
+        () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, handleOpenNoteHistory, staffData), 
+        [handleUpdateStage, handleDelete, handleUpdateOwner, handleOpenNoteHistory, staffData]
     );
     
     const { dateRange, setDateRange } = useDateRange();
@@ -225,8 +242,7 @@ function LeadsPageContent() {
         expanded,
         columnFilters
       },
-      getRowCanExpand: () => false, // Sub-components are disabled in this simplified view
-       // Pass context to the global filter function
+      getRowCanExpand: () => false,
       globalFilterFnContext: {
         user,
         allStaff: staffData,
@@ -237,25 +253,33 @@ function LeadsPageContent() {
     const clearAllFilters = useCallback(() => {
         table.setGlobalFilter('');
         table.setColumnFilters([]);
-        setDateRange({
-          start: new Date(new Date().getFullYear(), 0, 1),
-          end: new Date(new Date().getFullYear(), 11, 31),
-        });
-    }, [table, setDateRange]);
+        // Resetting date range might be desired, but depends on UX preference.
+        // For now, let's keep the date range as is.
+    }, [table]);
 
     return (
-        <main className="flex flex-1 flex-col gap-4">
-            <DataTable 
-                table={table}
-                columns={columns}
-                onAddLead={handleAddLead}
-                staff={staffData}
-                stages={leadStages}
-                channels={channels}
-                clearAllFilters={clearAllFilters}
-                loading={leadsLoading}
-            />
-        </main>
+        <>
+            <main className="flex flex-1 flex-col gap-4">
+                <DataTable 
+                    table={table}
+                    columns={columns}
+                    onAddLead={handleAddLead}
+                    staff={staffData}
+                    stages={leadStages}
+                    channels={channels}
+                    clearAllFilters={clearAllFilters}
+                    loading={leadsLoading || staffLoading}
+                />
+            </main>
+            {selectedLeadForNotes && (
+                 <NoteHistoryDialog
+                    lead={selectedLeadForNotes}
+                    open={isNoteHistoryOpen}
+                    onOpenChange={setIsNoteHistoryOpen}
+                    onAddNote={(leadId, content) => addNoteEntry(leadId, content, 'Manual')}
+                 />
+            )}
+        </>
     );
 }
 

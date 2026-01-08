@@ -2,7 +2,7 @@
 "use client";
 
 import type { ColumnDef, Row } from "@tanstack/react-table";
-import { MoreHorizontal, Trash2, ChevronDown, MessageSquare, Users, Star, ChevronsUpDown } from "lucide-react";
+import { MoreHorizontal, Trash2, ChevronDown, Users, Star, ChevronsUpDown, FileText } from "lucide-react";
 import { format, isValid } from "date-fns";
 
 import { Button } from "@/components/ui/button";
@@ -20,37 +20,37 @@ import {
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import type { Lead, Staff } from "@/lib/types";
+import type { Lead, NoteEntry, Staff } from "@/lib/types";
 import React from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthContext } from "@/lib/auth";
-import { cn } from "@/lib/utils";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 
 // Props for the CellActions component
 interface CellActionsProps {
   row: Row<Lead>;
-  onUpdateStage: (id: string, stage: Lead['stage']) => void;
+  onUpdateStage: (lead: Lead, newStage: Lead['stage']) => void;
   onDelete: (id: string) => void;
-  onUpdateOwner: (leadId: string, newOwnerId: string) => void;
+  onUpdateOwner: (leadId: string, oldOwnerName: string, newOwnerId: string) => void;
+  onAddNote: (leadId: string) => void;
   staff: Staff[];
 }
 
 // **EXTRACTED CELLACTIONS COMPONENT**
 // Moved outside of getColumns to prevent re-creation on every render.
-const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateOwner, staff }) => {
+const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateOwner, onAddNote, staff }) => {
   const lead = row.original;
   const { toast } = useToast();
   const { user } = useAuthContext();
 
   const handleStageUpdate = (stage: Lead['stage']) => {
-    onUpdateStage(lead.id, stage);
+    onUpdateStage(lead, stage);
     toast({ title: "Stage Updated", description: `Lead "${lead.name}" is now ${stage}.` });
   };
 
   const handleOwnerUpdate = (newOwnerId: string) => {
-    onUpdateOwner(lead.id, newOwnerId);
+    onUpdateOwner(lead.id, lead.ownerName, newOwnerId);
   }
 
   const assignableStaff = staff.filter(
@@ -69,6 +69,11 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            
+            <DropdownMenuItem onSelect={() => onAddNote(lead.id)}>
+                <FileText className="mr-2 h-4 w-4" />
+                <span>Notes / History</span>
+            </DropdownMenuItem>
             
             <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
@@ -123,9 +128,10 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
 };
 
 export const getColumns = (
-  onUpdateStage: (id: string, stage: Lead['stage']) => void,
+  onUpdateStage: (lead: Lead, newStage: Lead['stage']) => void,
   onDelete: (id: string) => void,
-  onUpdateOwner: (leadId: string, newOwnerId: string) => void,
+  onUpdateOwner: (leadId: string, oldOwnerName: string, newOwnerId: string) => void,
+  onAddNote: (leadId: string) => void,
   staff: Staff[]
 ): ColumnDef<Lead>[] => [
   {
@@ -221,6 +227,7 @@ export const getColumns = (
         onUpdateStage={onUpdateStage} 
         onDelete={onDelete} 
         onUpdateOwner={onUpdateOwner}
+        onAddNote={onAddNote}
         staff={staff}
       />;
     },

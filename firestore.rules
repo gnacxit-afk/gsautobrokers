@@ -1,3 +1,4 @@
+
 /**
  * # Firestore Security Rules
  *
@@ -45,6 +46,11 @@ service cloud.firestore {
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
+    
+    function isLeadOwner(leadId) {
+      let leadData = get(/databases/$(database)/documents/leads/$(leadId)).data;
+      return isOwner(leadData.ownerId);
+    }
 
     /**
      * Checks for ownership on an existing document.
@@ -61,7 +67,11 @@ service cloud.firestore {
      * implications. Use judiciously.
      */
     function isAdmin(appId) {
-      return isSignedIn() && get(/databases/$(database)/documents/artifacts/$(appId)/users/$(request.auth.uid)/profile/data).data.role == 'Admin';
+      // This function assumes staff profile is the source of truth for roles.
+      // It finds the staff doc based on the auth UID. This is costly.
+      // TODO: Consider custom claims for roles to avoid this lookup.
+      let staffList = get(/databases/$(database)/documents/artifacts/$(appId)/public/data/staff?orderBy="authUid"&equalTo=request.auth.uid).docs;
+      return isSignedIn() && staffList.size() > 0 && staffList[0].data.role == 'Admin';
     }
 
     // ----------------------------------------------------------------------
@@ -112,6 +122,22 @@ service cloud.firestore {
           allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
           allow update: if isExistingOwner(resource.data.ownerId) && request.resource.data.ownerId == resource.data.ownerId;
           allow delete: if isExistingOwner(resource.data.ownerId);
+
+            /**
+            * @description Controls access to a lead's note history.
+            * @path        /artifacts/{appId}/public/data/leads/{leadId}/noteHistory/{noteId}
+            * @allow       (create, list) The owner of the lead can create and read notes.
+            * @principle   Subcollection access is gated by ownership of the parent document.
+            */
+            match /noteHistory/{noteId} {
+              allow list: if isSignedIn();
+              allow get: if isSignedIn();
+              // Only the lead owner can create new notes
+              allow create: if isLeadOwner(leadId);
+              // Notes are immutable
+              allow update: if false;
+              allow delete: if false;
+            }
         }
 
         /**

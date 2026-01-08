@@ -83,10 +83,6 @@
         "ownerName": {
           "type": "string",
           "description": "The name of the user who owns the lead."
-        },
-        "note": {
-          "type": "string",
-          "description": "A single, editable note field for the lead."
         }
       },
       "required": [
@@ -99,6 +95,33 @@
         "ownerId",
         "ownerName"
       ]
+    },
+    "NoteEntry": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "NoteEntry",
+      "type": "object",
+      "description": "Represents a single entry in a lead's notes history.",
+      "properties": {
+        "content": {
+          "type": "string",
+          "description": "The content of the note."
+        },
+        "author": {
+          "type": "string",
+          "description": "The name of the user or system that created the note."
+        },
+        "date": {
+          "type": "string",
+          "description": "The timestamp of when the note was created.",
+          "format": "date-time"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of note entry.",
+          "enum": ["Manual", "AI Analysis", "System", "Stage Change", "Owner Change"]
+        }
+      },
+      "required": ["content", "author", "date", "type"]
     },
     "KnowledgeBaseArticle": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -219,6 +242,30 @@
             {
               "name": "leadId",
               "description": "The unique lead ID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "artifacts/{appId}/public/data/leads/{leadId}/noteHistory/{noteId}",
+        "definition": {
+          "entityName": "NoteEntry",
+          "schema": {
+            "$ref": "#/backend/entities/NoteEntry"
+          },
+          "description": "Stores the history of notes and actions for a single lead.",
+           "params": [
+            {
+              "name": "appId",
+              "description": "The application ID."
+            },
+            {
+              "name": "leadId",
+              "description": "The unique lead ID."
+            },
+            {
+                "name": "noteId",
+                "description": "The unique note ID."
             }
           ]
         }

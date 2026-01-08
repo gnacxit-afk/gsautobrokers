@@ -15,10 +15,11 @@ export type User = {
 };
 
 export type NoteEntry = {
+  id: string;
   content: string;
   author: string;
   date: Timestamp | Date | string;
-  type: 'Manual' | 'AI Analysis' | 'System';
+  type: 'Manual' | 'Stage Change' | 'Owner Change' | 'System';
 }
 
 export type Lead = {
@@ -33,7 +34,6 @@ export type Lead = {
   channel: 'Facebook' | 'WhatsApp' | 'Call' | 'Visit' | 'Other';
   createdAt: Timestamp | Date | string;
   language: 'English' | 'Spanish';
-  note?: string;
 };
 
 export type Article = {
