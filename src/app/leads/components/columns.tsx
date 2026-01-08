@@ -58,7 +58,6 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
   
   const handleLeadStatusUpdate = (status: NonNullable<Lead['leadStatus']>) => {
     onUpdateLeadStatus(lead.id, status);
-    // Toast is now handled in the dialog to show completion
   };
 
   const handleOwnerUpdate = (newOwnerId: string) => {
@@ -277,8 +276,14 @@ export const getColumns = (
         const dateRaw = row.getValue("createdAt");
         if (!dateRaw) return null;
         
+        // Convert Firestore Timestamp to JS Date if necessary
         const date = (dateRaw as any).toDate ? (dateRaw as any).toDate() : new Date(dateRaw as string);
         
+        // Check for invalid date
+        if (isNaN(date.getTime())) {
+          return <div className="text-xs text-slate-500">Invalid date</div>;
+        }
+
         return (
             <div className="text-xs text-slate-500">
                 <div>{format(date, 'MMM d, yyyy')}</div>
@@ -303,3 +308,5 @@ export const getColumns = (
     },
   },
 ];
+
+    

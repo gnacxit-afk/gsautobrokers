@@ -44,7 +44,7 @@ export function BonusStatus({ allLeads, loading }: { allLeads: Lead[], loading: 
             const isOwner = lead.ownerId === user.id;
             const isInDateRange = isWithinInterval(leadDate, { start: thirtyDaysAgo, end: now });
             // For bonus, only 'Ganado' should count
-            return isOwner && lead.stage === 'Ganado';
+            return isOwner && lead.stage === 'Ganado' && isInDateRange;
         });
         
         const sales = userLeads.length;
@@ -110,3 +110,5 @@ export function BonusStatus({ allLeads, loading }: { allLeads: Lead[], loading: 
         </Card>
     );
 }
+
+    
