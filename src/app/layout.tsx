@@ -3,9 +3,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
-import { AuthProvider } from "@/lib/auth";
 import { Toaster } from "@/components/ui/toaster";
-import { FirebaseProvider } from "@/firebase/provider";
+import { Providers } from "./providers";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -32,13 +31,11 @@ export default function RootLayout({
           inter.variable
         )}
       >
-        <FirebaseProvider>
-          <AuthProvider>
-            <AppShell>
-              {children}
-            </AppShell>
-          </AuthProvider>
-        </FirebaseProvider>
+        <Providers>
+          <AppShell>
+            {children}
+          </AppShell>
+        </Providers>
         <Toaster />
       </body>
     </html>
