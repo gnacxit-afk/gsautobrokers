@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useFirestore, useUser } from '@/firebase';
 import { useCollection } from '@/firebase';
-import { collection, query, where, orderBy, updateDoc, doc, writeBatch, getDocs } from 'firebase/firestore';
+import { collection, query, where, orderBy, updateDoc, doc, writeBatch, getDocs, onSnapshot } from 'firebase/firestore';
 import type { Notification } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,27 @@ export function Notifications() {
   const firestore = useFirestore();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
+  // Listener specifically for the unread count, as per user's spec
+  useEffect(() => {
+    if (!firestore || !user) return;
+
+    const q = query(
+      collection(firestore, "notifications"),
+      where("userId", "==", user.id),
+      where("read", "==", false)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setUnreadCount(snapshot.size);
+    });
+
+    return () => unsubscribe();
+  }, [firestore, user]);
+
+
+  // Listener for the actual notification data to display
   const notificationsQuery = useMemo(() => {
     if (!firestore || !user) return null;
     return query(
@@ -47,25 +67,25 @@ export function Notifications() {
 
   const markAllAsRead = async () => {
     if (!firestore || !user) return;
-    
-    // Query for unread notifications directly inside the handler
-    const unreadQuery = query(
-      collection(firestore, 'notifications'),
-      where('userId', '==', user.id),
-      where('read', '==', false)
+
+    const q = query(
+        collection(firestore, "notifications"),
+        where("userId", "==", user.id),
+        where("read", "==", false)
     );
 
-    const querySnapshot = await getDocs(unreadQuery);
+    const snapshot = await getDocs(q);
     
-    if (querySnapshot.empty) {
-      return; // Nothing to mark
+    if (snapshot.empty) {
+        return; // Nothing to mark as read
     }
-
-    const batch = writeBatch(firestore);
-    querySnapshot.forEach(notifDoc => {
-        batch.update(notifDoc.ref, { read: true });
-    });
     
+    const batch = writeBatch(firestore);
+
+    snapshot.docs.forEach((doc) => {
+        batch.update(doc.ref, { read: true });
+    });
+
     await batch.commit();
   };
 
@@ -78,9 +98,9 @@ export function Notifications() {
         >
           <Bell size={16} />
           <span>Notifications</span>
-          {unreadNotifications.length > 0 && (
+          {unreadCount > 0 && (
             <span className="absolute top-1 left-5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
-              {unreadNotifications.length}
+              {unreadCount}
             </span>
           )}
         </Button>
@@ -88,7 +108,7 @@ export function Notifications() {
       <PopoverContent className="w-screen max-w-sm sm:max-w-md" align="end">
         <div className="flex flex-wrap justify-between items-center mb-2 gap-2">
             <h4 className="font-medium text-sm">Notifications</h4>
-            {unreadNotifications.length > 0 && (
+            {unreadCount > 0 && (
                  <button onClick={markAllAsRead} className="flex items-center text-xs text-blue-600 hover:underline focus:outline-none">
                     <CheckCheck size={14} className="mr-1" />
                     <span>Mark all as read</span>
@@ -96,13 +116,13 @@ export function Notifications() {
             )}
         </div>
         <div className="max-h-80 overflow-y-auto space-y-2">
-          {notifications && unreadNotifications.length > 0 ? (
-            unreadNotifications.map(n => (
+          {notifications && notifications.length > 0 ? (
+            notifications.map(n => (
               <div
                 key={n.id}
                 onClick={() => handleNotificationClick(n)}
                 className={cn("p-3 rounded-lg", !n.read ? "bg-blue-50/50" : "", {
-                  "cursor-pointer hover:bg-slate-100 transition-colors": n.leadId,
+                  "cursor-pointer hover:bg-slate-100 transition-colors": true,
                 })}
               >
                 <div className="flex items-start gap-3">
@@ -119,7 +139,7 @@ export function Notifications() {
               </div>
             ))
           ) : (
-            <p className="text-sm text-center text-slate-500 py-4">No new notifications.</p>
+            <p className="text-sm text-center text-slate-500 py-4">No notifications.</p>
           )}
         </div>
       </PopoverContent>
