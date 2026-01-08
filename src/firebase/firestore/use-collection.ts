@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { onSnapshot, type Query, type DocumentData, type FirestoreError } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -15,13 +15,25 @@ export const useCollection = <T extends DocumentData>(
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
+  // Use a ref to track the previous query to prevent unnecessary loading states
+  const prevQueryRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (q === null) {
       setLoading(true);
       return;
     };
     
-    setLoading(true);
+    const queryKey = (q as any)._query.canonicalId();
+    
+    // Only set loading to true if the query has actually changed.
+    // This prevents re-renders from dialogs, etc., from causing a loading flash.
+    if (prevQueryRef.current !== queryKey) {
+        setLoading(true);
+        setData(null); // Clear previous data when query changes
+        prevQueryRef.current = queryKey;
+    }
+
     setError(null);
 
     const unsubscribe = onSnapshot(
