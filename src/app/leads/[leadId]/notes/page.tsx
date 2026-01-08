@@ -102,7 +102,7 @@ export default function LeadNotesPage() {
             </Button>
             <div>
               <h3 className="text-xl font-bold">Notes & History</h3>
-              <p className="text-sm text-muted-foreground">For lead: {lead?.name || <Skeleton className="h-4 w-32 inline-block"/>}</p>
+              <div className="text-sm text-muted-foreground">For lead: {lead?.name || <Skeleton className="h-4 w-32 inline-block"/>}</div>
             </div>
         </div>
 
