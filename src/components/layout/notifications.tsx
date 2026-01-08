@@ -48,7 +48,7 @@ export function Notifications() {
   };
 
   const markAllAsRead = async () => {
-    if (!firestore || !notifications || unreadCount === 0) return;
+    if (!firestore || unreadCount === 0) return;
     const batch = writeBatch(firestore);
     unreadNotifications.forEach(notif => {
         const notifRef = doc(firestore, 'notifications', notif.id);
@@ -83,15 +83,14 @@ export function Notifications() {
             )}
         </div>
         <div className="max-h-80 overflow-y-auto space-y-2">
-          {unreadNotifications.length > 0 ? (
-            unreadNotifications.map(n => (
+          {notifications && notifications.length > 0 ? (
+            notifications.filter(n => !n.read).map(n => (
               <div
                 key={n.id}
                 onClick={() => handleNotificationClick(n)}
                 className={cn("p-3 rounded-lg", {
                   "cursor-pointer hover:bg-slate-100 transition-colors": n.leadId,
                   "bg-blue-50": !n.read,
-                  "opacity-70": n.read && !n.leadId
                 })}
               >
                 <div className="flex items-start gap-3">
@@ -109,6 +108,12 @@ export function Notifications() {
             ))
           ) : (
             <p className="text-sm text-center text-slate-500 py-4">No new notifications.</p>
+          )}
+           {unreadCount === 0 && notifications && notifications.length > 0 && (
+            <p className="text-sm text-center text-slate-500 py-4">No new notifications.</p>
+          )}
+          {!notifications && (
+            <p className="text-sm text-center text-slate-500 py-4">No notifications found.</p>
           )}
         </div>
       </PopoverContent>
