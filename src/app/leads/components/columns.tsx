@@ -28,14 +28,12 @@ import { useAuthContext } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
-const leadStatuses: NonNullable<Lead['leadStatus']>[] = ["Hot Lead", "Warm Lead", "In Nurturing", "Cold Lead"];
 
 // Props for the CellActions component
 interface CellActionsProps {
   row: Row<Lead>;
   onUpdateStage: (id: string, stage: Lead['stage']) => void;
   onDelete: (id: string) => void;
-  onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void;
   onUpdateOwner: (leadId: string, newOwnerId: string) => void;
   onAddNote: (leadId: string, noteContent: string, noteType: 'Manual' | 'AI Analysis' | 'System') => void;
   onBeginAddNote: (leadId: string) => void; // New prop
@@ -44,7 +42,7 @@ interface CellActionsProps {
 
 // **EXTRACTED CELLACTIONS COMPONENT**
 // Moved outside of getColumns to prevent re-creation on every render.
-const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateLeadStatus, onUpdateOwner, onAddNote, onBeginAddNote, staff }) => {
+const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateOwner, onAddNote, onBeginAddNote, staff }) => {
   const lead = row.original;
   const [isAnalyzeOpen, setAnalyzeOpen] = React.useState(false);
   const { toast } = useToast();
@@ -53,10 +51,6 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
   const handleStageUpdate = (stage: Lead['stage']) => {
     onUpdateStage(lead.id, stage);
     toast({ title: "Stage Updated", description: `Lead "${lead.name}" is now ${stage}.` });
-  };
-  
-  const handleLeadStatusUpdate = (status: NonNullable<Lead['leadStatus']>) => {
-    onUpdateLeadStatus(lead.id, status);
   };
 
   const handleOwnerUpdate = (newOwnerId: string) => {
@@ -77,7 +71,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
         open={isAnalyzeOpen} 
         onOpenChange={setAnalyzeOpen} 
         lead={lead} 
-        onAnalysisComplete={handleLeadStatusUpdate} 
+        onAnalysisComplete={() => {}} 
         onAddNote={handleAINoteAdd}
       />
       <div className="flex items-center gap-2 justify-end">
@@ -165,39 +159,11 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
 export const getColumns = (
   onUpdateStage: (id: string, stage: Lead['stage']) => void,
   onDelete: (id: string) => void,
-  onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void,
   onUpdateOwner: (leadId: string, newOwnerId: string) => void,
   onAddNote: (leadId: string, noteContent: string, noteType: 'Manual' | 'AI Analysis' | 'System') => void,
-  onBeginAddNote: (leadId: string) => void, // New prop
+  onBeginAddNote: (leadId: string) => void,
   staff: Staff[]
 ): ColumnDef<Lead>[] => [
-  {
-    accessorKey: "leadStatus",
-    header: "Lead Status",
-    cell: ({ row }) => {
-      const leadStatus = row.getValue("leadStatus") as Lead['leadStatus'];
-      if (!leadStatus) return <Badge variant="outline">Not Analyzed</Badge>;
-      
-      return <Badge 
-        variant={leadStatus === "Hot Lead" ? "destructive" : "outline"}
-        className={cn("flex gap-1.5 items-center whitespace-nowrap",
-          leadStatus === "Hot Lead" ? "" : "border",
-          leadStatus === "Warm Lead" ? "bg-amber-50 text-amber-700 border-amber-200" : "",
-          leadStatus === "In Nurturing" ? "bg-green-50 text-green-700 border-green-200" : "",
-          leadStatus === "Cold Lead" ? "bg-blue-50 text-blue-700 border-blue-200" : ""
-        )}
-      >
-        <Star className={cn("w-3 h-3", 
-          leadStatus === "Hot Lead" ? "text-red-500" :
-          leadStatus === "Warm Lead" ? "text-yellow-500" :
-          leadStatus === "In Nurturing" ? "text-green-500" :
-          "text-blue-500"
-        )} />
-        <span>{leadStatus}</span>
-      </Badge>
-    },
-    filterFn: 'equalsString',
-  },
   {
     accessorKey: "name",
     header: "Customer",
@@ -290,7 +256,6 @@ export const getColumns = (
         row={row} 
         onUpdateStage={onUpdateStage} 
         onDelete={onDelete} 
-        onUpdateLeadStatus={onUpdateLeadStatus} 
         onUpdateOwner={onUpdateOwner}
         onAddNote={onAddNote}
         onBeginAddNote={onBeginAddNote}
@@ -299,5 +264,3 @@ export const getColumns = (
     },
   },
 ];
-
-    

@@ -19,7 +19,7 @@ interface AnalyzeLeadDialogProps {
   lead: Lead;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAnalysisComplete: (leadId: string, leadStatus: NonNullable<Lead['leadStatus']>) => void;
+  onAnalysisComplete: (leadId: string, leadStatus: string) => void;
   onAddNote: (leadId: string, noteContent: string) => void;
 }
 

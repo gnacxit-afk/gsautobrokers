@@ -83,11 +83,6 @@
         "ownerName": {
           "type": "string",
           "description": "The name of the user who owns the lead."
-        },
-        "leadStatus": {
-          "type": "string",
-          "description": "The AI-analyzed status of the lead.",
-          "enum": ["Hot Lead", "Warm Lead", "In Nurturing", "Cold Lead"]
         }
       },
       "required": [

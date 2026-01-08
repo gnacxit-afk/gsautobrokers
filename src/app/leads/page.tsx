@@ -28,8 +28,6 @@ import { AddNoteDialog } from "./components/add-note-dialog";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
-const leadStatuses: NonNullable<Lead['leadStatus']>[] = ["Hot Lead", "Warm Lead", "In Nurturing", "Cold Lead"];
-
 
 // This function is now outside the component, so it's not recreated on every render.
 const globalFilterFn: FilterFn<any> = (row, columnId, filterValue) => {
@@ -146,17 +144,6 @@ function LeadsPageContent() {
         
     }, [firestore, user, addNote, toast]);
 
-    const handleUpdateLeadStatus = useCallback(async (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => {
-        if (!firestore) return;
-        const leadRef = doc(firestore, 'leads', id);
-        try {
-           await updateDoc(leadRef, { leadStatus });
-        } catch(error) {
-             console.error("Error updating lead status:", error);
-             toast({ title: "Error", description: "Could not update lead status.", variant: "destructive"});
-        }
-    }, [firestore, toast]);
-    
     const handleDelete = useCallback(async (id: string) => {
         if (window.confirm('Are you sure you want to delete this lead?') && firestore) {
             const leadRef = doc(firestore, 'leads', id);
@@ -255,8 +242,8 @@ function LeadsPageContent() {
     }, []);
 
     const columns = useMemo(
-        () => getColumns(handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleUpdateOwner, addNote, handleBeginAddNote, allStaff), 
-        [handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleUpdateOwner, addNote, handleBeginAddNote, allStaff]
+        () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, addNote, handleBeginAddNote, allStaff), 
+        [handleUpdateStage, handleDelete, handleUpdateOwner, addNote, handleBeginAddNote, allStaff]
     );
     
     const table = useReactTable({
@@ -304,7 +291,6 @@ function LeadsPageContent() {
                 staff={allStaff}
                 stages={leadStages}
                 channels={channels}
-                leadStatuses={leadStatuses}
                 clearAllFilters={clearAllFilters}
                 loading={leadsLoading || staffLoading}
                 renderSubComponent={renderSub}
@@ -331,5 +317,3 @@ export default function LeadsPage() {
         </DateRangeProvider>
     )
 }
-
-    

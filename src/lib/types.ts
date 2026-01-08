@@ -33,7 +33,6 @@ export type Lead = {
   channel: 'Facebook' | 'WhatsApp' | 'Call' | 'Visit' | 'Other';
   createdAt: Timestamp | Date | string;
   language: 'English' | 'Spanish';
-  leadStatus?: "Hot Lead" | "Warm Lead" | "In Nurturing" | "Cold Lead";
   notes: NoteEntry[];
 };
 
@@ -93,5 +92,3 @@ export type BonusInfo = {
   nextGoal: number;
   needed: number;
 };
-
-    
