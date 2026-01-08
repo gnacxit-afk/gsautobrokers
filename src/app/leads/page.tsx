@@ -106,11 +106,14 @@ function LeadsPageContent() {
         
         const leadRef = doc(firestore, 'leads', leadId);
         
-        // NON-BLOCKING: Call updateDoc without await and chain a .catch for error handling.
         updateDoc(leadRef, {
             notes: arrayUnion(newNote)
         }).then(() => {
-            console.log(`Note added successfully to lead ${leadId}`);
+            toast({
+                title: "Note Added",
+                description: "Your note has been successfully saved.",
+            });
+            console.log("Note added successfully to lead", leadId);
         }).catch((error) => {
             console.error("Failed to add note:", error);
             toast({
@@ -192,7 +195,6 @@ function LeadsPageContent() {
             const newDocRef = await addDoc(leadsCollection, finalLeadData);
             toast({ title: "Lead Added", description: "New lead created. Analyzing with AI..." });
             
-            // Now, run the AI analysis in the background
             try {
                 const leadDetails = `Name: ${newLeadData.name}, Company: ${newLeadData.company || 'N/A'}, Stage: ${newLeadData.stage}, Notes: ${noteContent}`;
                 const analysisResult = await analyzeAndUpdateLead({ leadDetails });
