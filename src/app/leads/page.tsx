@@ -89,8 +89,7 @@ export default function LeadsPage() {
     const addNote = useCallback(async (leadId: string, noteContent: string, noteType: NoteEntry['type']) => {
         if (!firestore || !user) return;
         
-        const leadRef = doc(firestore, 'leads', leadId);
-        const authorName = noteType === 'AI Analysis' ? 'AI Assistant' : user.name;
+        const authorName = noteType === 'AI Analysis' ? 'AI Assistant' : (user.name || 'System');
 
         const newNote: NoteEntry = {
             content: noteContent,
@@ -110,6 +109,7 @@ export default function LeadsPage() {
         });
 
         try {
+            const leadRef = doc(firestore, 'leads', leadId);
             // Use serverTimestamp for the actual database write
             const dbNotePayload = { ...newNote, date: serverTimestamp() };
             await updateDoc(leadRef, {
