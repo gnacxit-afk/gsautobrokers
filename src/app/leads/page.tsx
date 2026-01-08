@@ -6,7 +6,7 @@ import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 import type { Lead, Staff, NoteEntry } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
-import { useCollection, useFirestore, useUser, updateDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { useCollection, useFirestore, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import {
   useReactTable,
   getCoreRowModel,
@@ -18,7 +18,7 @@ import {
   type ColumnFiltersState,
   type FilterFn,
 } from '@tanstack/react-table';
-import { collection, serverTimestamp, query, orderBy, updateDoc, doc, arrayUnion, getDoc } from 'firebase/firestore';
+import { collection, serverTimestamp, query, orderBy, updateDoc, doc, arrayUnion, getDoc, setDoc } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { analyzeAndUpdateLead } from "@/ai/flows/analyze-and-update-leads";
 import { isWithinInterval } from "date-fns";
@@ -95,7 +95,7 @@ export default function LeadsPage() {
             const newNote: NoteEntry = {
                 content: noteContent,
                 author: authorName || user.name,
-                date: serverTimestamp(),
+                date: new Date(), // Using client-side date to avoid serverTimestamp issues in arrays
                 type: noteType,
             };
             await updateDoc(leadRef, {
@@ -103,36 +103,11 @@ export default function LeadsPage() {
             });
         } catch (error: any) {
             console.error("Failed to add note:", error);
-            // Check for the specific error to provide a better message.
-            if (error.code === 'invalid-argument' && error.message.includes('serverTimestamp()')) {
-                toast({
-                    title: "Error: Timestamp issue",
-                    description: "Failed to add note due to a server timestamp conflict. Trying a client-side timestamp.",
-                    variant: "destructive",
-                });
-                // Fallback to client-side timestamp if serverTimestamp fails in arrayUnion
-                const fallbackNote: NoteEntry = {
-                    content: noteContent,
-                    author: authorName || user.name,
-                    date: new Date(),
-                    type: noteType,
-                };
-                try {
-                  await updateDoc(leadRef, { notes: arrayUnion(fallbackNote) });
-                } catch (fallbackError) {
-                   toast({
-                        title: "Error adding note",
-                        description: "There was a problem saving your note. Please try again.",
-                        variant: "destructive",
-                    });
-                }
-            } else {
-                 toast({
-                    title: "Error adding note",
-                    description: error.message || "There was a problem saving your note. Please try again.",
-                    variant: "destructive",
-                });
-            }
+            toast({
+                title: "Error adding note",
+                description: error.message || "There was a problem saving your note. Please try again.",
+                variant: "destructive",
+            });
         }
     }, [firestore, user, toast]);
 
@@ -141,7 +116,7 @@ export default function LeadsPage() {
         if (!firestore || !user) return;
         const leadRef = doc(firestore, 'leads', id);
         
-        updateDocumentNonBlocking(leadRef, { stage });
+        updateDoc(leadRef, { stage });
 
         const noteContent = `Stage changed to '${stage}'`;
         addNote(id, noteContent, 'System');
@@ -153,7 +128,7 @@ export default function LeadsPage() {
         if (!firestore) return;
         const leadRef = doc(firestore, 'leads', id);
         
-        updateDocumentNonBlocking(leadRef, { leadStatus });
+        updateDoc(leadRef, { leadStatus });
 
         if (analysis) {
             const noteContent = `AI Analysis Complete:\n- Qualification: ${analysis.decision}\n- Recommendation: ${analysis.recommendation}`;
@@ -207,7 +182,7 @@ export default function LeadsPage() {
             
             await addNote(newLeadRef.id, `AI Analysis Complete:\n- Qualification: ${analysisResult.qualificationDecision}\n- Recommendation: ${analysisResult.salesRecommendation}`, 'AI Analysis', 'AI Assistant');
             
-            updateDocumentNonBlocking(newLeadRef, { leadStatus: analysisResult.leadStatus });
+            await updateDoc(newLeadRef, { leadStatus: analysisResult.leadStatus });
             
             toast({ title: "AI Analysis Complete", description: `Lead status for ${newLeadData.name} set to ${analysisResult.leadStatus}.` });
         } catch (aiError) {
@@ -227,7 +202,7 @@ export default function LeadsPage() {
         }
         
         const leadRef = doc(firestore, 'leads', id);
-        updateDocumentNonBlocking(leadRef, { 
+        updateDoc(leadRef, { 
             ownerId: newOwner.id, 
             ownerName: newOwner.name,
         });
