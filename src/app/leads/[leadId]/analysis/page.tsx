@@ -176,10 +176,6 @@ Sales Recommendation:
                                {analysis.qualificationDecision}
                             </div>
                         </div>
-                        <Button onClick={handleSaveAnalysisToNotes} disabled={isSaving}>
-                            <FileText size={16} />
-                            {isSaving ? 'Saving...' : 'Save Analysis to Notes'}
-                        </Button>
                     </div>
                 </div>
 
@@ -210,15 +206,27 @@ Sales Recommendation:
 
     return (
         <main className="flex flex-1 flex-col">
-            <div className="flex items-center gap-4 mb-6">
-                <Button variant="outline" size="icon" onClick={() => router.push('/leads')}>
-                    <ArrowLeft />
-                </Button>
-                <div>
-                    <h3 className="text-xl font-bold">AI Lead Analysis</h3>
-                    <div className="text-sm text-muted-foreground">
-                        For lead: {lead?.name || <Skeleton className="h-4 w-32 inline-block" />}
+            <div className="flex items-start justify-between gap-4 mb-6">
+                <div className="flex items-center gap-4">
+                    <Button variant="outline" size="icon" onClick={() => router.push('/leads')}>
+                        <ArrowLeft />
+                    </Button>
+                    <div>
+                        <h3 className="text-xl font-bold">AI Lead Analysis</h3>
+                        <div className="text-sm text-muted-foreground">
+                            For lead: {lead?.name || <Skeleton className="h-4 w-32 inline-block" />}
+                        </div>
                     </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button onClick={() => router.push(`/leads/${leadId}/notes`)} variant="outline">
+                        <FileText size={16} />
+                        View Notes & History
+                    </Button>
+                    <Button onClick={handleSaveAnalysisToNotes} disabled={isSaving}>
+                        <Bot size={16} />
+                        {isSaving ? 'Saving...' : 'Save Analysis to Notes'}
+                    </Button>
                 </div>
             </div>
             <div className="bg-white rounded-2xl border p-6 md:p-8">
