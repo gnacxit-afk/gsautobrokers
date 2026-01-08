@@ -4,7 +4,7 @@
 import { useMemo } from 'react';
 import { useFirestore, useUser, useCollection } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
-import type { Todo } from '@/lib/types';
+import type { Lead, Todo } from '@/lib/types';
 import { TodoList } from './components/todo-list';
 
 export default function TodosPage() {
@@ -20,10 +20,16 @@ export default function TodosPage() {
     );
   }, [firestore, user]);
 
-  const { data: todos, loading } = useCollection<Todo>(todosQuery);
-  const { data: leads } = useCollection(
-    firestore ? collection(firestore, 'leads') : null
-  );
+  const userLeadsQuery = useMemo(() => {
+    if (!firestore || !user) return null;
+     return query(
+      collection(firestore, 'leads'),
+      where('ownerId', '==', user.id)
+    );
+  }, [firestore, user]);
+
+  const { data: todos, loading: todosLoading } = useCollection<Todo>(todosQuery);
+  const { data: userLeads, loading: leadsLoading } = useCollection<Lead>(userLeadsQuery);
 
   return (
     <main className="flex-1">
@@ -35,8 +41,8 @@ export default function TodosPage() {
       </div>
       <TodoList 
         initialTodos={todos || []} 
-        loading={loading}
-        userLeads={leads || []}
+        loading={todosLoading || leadsLoading}
+        userLeads={userLeads || []}
       />
     </main>
   );
