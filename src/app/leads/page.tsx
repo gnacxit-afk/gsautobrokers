@@ -51,16 +51,9 @@ export default function LeadsPage() {
     const leadsQuery = useMemo(() => (firestore ? query(collection(firestore, 'leads'), orderBy('createdAt', 'desc')) : null), [firestore]);
     const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
 
+    // Data is now sourced directly from the real-time hook.
     const { data: leadsDataFromHook, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
     const { data: staffData, loading: staffLoading } = useCollection<Staff>(staffQuery);
-
-    const [leads, setLeads] = useState<Lead[]>([]);
-    
-    useEffect(() => {
-        if (leadsDataFromHook) {
-            setLeads(leadsDataFromHook);
-        }
-    }, [leadsDataFromHook]);
 
     const allStaff = useMemo(() => staffData || [], [staffData]);
 
@@ -72,16 +65,17 @@ export default function LeadsPage() {
     const [expanded, setExpanded] = useState({});
 
     const filteredLeads = useMemo(() => {
+        const allLeads = leadsDataFromHook || [];
         if (!user) return [];
 
-        let visibleLeads = leads;
+        let visibleLeads = allLeads;
 
         if (user.role === 'Supervisor') {
             const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
             const visibleIds = [user.id, ...teamIds];
-            visibleLeads = leads.filter(l => visibleIds.includes(l.ownerId));
+            visibleLeads = allLeads.filter(l => visibleIds.includes(l.ownerId));
         } else if (user.role === 'Broker') {
-            visibleLeads = leads.filter(l => l.ownerId === user.id);
+            visibleLeads = allLeads.filter(l => l.ownerId === user.id);
         }
         
         // Date filtering
@@ -91,9 +85,9 @@ export default function LeadsPage() {
             return isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end });
         });
 
-    }, [user, leads, allStaff, dateRange]);
+    }, [user, leadsDataFromHook, allStaff, dateRange]);
     
-    const addNote = useCallback((leadId: string, noteContent: string, noteType: NoteEntry['type']) => {
+    const addNote = useCallback(async (leadId: string, noteContent: string, noteType: NoteEntry['type']) => {
         if (!firestore || !user) return;
         
         const authorName = noteType === 'AI Analysis' ? 'AI Assistant' : (user.name || 'System');
@@ -101,92 +95,68 @@ export default function LeadsPage() {
         const newNote: NoteEntry = {
             content: noteContent,
             author: authorName,
-            date: Timestamp.now(), // Use client-side Timestamp
+            date: Timestamp.now(), // Use server-generated timestamp.
             type: noteType,
         };
         
-        const originalLeads = leads;
-        // Optimistic UI update
-        setLeads(currentLeads => {
-            return currentLeads.map(lead => 
-                lead.id === leadId 
-                    ? { ...lead, notes: [...(lead.notes || []), newNote] } 
-                    : lead
-            );
-        });
-
         const leadRef = doc(firestore, 'leads', leadId);
         
-        // Non-blocking update with arrayUnion and error handling
-        updateDoc(leadRef, {
-            notes: arrayUnion(newNote)
-        }).catch(error => {
+        try {
+            await updateDoc(leadRef, {
+                notes: arrayUnion(newNote)
+            });
+        } catch (error) {
             console.error("Failed to add note:", error);
             toast({
                 title: "Error Adding Note",
-                description: "There was a problem saving your note. Please refresh.",
+                description: "There was a problem saving your note. Please try again.",
                 variant: "destructive",
             });
-            // Revert optimistic update on failure
-            setLeads(originalLeads);
-        });
+        }
 
-    }, [firestore, user, toast, leads]);
+    }, [firestore, user, toast]);
 
 
-    const handleUpdateStage = useCallback((id: string, stage: Lead['stage']) => {
+    const handleUpdateStage = useCallback(async (id: string, stage: Lead['stage']) => {
         if (!firestore || !user) return;
         const leadRef = doc(firestore, 'leads', id);
         
-        // Optimistic update for stage
-        setLeads(currentLeads => currentLeads.map(l => l.id === id ? {...l, stage} : l));
-
-        updateDoc(leadRef, { stage }).catch(error => {
-            console.error("Error updating stage:", error);
-            toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
-            // Revert on fail
-             setLeads(currentLeads => currentLeads.map(l => l.id === id ? {...l, stage: leads.find(lead => lead.id === id)!.stage} : l));
-        });
-
-        const noteContent = `Stage changed to '${stage}'`;
-        addNote(id, noteContent, 'System');
+        try {
+            await updateDoc(leadRef, { stage });
+            toast({ title: "Stage Updated", description: `Lead stage changed to ${stage}.` });
+            const noteContent = `Stage changed to '${stage}'`;
+            await addNote(id, noteContent, 'System');
+        } catch (error) {
+             console.error("Error updating stage:", error);
+             toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
+        }
         
-        toast({ title: "Stage Updated", description: `Lead stage changed to ${stage}.` });
-    }, [firestore, toast, user, addNote, leads]);
+    }, [firestore, toast, user, addNote]);
 
-    const handleUpdateLeadStatus = useCallback((id: string, leadStatus: NonNullable<Lead['leadStatus']>) => {
+    const handleUpdateLeadStatus = useCallback(async (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => {
         if (!firestore) return;
         const leadRef = doc(firestore, 'leads', id);
-
-        // Optimistic update
-        setLeads(currentLeads => currentLeads.map(l => l.id === id ? {...l, leadStatus} : l));
         
-        updateDoc(leadRef, { leadStatus }).catch(error => {
+        try {
+           await updateDoc(leadRef, { leadStatus });
+        } catch(error) {
              console.error("Error updating lead status:", error);
              toast({ title: "Error", description: "Could not update lead status.", variant: "destructive"});
-             // Revert
-             setLeads(currentLeads => currentLeads.map(l => l.id === id ? {...l, leadStatus: leads.find(lead => lead.id === id)?.leadStatus} : l));
-        });
+        }
         
-    }, [firestore, toast, leads]);
+    }, [firestore, toast]);
     
     const handleDelete = useCallback(async (id: string) => {
         if (window.confirm('Are you sure you want to delete this lead?') && firestore) {
-
-            // Optimistic deletion
-            const originalLeads = leads;
-            setLeads(currentLeads => currentLeads.filter(l => l.id !== id));
-
             const leadRef = doc(firestore, 'leads', id);
             try {
                 await deleteDoc(leadRef);
                 toast({ title: "Lead Deleted", description: "The lead has been removed." });
             } catch (error) {
                  toast({ title: "Error Deleting Lead", description: "Could not remove the lead.", variant: "destructive" });
-                 setLeads(originalLeads); // Revert
             }
         }
-    }, [firestore, toast, leads]);
+    }, [firestore, toast]);
 
     const handleAddLead = useCallback(async (newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName' | 'notes'> & { noteContent: string }) => {
         if (!firestore || !user) return;
@@ -225,7 +195,7 @@ export default function LeadsPage() {
                 
                 // Add the AI analysis note using the now reliable addNote function
                 const analysisNoteContent = `AI Analysis Complete:\n- Qualification: ${analysisResult.qualificationDecision}\n- Recommendation: ${analysisResult.salesRecommendation}`;
-                addNote(newDocRef.id, analysisNoteContent, 'AI Analysis');
+                await addNote(newDocRef.id, analysisNoteContent, 'AI Analysis');
                 
                 // Update the lead status separately
                 await updateDoc(newDocRef, { leadStatus: analysisResult.leadStatus });
@@ -233,7 +203,7 @@ export default function LeadsPage() {
             } catch (aiError) {
                 console.error("Error during background AI analysis:", aiError);
                 // Optionally add a note saying the AI analysis failed
-                addNote(newDocRef.id, "Background AI analysis failed to run.", 'System');
+                await addNote(newDocRef.id, "Background AI analysis failed to run.", 'System');
             }
 
         } catch (error) {
@@ -244,10 +214,13 @@ export default function LeadsPage() {
     }, [firestore, allStaff, toast, user, addNote]);
 
 
-    const handleUpdateOwner = useCallback((id: string, newOwnerId: string) => {
+    const handleUpdateOwner = useCallback(async (id: string, newOwnerId: string) => {
         if (!firestore || !user) return;
-        const oldOwnerName = leads.find(l => l.id === id)?.ownerName || 'Unknown';
+
+        const allLeads = leadsDataFromHook || [];
+        const oldOwnerName = allLeads.find(l => l.id === id)?.ownerName || 'Unknown';
         const newOwner = allStaff.find(s => s.id === newOwnerId);
+        
         if (!newOwner) {
             toast({ title: "Error", description: "Selected owner not found.", variant: "destructive" });
             return;
@@ -259,25 +232,18 @@ export default function LeadsPage() {
             ownerId: newOwner.id, 
             ownerName: newOwner.name,
         };
-
-        // Optimistic update
-        setLeads(currentLeads => currentLeads.map(l => l.id === id ? {...l, ...updateData} : l));
-
-        updateDoc(leadRef, updateData).catch(error => {
+        
+        try {
+            await updateDoc(leadRef, updateData);
+            toast({ title: "Owner Updated", description: `Lead reassigned to ${newOwner.name}.` });
+            const noteContent = `Owner changed from ${oldOwnerName} to ${newOwner.name}`;
+            await addNote(id, noteContent, 'System');
+        } catch (error) {
             console.error("Error updating owner:", error);
             toast({ title: "Error", description: "Could not update lead owner.", variant: "destructive"});
-            // Revert
-            const originalLead = leads.find(lead => lead.id === id);
-            if (originalLead) {
-              setLeads(currentLeads => currentLeads.map(l => l.id === id ? {...l, ownerId: originalLead.ownerId, ownerName: originalLead.ownerName } : l));
-            }
-        });
+        }
 
-        const noteContent = `Owner changed from ${oldOwnerName} to ${newOwner.name}`;
-        addNote(id, noteContent, 'System');
-
-        toast({ title: "Owner Updated", description: `Lead reassigned to ${newOwner.name}.` });
-    }, [firestore, allStaff, toast, user, leads, addNote]);
+    }, [firestore, allStaff, toast, user, leadsDataFromHook, addNote]);
 
     const handleAddNote = useCallback((leadId: string, noteContent: string, noteType: NoteEntry['type']) => {
         if (!user) return;
@@ -342,5 +308,3 @@ export default function LeadsPage() {
         </main>
     );
 }
-
-    
