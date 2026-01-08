@@ -1,10 +1,9 @@
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
 import { useFirestore, useUser } from '@/firebase';
 import { useCollection } from '@/firebase';
-import { collection, query, where, orderBy, updateDoc, doc, writeBatch } from 'firebase/firestore';
+import { collection, query, where, orderBy, updateDoc, doc, writeBatch, getDocs } from 'firebase/firestore';
 import type { Notification } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -48,14 +47,25 @@ export function Notifications() {
 
   const markAllAsRead = async () => {
     if (!firestore || !user) return;
-    const unread = notifications?.filter(n => !n.read) || [];
-    if (unread.length === 0) return;
+    
+    // Query for unread notifications directly inside the handler
+    const unreadQuery = query(
+      collection(firestore, 'notifications'),
+      where('userId', '==', user.id),
+      where('read', '==', false)
+    );
+
+    const querySnapshot = await getDocs(unreadQuery);
+    
+    if (querySnapshot.empty) {
+      return; // Nothing to mark
+    }
 
     const batch = writeBatch(firestore);
-    unread.forEach(notif => {
-        const notifRef = doc(firestore, 'notifications', notif.id);
-        batch.update(notifRef, { read: true });
+    querySnapshot.forEach(notifDoc => {
+        batch.update(notifDoc.ref, { read: true });
     });
+    
     await batch.commit();
   };
 
@@ -116,4 +126,3 @@ export function Notifications() {
     </Popover>
   );
 }
-
