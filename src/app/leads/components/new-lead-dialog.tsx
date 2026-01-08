@@ -26,7 +26,8 @@ interface NewLeadDialogProps {
   children: React.ReactNode;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddLead: (lead: Omit<Lead, 'id' | 'createdAt' | 'ownerName'>) => void;
+  onAddLead: (lead: Omit<Lead, 'id' | 'createdAt' | 'ownerName'>, callback: (lead: Lead) => void) => void;
+  onLeadCreated?: (lead: Lead) => void; // Optional: Callback for when a lead is created
 }
 
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
@@ -51,7 +52,7 @@ const initialFormState = {
 };
 
 
-export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLeadDialogProps) {
+export function NewLeadDialog({ children, open, onOpenChange, onAddLead, onLeadCreated }: NewLeadDialogProps) {
   const { toast } = useToast();
   const { user } = useAuthContext();
 
@@ -81,9 +82,16 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
         return;
     }
 
-    onAddLead({ ...leadData, ownerId: user.id });
+    // The callback will be executed by the parent component after the lead is saved to Firestore.
+    // It receives the newly created lead object.
+    const creationCallback = (createdLead: Lead) => {
+      if (onLeadCreated) {
+        onLeadCreated(createdLead);
+      }
+    };
+    
+    onAddLead({ ...leadData, ownerId: user.id }, creationCallback);
 
-    // The toast is now handled in the page.tsx to include AI analysis status.
     onOpenChange(false);
     resetForm();
   }
@@ -176,3 +184,5 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
     </Dialog>
   );
 }
+
+    

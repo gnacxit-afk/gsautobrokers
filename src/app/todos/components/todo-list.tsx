@@ -1,14 +1,14 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import type { Todo, Lead } from '@/lib/types';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Trash2, Plus, GripVertical, Link as LinkIcon, X } from 'lucide-react';
+import { Trash2, Plus, GripVertical, Link as LinkIcon, X, UserPlus } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -16,17 +16,22 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import Link from 'next/link';
+import { NewLeadDialog } from '@/app/leads/components/new-lead-dialog';
+import { useToast } from '@/hooks/use-toast';
 
-function AddTodoForm({ 
-    onAdd,
-    userLeads
-}: { 
-    onAdd: (title: string, linkedLead?: { id: string; name: string }) => void,
-    userLeads: Lead[]
+function AddTodoForm({
+  onAdd,
+  userLeads,
+  onAddLeadAndTask,
+}: {
+  onAdd: (title: string, linkedLead?: { id: string; name: string }) => void;
+  userLeads: Lead[];
+  onAddLeadAndTask: (newLead: Omit<Lead, 'id' | 'createdAt' | 'ownerName'>, callback: (lead: Lead) => void) => void;
 }) {
   const [title, setTitle] = useState('');
   const [openLeadSelector, setOpenLeadSelector] = useState(false);
-  const [linkedLead, setLinkedLead] = useState<{id: string, name: string} | null>(null);
+  const [openNewLeadDialog, setOpenNewLeadDialog] = useState(false);
+  const [linkedLead, setLinkedLead] = useState<{ id: string; name: string } | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,63 +41,92 @@ function AddTodoForm({
       setLinkedLead(null);
     }
   };
+  
+  const handleLeadCreated = (newLead: Lead) => {
+      // This function is the callback that runs after the lead is created
+      onAdd(`Seguimiento inicial para ${newLead.name}`, { id: newLead.id, name: newLead.name });
+  };
 
   return (
-    <form onSubmit={handleSubmit}>
-        <Card className="shadow-sm">
-            <CardContent className="p-4">
-                 <div className="flex items-center gap-2">
-                    <Input
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        placeholder="Add a new task..."
-                        className="flex-1"
-                    />
-                    <Popover open={openLeadSelector} onOpenChange={setOpenLeadSelector}>
-                        <PopoverTrigger asChild>
-                            <Button variant="outline" size="icon" title="Link to a Lead">
-                                <LinkIcon size={16} />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="p-0 w-[250px]">
-                            <Command>
-                                <CommandInput placeholder="Search lead..." />
-                                <CommandList>
-                                <CommandEmpty>No leads found.</CommandEmpty>
-                                <CommandGroup>
-                                    {userLeads.map((lead) => (
-                                    <CommandItem
-                                        key={lead.id}
-                                        value={lead.name}
-                                        onSelect={() => {
-                                            setLinkedLead({id: lead.id, name: lead.name});
-                                            setOpenLeadSelector(false);
-                                        }}
-                                    >
-                                        {lead.name}
-                                    </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                                </CommandList>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
-                    <Button type="submit" size="icon">
-                        <Plus size={16} />
-                    </Button>
-                </div>
-                 {linkedLead && (
-                    <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground bg-slate-50 p-2 rounded-md">
-                        <LinkIcon size={14} />
-                        <span>Linked to: {linkedLead.name}</span>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 ml-auto" onClick={() => setLinkedLead(null)}>
-                            <X size={14} />
-                        </Button>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-    </form>
+    <Card className="shadow-sm">
+      <CardContent className="p-4">
+        <form onSubmit={handleSubmit}>
+          <div className="flex items-center gap-2">
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Add a new task for an existing lead..."
+              className="flex-1"
+            />
+            <Popover open={openLeadSelector} onOpenChange={setOpenLeadSelector}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="icon" title="Link to a Lead">
+                  <LinkIcon size={16} />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="p-0 w-[250px]">
+                <Command>
+                  <CommandInput placeholder="Search lead..." />
+                  <CommandList>
+                    <CommandEmpty>No leads found.</CommandEmpty>
+                    <CommandGroup>
+                      {userLeads.map((lead) => (
+                        <CommandItem
+                          key={lead.id}
+                          value={lead.name}
+                          onSelect={() => {
+                            setLinkedLead({ id: lead.id, name: lead.name });
+                            setOpenLeadSelector(false);
+                          }}
+                        >
+                          {lead.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            <Button type="submit" size="icon">
+              <Plus size={16} />
+            </Button>
+          </div>
+        </form>
+        {linkedLead && (
+          <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground bg-slate-50 p-2 rounded-md">
+            <LinkIcon size={14} />
+            <span>Linked to: {linkedLead.name}</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 ml-auto"
+              onClick={() => setLinkedLead(null)}
+            >
+              <X size={14} />
+            </Button>
+          </div>
+        )}
+        <div className="relative flex items-center justify-center my-4">
+            <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t"></span>
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or</span>
+            </div>
+        </div>
+         <NewLeadDialog
+            open={openNewLeadDialog}
+            onOpenChange={setOpenNewLeadDialog}
+            onAddLead={onAddLeadAndTask}
+            onLeadCreated={handleLeadCreated}
+        >
+            <Button variant="outline" className="w-full" onClick={() => setOpenNewLeadDialog(true)}>
+                <UserPlus size={16} className="mr-2"/>
+                New Task for New Lead
+            </Button>
+        </NewLeadDialog>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -155,6 +189,7 @@ export function TodoList({
 }) {
   const firestore = useFirestore();
   const { user } = useUser();
+  const { toast } = useToast();
 
   const handleAddTodo = async (title: string, linkedLead?: {id: string, name: string}) => {
     if (!firestore || !user) return;
@@ -168,6 +203,46 @@ export function TodoList({
       leadName: linkedLead?.name || '',
     });
   };
+
+  const handleAddLeadAndTask = useCallback(async (newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'>, callback: (lead: Lead) => void) => {
+    if (!firestore || !user) {
+        toast({ title: "Error", description: "Authentication error.", variant: "destructive" });
+        return;
+    }
+
+    const leadsCollection = collection(firestore, 'leads');
+    const finalLeadData = {
+        ...newLeadData,
+        createdAt: serverTimestamp(),
+        ownerName: user.name, // The current user is the owner
+    };
+
+    try {
+        const newDocRef = await addDoc(leadsCollection, finalLeadData);
+        // After successfully creating the lead, create the associated note.
+        const noteHistoryRef = collection(firestore, 'leads', newDocRef.id, 'noteHistory');
+        await addDoc(noteHistoryRef, {
+            content: "Lead created via To-Do page.",
+            author: user.name,
+            date: serverTimestamp(),
+            type: 'System',
+        });
+        
+        toast({ title: "Lead Added", description: "New lead created successfully. A task will be added." });
+        
+        // Pass the newly created lead (with its ID) to the callback
+        const createdLead: Lead = {
+            id: newDocRef.id,
+            ...finalLeadData,
+            createdAt: new Date(), // Use current date as placeholder
+        };
+        callback(createdLead);
+
+    } catch (error) {
+        console.error("Error creating lead:", error);
+        toast({ title: "Error creating lead", description: "Could not save the new lead.", variant: "destructive" });
+    }
+  }, [firestore, user, toast]);
 
   const handleToggleTodo = async (id: string, completed: boolean) => {
     if (!firestore) return;
@@ -203,7 +278,11 @@ export function TodoList({
 
   return (
     <div className="space-y-6">
-      <AddTodoForm onAdd={handleAddTodo} userLeads={userLeads} />
+      <AddTodoForm 
+        onAdd={handleAddTodo} 
+        userLeads={userLeads}
+        onAddLeadAndTask={handleAddLeadAndTask}
+      />
 
       <div className="space-y-3">
         <h3 className="text-lg font-semibold px-4">Tasks - {pending.length}</h3>
@@ -246,3 +325,4 @@ export function TodoList({
   );
 }
 
+    
