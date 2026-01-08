@@ -12,6 +12,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
 
 async function markAllAsRead(firestore: Firestore, userId: string): Promise<void> {
     const q = query(
@@ -76,24 +77,16 @@ export function Notifications() {
     return () => unsubscribe();
   }, [firestore, user, open]);
   
-  const handleNotificationClick = async (notification: Notification) => {
-    if (!firestore) return;
-    setOpen(false);
-
-    if (!notification.read) {
-      const notifRef = doc(firestore, 'notifications', notification.id);
-      await updateDoc(notifRef, { read: true });
-    }
-    
-    if (notification.leadId) {
-      router.push(`/leads/${notification.leadId}/notes`);
-    }
-  };
-
   const handleMarkAllReadClick = async () => {
       if (!firestore || !user) return;
       await markAllAsRead(firestore, user.id);
   }
+
+  const handleNotificationClick = async (notification: Notification) => {
+    if (!firestore || notification.read) return;
+    const notifRef = doc(firestore, 'notifications', notification.id);
+    await updateDoc(notifRef, { read: true });
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -133,12 +126,15 @@ export function Notifications() {
              </div>
           ) : notifications.length > 0 ? (
             notifications.map(n => (
-              <div
+              <Link
                 key={n.id}
+                href={n.leadId ? `/leads/${n.leadId}/notes` : '#'}
                 onClick={() => handleNotificationClick(n)}
-                className={cn("p-3 rounded-lg", !n.read ? "bg-blue-50/50" : "", {
-                  "cursor-pointer hover:bg-slate-100 transition-colors": true,
-                })}
+                className={cn(
+                  "block p-3 rounded-lg",
+                  !n.read ? "bg-blue-50/50" : "",
+                  "cursor-pointer hover:bg-slate-100 transition-colors"
+                )}
               >
                 <div className="flex items-start gap-3">
                    <div className="h-8 w-8 rounded-full bg-slate-100 flex-shrink-0 flex items-center justify-center text-slate-500 mt-1">
@@ -151,7 +147,7 @@ export function Notifications() {
                       </p>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))
           ) : (
             <p className="text-sm text-center text-slate-500 py-4">No notifications.</p>
