@@ -4,6 +4,7 @@
 import type { ColumnDef, Row } from "@tanstack/react-table";
 import { MoreHorizontal, Trash2, ChevronDown, Users, Star, ChevronsUpDown, FileText } from "lucide-react";
 import { format, isValid } from "date-fns";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -33,16 +34,16 @@ interface CellActionsProps {
   onUpdateStage: (lead: Lead, newStage: Lead['stage']) => void;
   onDelete: (id: string) => void;
   onUpdateOwner: (leadId: string, oldOwnerName: string, newOwnerId: string) => void;
-  onAddNote: (leadId: string) => void;
   staff: Staff[];
 }
 
 // **EXTRACTED CELLACTIONS COMPONENT**
 // Moved outside of getColumns to prevent re-creation on every render.
-const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateOwner, onAddNote, staff }) => {
+const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateOwner, staff }) => {
   const lead = row.original;
   const { toast } = useToast();
   const { user } = useAuthContext();
+  const router = useRouter();
 
   const handleStageUpdate = (stage: Lead['stage']) => {
     onUpdateStage(lead, stage);
@@ -70,7 +71,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
             <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             
-            <DropdownMenuItem onSelect={() => onAddNote(lead.id)}>
+            <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/notes`)}>
                 <FileText className="mr-2 h-4 w-4" />
                 <span>Notes / History</span>
             </DropdownMenuItem>
@@ -131,7 +132,6 @@ export const getColumns = (
   onUpdateStage: (lead: Lead, newStage: Lead['stage']) => void,
   onDelete: (id: string) => void,
   onUpdateOwner: (leadId: string, oldOwnerName: string, newOwnerId: string) => void,
-  onAddNote: (leadId: string) => void,
   staff: Staff[]
 ): ColumnDef<Lead>[] => [
   {
@@ -227,7 +227,6 @@ export const getColumns = (
         onUpdateStage={onUpdateStage} 
         onDelete={onDelete} 
         onUpdateOwner={onUpdateOwner}
-        onAddNote={onAddNote}
         staff={staff}
       />;
     },

@@ -67,7 +67,7 @@ function MainNav({ items, onLinkClick }: { items: NavItemType[], onLinkClick?: (
           <NavItem 
             key={item.href}
             href={item.href}
-            active={pathname === item.href}
+            active={pathname.startsWith(item.href) && (item.href !== '/' || pathname === '/')}
             icon={<item.icon size={20} />}
             label={item.title}
             onLinkClick={onLinkClick}
@@ -163,7 +163,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (pathname === '/') return 'Dashboard';
     const currentPath = pathname.split('/')[1];
     const currentNavItem = navItems.find(item => item.href === `/${currentPath}`);
-    return currentNavItem ? currentNavItem.title : 'Profile';
+    if (currentNavItem) return currentNavItem.title;
+    if (pathname.includes('/leads/')) return 'Lead Notes & History';
+    if (pathname.includes('/staff/')) return 'Edit Staff Profile';
+    return 'Dashboard';
   };
 
   return (
