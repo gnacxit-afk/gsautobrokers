@@ -25,6 +25,7 @@ import { isWithinInterval, isValid } from "date-fns";
 import { RenderSubComponent } from "./components/render-sub-component";
 import { DateRangeProvider } from "@/providers/date-range-provider";
 import { AddNoteDialog } from "./components/add-note-dialog";
+import { AnalyzeLeadDialog } from "./components/analyze-lead-dialog";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
@@ -95,6 +96,8 @@ function LeadsPageContent() {
     const { dateRange, setDateRange } = useDateRange();
     
     const [noteLeadId, setNoteLeadId] = useState<string | null>(null);
+    const [analyzingLead, setAnalyzingLead] = useState<Lead | null>(null);
+
 
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -233,10 +236,14 @@ function LeadsPageContent() {
     const handleBeginAddNote = useCallback((leadId: string) => {
         setNoteLeadId(leadId);
     }, []);
+    
+    const handleBeginAnalyze = useCallback((lead: Lead) => {
+        setAnalyzingLead(lead);
+    }, []);
 
     const columns = useMemo(
-        () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, addNote, handleBeginAddNote, allStaff), 
-        [handleUpdateStage, handleDelete, handleUpdateOwner, addNote, handleBeginAddNote, allStaff]
+        () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, addNote, handleBeginAddNote, handleBeginAnalyze, allStaff), 
+        [handleUpdateStage, handleDelete, handleUpdateOwner, addNote, handleBeginAddNote, handleBeginAnalyze, allStaff]
     );
     
     const table = useReactTable({
@@ -280,6 +287,15 @@ function LeadsPageContent() {
        return <RenderSubComponent {...props} onAddNote={(leadId, content) => addNote(leadId, content, 'Manual')} />;
     }, [addNote]);
 
+    const handleAnalysisComplete = useCallback((leadId: string, leadStatus: string) => {
+        // This function is for potential future use, like updating lead status after analysis.
+        // For now, it does nothing, but the callback is required.
+    }, []);
+
+    const handleAINoteAdd = useCallback((leadId: string, noteContent: string) => {
+        addNote(leadId, noteContent, 'AI Analysis');
+    }, [addNote]);
+
 
     return (
         <main className="flex flex-1 flex-col gap-4">
@@ -304,6 +320,19 @@ function LeadsPageContent() {
                 }}
                 onAddNote={handleManualNoteAdd}
             />
+             {analyzingLead && (
+                <AnalyzeLeadDialog
+                    lead={analyzingLead}
+                    open={!!analyzingLead}
+                    onOpenChange={(isOpen) => {
+                        if (!isOpen) {
+                            setAnalyzingLead(null);
+                        }
+                    }}
+                    onAnalysisComplete={handleAnalysisComplete}
+                    onAddNote={handleAINoteAdd}
+                />
+            )}
         </main>
     );
 }
@@ -316,3 +345,5 @@ export default function LeadsPage() {
         </DateRangeProvider>
     )
 }
+
+    

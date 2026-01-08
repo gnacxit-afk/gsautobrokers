@@ -22,7 +22,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Lead, Staff } from "@/lib/types";
 import React from "react";
-import { AnalyzeLeadDialog } from "./analyze-lead-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthContext } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -35,16 +34,15 @@ interface CellActionsProps {
   onUpdateStage: (id: string, stage: Lead['stage']) => void;
   onDelete: (id: string) => void;
   onUpdateOwner: (leadId: string, newOwnerId: string) => void;
-  onAddNote: (leadId: string, noteContent: string, noteType: 'Manual' | 'AI Analysis' | 'System') => void;
-  onBeginAddNote: (leadId: string) => void; // New prop
+  onBeginAddNote: (leadId: string) => void;
+  onBeginAnalyze: (lead: Lead) => void;
   staff: Staff[];
 }
 
 // **EXTRACTED CELLACTIONS COMPONENT**
 // Moved outside of getColumns to prevent re-creation on every render.
-const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateOwner, onAddNote, onBeginAddNote, staff }) => {
+const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateOwner, onBeginAddNote, onBeginAnalyze, staff }) => {
   const lead = row.original;
-  const [isAnalyzeOpen, setAnalyzeOpen] = React.useState(false);
   const { toast } = useToast();
   const { user } = useAuthContext();
 
@@ -57,23 +55,12 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
     onUpdateOwner(lead.id, newOwnerId);
   }
 
-  const handleAINoteAdd = (leadId: string, noteContent: string) => {
-    onAddNote(leadId, noteContent, 'AI Analysis');
-  }
-
   const assignableStaff = staff.filter(
     (s) => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin'
   );
   
   return (
     <>
-      <AnalyzeLeadDialog 
-        open={isAnalyzeOpen} 
-        onOpenChange={setAnalyzeOpen} 
-        lead={lead} 
-        onAnalysisComplete={() => {}} 
-        onAddNote={handleAINoteAdd}
-      />
       <div className="flex items-center gap-2 justify-end">
         <Button
             variant="ghost"
@@ -100,7 +87,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
             <DropdownMenuItem onSelect={() => onBeginAddNote(lead.id)}>
                 <MessageSquare className="mr-2 h-4 w-4" /> Add Note
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setAnalyzeOpen(true)}>
+            <DropdownMenuItem onSelect={() => onBeginAnalyze(lead)}>
                 <Star className="mr-2 h-4 w-4" /> Analyze Lead (AI)
             </DropdownMenuItem>
             
@@ -162,6 +149,7 @@ export const getColumns = (
   onUpdateOwner: (leadId: string, newOwnerId: string) => void,
   onAddNote: (leadId: string, noteContent: string, noteType: 'Manual' | 'AI Analysis' | 'System') => void,
   onBeginAddNote: (leadId: string) => void,
+  onBeginAnalyze: (lead: Lead) => void,
   staff: Staff[]
 ): ColumnDef<Lead>[] => [
   {
@@ -257,10 +245,12 @@ export const getColumns = (
         onUpdateStage={onUpdateStage} 
         onDelete={onDelete} 
         onUpdateOwner={onUpdateOwner}
-        onAddNote={onAddNote}
         onBeginAddNote={onBeginAddNote}
+        onBeginAnalyze={onBeginAnalyze}
         staff={staff}
       />;
     },
   },
 ];
+
+    
