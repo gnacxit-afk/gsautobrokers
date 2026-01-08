@@ -114,12 +114,18 @@ function LeadsPageContent() {
     const addNoteEntry = useCallback(async (leadId: string, content: string, type: 'Manual' | 'Stage Change' | 'Owner Change' | 'System') => {
         if (!firestore || !user) return;
         const noteHistoryRef = collection(firestore, 'leads', leadId, 'noteHistory');
+        const leadRef = doc(firestore, 'leads', leadId);
+        
         await addDoc(noteHistoryRef, {
             content,
             author: user.name,
             date: serverTimestamp(),
             type,
         });
+
+        // Also update the parent lead to trigger real-time updates on the table
+        await updateDoc(leadRef, { lastActivity: serverTimestamp() });
+        
     }, [firestore, user]);
 
     const handleUpdateStage = useCallback(async (lead: Lead, newStage: Lead['stage']) => {

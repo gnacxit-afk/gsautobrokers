@@ -34,6 +34,7 @@ export type Lead = {
   channel: 'Facebook' | 'WhatsApp' | 'Call' | 'Visit' | 'Other';
   createdAt: Timestamp | Date | string;
   language: 'English' | 'Spanish';
+  lastActivity?: Timestamp | Date | string;
 };
 
 export type Article = {
