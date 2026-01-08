@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -23,7 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import React, { useState } from "react";
 import type { Staff } from "@/lib/types";
 import { useFirestore, useUser } from "@/firebase";
-import { collection, serverTimestamp, addDoc, writeBatch } from "firebase/firestore";
+import { collection, serverTimestamp, addDoc, writeBatch, doc } from "firebase/firestore";
 import { Label } from "@/components/ui/label";
 
 interface SendNotificationDialogProps {
@@ -55,7 +54,7 @@ export function SendNotificationDialog({ children, allStaff }: SendNotificationD
                 const batch = writeBatch(firestore);
                 const notificationsCollection = collection(firestore, 'notifications');
                 allStaff.forEach(staffMember => {
-                    const newNotifRef = doc(notificationsCollection);
+                    const newNotifRef = doc(notificationsCollection); // Correctly create a new doc ref for each notification
                     batch.set(newNotifRef, {
                         userId: staffMember.id,
                         content: message,
@@ -141,6 +140,3 @@ export function SendNotificationDialog({ children, allStaff }: SendNotificationD
         </Dialog>
     );
 }
-
-// Helper function to create a doc ref, since it's used in the batch
-const doc = (ref: any) => ref.firestore.collection('notifications').doc();
