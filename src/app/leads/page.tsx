@@ -84,7 +84,10 @@ function LeadsPageContent() {
     const firestore = useFirestore();
     const { toast } = useToast();
 
-    const leadsQuery = useMemo(() => (firestore ? query(collection(firestore, 'leads'), orderBy('createdAt', 'desc')) : null), [firestore]);
+    const leadsQuery = useMemo(() => {
+      if (!firestore) return null;
+      return query(collection(firestore, 'leads'), orderBy('createdAt', 'desc'));
+    }, [firestore]);
     const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
 
     const { data: leadsData, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
@@ -242,8 +245,8 @@ function LeadsPageContent() {
     }, []);
 
     const columns = useMemo(
-        () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, addNote, handleBeginAddNote, handleBeginAnalyze, allStaff), 
-        [handleUpdateStage, handleDelete, handleUpdateOwner, addNote, handleBeginAddNote, handleBeginAnalyze, allStaff]
+        () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, handleBeginAddNote, handleBeginAnalyze, allStaff), 
+        [handleUpdateStage, handleDelete, handleUpdateOwner, handleBeginAddNote, handleBeginAnalyze, allStaff]
     );
     
     const table = useReactTable({
@@ -284,8 +287,8 @@ function LeadsPageContent() {
     }, [table, setDateRange]);
 
     const renderSub = useCallback((props: { row: Row<Lead> }) => {
-       return <RenderSubComponent {...props} onAddNote={(leadId, content) => addNote(leadId, content, 'Manual')} />;
-    }, [addNote]);
+       return <RenderSubComponent {...props} onAddNote={handleManualNoteAdd} />;
+    }, [handleManualNoteAdd]);
 
     const handleAnalysisComplete = useCallback((leadId: string, leadStatus: string) => {
         // This function is for potential future use, like updating lead status after analysis.
@@ -345,5 +348,3 @@ export default function LeadsPage() {
         </DateRangeProvider>
     )
 }
-
-    

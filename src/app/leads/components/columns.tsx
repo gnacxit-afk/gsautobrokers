@@ -147,7 +147,6 @@ export const getColumns = (
   onUpdateStage: (id: string, stage: Lead['stage']) => void,
   onDelete: (id: string) => void,
   onUpdateOwner: (leadId: string, newOwnerId: string) => void,
-  onAddNote: (leadId: string, noteContent: string, noteType: 'Manual' | 'AI Analysis' | 'System') => void,
   onBeginAddNote: (leadId: string) => void,
   onBeginAnalyze: (lead: Lead) => void,
   staff: Staff[]
@@ -252,5 +251,3 @@ export const getColumns = (
     },
   },
 ];
-
-    
