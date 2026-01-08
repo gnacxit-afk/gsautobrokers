@@ -25,6 +25,7 @@ import { RoleSwitcher } from "./role-switcher";
 import { Logo } from "../icons";
 import { Loader2 } from "lucide-react";
 import { DateRangeProvider } from "@/providers/date-range-provider";
+import { Notifications } from "./notifications";
 
 const navItems: NavItemType[] = [
   { href: "/", title: "Dashboard", icon: LayoutDashboard, role: ["Admin", "Supervisor"] },
@@ -105,6 +106,7 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
             <MainNav items={navItems} onLinkClick={onLinkClick} />
 
             <div className="p-4 border-t border-slate-800 mt-auto">
+                <Notifications />
                 {user.email === MASTER_ADMIN_EMAIL && <RoleSwitcher />}
                  <Button 
                     onClick={() => {

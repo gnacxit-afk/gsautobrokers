@@ -6,7 +6,7 @@ import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 import type { Lead, Staff } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
-import { useFirestore, useUser, useCollection } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { useRouter } from "next/navigation";
 import {
   useReactTable,
@@ -75,6 +75,23 @@ const globalFilterFn: FilterFn<any> = (row, columnId, filterValue, addMeta) => {
     return nameMatch || emailMatch || phoneMatch || ownerNameMatch;
 };
 
+const createNotification = async (
+    firestore: any,
+    userId: string,
+    lead: Lead,
+    content: string
+) => {
+    const notificationsCollection = collection(firestore, 'notifications');
+    await addDoc(notificationsCollection, {
+        userId,
+        leadId: lead.id,
+        leadName: lead.name,
+        content,
+        createdAt: serverTimestamp(),
+        read: false,
+    });
+};
+
 
 function LeadsPageContent() {
     const { user } = useUser();
@@ -139,9 +156,19 @@ function LeadsPageContent() {
         
         try {
             await updateDoc(leadRef, { stage: newStage });
-            const noteContent = `Stage changed from '${lead.stage}' to '${newStage}'`;
+            const noteContent = `Stage changed from '${lead.stage}' to '${newStage}' by ${user.name}`;
             await addNoteEntry(lead.id, noteContent, 'Stage Change');
-            // Toast is now shown in the CellActions component for better user feedback
+            
+            // Create notification for the lead owner
+            if (lead.ownerId !== user.id) {
+                await createNotification(
+                    firestore,
+                    lead.ownerId,
+                    lead,
+                    `Stage for lead ${lead.name} was changed to ${newStage} by ${user.name}.`
+                );
+            }
+            toast({ title: "Stage Updated", description: `Lead "${lead.name}" is now ${newStage}.` });
         } catch (error) {
              console.error("Error updating stage:", error);
              toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
@@ -197,16 +224,40 @@ function LeadsPageContent() {
         };
         
         try {
+            const leadDoc = data.find(l => l.id === id);
+            if (!leadDoc) throw new Error("Lead not found");
+
             await updateDoc(leadRef, updateData);
-            const noteContent = `Owner changed from '${oldOwnerName}' to '${newOwnerName}'`;
+            const noteContent = `Owner changed from '${oldOwnerName}' to '${newOwnerName}' by ${user.name}`;
             await addNoteEntry(id, noteContent, 'Owner Change');
-            // Toast is handled in CellActions
+            
+            // Notify new owner
+            if (newOwnerId !== user.id) {
+                await createNotification(
+                    firestore,
+                    newOwnerId,
+                    leadDoc,
+                    `You have been assigned a new lead: ${leadDoc.name}.`
+                );
+            }
+            // Notify old owner
+            const oldOwner = staffData.find(s => s.name === oldOwnerName);
+            if (oldOwner && oldOwner.id !== user.id) {
+                 await createNotification(
+                    firestore,
+                    oldOwner.id,
+                    leadDoc,
+                    `Lead ${leadDoc.name} was reassigned to ${newOwnerName}.`
+                );
+            }
+            
+            toast({ title: "Owner Updated", description: `${leadDoc.name} is now assigned to ${newOwnerName}.` });
         } catch (error) {
             console.error("Error updating owner:", error);
             toast({ title: "Error", description: "Could not update lead owner.", variant: "destructive"});
         }
 
-    }, [firestore, user, staffData, toast, addNoteEntry]);
+    }, [firestore, user, staffData, toast, addNoteEntry, data]);
 
     // ** CRITICAL FIX **
     // Memoize the columns definition to prevent re-creation on every render.

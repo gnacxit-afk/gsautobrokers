@@ -73,6 +73,14 @@ service cloud.firestore {
       let staffList = get(/databases/$(database)/documents/artifacts/$(appId)/public/data/staff?orderBy="authUid"&equalTo=request.auth.uid).docs;
       return isSignedIn() && staffList.size() > 0 && staffList[0].data.role == 'Admin';
     }
+    
+    function getStaffDocId(authUid) {
+        // This is a placeholder for a more efficient way to get a document ID from an auth UID.
+        // In a real app, you might use a /user_mappings/{authUid} collection.
+        // For now, this is inefficient and should be used with caution.
+        return get(/databases/$(database)/documents/staff?orderBy="authUid"&equalTo=authUid).docs[0].id;
+    }
+
 
     // ----------------------------------------------------------------------
     // Application Rules
@@ -172,6 +180,11 @@ service cloud.firestore {
           allow delete: if isAdmin(appId) && resource != null;
         }
       }
+    }
+     match /notifications/{notificationId} {
+        allow read, update: if isOwner(resource.data.userId);
+        allow create: if isSignedIn();
+        allow delete: if isOwner(resource.data.userId);
     }
   }
 }

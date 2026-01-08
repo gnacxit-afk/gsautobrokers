@@ -196,6 +196,22 @@
         "role",
         "createdAt"
       ]
+    },
+     "Notification": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Notification",
+      "type": "object",
+      "description": "Represents a notification for a user about an event in the system.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the notification." },
+        "userId": { "type": "string", "description": "The ID of the staff member this notification is for." },
+        "content": { "type": "string", "description": "The notification message." },
+        "leadId": { "type": "string", "description": "The ID of the lead related to this notification." },
+        "leadName": { "type": "string", "description": "The name of the lead related to this notification." },
+        "createdAt": { "type": "string", "description": "The timestamp of when the notification was created.", "format": "date-time" },
+        "read": { "type": "boolean", "description": "Whether the user has read the notification." }
+      },
+      "required": ["userId", "content", "leadId", "leadName", "createdAt", "read"]
     }
   },
   "auth": {
@@ -308,6 +324,22 @@
               "description": "The unique staff member ID (auto-generated)."
             }
           ]
+        }
+      },
+      {
+        "path": "notifications/{notificationId}",
+        "definition": {
+            "entityName": "Notification",
+            "schema": {
+                "$ref": "#/backend/entities/Notification"
+            },
+            "description": "Stores notifications for users. Each document is a notification for a specific user.",
+             "params": [
+                {
+                    "name": "notificationId",
+                    "description": "The unique notification ID."
+                }
+            ]
         }
       }
     ],
