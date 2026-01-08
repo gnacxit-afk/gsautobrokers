@@ -4,7 +4,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
-import type { Lead, Staff, LeadStatus } from "@/lib/types";
+import type { Lead, Staff } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
 import { useFirestore, useUser, useCollection } from '@/firebase';
 import { useRouter } from "next/navigation";
@@ -148,17 +148,6 @@ function LeadsPageContent() {
         }
     }, [firestore, user, toast, addNoteEntry]);
 
-     const handleUpdateStatus = useCallback(async (leadId: string, newStatus: LeadStatus) => {
-        if (!firestore) return;
-        const leadRef = doc(firestore, 'leads', leadId);
-        try {
-            await updateDoc(leadRef, { leadStatus: newStatus });
-        } catch (error) {
-            console.error("Error updating status:", error);
-            toast({ title: "Error", description: "Could not update lead status.", variant: "destructive"});
-        }
-    }, [firestore, toast]);
-
     const handleDelete = useCallback(async (id: string) => {
         if (window.confirm('Are you sure you want to delete this lead?') && firestore) {
             const leadRef = doc(firestore, 'leads', id);
@@ -231,8 +220,8 @@ function LeadsPageContent() {
     // The dependencies array includes all handlers. Since the handlers are
     // wrapped in useCallback, they are stable, making the columns stable too.
     const columns = useMemo(
-        () => getColumns(handleUpdateStage, handleUpdateStatus, handleDelete, handleUpdateOwner, staffData), 
-        [handleUpdateStage, handleUpdateStatus, handleDelete, handleUpdateOwner, staffData]
+        () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, staffData), 
+        [handleUpdateStage, handleDelete, handleUpdateOwner, staffData]
     );
     
     // ** CRITICAL FIX **

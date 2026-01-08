@@ -4,7 +4,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDoc, useCollection, useFirestore } from '@/firebase';
-import type { Lead, NoteEntry, LeadStatus } from '@/lib/types';
+import type { Lead, NoteEntry } from '@/lib/types';
 import { qualifyLead } from '@/ai/flows/qualify-lead-flow';
 import type { QualifyLeadOutput } from '@/ai/flows/qualify-lead-flow';
 import { doc, collection, query, orderBy, updateDoc } from 'firebase/firestore';
@@ -54,22 +54,6 @@ export default function LeadAnalysisPage() {
             qualifyLead({ leadDetails, conversationHistory })
                 .then(async (result) => {
                     setAnalysis(result);
-                    if (leadDocRef && result.leadStatus) {
-                        try {
-                            await updateDoc(leadDocRef, { leadStatus: result.leadStatus as LeadStatus });
-                            toast({
-                                title: "Lead Status Updated",
-                                description: `AI classified this lead as ${result.leadStatus}.`
-                            });
-                        } catch (error) {
-                            console.error("Failed to update lead status:", error);
-                            toast({
-                                title: "Update Failed",
-                                description: "Could not save the AI analysis result to the lead.",
-                                variant: "destructive"
-                            });
-                        }
-                    }
                 })
                 .catch((error) => {
                     console.error("AI analysis failed:", error);

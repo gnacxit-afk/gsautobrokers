@@ -15,14 +15,12 @@ export type User = {
 };
 
 export type NoteEntry = {
-  id: string;
+  id:string;
   content: string;
   author: string;
   date: Timestamp | Date | string;
-  type: 'Manual' | 'Stage Change' | 'Owner Change' | 'System';
+  type: 'Manual' | 'Stage Change' | 'Owner Change' | 'System' | 'AI Analysis';
 }
-
-export type LeadStatus = "Hot" | "Warm" | "In Nurturing" | "Cold";
 
 export type Lead = {
   id: string;
@@ -37,7 +35,6 @@ export type Lead = {
   createdAt: Timestamp | Date | string;
   language: 'English' | 'Spanish';
   lastActivity?: Timestamp | Date | string;
-  leadStatus?: LeadStatus;
 };
 
 export type Article = {
