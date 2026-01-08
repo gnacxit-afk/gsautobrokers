@@ -47,9 +47,12 @@ export function Notifications() {
   };
 
   const markAllAsRead = async () => {
-    if (!firestore || unreadNotifications.length === 0) return;
+    if (!firestore || !user) return;
+    const unread = notifications?.filter(n => !n.read) || [];
+    if (unread.length === 0) return;
+
     const batch = writeBatch(firestore);
-    unreadNotifications.forEach(notif => {
+    unread.forEach(notif => {
         const notifRef = doc(firestore, 'notifications', notif.id);
         batch.update(notifRef, { read: true });
     });
@@ -76,18 +79,19 @@ export function Notifications() {
         <div className="flex flex-wrap justify-between items-center mb-2 gap-2">
             <h4 className="font-medium text-sm">Notifications</h4>
             {unreadNotifications.length > 0 && (
-                 <Button variant="link" size="sm" className="p-0 h-auto text-xs" onClick={markAllAsRead}>
-                    <CheckCheck size={14} className="mr-1" /> Mark all as read
-                </Button>
+                 <button onClick={markAllAsRead} className="flex items-center text-xs text-blue-600 hover:underline focus:outline-none">
+                    <CheckCheck size={14} className="mr-1" />
+                    <span>Mark all as read</span>
+                </button>
             )}
         </div>
         <div className="max-h-80 overflow-y-auto space-y-2">
-          {notifications && notifications.length > 0 ? (
+          {notifications && unreadNotifications.length > 0 ? (
             unreadNotifications.map(n => (
               <div
                 key={n.id}
                 onClick={() => handleNotificationClick(n)}
-                className={cn("p-3 rounded-lg", {
+                className={cn("p-3 rounded-lg", !n.read ? "bg-blue-50/50" : "", {
                   "cursor-pointer hover:bg-slate-100 transition-colors": n.leadId,
                 })}
               >
@@ -105,16 +109,11 @@ export function Notifications() {
               </div>
             ))
           ) : (
-            <p className="text-sm text-center text-slate-500 py-4">No notifications found.</p>
-          )}
-           {unreadNotifications.length === 0 && notifications && notifications.length > 0 && (
             <p className="text-sm text-center text-slate-500 py-4">No new notifications.</p>
-          )}
-          {(!notifications || notifications.length === 0) && (
-             <p className="text-sm text-center text-slate-500 py-4">No notifications found.</p>
           )}
         </div>
       </PopoverContent>
     </Popover>
   );
 }
+
