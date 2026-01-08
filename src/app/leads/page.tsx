@@ -6,7 +6,7 @@ import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 import type { Lead, Staff, NoteEntry } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
-import { useCollection, useFirestore, useUser, updateDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { useCollection, useFirestore, useUser, updateDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import {
   useReactTable,
   getCoreRowModel,
@@ -18,7 +18,7 @@ import {
   type ColumnFiltersState,
   type FilterFn,
 } from '@tanstack/react-table';
-import { collection, serverTimestamp, query, orderBy, arrayUnion, writeBatch, updateDoc, doc } from 'firebase/firestore';
+import { collection, serverTimestamp, query, orderBy, arrayUnion, updateDoc, doc } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { analyzeAndUpdateLead } from "@/ai/flows/analyze-and-update-leads";
 import { isWithinInterval } from "date-fns";
@@ -288,3 +288,5 @@ export default function LeadsPage() {
         </main>
     );
 }
+
+    
