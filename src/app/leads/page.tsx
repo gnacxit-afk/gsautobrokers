@@ -102,8 +102,7 @@ export default function LeadsPage() {
                     date: serverTimestamp(),
                     type: noteType,
                 };
-                // This is a workaround because serverTimestamp() cannot be in an object inside arrayUnion
-                // @ts-ignore
+                // @ts-ignore - This is a workaround because serverTimestamp() can cause type issues in arrays on creation.
                 const updatedNotes = [...existingNotes, newNote];
                 await updateDoc(leadRef, { notes: updatedNotes });
             }
@@ -222,7 +221,7 @@ export default function LeadsPage() {
 
     const handleAddNote = useCallback((leadId: string, noteContent: string) => {
         if (!user) return;
-        addNote(leadId, noteContent, 'Manual');
+        addNote(leadId, noteContent, 'Manual', user.name);
         toast({ title: "Note Added", description: "Your note has been saved." });
     }, [user, addNote, toast]);
 
@@ -279,4 +278,3 @@ export default function LeadsPage() {
         </main>
     );
 }
-
