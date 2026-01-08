@@ -18,7 +18,7 @@ import {
   type ColumnFiltersState,
   type FilterFn,
 } from '@tanstack/react-table';
-import { collection, serverTimestamp, query, orderBy, arrayUnion, updateDoc, doc } from 'firebase/firestore';
+import { collection, serverTimestamp, query, orderBy, updateDoc, doc, getDoc } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { analyzeAndUpdateLead } from "@/ai/flows/analyze-and-update-leads";
 import { isWithinInterval } from "date-fns";
@@ -90,17 +90,32 @@ export default function LeadsPage() {
     const addNote = useCallback(async (leadId: string, noteContent: string, noteType: NoteEntry['type'], authorName?: string) => {
         if (!firestore || !user) return;
         const leadRef = doc(firestore, 'leads', leadId);
-        
-        // Correctly construct the object inside arrayUnion
-        await updateDoc(leadRef, {
-            notes: arrayUnion({
-                content: noteContent,
-                author: authorName || user.name,
-                date: serverTimestamp(),
-                type: noteType,
-            })
-        });
-    }, [firestore, user]);
+
+        try {
+            // CORRECT PATTERN: Read the doc, get the array, append new note, and update the whole array.
+            const leadSnap = await getDoc(leadRef);
+            if (leadSnap.exists()) {
+                const existingNotes = leadSnap.data().notes || [];
+                const newNote = {
+                    content: noteContent,
+                    author: authorName || user.name,
+                    date: serverTimestamp(),
+                    type: noteType,
+                };
+                // This is a workaround because serverTimestamp() cannot be in an object inside arrayUnion
+                // @ts-ignore
+                const updatedNotes = [...existingNotes, newNote];
+                await updateDoc(leadRef, { notes: updatedNotes });
+            }
+        } catch (error) {
+            console.error("Failed to add note:", error);
+            toast({
+                title: "Error adding note",
+                description: "Could not save the new note.",
+                variant: "destructive",
+            });
+        }
+    }, [firestore, user, toast]);
 
 
     const handleUpdateStage = useCallback((id: string, stage: Lead['stage']) => {
@@ -151,19 +166,18 @@ export default function LeadsPage() {
         const initialNote: NoteEntry = {
             content: noteContent,
             author: owner.name,
-            date: new Date(), // Use client-side timestamp for initial note creation
+            date: new Date(), // Use client-side timestamp for initial note to avoid serverTimestamp-in-array issue on create
             type: 'Manual'
         };
 
         const finalLeadData = {
             ...leadData,
-            id: newLeadRef.id, // Explicitly set the ID
+            id: newLeadRef.id,
             createdAt: serverTimestamp(),
             ownerName: owner.name,
             notes: [initialNote]
         };
 
-        // Use setDoc with the new reference, which is non-blocking
         setDocumentNonBlocking(newLeadRef, finalLeadData, {});
         
         toast({ title: "Lead Added", description: "New lead created. Analyzing with AI in background..." });
@@ -175,13 +189,11 @@ export default function LeadsPage() {
             
             await addNote(newLeadRef.id, `AI Analysis Complete:\n- Qualification: ${analysisResult.qualificationDecision}\n- Recommendation: ${analysisResult.salesRecommendation}`, 'AI Analysis', 'AI Assistant');
             
-            // Also update the leadStatus on the document itself
             updateDocumentNonBlocking(newLeadRef, { leadStatus: analysisResult.leadStatus });
             
             toast({ title: "AI Analysis Complete", description: `Lead status for ${newLeadData.name} set to ${analysisResult.leadStatus}.` });
         } catch (aiError) {
             console.error("Error during background AI analysis:", aiError);
-            // Do not show a failure toast for background task, just log it.
         }
 
     }, [firestore, allStaff, toast, user, addNote]);
@@ -262,7 +274,7 @@ export default function LeadsPage() {
                 leadStatuses={leadStatuses}
                 clearAllFilters={clearAllFilters}
                 loading={leadsLoading || staffLoading}
-                renderSubComponent={(props) => <RenderSubComponent {...props} />}
+                renderSubComponent={(props) => <RenderSubComponent {...props} onAddNote={handleAddNote} />}
             />
         </main>
     );
