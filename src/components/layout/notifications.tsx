@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -93,6 +94,8 @@ export function Notifications() {
       if (!firestore || !user) return;
       await markAllAsRead(firestore, user.id);
   }
+  
+  const unreadNotifications = notifications.filter(n => !n.read);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -110,7 +113,7 @@ export function Notifications() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-screen max-w-sm sm:max-w-md" align="end">
+      <PopoverContent className="w-screen max-w-sm sm:max-w-md bg-white" align="end">
         <div className="flex flex-wrap justify-between items-center mb-2 gap-2">
             <h4 className="font-medium text-sm">Notifications</h4>
             {unreadCount > 0 && (
