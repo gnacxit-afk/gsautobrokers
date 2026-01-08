@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 import type { Lead, Staff, NoteEntry } from "@/lib/types";
@@ -105,6 +105,7 @@ function LeadsPageContent() {
         updateDoc(leadRef, {
             notes: arrayUnion(newNote)
         }).then(() => {
+            console.log('Note added successfully to Firestore.');
             toast({
                 title: "Note Added",
                 description: "Your note has been successfully saved.",
@@ -243,7 +244,7 @@ function LeadsPageContent() {
 
     const columns = useMemo(
         () => getColumns(handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleUpdateOwner, addNote, allStaff), 
-        [handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleUpdateOwner, addNote, allStaff]
+        [handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleUpdateOwner, allStaff]
     );
     
     const table = useReactTable({
