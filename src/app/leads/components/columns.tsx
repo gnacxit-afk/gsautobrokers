@@ -2,7 +2,7 @@
 "use client";
 
 import type { ColumnDef, Row } from "@tanstack/react-table";
-import { MoreHorizontal, Trash2, ChevronDown, Users, Star, ChevronsUpDown, FileText } from "lucide-react";
+import { MoreHorizontal, Trash2, ChevronDown, Users, Star, ChevronsUpDown, FileText, Bot } from "lucide-react";
 import { format, isValid } from "date-fns";
 import { useRouter } from "next/navigation";
 
@@ -21,17 +21,27 @@ import {
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import type { Lead, NoteEntry, Staff } from "@/lib/types";
+import type { Lead, NoteEntry, Staff, LeadStatus } from "@/lib/types";
 import React from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthContext } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
+const leadStatuses: LeadStatus[] = ["Hot", "Warm", "In Nurturing", "Cold"];
+const leadStatusColors: Record<LeadStatus, string> = {
+    Hot: "bg-red-500",
+    Warm: "bg-orange-500",
+    "In Nurturing": "bg-yellow-500",
+    Cold: "bg-blue-500",
+};
+
 
 // Props for the CellActions component
 interface CellActionsProps {
   row: Row<Lead>;
   onUpdateStage: (lead: Lead, newStage: Lead['stage']) => void;
+  onUpdateStatus: (leadId: string, newStatus: LeadStatus) => void;
   onDelete: (id: string) => void;
   onUpdateOwner: (leadId: string, oldOwnerName: string, newOwnerId: string) => void;
   staff: Staff[];
@@ -39,7 +49,7 @@ interface CellActionsProps {
 
 // **EXTRACTED CELLACTIONS COMPONENT**
 // Moved outside of getColumns to prevent re-creation on every render.
-const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateOwner, staff }) => {
+const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onUpdateStatus, onDelete, onUpdateOwner, staff }) => {
   const lead = row.original;
   const { toast } = useToast();
   const { user } = useAuthContext();
@@ -48,6 +58,11 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
   const handleStageUpdate = (stage: Lead['stage']) => {
     onUpdateStage(lead, stage);
     toast({ title: "Stage Updated", description: `Lead "${lead.name}" is now ${stage}.` });
+  };
+  
+  const handleStatusUpdate = (status: LeadStatus) => {
+    onUpdateStatus(lead.id, status);
+    toast({ title: "Status Updated", description: `Lead "${lead.name}" is now ${status}.` });
   };
 
   const handleOwnerUpdate = (newOwnerId: string) => {
@@ -75,6 +90,11 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
                 <FileText className="mr-2 h-4 w-4" />
                 <span>Notes / History</span>
             </DropdownMenuItem>
+
+            <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/analysis`)}>
+                <Bot className="mr-2 h-4 w-4" />
+                <span>AI Lead Analysis</span>
+            </DropdownMenuItem>
             
             <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
@@ -91,6 +111,24 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
                     </DropdownMenuRadioGroup>
                 </DropdownMenuSubContent>
             </DropdownMenuSub>
+
+            {user?.role === 'Admin' && (
+              <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                      <Star className="mr-2 h-4 w-4" />
+                      <span>Update Status</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                      <DropdownMenuRadioGroup value={lead.leadStatus} onValueChange={(status) => handleStatusUpdate(status as LeadStatus)}>
+                          {leadStatuses.map((status) => (
+                          <DropdownMenuRadioItem key={status} value={status}>
+                              {status}
+                          </DropdownMenuRadioItem>
+                          ))}
+                      </DropdownMenuRadioGroup>
+                  </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            )}
 
             {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
                 <DropdownMenuSub>
@@ -130,10 +168,27 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
 
 export const getColumns = (
   onUpdateStage: (lead: Lead, newStage: Lead['stage']) => void,
+  onUpdateStatus: (leadId: string, newStatus: LeadStatus) => void,
   onDelete: (id: string) => void,
   onUpdateOwner: (leadId: string, oldOwnerName: string, newOwnerId: string) => void,
   staff: Staff[]
 ): ColumnDef<Lead>[] => [
+   {
+    accessorKey: "leadStatus",
+    header: "Status",
+    cell: ({ row }) => {
+      const status = row.original.leadStatus;
+      if (!status) return <div className="h-2.5 w-2.5 rounded-full bg-slate-300" title="Not Analyzed"></div>;
+
+      const color = leadStatusColors[status] || "bg-gray-400";
+      return (
+        <div className="flex items-center justify-center">
+            <div className={cn("h-2.5 w-2.5 rounded-full", color)} title={status}></div>
+        </div>
+      );
+    },
+    filterFn: 'equalsString',
+  },
   {
     accessorKey: "name",
     header: "Customer",
@@ -224,7 +279,8 @@ export const getColumns = (
       // Pass all required props to the stable CellActions component
       return <CellActions 
         row={row} 
-        onUpdateStage={onUpdateStage} 
+        onUpdateStage={onUpdateStage}
+        onUpdateStatus={onUpdateStatus}
         onDelete={onDelete} 
         onUpdateOwner={onUpdateOwner}
         staff={staff}

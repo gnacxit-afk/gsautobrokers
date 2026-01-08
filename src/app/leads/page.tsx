@@ -4,7 +4,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
-import type { Lead, Staff } from "@/lib/types";
+import type { Lead, Staff, LeadStatus } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
 import { useFirestore, useUser, useCollection } from '@/firebase';
 import { useRouter } from "next/navigation";
@@ -105,10 +105,14 @@ function LeadsPageContent() {
 
     useEffect(() => {
         if (!leadsSnapshot) return;
+        // Map snapshot to data, ensuring 'id' is included.
         const nextData = leadsSnapshot.map(doc => ({
             id: doc.id,
             ...(doc as Omit<Lead, "id">),
         }));
+
+        // Prevent unnecessary re-renders by comparing the new data with the old.
+        // This is a simple but effective way to stabilize the data flow.
         setData(prev => JSON.stringify(prev) === JSON.stringify(nextData) ? prev : nextData);
     }, [leadsSnapshot]);
     
@@ -137,12 +141,23 @@ function LeadsPageContent() {
             await updateDoc(leadRef, { stage: newStage });
             const noteContent = `Stage changed from '${lead.stage}' to '${newStage}'`;
             await addNoteEntry(lead.id, noteContent, 'Stage Change');
-            toast({ title: "Stage Updated", description: noteContent });
+            // Toast is now shown in the CellActions component for better user feedback
         } catch (error) {
              console.error("Error updating stage:", error);
              toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
         }
     }, [firestore, user, toast, addNoteEntry]);
+
+     const handleUpdateStatus = useCallback(async (leadId: string, newStatus: LeadStatus) => {
+        if (!firestore) return;
+        const leadRef = doc(firestore, 'leads', leadId);
+        try {
+            await updateDoc(leadRef, { leadStatus: newStatus });
+        } catch (error) {
+            console.error("Error updating status:", error);
+            toast({ title: "Error", description: "Could not update lead status.", variant: "destructive"});
+        }
+    }, [firestore, toast]);
 
     const handleDelete = useCallback(async (id: string) => {
         if (window.confirm('Are you sure you want to delete this lead?') && firestore) {
@@ -203,7 +218,7 @@ function LeadsPageContent() {
             await updateDoc(leadRef, updateData);
             const noteContent = `Owner changed from '${oldOwnerName}' to '${newOwner.name}'`;
             await addNoteEntry(id, noteContent, 'Owner Change');
-            toast({ title: "Owner Updated", description: noteContent });
+            // Toast is now in CellActions
         } catch (error) {
             console.error("Error updating owner:", error);
             toast({ title: "Error", description: "Could not update lead owner.", variant: "destructive"});
@@ -211,11 +226,17 @@ function LeadsPageContent() {
 
     }, [firestore, user, staffData, toast, addNoteEntry]);
 
+    // ** CRITICAL FIX **
+    // Memoize the columns definition to prevent re-creation on every render.
+    // The dependencies array includes all handlers. Since the handlers are
+    // wrapped in useCallback, they are stable, making the columns stable too.
     const columns = useMemo(
-        () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, staffData), 
-        [handleUpdateStage, handleDelete, handleUpdateOwner, staffData]
+        () => getColumns(handleUpdateStage, handleUpdateStatus, handleDelete, handleUpdateOwner, staffData), 
+        [handleUpdateStage, handleUpdateStatus, handleDelete, handleUpdateOwner, staffData]
     );
     
+    // ** CRITICAL FIX **
+    // This provides a stable reference to the data for the table.
     const memoizedData = useMemo(() => data, [data]);
 
     const memoizedMeta = useMemo(() => ({
@@ -243,7 +264,8 @@ function LeadsPageContent() {
         expanded,
         columnFilters
       },
-      getRowCanExpand: () => false,
+      getRowCanExpand: () => false, // No expandable rows in this table
+      // Pass memoized meta data to the table for the global filter
       meta: memoizedMeta
     });
 
@@ -272,6 +294,8 @@ function LeadsPageContent() {
 
 
 export default function LeadsPage() {
+    // This wrapper component ensures that the main logic is a client component
+    // while the export remains a default export for Next.js page conventions.
     return (
         <LeadsPageContent />
     )

@@ -22,6 +22,8 @@ export type NoteEntry = {
   type: 'Manual' | 'Stage Change' | 'Owner Change' | 'System';
 }
 
+export type LeadStatus = "Hot" | "Warm" | "In Nurturing" | "Cold";
+
 export type Lead = {
   id: string;
   name: string;
@@ -35,6 +37,7 @@ export type Lead = {
   createdAt: Timestamp | Date | string;
   language: 'English' | 'Spanish';
   lastActivity?: Timestamp | Date | string;
+  leadStatus?: LeadStatus;
 };
 
 export type Article = {
