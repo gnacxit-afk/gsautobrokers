@@ -34,24 +34,8 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
     const { user } = useAuthContext();
     const [selectedUserId, setSelectedUserId] = useState<string>('all');
     
-     const selectableUsers = useMemo(() => {
-        if (!user) return [];
-         if (user.role === 'Admin') {
-            return allStaff.filter(s => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin');
-         }
-         if (user.role === 'Supervisor') {
-             const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
-             const visibleIds = [user.id, ...teamIds];
-             return allStaff.filter(s => visibleIds.includes(s.id));
-         }
-         return [];
-    }, [user, allStaff]);
-
     const performanceData = useMemo(() => {
-        // Correctly include all staff who can be lead owners.
-        const staffToDisplay = allStaff.filter(s => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin');
-
-        const data: PerformanceMetric[] = staffToDisplay.map(staffMember => {
+        const data: PerformanceMetric[] = allStaff.map(staffMember => {
             const userLeads = allLeads.filter(lead => lead.ownerId === staffMember.id);
             const metrics = calculateMetrics(userLeads);
             
@@ -66,33 +50,36 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
 
     }, [allLeads, allStaff]);
 
+    const selectableUsers = useMemo(() => {
+        if (!user) return [];
+        if (user.role === 'Admin') {
+            return allStaff;
+        }
+        if (user.role === 'Supervisor') {
+            const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
+            const visibleIds = [user.id, ...teamIds];
+            return allStaff.filter(s => visibleIds.includes(s.id));
+        }
+        return [];
+    }, [user, allStaff]);
+
+
     const filteredData = useMemo(() => {
         if (!user) return [];
-        switch (user.role) {
-            case 'Admin':
-                if (selectedUserId === 'all') {
-                    // Admin with "All" selected sees everyone's performance data.
-                    return performanceData;
-                } else {
-                    // Admin filtering for a specific user.
-                    return performanceData.filter(d => d.userId === selectedUserId);
-                }
-            case 'Supervisor':
-                // Supervisor sees their own data plus their team's data.
+        const baseData = performanceData.filter(d => {
+            if (user.role === 'Admin') return true;
+            if (user.role === 'Supervisor') {
                 const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
-                const visibleIds = [user.id, ...teamIds];
-                const supervisorFiltered = performanceData.filter(d => visibleIds.includes(d.userId));
-                if (selectedUserId === 'all') {
-                    return supervisorFiltered;
-                }
-                return supervisorFiltered.filter(d => d.userId === selectedUserId);
-            case 'Broker':
-                // Broker sees only their own data.
-                return performanceData.filter(d => d.userId === user.id);
-            default:
-                // If no role or an unknown role, return an empty array.
-                return [];
+                return d.userId === user.id || teamIds.includes(d.userId);
+            }
+            if (user.role === 'Broker') return d.userId === user.id;
+            return false;
+        });
+
+        if (selectedUserId === 'all') {
+            return baseData;
         }
+        return baseData.filter(d => d.userId === selectedUserId);
     }, [user, performanceData, selectedUserId, allStaff]);
 
 
