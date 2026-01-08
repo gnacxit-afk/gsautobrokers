@@ -26,7 +26,7 @@ function AddTodoForm({
 }: {
   onAdd: (title: string, linkedLead?: { id: string; name: string }) => void;
   userLeads: Lead[];
-  onAddLeadAndTask: (newLead: Omit<Lead, 'id' | 'createdAt' | 'ownerName'>, callback: (lead: Lead) => void) => void;
+  onAddLeadAndTask: (newLead: Omit<Lead, 'id' | 'createdAt' | 'ownerName'> & { initialNotes?: string }, callback: (lead: Lead) => void) => void;
 }) {
   const [title, setTitle] = useState('');
   const [openLeadSelector, setOpenLeadSelector] = useState(false);
@@ -161,10 +161,10 @@ function TodoItem({
                  <span>
                     Added {formatDistanceToNow((todo.createdAt as any)?.toDate() || new Date(), { addSuffix: true })}
                 </span>
-                {todo.leadName && (
+                {todo.leadName && todo.leadId && (
                    <>
                     <span className="text-slate-300">|</span>
-                    <Link href={`/leads/${todo.leadId}`} className="flex items-center gap-1 hover:underline text-blue-500">
+                    <Link href={`/leads/${todo.leadId}/notes`} className="flex items-center gap-1 hover:underline text-blue-500">
                         <LinkIcon size={12} /> {todo.leadName}
                     </Link>
                    </>
@@ -204,7 +204,7 @@ export function TodoList({
     });
   };
 
-  const handleAddLeadAndTask = useCallback(async (newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'>, callback: (lead: Lead) => void) => {
+  const handleAddLeadAndTask = useCallback(async (newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'> & { initialNotes?: string }, callback: (lead: Lead) => void) => {
     if (!firestore || !user) {
         toast({ title: "Error", description: "Authentication error.", variant: "destructive" });
         return;
@@ -218,8 +218,10 @@ export function TodoList({
     };
 
     try {
-        const newDocRef = await addDoc(leadsCollection, finalLeadData);
-        // After successfully creating the lead, create the associated note.
+        const { initialNotes, ...leadData } = finalLeadData;
+        const newDocRef = await addDoc(leadsCollection, leadData);
+
+        // After successfully creating the lead, create the associated notes.
         const noteHistoryRef = collection(firestore, 'leads', newDocRef.id, 'noteHistory');
         await addDoc(noteHistoryRef, {
             content: "Lead created via To-Do page.",
@@ -227,6 +229,15 @@ export function TodoList({
             date: serverTimestamp(),
             type: 'System',
         });
+        
+        if (initialNotes) {
+             await addDoc(noteHistoryRef, {
+                content: initialNotes,
+                author: user.name,
+                date: serverTimestamp(),
+                type: 'Manual',
+            });
+        }
         
         toast({ title: "Lead Added", description: "New lead created successfully. A task will be added." });
         
