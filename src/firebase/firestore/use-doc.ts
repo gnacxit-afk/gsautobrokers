@@ -8,7 +8,6 @@ import {
   DocumentData,
 } from 'firebase/firestore';
 import type { WithId } from './types';
-import { useFirestore } from '../provider';
 import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
@@ -17,8 +16,12 @@ export function useDoc<T>(ref: DocumentReference<DocumentData> | null) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  // Use the document path as the key to prevent re-subscribing when the
+  // ref object instance changes but the path is the same.
+  const docPath = ref ? ref.path : null;
+
   useEffect(() => {
-    if (ref === null) {
+    if (docPath === null || !ref) {
       setData(null);
       setLoading(false);
       return;
@@ -50,7 +53,8 @@ export function useDoc<T>(ref: DocumentReference<DocumentData> | null) {
     );
 
     return () => unsubscribe();
-  }, [ref]);
+    // The effect should ONLY re-run if the document path changes.
+  }, [docPath, ref]);
 
   return { data, loading, error };
 }

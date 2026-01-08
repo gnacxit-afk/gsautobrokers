@@ -14,8 +14,7 @@ import {
   DocumentData,
   QueryConstraint,
 } from 'firebase/firestore';
-import type { WithId, InternalQuery } from './types';
-import { useFirestore } from '../provider';
+import type { WithId } from './types';
 import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 
@@ -24,8 +23,13 @@ export function useCollection<T>(q: Query<DocumentData> | null) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  // Use a ref to store the stringified version of the query.
+  // This helps prevent re-subscribing if the query object instance changes
+  // but the actual query details (path, filters) are the same.
+  const queryKey = q ? JSON.stringify(q) : null;
+
   useEffect(() => {
-    if (q === null) {
+    if (queryKey === null || !q) {
       setData([]);
       setLoading(false);
       return;
@@ -45,8 +49,9 @@ export function useCollection<T>(q: Query<DocumentData> | null) {
       },
       (err) => {
         console.error(err);
+        const path = (q as any)._query?.path?.canonicalString() || 'unknown path';
         const permissionError = new FirestorePermissionError({
-          path: (q as InternalQuery)._query.path.canonicalString(),
+          path: path,
           operation: 'list',
         });
         errorEmitter.emit('permission-error', permissionError);
@@ -56,7 +61,8 @@ export function useCollection<T>(q: Query<DocumentData> | null) {
     );
 
     return () => unsubscribe();
-  }, [q]);
+    // The effect should ONLY re-run if the stringified query key changes.
+  }, [queryKey, q]);
 
   return { data, loading, error };
 }
