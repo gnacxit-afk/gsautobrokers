@@ -52,7 +52,7 @@ function LeadsPageContent() {
     const leadsQuery = useMemo(() => (firestore ? query(collection(firestore, 'leads'), orderBy('createdAt', 'desc')) : null), [firestore]);
     const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
 
-    const { data: leadsDataFromHook, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
+    const { data: leadsData, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
     const { data: staffData, loading: staffLoading } = useCollection<Staff>(staffQuery);
 
     const allStaff = useMemo(() => staffData || [], [staffData]);
@@ -65,7 +65,7 @@ function LeadsPageContent() {
     const [expanded, setExpanded] = useState({});
 
     const leads = useMemo(() => {
-        const allLeads = leadsDataFromHook || [];
+        const allLeads = leadsData || [];
         if (!user) {
             return [];
         };
@@ -86,7 +86,7 @@ function LeadsPageContent() {
             return isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end });
         });
 
-    }, [user, leadsDataFromHook, allStaff, dateRange]);
+    }, [user, leadsData, allStaff, dateRange]);
     
     const addNote = useCallback((leadId: string, noteContent: string, noteType: NoteEntry['type']) => {
         if (!firestore || !user) return;
@@ -109,7 +109,6 @@ function LeadsPageContent() {
                 title: "Note Added",
                 description: "Your note has been successfully saved.",
             });
-            console.log("Note added successfully to lead", leadId);
         }).catch((error) => {
             console.error("Failed to add note:", error);
             toast({
