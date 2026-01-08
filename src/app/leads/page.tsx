@@ -98,7 +98,9 @@ function LeadsPageContent() {
 
     const [data, setData] = useState<Lead[]>([]);
     useEffect(() => {
-        setData(leadsData || []);
+        if (leadsData) {
+            setData(leadsData);
+        }
     }, [leadsData]);
 
 
@@ -191,7 +193,7 @@ function LeadsPageContent() {
 
 
     const handleUpdateOwner = useCallback(async (id: string, newOwnerId: string) => {
-        if (!firestore || !user || !leadsData) return;
+        if (!firestore || !user) return;
         
         const newOwner = staffData.find(s => s.id === newOwnerId);
         
@@ -215,7 +217,7 @@ function LeadsPageContent() {
             toast({ title: "Error", description: "Could not update lead owner.", variant: "destructive"});
         }
 
-    }, [firestore, user, staffData, leadsData, toast]);
+    }, [firestore, user, staffData, toast]);
     
     const handleBeginAddNote = useCallback((lead: Lead) => {
         setEditingLead(lead);
