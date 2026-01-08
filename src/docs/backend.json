@@ -97,8 +97,7 @@
         "stage",
         "createdAt",
         "ownerId",
-        "ownerName",
-        "note"
+        "ownerName"
       ]
     },
     "KnowledgeBaseArticle": {

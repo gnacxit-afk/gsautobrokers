@@ -45,7 +45,6 @@ const stageColors: Record<Lead['stage'], string> = {
 const initialFormState = {
     name: "",
     phone: "",
-    note: "",
     channel: "Facebook" as Lead['channel'],
     stage: "Nuevo" as Lead['stage'],
     language: "Spanish" as 'English' | 'Spanish',
@@ -77,7 +76,7 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
         return;
     }
     const { ...leadData } = formData;
-    if (!formData.name || !formData.phone || !formData.stage || !formData.note) {
+    if (!formData.name || !formData.phone || !formData.stage) {
         toast({ title: "Missing Fields", description: "Please fill out all fields marked with an asterisk (*).", variant: "destructive"});
         return;
     }
@@ -165,18 +164,6 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead }: NewLe
               </SelectContent>
             </Select>
           </div>
-           <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="note" className="text-right pt-2">
-                Initial Note*
-              </Label>
-              <Textarea
-                id="note"
-                value={formData.note}
-                onChange={handleInputChange}
-                placeholder="Add any initial notes for this lead."
-                className="col-span-3"
-              />
-            </div>
             <div>
                 <p className="text-xs text-muted-foreground text-center pt-2">Fields marked with an asterisk (*) are mandatory.</p>
             </div>

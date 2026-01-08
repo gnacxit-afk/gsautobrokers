@@ -33,7 +33,7 @@ export type Lead = {
   channel: 'Facebook' | 'WhatsApp' | 'Call' | 'Visit' | 'Other';
   createdAt: Timestamp | Date | string;
   language: 'English' | 'Spanish';
-  note: string;
+  note?: string;
 };
 
 export type Article = {

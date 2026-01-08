@@ -34,13 +34,12 @@ interface CellActionsProps {
   onUpdateStage: (id: string, stage: Lead['stage']) => void;
   onDelete: (id: string) => void;
   onUpdateOwner: (leadId: string, newOwnerId: string) => void;
-  onBeginAddNote: (lead: Lead) => void;
   staff: Staff[];
 }
 
 // **EXTRACTED CELLACTIONS COMPONENT**
 // Moved outside of getColumns to prevent re-creation on every render.
-const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateOwner, onBeginAddNote, staff }) => {
+const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateOwner, staff }) => {
   const lead = row.original;
   const { toast } = useToast();
   const { user } = useAuthContext();
@@ -71,10 +70,6 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
             <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             
-            <DropdownMenuItem onSelect={() => onBeginAddNote(lead)}>
-                <MessageSquare className="mr-2 h-4 w-4" /> Add/Edit Note
-            </DropdownMenuItem>
-
             <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                     <ChevronsUpDown className="mr-2 h-4 w-4" />
@@ -131,7 +126,6 @@ export const getColumns = (
   onUpdateStage: (id: string, stage: Lead['stage']) => void,
   onDelete: (id: string) => void,
   onUpdateOwner: (leadId: string, newOwnerId: string) => void,
-  onBeginAddNote: (lead: Lead) => void,
   staff: Staff[]
 ): ColumnDef<Lead>[] => [
   {
@@ -227,7 +221,6 @@ export const getColumns = (
         onUpdateStage={onUpdateStage} 
         onDelete={onDelete} 
         onUpdateOwner={onUpdateOwner}
-        onBeginAddNote={onBeginAddNote}
         staff={staff}
       />;
     },

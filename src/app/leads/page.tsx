@@ -21,7 +21,6 @@ import {
 import { collection, query, orderBy, updateDoc, doc, deleteDoc, addDoc, serverTimestamp, Timestamp, onSnapshot } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { isWithinInterval, isValid } from "date-fns";
-import { AddNoteDialog } from "./components/add-note-dialog";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
@@ -82,8 +81,6 @@ function LeadsPageContent() {
 
     const [staffData, setStaffData] = useState<Staff[]>([]);
     
-    const [editingLead, setEditingLead] = useState<Lead | null>(null);
-
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [globalFilter, setGlobalFilter] = useState('');
@@ -116,25 +113,6 @@ function LeadsPageContent() {
         return () => unsubStaff();
     }, [firestore]);
     
-
-    const handleSaveNote = useCallback(async (leadId: string, noteContent: string) => {
-        if (!firestore) return;
-        const leadRef = doc(firestore, 'leads', leadId);
-        try {
-            await updateDoc(leadRef, { note: noteContent });
-            toast({
-                title: "Note Saved",
-                description: "The note has been successfully updated.",
-            });
-        } catch (error) {
-            console.error("Failed to save note:", error);
-            toast({
-                title: "Error Saving Note",
-                description: "There was a problem saving the note.",
-                variant: "destructive",
-            });
-        }
-    }, [firestore, toast]);
 
 
     const handleUpdateStage = useCallback(async (id: string, stage: Lead['stage']) => {
@@ -219,14 +197,11 @@ function LeadsPageContent() {
 
     }, [firestore, user, staffData, toast]);
     
-    const handleBeginAddNote = useCallback((lead: Lead) => {
-        setEditingLead(lead);
-    }, []);
     
 
     const columns = useMemo(
-        () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, handleBeginAddNote, staffData), 
-        [handleUpdateStage, handleDelete, handleUpdateOwner, handleBeginAddNote, staffData]
+        () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, staffData), 
+        [handleUpdateStage, handleDelete, handleUpdateOwner, staffData]
     );
     
     const { dateRange, setDateRange } = useDateRange();
@@ -279,16 +254,6 @@ function LeadsPageContent() {
                 channels={channels}
                 clearAllFilters={clearAllFilters}
                 loading={leadsLoading}
-            />
-            <AddNoteDialog
-                lead={editingLead}
-                open={!!editingLead}
-                onOpenChange={(isOpen) => {
-                    if (!isOpen) {
-                        setEditingLead(null);
-                    }
-                }}
-                onSaveNote={handleSaveNote}
             />
         </main>
     );
