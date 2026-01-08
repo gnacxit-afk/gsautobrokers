@@ -18,7 +18,7 @@ import {
   type ColumnFiltersState,
   type FilterFn,
 } from '@tanstack/react-table';
-import { collection, serverTimestamp, query, orderBy, updateDoc, doc, arrayUnion } from 'firebase/firestore';
+import { collection, serverTimestamp, query, orderBy, updateDoc, doc, arrayUnion, getDoc } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { analyzeAndUpdateLead } from "@/ai/flows/analyze-and-update-leads";
 import { isWithinInterval } from "date-fns";
@@ -92,20 +92,20 @@ export default function LeadsPage() {
         const leadRef = doc(firestore, 'leads', leadId);
 
         try {
-            const newNote = {
-                content: noteContent,
-                author: authorName || user.name,
-                date: serverTimestamp(),
-                type: noteType,
-            };
             await updateDoc(leadRef, {
-                notes: arrayUnion(newNote)
+                notes: arrayUnion({
+                    content: noteContent,
+                    author: authorName || user.name,
+                    date: serverTimestamp(),
+                    type: noteType,
+                })
             });
         } catch (error) {
             console.error("Failed to add note:", error);
-            toast({
+            // This is the user-facing error.
+             toast({
                 title: "Error adding note",
-                description: "Could not save the new note.",
+                description: "There was a problem saving your note. Please try again.",
                 variant: "destructive",
             });
         }
@@ -155,12 +155,12 @@ export default function LeadsPage() {
         const { noteContent, ...leadData } = newLeadData;
 
         const leadsCollection = collection(firestore, 'leads');
-        const newLeadRef = doc(leadsCollection); // Create a reference with a new ID
+        const newLeadRef = doc(leadsCollection);
 
         const initialNote: NoteEntry = {
             content: noteContent,
             author: owner.name,
-            date: new Date(), // Use client-side timestamp for initial note to avoid serverTimestamp-in-array issue on create
+            date: new Date(),
             type: 'Manual'
         };
 
@@ -176,7 +176,6 @@ export default function LeadsPage() {
         
         toast({ title: "Lead Added", description: "New lead created. Analyzing with AI in background..." });
          
-        // Background AI analysis
         try {
             const leadDetails = `Name: ${newLeadData.name}, Company: ${newLeadData.company || 'N/A'}, Stage: ${newLeadData.stage}, Notes: ${noteContent}`;
             const analysisResult = await analyzeAndUpdateLead({ leadDetails });
@@ -273,5 +272,3 @@ export default function LeadsPage() {
         </main>
     );
 }
-
-    
