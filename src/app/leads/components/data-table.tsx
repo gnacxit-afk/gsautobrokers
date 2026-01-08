@@ -247,4 +247,3 @@ export function DataTable<TData extends Lead, TValue>({
     </div>
   );
 }
-    

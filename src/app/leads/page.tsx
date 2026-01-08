@@ -21,9 +21,10 @@ import {
 import { collection, query, orderBy, updateDoc, doc, arrayUnion, deleteDoc, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { analyzeAndUpdateLead } from "@/ai/flows/analyze-and-update-leads";
-import { isWithinInterval } from "date-fns";
+import { isWithinInterval, isValid } from "date-fns";
 import { RenderSubComponent } from "./components/render-sub-component";
 import { DateRangeProvider } from "@/providers/date-range-provider";
+import { AddNoteDialog } from "./components/add-note-dialog";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
@@ -58,6 +59,9 @@ function LeadsPageContent() {
     const allStaff = useMemo(() => staffData || [], [staffData]);
 
     const { dateRange, setDateRange } = useDateRange();
+    
+    // State for the AddNoteDialog
+    const [noteLeadId, setNoteLeadId] = useState<string | null>(null);
 
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -84,7 +88,7 @@ function LeadsPageContent() {
             if (!l.createdAt) return false;
             // Safely convert Firestore Timestamp to JS Date before comparison
             const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
-            if (isNaN(leadDate.getTime())) return false; // Invalid date check
+            if (!isValid(leadDate)) return false; // Invalid date check
             return isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end });
         });
 
@@ -122,6 +126,10 @@ function LeadsPageContent() {
         });
     }, [firestore, user, toast]);
 
+    const handleAddNote = useCallback((leadId: string, noteContent: string) => {
+        addNote(leadId, noteContent, 'Manual');
+    }, [addNote]);
+
 
     const handleUpdateStage = useCallback(async (id: string, stage: Lead['stage']) => {
         if (!firestore || !user) return;
@@ -129,7 +137,6 @@ function LeadsPageContent() {
         
         try {
             await updateDoc(leadRef, { stage });
-            toast({ title: "Stage Updated", description: `Lead stage changed to ${stage}.` });
             const noteContent = `Stage changed to '${stage}'`;
             addNote(id, noteContent, 'System');
         } catch (error) {
@@ -234,7 +241,6 @@ function LeadsPageContent() {
         
         try {
             await updateDoc(leadRef, updateData);
-            toast({ title: "Owner Updated", description: `Lead reassigned to ${newOwner.name}.` });
             const noteContent = `Owner changed from ${oldOwnerName} to ${newOwner.name}`;
             addNote(id, noteContent, 'System');
         } catch (error) {
@@ -243,10 +249,14 @@ function LeadsPageContent() {
         }
 
     }, [firestore, allStaff, toast, user, leads, addNote]);
+    
+    const handleBeginAddNote = useCallback((leadId: string) => {
+        setNoteLeadId(leadId);
+    }, []);
 
     const columns = useMemo(
-        () => getColumns(handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleUpdateOwner, addNote, allStaff), 
-        [handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleUpdateOwner, addNote, allStaff]
+        () => getColumns(handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleUpdateOwner, addNote, handleBeginAddNote, allStaff), 
+        [handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleUpdateOwner, addNote, handleBeginAddNote, allStaff]
     );
     
     const table = useReactTable({
@@ -299,6 +309,18 @@ function LeadsPageContent() {
                 loading={leadsLoading || staffLoading}
                 renderSubComponent={renderSub}
             />
+            {noteLeadId && (
+                <AddNoteDialog
+                    leadId={noteLeadId}
+                    open={!!noteLeadId}
+                    onOpenChange={(isOpen) => {
+                        if (!isOpen) {
+                            setNoteLeadId(null);
+                        }
+                    }}
+                    onAddNote={handleAddNote}
+                />
+            )}
         </main>
     );
 }

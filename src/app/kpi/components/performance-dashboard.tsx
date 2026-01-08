@@ -67,7 +67,11 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
                 // Supervisor sees their own data plus their team's data.
                 const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
                 const visibleIds = [user.id, ...teamIds];
-                return performanceData.filter(d => visibleIds.includes(d.userId));
+                const supervisorFiltered = performanceData.filter(d => visibleIds.includes(d.userId));
+                if (selectedUserId === 'all') {
+                    return supervisorFiltered;
+                }
+                return supervisorFiltered.filter(d => d.userId === selectedUserId);
             case 'Broker':
                 // Broker sees only their own data.
                 return performanceData.filter(d => d.userId === user.id);
@@ -126,18 +130,31 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
         )
     }
 
+    const selectableUsers = useMemo(() => {
+         if (user.role === 'Admin') {
+            return allStaff.filter(s => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin');
+         }
+         if (user.role === 'Supervisor') {
+             const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
+             const visibleIds = [user.id, ...teamIds];
+             return allStaff.filter(s => visibleIds.includes(s.id));
+         }
+         return [];
+    }, [user, allStaff]);
+
+
     // Admin & Supervisor View
     return (
         <div className="space-y-4">
             <div className="flex flex-col md:flex-row gap-4">
-                {user.role === 'Admin' && (
+                {(user.role === 'Admin' || user.role === 'Supervisor') && (
                     <Select value={selectedUserId} onValueChange={setSelectedUserId}>
                         <SelectTrigger className="w-full md:w-[240px]">
                             <SelectValue placeholder="Filter by user..." />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Salespeople</SelectItem>
-                            {allStaff.filter(s => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin').map(s => (
+                            {selectableUsers.map(s => (
                                 <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                             ))}
                         </SelectContent>
@@ -194,5 +211,3 @@ const MetricCard = ({ label, value }: { label: string, value: number | string })
         </CardContent>
     </Card>
 );
-
-    

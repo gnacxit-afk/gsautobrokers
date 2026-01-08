@@ -3,7 +3,7 @@
 
 import type { ColumnDef, Row } from "@tanstack/react-table";
 import { MoreHorizontal, Trash2, ChevronDown, MessageSquare, Users, Star, ChevronsUpDown } from "lucide-react";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,7 +26,6 @@ import { AnalyzeLeadDialog } from "./analyze-lead-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthContext } from "@/lib/auth";
 import { cn } from "@/lib/utils";
-import { AddNoteDialog } from "./add-note-dialog";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const leadStatuses: NonNullable<Lead['leadStatus']>[] = ["Hot Lead", "Warm Lead", "In Nurturing", "Cold Lead"];
@@ -39,15 +38,15 @@ interface CellActionsProps {
   onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void;
   onUpdateOwner: (leadId: string, newOwnerId: string) => void;
   onAddNote: (leadId: string, noteContent: string, noteType: 'Manual' | 'AI Analysis' | 'System') => void;
+  onBeginAddNote: (leadId: string) => void; // New prop
   staff: Staff[];
 }
 
 // **EXTRACTED CELLACTIONS COMPONENT**
 // Moved outside of getColumns to prevent re-creation on every render.
-const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateLeadStatus, onUpdateOwner, onAddNote, staff }) => {
+const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateLeadStatus, onUpdateOwner, onAddNote, onBeginAddNote, staff }) => {
   const lead = row.original;
   const [isAnalyzeOpen, setAnalyzeOpen] = React.useState(false);
-  const [isAddNoteOpen, setAddNoteOpen] = React.useState(false);
   const { toast } = useToast();
   const { user } = useAuthContext();
 
@@ -62,10 +61,6 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
 
   const handleOwnerUpdate = (newOwnerId: string) => {
     onUpdateOwner(lead.id, newOwnerId);
-  }
-
-  const handleManualNoteAdd = (leadId: string, noteContent: string) => {
-    onAddNote(leadId, noteContent, 'Manual');
   }
 
   const handleAINoteAdd = (leadId: string, noteContent: string) => {
@@ -84,12 +79,6 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
         lead={lead} 
         onAnalysisComplete={handleLeadStatusUpdate} 
         onAddNote={handleAINoteAdd}
-      />
-      <AddNoteDialog 
-        open={isAddNoteOpen}
-        onOpenChange={setAddNoteOpen}
-        leadId={lead.id}
-        onAddNote={handleManualNoteAdd}
       />
       <div className="flex items-center gap-2 justify-end">
         <Button
@@ -114,7 +103,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onSelect={() => setAddNoteOpen(true)}>
+            <DropdownMenuItem onSelect={() => onBeginAddNote(lead.id)}>
                 <MessageSquare className="mr-2 h-4 w-4" /> Add Note
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setAnalyzeOpen(true)}>
@@ -179,6 +168,7 @@ export const getColumns = (
   onUpdateLeadStatus: (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => void,
   onUpdateOwner: (leadId: string, newOwnerId: string) => void,
   onAddNote: (leadId: string, noteContent: string, noteType: 'Manual' | 'AI Analysis' | 'System') => void,
+  onBeginAddNote: (leadId: string) => void, // New prop
   staff: Staff[]
 ): ColumnDef<Lead>[] => [
   {
@@ -280,7 +270,7 @@ export const getColumns = (
         const date = (dateRaw as any).toDate ? (dateRaw as any).toDate() : new Date(dateRaw as string);
         
         // Check for invalid date
-        if (isNaN(date.getTime())) {
+        if (!isValid(date)) {
           return <div className="text-xs text-slate-500">Invalid date</div>;
         }
 
@@ -303,10 +293,9 @@ export const getColumns = (
         onUpdateLeadStatus={onUpdateLeadStatus} 
         onUpdateOwner={onUpdateOwner}
         onAddNote={onAddNote}
+        onBeginAddNote={onBeginAddNote}
         staff={staff}
       />;
     },
   },
 ];
-
-    
