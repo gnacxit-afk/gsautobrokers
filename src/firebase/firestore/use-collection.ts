@@ -17,7 +17,6 @@ export const useCollection = <T extends DocumentData>(
 
   useEffect(() => {
     if (q === null) {
-      // Query is not ready yet, stay in loading state.
       setLoading(true);
       return;
     };

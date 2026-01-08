@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
 import { AuthProvider } from "@/lib/auth";
 import { Toaster } from "@/components/ui/toaster";
-import { DateRangeProvider } from "@/providers/date-range-provider";
 import { FirebaseProvider } from "@/firebase/provider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -45,4 +44,3 @@ export default function RootLayout({
     </html>
   );
 }
-

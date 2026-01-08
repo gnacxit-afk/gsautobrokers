@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { analyzeAndUpdateLead } from "@/ai/flows/analyze-and-update-leads";
 import { isWithinInterval } from "date-fns";
 import { RenderSubComponent } from "./components/render-sub-component";
+import { DateRangeProvider } from "@/providers/date-range-provider";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
@@ -43,7 +44,7 @@ const globalFilterFn: FilterFn<any> = (row, columnId, filterValue) => {
 };
 
 
-export default function LeadsPage() {
+function LeadsPageContent() {
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
@@ -51,7 +52,6 @@ export default function LeadsPage() {
     const leadsQuery = useMemo(() => (firestore ? query(collection(firestore, 'leads'), orderBy('createdAt', 'desc')) : null), [firestore]);
     const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
 
-    // Data is now sourced directly from the real-time hook.
     const { data: leadsDataFromHook, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
     const { data: staffData, loading: staffLoading } = useCollection<Staff>(staffQuery);
 
@@ -78,7 +78,6 @@ export default function LeadsPage() {
             visibleLeads = allLeads.filter(l => l.ownerId === user.id);
         }
         
-        // Date filtering
         return visibleLeads.filter(l => {
             if (!l.createdAt) return false;
             const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
@@ -95,7 +94,7 @@ export default function LeadsPage() {
         const newNote: NoteEntry = {
             content: noteContent,
             author: authorName,
-            date: Timestamp.now(), // Use server-generated timestamp.
+            date: Timestamp.now(),
             type: noteType,
         };
         
@@ -136,14 +135,12 @@ export default function LeadsPage() {
     const handleUpdateLeadStatus = useCallback(async (id: string, leadStatus: NonNullable<Lead['leadStatus']>) => {
         if (!firestore) return;
         const leadRef = doc(firestore, 'leads', id);
-        
         try {
            await updateDoc(leadRef, { leadStatus });
         } catch(error) {
              console.error("Error updating lead status:", error);
              toast({ title: "Error", description: "Could not update lead status.", variant: "destructive"});
         }
-        
     }, [firestore, toast]);
     
     const handleDelete = useCallback(async (id: string) => {
@@ -173,36 +170,33 @@ export default function LeadsPage() {
         const initialNote: NoteEntry = {
             content: noteContent,
             author: owner.name,
-            date: new Date(), // Use client date for the initial array
+            date: Timestamp.now(), // Correct: Use Timestamp.now() for arrayUnion
             type: 'Manual'
         };
 
         const finalLeadData = {
             ...leadData,
-            createdAt: serverTimestamp(),
+            createdAt: serverTimestamp(), // Correct: Use serverTimestamp for top-level field
             ownerName: owner.name,
             notes: [initialNote]
         };
 
         try {
-            toast({ title: "Lead Added", description: "New lead created. Analyzing with AI in background..." });
             const newDocRef = await addDoc(leadsCollection, finalLeadData);
+            toast({ title: "Lead Added", description: "New lead created. Analyzing with AI..." });
             
             // Now, run the AI analysis in the background
             try {
                 const leadDetails = `Name: ${newLeadData.name}, Company: ${newLeadData.company || 'N/A'}, Stage: ${newLeadData.stage}, Notes: ${noteContent}`;
                 const analysisResult = await analyzeAndUpdateLead({ leadDetails });
                 
-                // Add the AI analysis note using the now reliable addNote function
                 const analysisNoteContent = `AI Analysis Complete:\n- Qualification: ${analysisResult.qualificationDecision}\n- Recommendation: ${analysisResult.salesRecommendation}`;
                 await addNote(newDocRef.id, analysisNoteContent, 'AI Analysis');
                 
-                // Update the lead status separately
                 await updateDoc(newDocRef, { leadStatus: analysisResult.leadStatus });
 
             } catch (aiError) {
                 console.error("Error during background AI analysis:", aiError);
-                // Optionally add a note saying the AI analysis failed
                 await addNote(newDocRef.id, "Background AI analysis failed to run.", 'System');
             }
 
@@ -245,14 +239,9 @@ export default function LeadsPage() {
 
     }, [firestore, allStaff, toast, user, leadsDataFromHook, addNote]);
 
-    const handleAddNote = useCallback((leadId: string, noteContent: string, noteType: NoteEntry['type']) => {
-        if (!user) return;
-        addNote(leadId, noteContent, noteType);
-    }, [user, addNote]);
-
     const columns = useMemo(
-        () => getColumns(handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleUpdateOwner, handleAddNote, allStaff), 
-        [handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleUpdateOwner, handleAddNote, allStaff]
+        () => getColumns(handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleUpdateOwner, addNote, allStaff), 
+        [handleUpdateStage, handleDelete, handleUpdateLeadStatus, handleUpdateOwner, addNote, allStaff]
     );
     
     const table = useReactTable({
@@ -307,4 +296,13 @@ export default function LeadsPage() {
             />
         </main>
     );
+}
+
+
+export default function LeadsPage() {
+    return (
+        <DateRangeProvider>
+            <LeadsPageContent />
+        </DateRangeProvider>
+    )
 }

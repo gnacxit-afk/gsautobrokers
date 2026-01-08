@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useDateRange, getDefaultDateRange } from '@/hooks/use-date-range';
 import { calculateBonus } from '@/lib/utils';
 import { COMMISSION_PER_VEHICLE } from '@/lib/mock-data';
-import { startOfDay, endOfDay, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
+import { isWithinInterval } from 'date-fns';
 import { DateRangePicker } from '@/components/layout/date-range-picker';
 import { DateRangeProvider } from '@/providers/date-range-provider';
 
@@ -102,58 +102,14 @@ function BrokerMonthlyGoals() {
   )
 }
 
-// Wrapper component to provide its own DateRange context
-const KpiPageWithProvider = () => {
-    const { user } = useAuthContext();
-
-    // The key ensures the provider is re-mounted if the user changes, resetting the date range
-    return (
-        <DateRangeProvider key={user?.id}>
-            <KpiPage />
-        </DateRangeProvider>
-    );
-};
-
-
 function KpiPage() {
   const firestore = useFirestore();
   const { user, MASTER_ADMIN_EMAIL } = useAuthContext();
   const { toast } = useToast();
   const [isInitializing, setIsInitializing] = useState(false);
 
-  const { dateRange } = useDateRange();
-
-  // State for the performance dashboard's date range, with role-based default
-  const [perfDateRange, setPerfDateRange] = useState(() => {
-    if (user?.role === 'Admin') {
-      return {
-        start: startOfMonth(new Date()),
-        end: endOfMonth(new Date()),
-      };
-    }
-    return {
-      start: startOfDay(new Date()),
-      end: endOfDay(new Date()),
-    };
-  });
-
-  // Effect to reset the date range if the user role changes
-  useEffect(() => {
-    setPerfDateRange(() => {
-        if (user?.role === 'Admin') {
-            return {
-                start: startOfMonth(new Date()),
-                end: endOfMonth(new Date()),
-            };
-        }
-        return {
-            start: startOfDay(new Date()),
-            end: endOfDay(new Date()),
-        };
-    });
-  }, [user?.role]);
-
-
+  const { dateRange, setDateRange } = useDateRange();
+  
   const kpisDocRef = useMemo(
     () => (firestore ? doc(firestore, 'kpis', 'kpi-doc') : null),
     [firestore]
@@ -179,14 +135,13 @@ function KpiPage() {
 
   const loading = kpisLoading || leadsLoading || staffLoading;
 
-  // Filter leads for the PerformanceDashboard based on its specific date range
   const performanceLeads = useMemo(() => {
     return allLeads.filter(l => {
         if (!l.createdAt) return false;
         const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
-        return isWithinInterval(leadDate, { start: perfDateRange.start, end: perfDateRange.end });
+        return isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end });
     });
-  }, [allLeads, perfDateRange]);
+  }, [allLeads, dateRange]);
   
   const handleInitializeKpis = async () => {
     if (!firestore || !kpisDocRef) return;
@@ -239,10 +194,7 @@ function KpiPage() {
                         <h1 className="text-2xl font-bold">Real-Time Dashboard</h1>
                         <p className="text-muted-foreground">Daily performance overview.</p>
                     </div>
-                    {/* DateRangeProvider for this specific picker */}
-                    <DateRangeProvider initialDateRange={perfDateRange} onDateChange={setPerfDateRange}>
-                        <DateRangePicker />
-                    </DateRangeProvider>
+                    <DateRangePicker />
                 </div>
                 <PerformanceDashboard
                     allLeads={performanceLeads}
@@ -304,10 +256,7 @@ function KpiPage() {
                     <h1 className="text-2xl font-bold">Real-Time Dashboard</h1>
                     <p className="text-muted-foreground">Performance overview for the selected date range.</p>
                 </div>
-                {/* DateRangeProvider for this specific picker */}
-                <DateRangeProvider initialDateRange={perfDateRange} onDateChange={setPerfDateRange}>
-                    <DateRangePicker />
-                </DateRangeProvider>
+                <DateRangePicker />
             </div>
             <PerformanceDashboard
                 allLeads={performanceLeads}
@@ -318,5 +267,14 @@ function KpiPage() {
     </main>
   );
 }
+
+const KpiPageWithProvider = () => {
+    const { user } = useAuthContext();
+    return (
+        <DateRangeProvider key={user?.id}>
+            <KpiPage />
+        </DateRangeProvider>
+    );
+};
 
 export default KpiPageWithProvider;
