@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import type { Article } from '@/lib/types';
-import { Search, Plus, Save, X, Edit2, Trash2, BookOpen, ChevronRight, Bold, Italic, Code, List, AlignCenter, AlignLeft, AlignRight, Smile, Minus, Heading } from 'lucide-react';
+import { Search, Plus, Save, X, Edit2, Trash2, BookOpen, ChevronRight, Bold, Italic, Code, List, AlignCenter, AlignLeft, AlignRight, Smile, Minus, Heading, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -197,6 +197,10 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
     }
   }, [articles, selected]);
   
+  const handleGoBack = () => {
+    setSelected(null);
+    setEditing(false);
+  }
 
   const handleSaveArticle = async () => {
     if (!draft.title || !draft.content || !draft.category) {
@@ -260,8 +264,9 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
   }
 
   return (
-    <div className="flex flex-col md:flex-row gap-8 h-[calc(100vh-8rem)]">
-      <div className="w-full md:w-1/3 lg:w-1/4 space-y-4 flex flex-col">
+    <div className="flex flex-col md:flex-row gap-8 h-full md:h-[calc(100vh-8rem)]">
+      {/* Mobile: Show list only if no article is selected/editing */}
+      <div className={cn("w-full md:w-1/3 lg:w-1/4 space-y-4 flex-col", (selected || editing) ? 'hidden md:flex' : 'flex' )}>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16}/>
           <Input 
@@ -305,11 +310,15 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
         </div>
       </div>
 
-      <div className="flex-1 bg-white rounded-3xl border shadow-sm p-6 md:p-8 overflow-y-auto">
+       {/* Mobile: Show content only if an article is selected/editing */}
+      <div className={cn("flex-1 bg-white rounded-3xl border shadow-sm p-6 md:p-8 overflow-y-auto", (selected || editing) ? 'block' : 'hidden md:block')}>
         {editing ? (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="text-xl font-bold">Content Editor</h3>
+              <div className="flex items-center gap-2">
+                <Button onClick={handleGoBack} variant="outline" size="icon" className="md:hidden"><ArrowLeft size={16}/></Button>
+                <h3 className="text-xl font-bold">Content Editor</h3>
+              </div>
               <div className="flex gap-2">
                 <Button onClick={() => setEditing(false)} variant="ghost"><X size={16} /> Cancel</Button>
                 <Button onClick={handleSaveArticle}><Save size={16}/> Save</Button>
@@ -347,11 +356,14 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
         ) : selected ? (
           <div className="max-w-none">
             <div className="flex justify-between items-start mb-6">
-              <div>
-                <span className="bg-blue-50 text-blue-600 rounded-full text-xs font-bold uppercase tracking-widest not-prose px-3 py-1">{selected.category}</span>
-                <h2 className="mt-3 text-3xl font-bold">{selected.title}</h2>
-                <p className="text-sm text-muted-foreground">By {selected.author} on {renderDate(selected.date)}</p>
-              </div>
+               <div className='flex items-center gap-4'>
+                 <Button onClick={handleGoBack} variant="outline" size="icon" className="md:hidden"><ArrowLeft size={16}/></Button>
+                  <div>
+                    <span className="bg-blue-50 text-blue-600 rounded-full text-xs font-bold uppercase tracking-widest not-prose px-3 py-1">{selected.category}</span>
+                    <h2 className="mt-3 text-3xl font-bold">{selected.title}</h2>
+                    <p className="text-sm text-muted-foreground">By {selected.author} on {renderDate(selected.date)}</p>
+                  </div>
+               </div>
               {user?.role === 'Admin' && (
                 <div className="flex gap-2 not-prose">
                   <Button onClick={startEdit} variant="outline" size="icon"><Edit2 size={16}/></Button>
@@ -372,5 +384,3 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
     </div>
   );
 }
-
-    

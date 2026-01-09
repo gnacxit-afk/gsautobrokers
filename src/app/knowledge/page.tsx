@@ -19,7 +19,7 @@ export default function KnowledgeBasePage() {
   const { data: articles, loading } = useCollection<Article>(articlesQuery);
 
   return (
-    <main className="flex-1">
+    <main className="flex-1 h-full">
       <KnowledgeBaseClient initialArticles={articles || []} loading={loading} />
     </main>
   );
