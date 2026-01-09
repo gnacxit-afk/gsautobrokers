@@ -2,31 +2,28 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
-  experimental: {
-    allowedDevOrigins: ["*.cloudworkstations.dev"],
-  },
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
+        protocol: 'https' as const,
         hostname: 'placehold.co',
         port: '',
         pathname: '/**',
       },
       {
-        protocol: 'https',
+        protocol: 'https' as const,
         hostname: 'images.unsplash.com',
         port: '',
         pathname: '/**',
       },
       {
-        protocol: 'https',
+        protocol: 'https' as const,
         hostname: 'picsum.photos',
         port: '',
         pathname: '/**',
       },
       {
-        protocol: 'https',
+        protocol: 'https' as const,
         hostname: 'storage.googleapis.com',
         port: '',
         pathname: '/**',
