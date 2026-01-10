@@ -12,7 +12,7 @@ export default function KnowledgeBasePage() {
   
   const articlesQuery = useMemo(() => 
     firestore 
-      ? query(collection(firestore, "articles"), orderBy("date", "desc"))
+      ? query(collection(firestore, "articles"), orderBy("date", "asc"))
       : null
   , [firestore]);
 
