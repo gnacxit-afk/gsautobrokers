@@ -251,12 +251,14 @@ export default function LeadDetailsPage() {
                         </div>
                         <div className="space-y-1">
                             <Label>Channel</Label>
-                             <div className="text-base font-medium"><Badge variant="outline">{lead.channel}</Badge></div>
+                             <div className="text-base font-medium">
+                                <Badge variant="outline" className="text-base py-1">{lead.channel}</Badge>
+                             </div>
                         </div>
                         <div className="space-y-1">
                             <Label>Stage</Label>
                              <div className="text-base font-medium">
-                                <Badge variant={lead.stage === 'Ganado' ? 'default' : 'secondary'}>
+                                <Badge variant={lead.stage === 'Ganado' ? 'default' : 'secondary'} className="text-base py-1">
                                     {lead.stage}
                                 </Badge>
                              </div>
