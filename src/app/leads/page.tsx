@@ -194,7 +194,7 @@ function LeadsPageContent() {
         }
     }, [firestore, toast]);
 
-    const handleAddLead = useCallback(async (newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'> & { initialNotes?: string }, callback: (lead: Lead) => void) => {
+    const handleAddLead = useCallback(async (newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'> & { initialNotes?: string }, callback?: (lead: Lead) => void) => {
         if (!firestore || !user || !staffData) return;
         const owner = staffData.find(s => s.id === newLeadData.ownerId);
         if (!owner) {
@@ -229,7 +229,7 @@ function LeadsPageContent() {
                 ...finalLeadData,
                 createdAt: new Date(),
             };
-            callback(createdLead);
+            if(callback) callback(createdLead);
 
         } catch (error) {
              console.error("Error creating lead:", error);
@@ -351,5 +351,3 @@ export default function LeadsPage() {
         <LeadsPageContent />
     )
 }
-
-    

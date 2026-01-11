@@ -6,6 +6,7 @@ import { MoreHorizontal, Trash2, Users, ChevronsUpDown, FileText, Bot, CalendarP
 import { format, isValid } from "date-fns";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
+import Link from 'next/link';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -62,6 +63,9 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
   return (
     <>
       <div className="flex items-center gap-2 justify-end">
+        <Button variant="outline" size="sm" onClick={() => router.push(`/leads/${lead.id}/notes`)}>
+          View
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
@@ -74,7 +78,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
             
             <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/notes`)}>
                 <FileText className="mr-2 h-4 w-4" />
-                <span>Notes / History</span>
+                <span>Details / Notes</span>
             </DropdownMenuItem>
 
             <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/analysis`)}>
@@ -82,7 +86,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
                 <span>AI Lead Analysis</span>
             </DropdownMenuItem>
 
-            <DropdownMenuItem onSelect={() => alert('This will open the schedule/edit appointment UI.')}>
+            <DropdownMenuItem onSelect={() => router.push(`/calendar?leadId=${lead.id}`)}>
               <CalendarPlus className="mr-2 h-4 w-4" />
               <span>Schedule/Edit Appointment</span>
             </DropdownMenuItem>
@@ -151,9 +155,9 @@ export const getColumns = (
     cell: ({ row }) => {
       const lead = row.original;
       return (
-        <div>
-          <div className="font-bold text-slate-800">{lead.name}</div>
-        </div>
+        <Link href={`/leads/${lead.id}/notes`} className="hover:underline font-bold text-slate-800">
+            {lead.name}
+        </Link>
       );
     },
   },
@@ -243,5 +247,3 @@ export const getColumns = (
     },
   },
 ];
-
-    
