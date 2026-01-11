@@ -258,7 +258,7 @@ export default function AppointmentsPage() {
           </div>
         )}
 
-        <div className="lg:col-span-2">
+        <div className={user?.role === 'Admin' ? 'lg:col-span-2' : 'lg:col-span-3'}>
           <Card className="shadow-sm">
             <CardHeader>
               <CardTitle>
