@@ -76,20 +76,6 @@ export default function AppointmentsPage() {
 
       <div className="grid grid-cols-1 gap-8 items-start">
         <Card className="shadow-sm">
-           <CardHeader>
-             <CardTitle>
-                Book a New Appointment
-             </CardTitle>
-           </CardHeader>
-           <CardContent>
-                <Button onClick={() => setIsDialogOpen(true)} className="w-full md:w-auto">
-                    <Plus size={16} className="mr-2"/>
-                    Book Appointment
-                </Button>
-           </CardContent>
-        </Card>
-
-        <Card className="shadow-sm">
           <CardHeader>
             <CardTitle>
                 Upcoming Appointments
