@@ -18,7 +18,6 @@ import {
   type SortingState,
   type ColumnFiltersState,
   type FilterFn,
-  type PaginationState,
 } from '@tanstack/react-table';
 import { collection, query, orderBy, updateDoc, doc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
@@ -107,10 +106,6 @@ function LeadsPageContent() {
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [globalFilter, setGlobalFilter] = useState('');
     const [expanded, setExpanded] = useState({});
-    const [pagination, setPagination] = useState<PaginationState>({
-      pageIndex: 0,
-      pageSize: 100,
-    });
 
     // Stabilize the query object with useMemo.
     const leadsQuery = useMemo(() => 
@@ -157,30 +152,18 @@ function LeadsPageContent() {
 
     }, [firestore, user]);
 
-    const handleUpdateStage = useCallback(async (lead: Lead, newStage: Lead['stage'], appointmentDate?: Date) => {
+    const handleUpdateStage = useCallback(async (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage']) => {
         if (!firestore || !user) return;
-        const leadRef = doc(firestore, 'leads', lead.id);
+        const leadRef = doc(firestore, 'leads', leadId);
         
         try {
-            const updateData: { stage: Lead['stage'], appointmentDate?: Date | null } = { stage: newStage };
-
-            if (newStage === 'Citado' && appointmentDate) {
-                updateData.appointmentDate = appointmentDate;
-            } else {
-                 // Clear appointment date if stage is no longer 'Citado'
-                updateData.appointmentDate = null;
-            }
-
-            await updateDoc(leadRef, updateData as any);
-            
-            let noteContent = `Stage changed from '${lead.stage}' to '${newStage}' by ${user.name}`;
-            if (newStage === 'Citado' && appointmentDate) {
-                 noteContent += ` with appointment set for ${format(appointmentDate, 'PPP')}`;
-            }
-            await addNoteEntry(lead.id, noteContent, 'Stage Change');
+            await updateDoc(leadRef, { stage: newStage });
+            const noteContent = `Stage changed from '${oldStage}' to '${newStage}' by ${user.name}`;
+            await addNoteEntry(leadId, noteContent, 'Stage Change');
             
             // Create notification for the lead owner
-            if (lead.ownerId !== user.id) {
+            const lead = data.find(l => l.id === leadId);
+            if (lead && lead.ownerId !== user.id) {
                 await createNotification(
                     firestore,
                     lead.ownerId,
@@ -194,7 +177,7 @@ function LeadsPageContent() {
              console.error("Error updating stage:", error);
              toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
         }
-    }, [firestore, user, toast, addNoteEntry]);
+    }, [firestore, user, toast, addNoteEntry, data]);
 
     const handleDelete = useCallback(async (id: string) => {
         if (window.confirm('Are you sure you want to delete this lead?') && firestore) {
@@ -325,7 +308,6 @@ function LeadsPageContent() {
       getCoreRowModel: getCoreRowModel(),
       getPaginationRowModel: getPaginationRowModel(),
       onSortingChange: setSorting,
-      onPaginationChange: setPagination,
       getSortedRowModel: getSortedRowModel(),
       onGlobalFilterChange: setGlobalFilter,
       getFilteredRowModel: getFilteredRowModel(),
@@ -336,8 +318,7 @@ function LeadsPageContent() {
         sorting,
         globalFilter,
         expanded,
-        columnFilters,
-        pagination,
+        columnFilters
       },
       getRowCanExpand: () => false, // No expandable rows in this table
       // Pass memoized meta data to the table for the global filter

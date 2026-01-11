@@ -118,7 +118,7 @@
         "type": {
           "type": "string",
           "description": "The type of note entry.",
-          "enum": ["Manual", "AI Analysis", "System"]
+          "enum": ["Manual", "AI Analysis", "System", "Stage Change", "Owner Change"]
         }
       },
       "required": ["content", "author", "date", "type"]
@@ -196,6 +196,39 @@
         "role",
         "createdAt"
       ]
+    },
+     "Notification": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Notification",
+      "type": "object",
+      "description": "Represents a notification for a user about an event in the system.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the notification." },
+        "userId": { "type": "string", "description": "The ID of the staff member this notification is for." },
+        "content": { "type": "string", "description": "The notification message." },
+        "author": { "type": "string", "description": "The name of the user who sent the notification." },
+        "leadId": { "type": "string", "description": "Optional. The ID of the lead related to this notification." },
+        "leadName": { "type": "string", "description": "Optional. The name of the lead related to this notification." },
+        "createdAt": { "type": "string", "description": "The timestamp of when the notification was created.", "format": "date-time" },
+        "read": { "type": "boolean", "description": "Whether the user has read the notification." }
+      },
+      "required": ["userId", "content", "author", "createdAt", "read"]
+    },
+    "Todo": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Todo",
+        "type": "object",
+        "description": "Represents a single to-do item for a user.",
+        "properties": {
+            "id": { "type": "string", "description": "Unique identifier for the to-do item." },
+            "title": { "type": "string", "description": "The content of the to-do item." },
+            "completed": { "type": "boolean", "description": "Whether the to-do item is completed." },
+            "createdAt": { "type": "string", "description": "The timestamp of when the to-do was created.", "format": "date-time" },
+            "userId": { "type": "string", "description": "The ID of the user who owns this to-do item." },
+            "leadId": { "type": "string", "description": "Optional. The ID of the lead related to this to-do." },
+            "leadName": { "type": "string", "description": "Optional. The name of the lead related to this to-do." }
+        },
+        "required": ["id", "title", "completed", "createdAt", "userId"]
     }
   },
   "auth": {
@@ -247,6 +280,30 @@
         }
       },
       {
+        "path": "artifacts/{appId}/public/data/leads/{leadId}/noteHistory/{noteId}",
+        "definition": {
+          "entityName": "NoteEntry",
+          "schema": {
+            "$ref": "#/backend/entities/NoteEntry"
+          },
+          "description": "Stores the history of notes and actions for a single lead.",
+           "params": [
+            {
+              "name": "appId",
+              "description": "The application ID."
+            },
+            {
+              "name": "leadId",
+              "description": "The unique lead ID."
+            },
+            {
+                "name": "noteId",
+                "description": "The unique note ID."
+            }
+          ]
+        }
+      },
+      {
         "path": "artifacts/{appId}/public/data/knowledge_base/{articleId}",
         "definition": {
           "entityName": "KnowledgeBaseArticle",
@@ -285,9 +342,40 @@
             }
           ]
         }
+      },
+      {
+        "path": "notifications/{notificationId}",
+        "definition": {
+            "entityName": "Notification",
+            "schema": {
+                "$ref": "#/backend/entities/Notification"
+            },
+            "description": "Stores notifications for users. Each document is a notification for a specific user.",
+             "params": [
+                {
+                    "name": "notificationId",
+                    "description": "The unique notification ID."
+                }
+            ]
+        }
+      },
+       {
+        "path": "todos/{todoId}",
+        "definition": {
+            "entityName": "Todo",
+            "schema": {
+                "$ref": "#/backend/entities/Todo"
+            },
+            "description": "Stores to-do items for users. Each document is a task for a specific user.",
+             "params": [
+                {
+                    "name": "todoId",
+                    "description": "The unique to-do ID."
+                }
+            ]
+        }
       }
     ],
-    "reasoning": "This Firestore structure is designed to support the AutoSales AI application, prioritizing authorization independence, clarity, and scalability. It leverages structural segregation and denormalization to simplify security rules and ensure efficient data access. The root of the database is segmented by `artifacts/{appId}`, where `appId` allows the application to be instantiated in multiple environments without conflicting documents.\n\n**Authorization Independence (CRITICAL):**\n\n*   Leads: The `leads` collection, located at `artifacts/{appId}/public/data/leads`, includes the `ownerId` (auto-generated staff document ID) and `ownerName` of the user who owns the lead. This denormalization allows security rules to validate ownership without needing to perform expensive `get()` operations to retrieve user data. This ensures that lead access can be controlled based solely on the data within the lead document itself, combined with the authenticated user's ID.\n*   Staff: The `staff` collection uses an auto-generated document ID. It includes the `supervisorId` (also an auto-generated ID) for reporting relationships. While the UI only allows Admins to manage staff, we can add roles if needed.\n\n**Structural Segregation (Homogeneous Security Posture):**\n\n*   User Data: User profiles are stored within the `staff` collection. The mapping between a Firebase Auth UID and the staff document ID happens at login.\n*   Public Data: The `knowledge_base` and `leads` collections are within the `/public/data/` section of the database. While the security rules may differentiate access within those collections, this design communicates the intent that they are generally readable.\n\n**QAPs (Rules are not Filters):**\n\n*   List Operations: The segregation of user data and public data allows for secure `list` operations. For example, listing leads requires checking if the user has the correct role (Broker, Supervisor, Admin) and filtering based on `ownerId`.\n\n**Global Roles (DBAC):**\n\n*   Role-Based Access: User roles are stored in the `staff` document. The system can be expanded to utilize a dedicated `/roles_{role}/{uid}` collection to manage administrative or elevated rights. The UI only uses role to gate access to Staff management features, so this functionality isn't required for compliance."
+    "reasoning": "This Firestore structure is designed to support the AutoSales AI application, prioritizing authorization independence, clarity, and scalability. It leverages structural segregation and denormalization to simplify security rules and ensure efficient data access. The root of the database is segmented by `artifacts/{appId}`, where `appId` allows the application to be instantiated in multiple environments without conflicting documents.\\n\\n**Authorization Independence (CRITICAL):**\\n\\n*   Leads: The `leads` collection, located at `artifacts/{appId}/public/data/leads`, includes the `ownerId` (auto-generated staff document ID) and `ownerName` of the user who owns the lead. This denormalization allows security rules to validate ownership without needing to perform expensive `get()` operations to retrieve user data. This ensures that lead access can be controlled based solely on the data within the lead document itself, combined with the authenticated user's ID.\\n*   Staff: The `staff` collection uses an auto-generated document ID. It includes the `supervisorId` (also an auto-generated ID) for reporting relationships. While the UI only allows Admins to manage staff, we can add roles if needed.\\n\\n**Structural Segregation (Homogeneous Security Posture):**\\n\\n*   User Data: User profiles are stored within the `staff` collection. The mapping between a Firebase Auth UID and the staff document ID happens at login.\\n*   Public Data: The `knowledge_base` and `leads` collections are within the `/public/data/` section of the database. While the security rules may differentiate access within those collections, this design communicates the intent that they are generally readable.\\n\\n**QAPs (Rules are not Filters):**\\n\\n*   List Operations: The segregation of user data and public data allows for secure `list` operations. For example, listing leads requires checking if the user has the correct role (Broker, Supervisor, Admin) and filtering based on `ownerId`.\\n\\n**Global Roles (DBAC):**\\n\\n*   Role-Based Access: User roles are stored in the `staff` document. The system can be expanded to utilize a dedicated `/roles_{role}/{uid}` collection to manage administrative or elevated rights. The UI only uses role to gate access to Staff management features, so this functionality isn't required for compliance."
   }
 }
-    

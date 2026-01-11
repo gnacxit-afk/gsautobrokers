@@ -2,10 +2,9 @@
 "use client";
 
 import type { ColumnDef, Row } from "@tanstack/react-table";
-import { MoreHorizontal, Trash2, ChevronDown, Users, Star, ChevronsUpDown, FileText, Bot, Calendar as CalendarIcon } from "lucide-react";
+import { MoreHorizontal, Trash2, ChevronDown, Users, Star, ChevronsUpDown, FileText, Bot } from "lucide-react";
 import { format, isValid } from "date-fns";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,19 +21,16 @@ import {
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import type { Lead, NoteEntry, Staff } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthContext } from "@/lib/auth";
-import { cn } from "@/lib/utils";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 
 // Props for the CellActions component
 interface CellActionsProps {
   row: Row<Lead>;
-  onUpdateStage: (lead: Lead, newStage: Lead['stage'], appointmentDate?: Date) => void;
+  onUpdateStage: (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage']) => void;
   onDelete: (id: string) => void;
   onUpdateOwner: (leadId: string, oldOwnerName: string, newOwnerId: string, newOwnerName: string) => void;
   staff: Staff[];
@@ -46,26 +42,11 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
   const { toast } = useToast();
   const { user } = useAuthContext();
   const router = useRouter();
-  const [appointmentDate, setAppointmentDate] = useState<Date | undefined>();
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const handleStageUpdate = (stage: Lead['stage']) => {
-    if (stage === 'Citado') {
-        setIsCalendarOpen(true);
-    } else {
-        onUpdateStage(lead, stage);
-        toast({ title: "Stage Updated", description: `Lead "${lead.name}" is now ${stage}.` });
-    }
+    onUpdateStage(lead.id, lead.stage, stage);
+    toast({ title: "Stage Updated", description: `Lead "${lead.name}" is now ${stage}.` });
   };
-
-  const handleDateSelect = (date: Date | undefined) => {
-    if (date) {
-        setAppointmentDate(date);
-        onUpdateStage(lead, 'Citado', date);
-        toast({ title: "Stage Updated", description: `Lead "${lead.name}" scheduled for ${format(date, 'PPP')}.` });
-        setIsCalendarOpen(false);
-    }
-  }
   
   const handleOwnerUpdate = (newOwnerId: string) => {
     const newOwner = staff.find(s => s.id === newOwnerId);
@@ -82,95 +63,80 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
   return (
     <>
       <div className="flex items-center gap-2 justify-end">
-        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-            <PopoverTrigger asChild>
-                {/* This is an invisible trigger; the popover is controlled by state */}
-                <span />
-            </PopoverTrigger>
-             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                    <span className="sr-only">Open menu</span>
-                    <MoreHorizontal className="h-4 w-4" />
-                </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                
-                <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/notes`)}>
-                    <FileText className="mr-2 h-4 w-4" />
-                    <span>Notes / History</span>
-                </DropdownMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            
+            <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/notes`)}>
+                <FileText className="mr-2 h-4 w-4" />
+                <span>Notes / History</span>
+            </DropdownMenuItem>
 
-                <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/analysis`)}>
-                    <Bot className="mr-2 h-4 w-4" />
-                    <span>AI Lead Analysis</span>
-                </DropdownMenuItem>
-                
+            <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/analysis`)}>
+                <Bot className="mr-2 h-4 w-4" />
+                <span>AI Lead Analysis</span>
+            </DropdownMenuItem>
+            
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <ChevronsUpDown className="mr-2 h-4 w-4" />
+                <span>Update Stage</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                  <DropdownMenuRadioGroup value={lead.stage} onValueChange={(stage) => handleStageUpdate(stage as Lead['stage'])}>
+                      {leadStages.map((stage) => (
+                          <DropdownMenuRadioItem key={stage} value={stage}>
+                              {stage}
+                          </DropdownMenuRadioItem>
+                      ))}
+                  </DropdownMenuRadioGroup>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+
+            {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
                 <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>
-                        <ChevronsUpDown className="mr-2 h-4 w-4" />
-                        <span>Update Stage</span>
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent>
-                        <DropdownMenuRadioGroup value={lead.stage} onValueChange={(stage) => handleStageUpdate(stage as Lead['stage'])}>
-                            {leadStages.map((stage) => (
-                            <DropdownMenuRadioItem key={stage} value={stage}>
-                                {stage}
-                            </DropdownMenuRadioItem>
-                            ))}
-                        </DropdownMenuRadioGroup>
-                    </DropdownMenuSubContent>
+                  <DropdownMenuSubTrigger>
+                    <Users className="mr-2 h-4 w-4" />
+                    <span>Change Owner</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                      <DropdownMenuRadioGroup value={lead.ownerId} onValueChange={handleOwnerUpdate}>
+                          {assignableStaff.map((staffMember) => (
+                              <DropdownMenuRadioItem key={staffMember.id} value={staffMember.id}>
+                                  {staffMember.name}
+                              </DropdownMenuRadioItem>
+                          ))}
+                      </DropdownMenuRadioGroup>
+                  </DropdownMenuSubContent>
                 </DropdownMenuSub>
+            )}
 
-                {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>
-                        <Users className="mr-2 h-4 w-4" />
-                        <span>Change Owner</span>
-                      </DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                          <DropdownMenuRadioGroup value={lead.ownerId} onValueChange={handleOwnerUpdate}>
-                              {assignableStaff.map((staffMember) => (
-                                  <DropdownMenuRadioItem key={staffMember.id} value={staffMember.id}>
-                                      {staffMember.name}
-                                  </DropdownMenuRadioItem>
-                              ))}
-                          </DropdownMenuRadioGroup>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-                )}
-
-                {user?.role === 'Admin' && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                        className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                        onSelect={() => onDelete(lead.id)}
-                    >
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete Lead
-                    </DropdownMenuItem>
-                  </>
-                )}
-                </DropdownMenuContent>
-            </DropdownMenu>
-            <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                    mode="single"
-                    selected={appointmentDate}
-                    onSelect={handleDateSelect}
-                    disabled={(date) => date < new Date()}
-                    initialFocus
-                />
-            </PopoverContent>
-        </Popover>
+            {user?.role === 'Admin' && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                    className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                    onSelect={() => onDelete(lead.id)}
+                >
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete Lead
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </>
   );
 };
 
 export const getColumns = (
-  onUpdateStage: (lead: Lead, newStage: Lead['stage'], appointmentDate?: Date) => void,
+  onUpdateStage: (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage']) => void,
   onDelete: (id: string) => void,
   onUpdateOwner: (leadId: string, oldOwnerName: string, newOwnerId: string, newOwnerName: string) => void,
   staff: Staff[]
@@ -219,8 +185,7 @@ export const getColumns = (
     header: "Stage",
     cell: ({ row }) => {
       const stage = row.getValue("stage") as string;
-      const lead = row.original;
-       const variant: "default" | "secondary" | "destructive" | "outline" =
+      const variant: "default" | "secondary" | "destructive" | "outline" =
         stage === "Ganado"
           ? "default"
           : stage === "Perdido"
@@ -228,22 +193,7 @@ export const getColumns = (
           : ["Nuevo", "Calificado", "Citado"].includes(stage)
           ? "secondary"
           : "outline";
-      
-      const appointmentDate = lead.appointmentDate ? 
-        (lead.appointmentDate as any).toDate ? (lead.appointmentDate as any).toDate() : new Date(lead.appointmentDate as string) 
-        : null;
-
-      return (
-        <div className="flex flex-col">
-            <Badge variant={variant}>{stage}</Badge>
-            {stage === 'Citado' && appointmentDate && isValid(appointmentDate) && (
-                <span className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                    <CalendarIcon size={12}/>
-                    {format(appointmentDate, 'MMM d, yyyy')}
-                </span>
-            )}
-        </div>
-      )
+      return <Badge variant={variant}>{stage}</Badge>;
     },
     filterFn: 'equalsString',
   },
