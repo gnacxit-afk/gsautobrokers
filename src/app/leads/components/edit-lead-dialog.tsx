@@ -27,19 +27,24 @@ interface EditLeadDialogProps {
 export function EditLeadDialog({ open, onOpenChange, lead }: EditLeadDialogProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
+
+  // Initialize state directly from the prop.
+  // This runs only when the component is first rendered or when the `lead` prop identity changes
+  // in a way that forces a re-mount (which doesn't happen in our loop scenario).
   const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
+    name: lead.name,
+    phone: lead.phone,
   });
 
+  // This effect ensures that if the dialog is kept open and a *different* lead is passed in,
+  // the form updates. It's safe because it only runs when `lead.id` changes.
   useEffect(() => {
-    if (lead) {
-      setFormData({
-        name: lead.name,
-        phone: lead.phone,
-      });
-    }
-  }, [lead]);
+    setFormData({
+      name: lead.name,
+      phone: lead.phone,
+    });
+  }, [lead.id, lead.name, lead.phone]);
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
