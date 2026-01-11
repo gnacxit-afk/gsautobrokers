@@ -1,16 +1,33 @@
+
 'use client';
 
+import { useState } from 'react';
+import { Calendar } from '@/components/ui/calendar';
+import { es } from 'date-fns/locale';
+
 export default function CalendarPage() {
+  const [date, setDate] = useState<Date | undefined>(new Date());
+
   return (
     <main className="flex-1">
-       <div className="mb-6">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold">Citas</h1>
         <p className="text-muted-foreground">
-          Aquí construiremos nuestro calendario de citas.
+          Selecciona una fecha para ver o agendar citas.
         </p>
       </div>
-      <div className="rounded-lg border border-dashed p-8 text-center h-96 flex items-center justify-center">
-          <p className="text-muted-foreground">El contenido del calendario irá aquí.</p>
+      <div className="flex justify-center pt-4">
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={setDate}
+          className="rounded-md border"
+          locale={es}
+          defaultMonth={new Date()}
+          captionLayout="dropdown-buttons"
+          fromYear={2025}
+          toYear={2075}
+        />
       </div>
     </main>
   );
