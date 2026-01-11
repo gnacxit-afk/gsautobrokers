@@ -103,6 +103,7 @@ function LeadsPageContent() {
     const router = useRouter();
     
     const [sorting, setSorting] = useState<SortingState>([]);
+    const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 100 });
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [globalFilter, setGlobalFilter] = useState('');
     const [expanded, setExpanded] = useState({});
@@ -152,13 +153,25 @@ function LeadsPageContent() {
 
     }, [firestore, user]);
 
-    const handleUpdateStage = useCallback(async (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage']) => {
+    const handleUpdateStage = useCallback(async (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage'], appointmentDate: Date | null = null) => {
         if (!firestore || !user) return;
         const leadRef = doc(firestore, 'leads', leadId);
         
         try {
-            await updateDoc(leadRef, { stage: newStage });
-            const noteContent = `Stage changed from '${oldStage}' to '${newStage}' by ${user.name}`;
+            const updateData: { stage: Lead['stage'], appointmentDate?: Date | null } = { stage: newStage };
+            if (newStage === 'Citado') {
+                updateData.appointmentDate = appointmentDate; // Can be null
+            } else {
+                 // If moving away from 'Citado', clear the date.
+                 updateData.appointmentDate = null;
+            }
+
+            await updateDoc(leadRef, updateData);
+
+            let noteContent = `Stage changed from '${oldStage}' to '${newStage}' by ${user.name}.`;
+            if(appointmentDate) {
+                noteContent += ` Appointment set for ${format(appointmentDate, 'PPP')}.`;
+            }
             await addNoteEntry(leadId, noteContent, 'Stage Change');
             
             // Create notification for the lead owner
@@ -172,7 +185,6 @@ function LeadsPageContent() {
                     user.name
                 );
             }
-            // Toast is now handled in the CellActions component
         } catch (error) {
              console.error("Error updating stage:", error);
              toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
@@ -206,6 +218,7 @@ function LeadsPageContent() {
             ...leadData,
             createdAt: serverTimestamp(),
             ownerName: owner.name,
+            appointmentDate: null,
         };
 
         try {
@@ -282,17 +295,11 @@ function LeadsPageContent() {
 
     }, [firestore, user, staffData, toast, addNoteEntry, data]);
 
-    // ** CRITICAL FIX **
-    // Memoize the columns definition to prevent re-creation on every render.
-    // The dependencies array includes all handlers. Since the handlers are
-    // wrapped in useCallback, they are stable, making the columns stable too.
     const columns = useMemo(
         () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, staffData), 
         [handleUpdateStage, handleDelete, handleUpdateOwner, staffData]
     );
     
-    // ** CRITICAL FIX **
-    // This provides a stable reference to the data for the table.
     const memoizedData = useMemo(() => data, [data]);
 
     const memoizedMeta = useMemo(() => ({
@@ -308,6 +315,7 @@ function LeadsPageContent() {
       getCoreRowModel: getCoreRowModel(),
       getPaginationRowModel: getPaginationRowModel(),
       onSortingChange: setSorting,
+      onPaginationChange: setPagination,
       getSortedRowModel: getSortedRowModel(),
       onGlobalFilterChange: setGlobalFilter,
       getFilteredRowModel: getFilteredRowModel(),
@@ -316,12 +324,12 @@ function LeadsPageContent() {
       onColumnFiltersChange: setColumnFilters,
       state: {
         sorting,
+        pagination,
         globalFilter,
         expanded,
         columnFilters
       },
       getRowCanExpand: () => false, // No expandable rows in this table
-      // Pass memoized meta data to the table for the global filter
       meta: memoizedMeta
     });
 
@@ -350,8 +358,6 @@ function LeadsPageContent() {
 
 
 export default function LeadsPage() {
-    // This wrapper component ensures that the main logic is a client component
-    // while the export remains a default export for Next.js page conventions.
     return (
         <LeadsPageContent />
     )

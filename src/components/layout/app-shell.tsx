@@ -14,6 +14,7 @@ import {
   UserCircle2,
   TrendingUp,
   CheckSquare,
+  CalendarDays,
 } from "lucide-react";
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -31,6 +32,7 @@ import { Notifications } from "./notifications";
 const navItems: NavItemType[] = [
   { href: "/", title: "Dashboard", icon: LayoutDashboard, role: ["Admin", "Supervisor"] },
   { href: "/leads", title: "Leads / CRM", icon: PhoneCall, role: ["Admin", "Supervisor", "Broker"] },
+  { href: "/calendar", title: "Calendar", icon: CalendarDays, role: ["Admin", "Supervisor", "Broker"] },
   { href: "/todos", title: "Daily To-Do", icon: CheckSquare, role: ["Admin", "Supervisor", "Broker"] },
   { href: "/kpi", title: "KPI's & Performance", icon: TrendingUp, role: ["Admin", "Supervisor", "Broker"] },
   { href: "/knowledge", title: "Knowledge Base", icon: BookOpen, role: ["Admin", "Supervisor", "Broker"] },
@@ -158,7 +160,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  const pagesWithDateFilter = ['/', '/leads', '/kpi'];
+  const pagesWithDateFilter = ['/'];
   const showDateFilter = (user.role === 'Admin' || user.role === 'Supervisor') && pagesWithDateFilter.includes(pathname);
 
 

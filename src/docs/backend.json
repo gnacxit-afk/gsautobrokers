@@ -85,9 +85,9 @@
           "description": "The name of the user who owns the lead."
         },
         "appointmentDate": {
-          "type": "string",
+          "type": ["string", "null"],
           "format": "date-time",
-          "description": "The scheduled date and time for the appointment when the lead's stage is 'Citado'."
+          "description": "The scheduled date and time for the appointment. Optional and nullable."
         }
       },
       "required": [

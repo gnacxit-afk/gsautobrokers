@@ -2,9 +2,10 @@
 "use client";
 
 import type { ColumnDef, Row } from "@tanstack/react-table";
-import { MoreHorizontal, Trash2, ChevronDown, Users, Star, ChevronsUpDown, FileText, Bot } from "lucide-react";
+import { MoreHorizontal, Trash2, ChevronDown, Users, Star, ChevronsUpDown, FileText, Bot, CalendarPlus, X } from "lucide-react";
 import { format, isValid } from "date-fns";
 import { useRouter } from "next/navigation";
+import React, { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -20,32 +21,62 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import type { Lead, NoteEntry, Staff } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthContext } from "@/lib/auth";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 
 // Props for the CellActions component
 interface CellActionsProps {
   row: Row<Lead>;
-  onUpdateStage: (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage']) => void;
+  onUpdateStage: (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage'], appointmentDate?: Date | null) => void;
   onDelete: (id: string) => void;
   onUpdateOwner: (leadId: string, oldOwnerName: string, newOwnerId: string, newOwnerName: string) => void;
   staff: Staff[];
 }
 
-// **EXTRACTED CELLACTIONS COMPONENT**
 const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateOwner, staff }) => {
   const lead = row.original;
   const { toast } = useToast();
   const { user } = useAuthContext();
   const router = useRouter();
+  const [openAppointmentDialog, setOpenAppointmentDialog] = useState(false);
 
-  const handleStageUpdate = (stage: Lead['stage']) => {
-    onUpdateStage(lead.id, lead.stage, stage);
-    toast({ title: "Stage Updated", description: `Lead "${lead.name}" is now ${stage}.` });
+  const handleStageUpdate = (newStage: Lead['stage']) => {
+    if (newStage === 'Citado') {
+        // Instead of setting date here, we open the dialog.
+        setOpenAppointmentDialog(true);
+    } else {
+        // For any other stage, update immediately without a date.
+        onUpdateStage(lead.id, lead.stage, newStage, null);
+        toast({ title: "Stage Updated", description: `Lead "${lead.name}" is now ${newStage}.` });
+    }
+  };
+
+  const handleConfirmAppointment = (date: Date | undefined) => {
+    if (date) {
+        onUpdateStage(lead.id, lead.stage, 'Citado', date);
+        toast({ title: "Appointment Set", description: `Lead "${lead.name}" is now 'Citado' for ${format(date, 'PPP')}.` });
+    } else {
+        // If no date is selected, we still move the stage to Citado.
+        onUpdateStage(lead.id, lead.stage, 'Citado');
+        toast({ title: "Stage Updated", description: `Lead "${lead.name}" is now 'Citado'. You can add a date later.` });
+    }
+    setOpenAppointmentDialog(false);
   };
   
   const handleOwnerUpdate = (newOwnerId: string) => {
@@ -54,7 +85,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
       onUpdateOwner(lead.id, lead.ownerName, newOwnerId, newOwner.name);
       toast({ title: "Owner Updated", description: `${lead.name} is now assigned to ${newOwner.name}.` });
     }
-  }
+  };
 
   const assignableStaff = staff.filter(
     (s) => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin'
@@ -62,6 +93,28 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
   
   return (
     <>
+      <AlertDialog open={openAppointmentDialog} onOpenChange={setOpenAppointmentDialog}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Schedule Appointment for {lead.name}</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Do you want to set an appointment date now? You can also do this later from the calendar.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="flex justify-center">
+                 <Calendar
+                    mode="single"
+                    onSelect={(date) => handleConfirmAppointment(date)}
+                    className="rounded-md border"
+                    />
+            </div>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <Button variant="outline" onClick={() => handleConfirmAppointment(undefined)}>Set Stage Only</Button>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="flex items-center gap-2 justify-end">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -136,7 +189,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
 };
 
 export const getColumns = (
-  onUpdateStage: (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage']) => void,
+  onUpdateStage: (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage'], appointmentDate?: Date | null) => void,
   onDelete: (id: string) => void,
   onUpdateOwner: (leadId: string, oldOwnerName: string, newOwnerId: string, newOwnerName: string) => void,
   staff: Staff[]
@@ -149,6 +202,24 @@ export const getColumns = (
       return (
         <div>
           <div className="font-bold text-slate-800">{lead.name}</div>
+        </div>
+      );
+    },
+  },
+    {
+    accessorKey: "appointmentDate",
+    header: "Appointment",
+    cell: ({ row }) => {
+      const dateRaw = row.original.appointmentDate;
+      if (!dateRaw) return <span className="text-xs text-slate-400">Not Set</span>;
+
+      const date = (dateRaw as any).toDate ? (dateRaw as any).toDate() : new Date(dateRaw as string);
+
+      if (!isValid(date)) return null;
+
+      return (
+        <div className="text-xs font-semibold text-slate-600">
+          {format(date, 'MMM d, yyyy')}
         </div>
       );
     },
