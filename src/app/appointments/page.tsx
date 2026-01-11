@@ -158,150 +158,156 @@ export default function AppointmentsPage() {
         <h1 className="font-semibold text-lg md:text-2xl">Appointments</h1>
       </div>
 
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle>Agenda tu cita</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="md:col-span-1">
-                <Label htmlFor="lead-select">Lead</Label>
-                  <Select
-                    onValueChange={(leadId) => {
-                      const lead = leads?.find(l => l.id === leadId);
-                      setSelectedLead(lead || null);
-                    }}
-                    value={selectedLead?.id || ''}
-                  >
-                  <SelectTrigger id="lead-select">
-                    <SelectValue placeholder="Select a lead" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {leadsLoading ? <div className="p-4 text-center text-sm">Loading leads...</div> :
-                      (leads || []).map((lead) => (
-                        <SelectItem key={lead.id} value={lead.id}>
-                          {lead.name}
-                        </SelectItem>
-                      ))
-                    }
-                  </SelectContent>
-                </Select>
-              </div>
-               <div className="md:col-span-2 grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="date">Appointment Date</Label>
-                        <Input 
-                            id="date"
-                            type="date"
-                            value={appointmentDate}
-                            onChange={(e) => setAppointmentDate(e.target.value)}
-                            min={format(new Date(), 'yyyy-MM-dd')}
-                        />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="time">Appointment Time</Label>
-                        <Input 
-                            id="time"
-                            type="time"
-                            value={appointmentTime}
-                            onChange={(e) => setAppointmentTime(e.target.value)}
-                        />
-                    </div>
-               </div>
-            </div>
-            <div className="flex justify-end">
-                <Button onClick={handleSaveAppointment} disabled={!selectedLead || isSaving}>
-                    {isSaving ? "Saving..." : "Guardar Cita"}
-                </Button>
-            </div>
-        </CardContent>
-      </Card>
-      
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-          <CardDescription>Filter upcoming appointments by date range and owner.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-           {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
-            <div className="space-y-2">
-              <Label htmlFor="owner-filter">Owner</Label>
-              <Select onValueChange={setFilterOwnerId} value={filterOwnerId}>
-                <SelectTrigger id="owner-filter">
-                  <SelectValue placeholder="Filter by Owner" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  {selectableStaff.map(s => (
-                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          <div className="space-y-2">
-            <Label htmlFor="start-date-filter">Start Date</Label>
-            <Input
-              id="start-date-filter"
-              type="date"
-              value={filterStartDate}
-              onChange={(e) => setFilterStartDate(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="end-date-filter">End Date</Label>
-            <Input
-              id="end-date-filter"
-              type="date"
-              value={filterEndDate}
-              onChange={(e) => setFilterEndDate(e.target.value)}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <div className="lg:col-span-1 space-y-6">
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle>Agenda tu cita</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="lead-select">Lead</Label>
+                    <Select
+                      onValueChange={(leadId) => {
+                        const lead = leads?.find(l => l.id === leadId);
+                        setSelectedLead(lead || null);
+                      }}
+                      value={selectedLead?.id || ''}
+                    >
+                    <SelectTrigger id="lead-select">
+                      <SelectValue placeholder="Select a lead" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {leadsLoading ? <div className="p-4 text-center text-sm">Loading leads...</div> :
+                        (leads || []).map((lead) => (
+                          <SelectItem key={lead.id} value={lead.id}>
+                            {lead.name}
+                          </SelectItem>
+                        ))
+                      }
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                          <Label htmlFor="date">Appointment Date</Label>
+                          <Input 
+                              id="date"
+                              type="date"
+                              value={appointmentDate}
+                              onChange={(e) => setAppointmentDate(e.target.value)}
+                              min={format(new Date(), 'yyyy-MM-dd')}
+                          />
+                      </div>
+                      <div className="space-y-2">
+                          <Label htmlFor="time">Appointment Time</Label>
+                          <Input 
+                              id="time"
+                              type="time"
+                              value={appointmentTime}
+                              onChange={(e) => setAppointmentTime(e.target.value)}
+                          />
+                      </div>
+                </div>
+                <div className="flex justify-end">
+                    <Button onClick={handleSaveAppointment} disabled={!selectedLead || isSaving}>
+                        {isSaving ? "Saving..." : "Guardar Cita"}
+                    </Button>
+                </div>
+            </CardContent>
+          </Card>
 
-      <div className="grid grid-cols-1 gap-8 items-start">
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle>
-                Upcoming Appointments
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-                <div className="space-y-4">
-                  <Skeleton className="h-16 w-full" />
-                  <Skeleton className="h-16 w-full" />
-                  <Skeleton className="h-16 w-full" />
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle>Filters</CardTitle>
+              <CardDescription>Filter upcoming appointments by date range and owner.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
+                <div className="space-y-2">
+                  <Label htmlFor="owner-filter">Owner</Label>
+                  <Select onValueChange={setFilterOwnerId} value={filterOwnerId}>
+                    <SelectTrigger id="owner-filter">
+                      <SelectValue placeholder="Filter by Owner" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      {selectableStaff.map(s => (
+                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-            ) : appointments && appointments.length > 0 ? (
-                <div className="space-y-4">
-                    {appointments.map(apt => (
-                        <div key={apt.id} className="p-4 border rounded-lg bg-slate-50">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="font-bold">{apt.leadName}</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {format(apt.startTime.toDate(), "eeee, d MMM 'at' p", { locale: es })}
-                                    </p>
-                                </div>
-                                {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
-                                     <p className="text-xs font-semibold text-slate-500 bg-slate-200 px-2 py-1 rounded-full">
-                                        {ownersMap.get(apt.ownerId) || 'Unknown Owner'}
-                                     </p>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                <p className="text-muted-foreground text-center p-8">
-                    No appointments found for the selected filters.
-                </p>
-            )}
-          </CardContent>
-        </Card>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="start-date-filter">Start Date</Label>
+                <Input
+                  id="start-date-filter"
+                  type="date"
+                  value={filterStartDate}
+                  onChange={(e) => setFilterStartDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="end-date-filter">End Date</Label>
+                <Input
+                  id="end-date-filter"
+                  type="date"
+                  value={filterEndDate}
+                  onChange={(e) => setFilterEndDate(e.target.value)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="lg:col-span-2">
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle>
+                  Upcoming Appointments
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                  <div className="space-y-4">
+                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-16 w-full" />
+                  </div>
+              ) : appointments && appointments.length > 0 ? (
+                  <div className="space-y-4">
+                      {appointments.map(apt => (
+                          <div key={apt.id} className="p-4 border rounded-lg bg-slate-50">
+                              <div className="flex justify-between items-start">
+                                  <div>
+                                      <p className="font-bold">{apt.leadName}</p>
+                                      <p className="text-sm text-muted-foreground">
+                                          {format(apt.startTime.toDate(), "eeee, d MMM 'at' p", { locale: es })}
+                                      </p>
+                                  </div>
+                                  {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
+                                      <p className="text-xs font-semibold text-slate-500 bg-slate-200 px-2 py-1 rounded-full">
+                                          {ownersMap.get(apt.ownerId) || 'Unknown Owner'}
+                                      </p>
+                                  )}
+                              </div>
+                          </div>
+                      ))}
+                  </div>
+              ) : (
+                  <p className="text-muted-foreground text-center p-8">
+                      No appointments found for the selected filters.
+                  </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </main>
   );
 }
+
+    
