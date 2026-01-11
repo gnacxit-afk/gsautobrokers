@@ -9,6 +9,7 @@ import {
   isSameMonth,
   startOfMonth,
   isToday,
+  isValid,
 } from 'date-fns';
 import { User, CheckCircle2, XCircle, Calendar as CalendarIcon, Briefcase, FilePen, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Lead, Staff } from '@/lib/types';
@@ -214,7 +215,7 @@ export function AppointmentCalendar({ appointments, allStaff, leadToOpen }: { ap
                         }}
                         components={{
                             Day: (props) => {
-                                if (!props.date) return null;
+                                if (!props.date || !isValid(props.date)) return null;
                                 const hasAppointment = appointmentsByDate[format(props.date, 'yyyy-MM-dd')]?.length > 0;
                                 const isSelected = props.selected;
                                 const isTodayDate = isToday(props.date);
@@ -275,4 +276,3 @@ export function AppointmentCalendar({ appointments, allStaff, leadToOpen }: { ap
     </>
   );
 }
-
