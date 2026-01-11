@@ -31,10 +31,9 @@ export function EditLeadDialog({ open, onOpenChange, lead }: EditLeadDialogProps
   const firestore = useFirestore();
   const { user } = useAuthContext();
 
-  // Initialize with empty state. The useEffect will populate it.
   const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
+    name: lead.name,
+    phone: lead.phone || '',
   });
 
   // This useEffect now correctly populates the form state ONLY when the dialog opens.
@@ -47,7 +46,7 @@ export function EditLeadDialog({ open, onOpenChange, lead }: EditLeadDialogProps
         phone: lead.phone || '',
       });
     }
-  }, [open, lead]);
+  }, [open]);
 
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
