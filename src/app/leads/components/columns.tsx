@@ -83,6 +83,10 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
     <>
       <div className="flex items-center gap-2 justify-end">
         <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+            <PopoverTrigger asChild>
+                {/* This is an invisible trigger; the popover is controlled by state */}
+                <span />
+            </PopoverTrigger>
              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="h-8 w-8 p-0">
@@ -104,12 +108,10 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
                 </DropdownMenuItem>
                 
                 <DropdownMenuSub>
-                    <PopoverTrigger asChild>
-                        <DropdownMenuSubTrigger>
-                            <ChevronsUpDown className="mr-2 h-4 w-4" />
-                            <span>Update Stage</span>
-                        </DropdownMenuSubTrigger>
-                    </PopoverTrigger>
+                    <DropdownMenuSubTrigger>
+                        <ChevronsUpDown className="mr-2 h-4 w-4" />
+                        <span>Update Stage</span>
+                    </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent>
                         <DropdownMenuRadioGroup value={lead.stage} onValueChange={(stage) => handleStageUpdate(stage as Lead['stage'])}>
                             {leadStages.map((stage) => (
