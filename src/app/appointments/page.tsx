@@ -217,48 +217,48 @@ export default function AppointmentsPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle>Filters</CardTitle>
-              <CardDescription>Filter upcoming appointments by date range and owner.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
+          {user?.role === 'Admin' && (
+            <Card className="shadow-sm">
+              <CardHeader>
+                <CardTitle>Filters</CardTitle>
+                <CardDescription>Filter upcoming appointments by date range and owner.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="owner-filter">Owner</Label>
+                    <Select onValueChange={setFilterOwnerId} value={filterOwnerId}>
+                      <SelectTrigger id="owner-filter">
+                        <SelectValue placeholder="Filter by Owner" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        {selectableStaff.map(s => (
+                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 <div className="space-y-2">
-                  <Label htmlFor="owner-filter">Owner</Label>
-                  <Select onValueChange={setFilterOwnerId} value={filterOwnerId}>
-                    <SelectTrigger id="owner-filter">
-                      <SelectValue placeholder="Filter by Owner" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
-                      {selectableStaff.map(s => (
-                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="start-date-filter">Start Date</Label>
+                  <Input
+                    id="start-date-filter"
+                    type="date"
+                    value={filterStartDate}
+                    onChange={(e) => setFilterStartDate(e.target.value)}
+                  />
                 </div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="start-date-filter">Start Date</Label>
-                <Input
-                  id="start-date-filter"
-                  type="date"
-                  value={filterStartDate}
-                  onChange={(e) => setFilterStartDate(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="end-date-filter">End Date</Label>
-                <Input
-                  id="end-date-filter"
-                  type="date"
-                  value={filterEndDate}
-                  onChange={(e) => setFilterEndDate(e.target.value)}
-                />
-              </div>
-            </CardContent>
-          </Card>
+                <div className="space-y-2">
+                  <Label htmlFor="end-date-filter">End Date</Label>
+                  <Input
+                    id="end-date-filter"
+                    type="date"
+                    value={filterEndDate}
+                    onChange={(e) => setFilterEndDate(e.target.value)}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="lg:col-span-2">
@@ -309,5 +309,3 @@ export default function AppointmentsPage() {
     </main>
   );
 }
-
-    
