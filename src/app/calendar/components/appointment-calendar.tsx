@@ -152,9 +152,9 @@ export function AppointmentCalendar({
 
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-      <div className="lg:col-span-1 space-y-6">
-        <Card>
+    <div className="flex flex-col gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <Card className="lg:col-span-2">
           <CardContent className="p-3">
              <Calendar
                 mode="single"
@@ -168,12 +168,12 @@ export function AppointmentCalendar({
                     month: 'space-y-4',
                     caption_label: 'text-lg font-bold',
                     head_row: 'flex justify-around text-xs text-muted-foreground uppercase',
-                    head_cell: 'w-full',
+                    head_cell: 'w-8 h-8 text-center p-0 relative',
                     row: 'flex w-full mt-2 justify-around',
-                    cell: 'w-9 h-9 text-center p-0 relative',
+                    cell: 'w-8 h-8 text-center p-0 relative',
                     day: cn(
                         buttonVariants({ variant: 'ghost' }),
-                        'h-9 w-9 p-0 font-normal relative'
+                        'h-8 w-8 p-0 font-normal relative'
                     ),
                     day_selected: 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground',
                     day_today: 'bg-accent text-accent-foreground',
@@ -193,7 +193,7 @@ export function AppointmentCalendar({
         </Card>
       </div>
 
-      <div className="lg:col-span-2">
+      <div>
          <div className="flex flex-col md:flex-row justify-between items-baseline mb-4 gap-4">
             <h2 className="text-xl font-bold">
                 Citas para <span className="text-primary">{isToday(selectedDay) ? 'Hoy' : format(selectedDay, 'MMM d, yyyy')}</span>
