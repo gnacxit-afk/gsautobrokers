@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { Lead, Staff } from '@/lib/types';
 import { useAuthContext } from '@/lib/auth';
 import { useCollection, useFirestore } from '@/firebase';
@@ -16,18 +16,14 @@ export default function CalendarPage() {
   const firestore = useFirestore();
   const searchParams = useSearchParams();
   const leadIdToOpen = searchParams.get('leadId');
+  const [selectedUserId, setSelectedUserId] = useState('all');
 
   const leadsQuery = useMemo(() => {
     if (!firestore) return null;
-    
-    // We fetch all leads with an appointment date, and filter by role on the client
-    // This simplifies the query and allows supervisors to see their team's leads
-    let q = query(
+    return query(
       collection(firestore, 'leads'),
       where('appointment.date', '!=', null)
     );
-    
-    return q;
   }, [firestore]);
 
   const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
@@ -37,23 +33,24 @@ export default function CalendarPage() {
 
   const visibleLeads = useMemo(() => {
     if (!user || !leads || !staff) return [];
-
-    if (user.role === 'Admin') {
-        return leads;
-    }
+    
+    let userLeads = leads;
 
     if (user.role === 'Supervisor') {
         const teamIds = staff.filter(s => s.supervisorId === user.id).map(s => s.id);
         const visibleIds = [user.id, ...teamIds];
-        return leads.filter(lead => visibleIds.includes(lead.ownerId));
+        userLeads = leads.filter(lead => visibleIds.includes(lead.ownerId));
+    } else if (user.role === 'Broker') {
+        userLeads = leads.filter(lead => lead.ownerId === user.id);
     }
     
-    if (user.role === 'Broker') {
-        return leads.filter(lead => lead.ownerId === user.id);
+    if (selectedUserId !== 'all') {
+        return userLeads.filter(lead => lead.ownerId === selectedUserId);
     }
+    
+    return userLeads;
 
-    return [];
-  }, [user, leads, staff]);
+  }, [user, leads, staff, selectedUserId]);
   
   const loading = leadsLoading || staffLoading;
   
@@ -80,10 +77,19 @@ export default function CalendarPage() {
 
   return (
     <main className="flex-1">
+       <div className="mb-6">
+        <h1 className="text-2xl font-bold">Agenda de Citas</h1>
+        <p className="text-muted-foreground">
+          Gestiona y prioriza las citas programadas.
+        </p>
+      </div>
       <AppointmentCalendar 
         appointments={visibleLeads} 
         allStaff={staff || []}
         leadToOpen={leadToAutoOpen}
+        visibleLeads={visibleLeads}
+        onUserFilterChange={setSelectedUserId}
+        selectedUserId={selectedUserId}
       />
     </main>
   );
