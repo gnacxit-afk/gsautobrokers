@@ -14,7 +14,7 @@ import {
 import { User, CheckCircle2, XCircle, Calendar as CalendarIcon, Briefcase, FilePen, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Lead, Staff } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { AppointmentDialog } from './appointment-dialog';
 import { useAuthContext } from '@/lib/auth';
 import {
