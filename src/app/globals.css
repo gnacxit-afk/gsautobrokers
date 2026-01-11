@@ -76,7 +76,7 @@
     @apply border-primary border-2 rounded-md;
 }
 
-/* Fix for Tailwind CSS reset making day numbers invisible */
+/* Fix for Tailwind CSS reset making day numbers invisible and misaligned */
 .rdp-button {
   all: revert;
 }

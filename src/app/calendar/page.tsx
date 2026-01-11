@@ -24,9 +24,6 @@ export default function CalendarPage() {
           className="rounded-md border"
           locale={es}
           defaultMonth={new Date()}
-          captionLayout="dropdown-buttons"
-          fromYear={2025}
-          toYear={2075}
         />
       </div>
     </main>
