@@ -1,5 +1,8 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { collection, addDoc, serverTimestamp, type Firestore } from "firebase/firestore";
+import type { User } from "./types";
+
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -18,3 +21,21 @@ export function getNextBonusGoal(sales: number): { nextGoal: number, needed: num
   if (sales < 15) return { nextGoal: 15, needed: 15 - sales };
   return { nextGoal: 15, needed: 0 };
 }
+
+export const addNoteEntry = async (
+    firestore: Firestore, 
+    user: User, 
+    leadId: string, 
+    content: string, 
+    type: 'Manual' | 'Stage Change' | 'Owner Change' | 'System' | 'AI Analysis'
+) => {
+    if (!firestore || !user) return;
+    const noteHistoryRef = collection(firestore, 'leads', leadId, 'noteHistory');
+    
+    await addDoc(noteHistoryRef, {
+        content,
+        author: user.name,
+        date: serverTimestamp(),
+        type,
+    });
+};

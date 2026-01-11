@@ -9,6 +9,7 @@ import { collection, query, where } from 'firebase/firestore';
 import { AppointmentCalendar } from './components/appointment-calendar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSearchParams } from 'next/navigation';
+import { format } from 'date-fns';
 
 export default function CalendarPage() {
   const { user } = useAuthContext();
@@ -66,7 +67,12 @@ export default function CalendarPage() {
   if (loading) {
       return (
           <main className="flex-1 space-y-4">
-              <Skeleton className="h-10 w-48 mb-4" />
+              <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4">
+                <div>
+                  <Skeleton className="h-8 w-48 mb-2" />
+                  <Skeleton className="h-4 w-64" />
+                </div>
+              </div>
               <Skeleton className="h-[70vh] w-full" />
           </main>
       );
@@ -74,12 +80,6 @@ export default function CalendarPage() {
 
   return (
     <main className="flex-1">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Appointment Calendar</h1>
-        <p className="text-muted-foreground">
-          View and manage scheduled appointments.
-        </p>
-      </div>
       <AppointmentCalendar 
         appointments={visibleLeads} 
         allStaff={staff || []}

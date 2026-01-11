@@ -1,14 +1,15 @@
 
 'use client';
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   format,
   isSameDay,
-  parseISO,
-  Timestamp,
+  isSameMonth,
+  startOfMonth,
+  isToday,
 } from 'date-fns';
-import { User, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { User, CheckCircle2, XCircle, Calendar as CalendarIcon, Briefcase, FilePen, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Lead, Staff } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -22,15 +23,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useRouter } from 'next/navigation';
 
-const BrokerColorMap: Record<string, { bg: string, text: string }> = {};
+const BrokerColorMap: Record<string, { bg: string, text: string, border: string }> = {};
 const brokerColors = [
-    { bg: 'bg-sky-100', text: 'text-sky-800' },
-    { bg: 'bg-teal-100', text: 'text-teal-800' },
-    { bg: 'bg-indigo-100', text: 'text-indigo-800' },
-    { bg: 'bg-rose-100', text: 'text-rose-800' },
-    { bg: 'bg-amber-100', text: 'text-amber-800' },
-    { bg: 'bg-violet-100', text: 'text-violet-800' },
+    { bg: 'bg-sky-50', text: 'text-sky-800', border: 'border-sky-200' },
+    { bg: 'bg-teal-50', text: 'text-teal-800', border: 'border-teal-200' },
+    { bg: 'bg-indigo-50', text: 'text-indigo-800', border: 'border-indigo-200' },
+    { bg: 'bg-rose-50', text: 'text-rose-800', border: 'border-rose-200' },
+    { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200' },
+    { bg: 'bg-violet-50', text: 'text-violet-800', border: 'border-violet-200' },
 ];
 
 const getBrokerColor = (brokerId: string) => {
@@ -40,6 +43,49 @@ const getBrokerColor = (brokerId: string) => {
     return BrokerColorMap[brokerId];
 }
 
+const AppointmentCard = ({ appointment, onEdit }: { appointment: Lead, onEdit: (lead: Lead) => void }) => {
+    const router = useRouter();
+    const brokerColor = getBrokerColor(appointment.ownerId);
+
+    const statusClasses = appointment.appointment?.confirmed
+        ? 'bg-green-100 text-green-800'
+        : 'bg-amber-100 text-amber-800';
+
+    return (
+        <Card className={cn("shadow-sm transition-all hover:shadow-md border-l-4", brokerColor.border)}>
+            <CardContent className="p-4 flex items-center gap-4">
+                 <div className="flex-shrink-0 w-24 text-center">
+                    {appointment.appointment?.time ? (
+                        <div className="text-lg font-bold text-slate-800 bg-slate-100 rounded-lg px-2 py-1">{appointment.appointment.time}</div>
+                    ): (
+                        <div className="text-xs text-slate-400">No time set</div>
+                    )}
+                 </div>
+                 <div className="flex-1">
+                    <p className="font-bold text-slate-900 text-base">{appointment.name}</p>
+                     <p className="mt-1 flex items-center gap-2 text-xs text-slate-500">
+                        <User size={14} />
+                        {appointment.ownerName}
+                    </p>
+                 </div>
+                 <div className="flex flex-col items-center gap-2">
+                     <div className={cn("px-2 py-1 text-xs font-bold rounded-full flex items-center gap-1.5", statusClasses)}>
+                        {appointment.appointment?.confirmed ? <CheckCircle2 size={14}/> : <XCircle size={14}/>}
+                        {appointment.appointment?.confirmed ? 'Confirmed' : 'Not Confirmed'}
+                     </div>
+                      <div className="flex items-center gap-1">
+                        <Button variant="outline" size="sm" className="h-7" onClick={() => router.push(`/leads/${appointment.id}/notes`)}>
+                           <Briefcase size={14} className="mr-1"/> Lead
+                        </Button>
+                         <Button variant="secondary" size="sm" className="h-7" onClick={() => onEdit(appointment)}>
+                           <FilePen size={14} className="mr-1"/> Edit
+                        </Button>
+                    </div>
+                 </div>
+            </CardContent>
+        </Card>
+    )
+}
 
 export function AppointmentCalendar({ appointments, allStaff, leadToOpen }: { appointments: Lead[], allStaff: Staff[], leadToOpen: Lead | null }) {
   const { user } = useAuthContext();
@@ -67,26 +113,38 @@ export function AppointmentCalendar({ appointments, allStaff, leadToOpen }: { ap
     return appointments.filter(app => app.ownerId === brokerFilter);
   }, [appointments, brokerFilter]);
 
-  const appointmentsByDate = useMemo(() => {
-    return filteredAppointments.reduce((acc, appointment) => {
+  const { appointmentsByDate, monthStats } = useMemo(() => {
+    const byDate: Record<string, Lead[]> = {};
+    let monthCount = 0;
+    let todayCount = 0;
+    let todayUnconfirmed = 0;
+    const monthStart = startOfMonth(currentMonth);
+
+    filteredAppointments.forEach((appointment) => {
         const appointmentDate = appointment.appointment?.date;
-        if (!appointmentDate) return acc;
+        if (!appointmentDate) return;
         
         const date = (appointmentDate as any).toDate ? (appointmentDate as any).toDate() : new Date(appointmentDate as string);
         const dateKey = format(date, 'yyyy-MM-dd');
         
-        if (!acc[dateKey]) {
-            acc[dateKey] = [];
+        if (!byDate[dateKey]) byDate[dateKey] = [];
+        byDate[dateKey].push(appointment);
+        byDate[dateKey].sort((a, b) => (a.appointment?.time || '').localeCompare(b.appointment?.time || ''));
+        
+        if (isSameMonth(date, monthStart)) monthCount++;
+        if (isSameDay(date, new Date())) {
+            todayCount++;
+            if (!appointment.appointment?.confirmed) todayUnconfirmed++;
         }
-        acc[dateKey].push(appointment);
-        return acc;
-    }, {} as Record<string, Lead[]>);
-  }, [filteredAppointments]);
+    });
+
+    return {
+        appointmentsByDate: byDate,
+        monthStats: { monthCount, todayCount, todayUnconfirmed }
+    };
+  }, [filteredAppointments, currentMonth]);
 
   const handleUpdateAppointment = () => {
-    // This is a placeholder for Firestore update logic, which now happens
-    // inside the AppointmentDialog component itself. This function mainly
-    // serves to close the dialog after an update.
     setEditingAppointment(null);
   };
   
@@ -106,79 +164,89 @@ export function AppointmentCalendar({ appointments, allStaff, leadToOpen }: { ap
 
   return (
     <>
-      <div className="md:grid md:grid-cols-[24rem_1fr] md:divide-x md:divide-gray-200">
-        <div className="md:pr-8">
-            <div className="flex items-center justify-between mb-4">
-                 <h2 className="flex-auto text-lg font-semibold text-gray-900">{format(currentMonth, 'MMMM yyyy')}</h2>
-                 {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
-                    <Select value={brokerFilter} onValueChange={setBrokerFilter}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Filter by Broker" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Brokers</SelectItem>
-                            {selectableBrokers.map(broker => (
-                                <SelectItem key={broker.id} value={broker.id}>{broker.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                )}
-            </div>
-             <Calendar
-                mode="single"
-                selected={selectedDay}
-                onSelect={(day) => day && setSelectedDay(day)}
-                month={currentMonth}
-                onMonthChange={setCurrentMonth}
-                className="rounded-md border p-0"
-                modifiers={{
-                  hasAppointment: (date) => appointmentsByDate[format(date, 'yyyy-MM-dd')]?.length > 0,
-                }}
-                modifiersClassNames={{
-                  hasAppointment: 'bg-blue-100/50 text-blue-800 rounded-full',
-                }}
-             />
+      <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Appointment Agenda</h1>
+          <p className="text-muted-foreground">
+            Agenda for <time dateTime={format(selectedDay, 'yyyy-MM-dd')} className="font-semibold text-primary">{format(selectedDay, 'MMMM d, yyyy')}</time>
+          </p>
         </div>
-        <section className="mt-12 md:mt-0 md:pl-8">
-          <h2 className="font-semibold text-gray-900">
-            Agenda for <time dateTime={format(selectedDay, 'yyyy-MM-dd')}>{format(selectedDay, 'MMMM d, yyyy')}</time>
-          </h2>
-          <ol className="mt-4 space-y-3 text-sm leading-6 text-gray-500">
+         {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
+            <div className="w-full md:w-auto">
+                <Select value={brokerFilter} onValueChange={setBrokerFilter}>
+                    <SelectTrigger className="w-full md:w-[200px]">
+                        <SelectValue placeholder="Filter by Broker" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Brokers</SelectItem>
+                        {selectableBrokers.map(broker => (
+                            <SelectItem key={broker.id} value={broker.id}>{broker.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                 <p className="text-xs text-muted-foreground mt-1">Filtering by: <span className="font-semibold">{brokerFilter === 'all' ? 'All Brokers' : selectableBrokers.find(b=>b.id === brokerFilter)?.name}</span></p>
+            </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-1">
+             <Card>
+                <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
+                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}> <ChevronLeft size={16}/> </Button>
+                     <h3 className="flex-auto text-center text-sm font-semibold text-gray-900">{format(currentMonth, 'MMMM yyyy')}</h3>
+                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}> <ChevronRight size={16}/> </Button>
+                </CardHeader>
+                <CardContent className="p-2">
+                    <Calendar
+                        mode="single"
+                        selected={selectedDay}
+                        onSelect={(day) => day && setSelectedDay(day)}
+                        month={currentMonth}
+                        onMonthChange={setCurrentMonth}
+                        className="p-0"
+                        modifiers={{
+                            hasAppointment: (date) => appointmentsByDate[format(date, 'yyyy-MM-dd')]?.length > 0,
+                            today: isToday,
+                        }}
+                        modifiersClassNames={{
+                            hasAppointment: 'relative',
+                            today: 'border-2 border-primary rounded-md'
+                        }}
+                        components={{
+                            DayContent: (props) => {
+                                const hasAppointment = appointmentsByDate[format(props.date, 'yyyy-MM-dd')]?.length > 0;
+                                return (
+                                    <div className="relative w-full h-full flex items-center justify-center">
+                                        {props.date.getDate()}
+                                        {hasAppointment && <span className="absolute bottom-1.5 h-1.5 w-1.5 rounded-full bg-blue-500"></span>}
+                                    </div>
+                                )
+                            }
+                        }}
+                    />
+                </CardContent>
+                <CardContent className="p-4 border-t">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-3">Quick Summary</h4>
+                    <div className="space-y-2 text-sm">
+                        <div className="flex justify-between"><span>Appointments this month:</span> <span className="font-bold">{monthStats.monthCount}</span></div>
+                        <div className="flex justify-between"><span>Appointments today:</span> <span className="font-bold">{monthStats.todayCount}</span></div>
+                        <div className="flex justify-between"><span>Unconfirmed today:</span> <span className="font-bold text-amber-600">{monthStats.todayUnconfirmed}</span></div>
+                    </div>
+                </CardContent>
+             </Card>
+        </div>
+        <section className="lg:col-span-2">
+          <ol className="space-y-4">
             {appointmentsByDate[format(selectedDay, 'yyyy-MM-dd')]?.length > 0 ? (
-              appointmentsByDate[format(selectedDay, 'yyyy-MM-dd')].map((appointment) => {
-                 const appointmentColor = getBrokerColor(appointment.ownerId);
-                 return (
-                    <li 
-                      key={appointment.id} 
-                      className={cn(
-                        "group flex items-center space-x-4 rounded-xl p-3 focus-within:bg-gray-100 hover:bg-gray-100 cursor-pointer",
-                         appointmentColor.bg
-                      )}
-                      onClick={() => setEditingAppointment(appointment)}
-                    >
-                        {appointment.appointment?.time && (
-                            <div className="flex-shrink-0 w-20 text-center">
-                                <p className="font-bold text-base text-slate-800">{appointment.appointment.time}</p>
-                            </div>
-                        )}
-                        <div className="flex-auto">
-                            <p className={cn("font-semibold", appointmentColor.text)}>{appointment.name}</p>
-                            <p className="mt-0.5 flex items-center gap-2 text-xs">
-                                <User size={14} />
-                                {appointment.ownerName}
-                            </p>
-                        </div>
-                        {appointment.appointment?.confirmed ? (
-                            <CheckCircle2 size={18} className="text-green-600" title="Confirmed" />
-                        ) : (
-                           <XCircle size={18} className="text-red-600" title="Not Confirmed" />
-                        )}
-                    </li>
-                 );
-              })
+              appointmentsByDate[format(selectedDay, 'yyyy-MM-dd')].map((appointment) => (
+                <AppointmentCard key={appointment.id} appointment={appointment} onEdit={setEditingAppointment} />
+              ))
             ) : (
-              <div className="text-center py-10 text-slate-400">
-                <p>No appointments for this day.</p>
+              <div className="text-center py-20 text-slate-400 border-2 border-dashed rounded-2xl h-full flex flex-col items-center justify-center">
+                 <CalendarIcon size={48} strokeWidth={1} className="mb-4 text-slate-300" />
+                <h3 className="font-semibold text-slate-600">No appointments for this day</h3>
+                <p className="text-sm max-w-xs mt-1">Take this time to confirm future appointments or schedule new leads.</p>
               </div>
             )}
           </ol>
