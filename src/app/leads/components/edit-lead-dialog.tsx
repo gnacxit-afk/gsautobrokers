@@ -31,22 +31,13 @@ export function EditLeadDialog({ open, onOpenChange, lead }: EditLeadDialogProps
   const firestore = useFirestore();
   const { user } = useAuthContext();
 
-  const [formData, setFormData] = useState({
-    name: lead.name,
-    phone: lead.phone || '',
-  });
+  const [formData, setFormData] = useState(lead);
 
-  // This useEffect now correctly populates the form state ONLY when the dialog opens.
-  // It will not re-run if the `lead` prop changes while the dialog is already open,
-  // thus breaking the infinite render loop.
   useEffect(() => {
     if (open) {
-      setFormData({
-        name: lead.name,
-        phone: lead.phone || '',
-      });
+      setFormData(lead);
     }
-  }, [open]);
+  }, [open, lead]);
 
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -123,7 +114,7 @@ export function EditLeadDialog({ open, onOpenChange, lead }: EditLeadDialogProps
           </div>
           <div className="space-y-2">
             <Label htmlFor="phone">Phone</Label>
-            <Input id="phone" type="tel" value={formData.phone} onChange={handleInputChange} />
+            <Input id="phone" type="tel" value={formData.phone || ''} onChange={handleInputChange} />
           </div>
         </div>
         <DialogFooter>
