@@ -75,3 +75,12 @@
 .rdp-day_today:not(.rdp-day_selected) {
     @apply border-primary border-2 rounded-md;
 }
+
+/* Fix for Tailwind CSS reset making day numbers invisible */
+.rdp-button {
+  all: revert;
+}
+
+.rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
+    @apply bg-muted;
+}
