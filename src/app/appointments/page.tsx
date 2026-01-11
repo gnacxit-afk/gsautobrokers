@@ -1,11 +1,10 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import type { Appointment, Lead, Staff } from '@/lib/types';
 import { useFirestore, useUser, useCollection } from '@/firebase';
 import { collection, query, where, orderBy, Query, DocumentData, QueryConstraint } from 'firebase/firestore';
-import { AppointmentCalendar } from './components/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -16,9 +15,7 @@ import { useAuthContext } from '@/lib/auth';
 export default function AppointmentsPage() {
   const { user } = useAuthContext();
   const firestore = useFirestore();
-  const [selectedDate, setSelectedDate] = useState(new Date());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedLeadForDialog, setSelectedLeadForDialog] = useState<Lead | null>(null);
 
   const staffQuery = useMemo(() => {
     if (!firestore) return null;
@@ -48,28 +45,20 @@ export default function AppointmentsPage() {
     return query(collection(firestore, 'appointments'), ...constraints);
   }, [firestore, user, allStaff]);
 
+  // Query for all leads to be used in the appointment dialog
   const leadsQuery = useMemo(() => {
-    if (!firestore || !user) return null;
-    // For the dialog, we might want all leads available if admin/supervisor is booking for someone else
-    // For now, let's keep it simple and only show leads owned by the user. This can be expanded.
-    return query(collection(firestore, 'leads'), where('ownerId', '==', user.id));
-  }, [firestore, user]);
+    if (!firestore) return null;
+    return query(collection(firestore, 'leads'), orderBy('createdAt', 'desc'));
+  }, [firestore]);
 
   const { data: appointments, loading: appointmentsLoading } = useCollection<Appointment>(appointmentsQuery as Query<DocumentData> | null);
   const { data: leads, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
 
-  const appointmentsForSelectedDay = useMemo(() => {
+  const upcomingAppointments = useMemo(() => {
     if (!appointments) return [];
-    const selectedDayStart = new Date(selectedDate);
-    selectedDayStart.setHours(0, 0, 0, 0);
-    const selectedDayEnd = new Date(selectedDate);
-    selectedDayEnd.setHours(23, 59, 59, 999);
-
-    return appointments.filter(apt => {
-        const aptDate = apt.startTime.toDate();
-        return aptDate >= selectedDayStart && aptDate <= selectedDayEnd;
-    });
-  }, [appointments, selectedDate]);
+    const now = new Date();
+    return appointments.filter(apt => apt.startTime.toDate() >= now);
+  }, [appointments]);
   
   const ownersMap = useMemo(() => {
       if (!allStaff) return new Map();
@@ -85,38 +74,25 @@ export default function AppointmentsPage() {
          <Button onClick={() => setIsDialogOpen(true)}>Book Appointment</Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        <Card className="lg:col-span-1 shadow-sm">
-          <CardHeader>
-            <CardTitle>Calendar</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <AppointmentCalendar
-              selectedDate={selectedDate}
-              onDateChange={setSelectedDate}
-              appointments={appointments || []}
-            />
-          </CardContent>
-        </Card>
-        
-        <Card className="lg:col-span-2 shadow-sm">
+      <div className="grid grid-cols-1 gap-8 items-start">
+        <Card className="shadow-sm">
           <CardHeader>
             <CardTitle>
-                Appointments for {format(selectedDate, "eeee, d 'de' MMMM", { locale: es })}
+                Upcoming Appointments
             </CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
                 <p>Loading...</p>
-            ) : appointmentsForSelectedDay.length > 0 ? (
+            ) : upcomingAppointments.length > 0 ? (
                 <div className="space-y-4">
-                    {appointmentsForSelectedDay.map(apt => (
+                    {upcomingAppointments.map(apt => (
                         <div key={apt.id} className="p-4 border rounded-lg bg-slate-50">
                             <div className="flex justify-between items-start">
                                 <div>
                                     <p className="font-bold">{apt.leadName}</p>
                                     <p className="text-sm text-muted-foreground">
-                                        {format(apt.startTime.toDate(), 'p', { locale: es })}
+                                        {format(apt.startTime.toDate(), "eeee, d MMM 'at' p", { locale: es })}
                                     </p>
                                 </div>
                                 {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
@@ -130,7 +106,7 @@ export default function AppointmentsPage() {
                 </div>
             ) : (
                 <p className="text-muted-foreground text-center p-8">
-                    No appointments scheduled for this day.
+                    No upcoming appointments scheduled.
                 </p>
             )}
           </CardContent>
@@ -140,9 +116,8 @@ export default function AppointmentsPage() {
       <AppointmentDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
-        selectedDate={selectedDate}
+        selectedDate={new Date()}
         leads={leads || []}
-        preselectedLead={selectedLeadForDialog}
       />
     </main>
   );
