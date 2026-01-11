@@ -243,11 +243,15 @@ export default function LeadDetailsPage() {
                     <CardContent className="space-y-4">
                         <div className="space-y-1">
                             <Label>Name</Label>
-                            <p className="text-base font-medium text-primary">{lead.name}</p>
+                            <div className="text-base font-medium">
+                                <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10">{lead.name}</Badge>
+                            </div>
                         </div>
                         <div className="space-y-1">
                             <Label>Phone</Label>
-                             <p className="text-base font-medium text-primary">{lead.phone || 'N/A'}</p>
+                             <div className="text-base font-medium">
+                                <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10">{lead.phone || 'N/A'}</Badge>
+                             </div>
                         </div>
                         <div className="space-y-1">
                             <Label>Channel</Label>
@@ -258,8 +262,7 @@ export default function LeadDetailsPage() {
                         <div className="space-y-1">
                             <Label>Stage</Label>
                              <div className="text-base font-medium">
-                                <Badge variant={lead.stage === 'Ganado' ? 'default' : 'secondary'} className={cn("text-base py-1", {
-                                    "text-primary border-primary/50 bg-primary/10": lead.stage !== 'Ganado',
+                                <Badge variant={lead.stage === 'Ganado' ? 'default' : 'secondary'} className={cn("text-base py-1 text-primary border-primary/50 bg-primary/10", {
                                     "bg-primary text-primary-foreground": lead.stage === 'Ganado',
                                 })}>
                                     {lead.stage}
@@ -268,7 +271,9 @@ export default function LeadDetailsPage() {
                         </div>
                         <div className="space-y-1">
                             <Label>Owner</Label>
-                            <p className="text-base font-medium text-primary">{lead.ownerName}</p>
+                             <div className="text-base font-medium">
+                                <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10">{lead.ownerName}</Badge>
+                             </div>
                         </div>
                     </CardContent>
                 </Card>
