@@ -157,13 +157,26 @@ function LeadsPageContent() {
 
     }, [firestore, user]);
 
-    const handleUpdateStage = useCallback(async (lead: Lead, newStage: Lead['stage']) => {
+    const handleUpdateStage = useCallback(async (lead: Lead, newStage: Lead['stage'], appointmentDate?: Date) => {
         if (!firestore || !user) return;
         const leadRef = doc(firestore, 'leads', lead.id);
         
         try {
-            await updateDoc(leadRef, { stage: newStage });
-            const noteContent = `Stage changed from '${lead.stage}' to '${newStage}' by ${user.name}`;
+            const updateData: { stage: Lead['stage'], appointmentDate?: Date | null } = { stage: newStage };
+
+            if (newStage === 'Citado' && appointmentDate) {
+                updateData.appointmentDate = appointmentDate;
+            } else {
+                 // Clear appointment date if stage is no longer 'Citado'
+                updateData.appointmentDate = null;
+            }
+
+            await updateDoc(leadRef, updateData as any);
+            
+            let noteContent = `Stage changed from '${lead.stage}' to '${newStage}' by ${user.name}`;
+            if (newStage === 'Citado' && appointmentDate) {
+                 noteContent += ` with appointment set for ${format(appointmentDate, 'PPP')}`;
+            }
             await addNoteEntry(lead.id, noteContent, 'Stage Change');
             
             // Create notification for the lead owner
@@ -176,7 +189,7 @@ function LeadsPageContent() {
                     user.name
                 );
             }
-            toast({ title: "Stage Updated", description: `Lead "${lead.name}" is now ${newStage}.` });
+            // Toast is now handled in the CellActions component
         } catch (error) {
              console.error("Error updating stage:", error);
              toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
@@ -362,5 +375,3 @@ export default function LeadsPage() {
         <LeadsPageContent />
     )
 }
-
-    

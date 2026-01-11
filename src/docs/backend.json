@@ -83,6 +83,11 @@
         "ownerName": {
           "type": "string",
           "description": "The name of the user who owns the lead."
+        },
+        "appointmentDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The scheduled date and time for the appointment when the lead's stage is 'Citado'."
         }
       },
       "required": [

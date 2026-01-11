@@ -35,6 +35,7 @@ export type Lead = {
   createdAt: Timestamp | Date | string;
   language: 'English' | 'Spanish';
   lastActivity?: Timestamp | Date | string;
+  appointmentDate?: Timestamp | Date | string;
 };
 
 export type Article = {
