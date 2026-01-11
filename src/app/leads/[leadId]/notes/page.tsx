@@ -57,8 +57,8 @@ const getColorForType = (type: NoteEntry['type']) => {
 
 const InfoCard = ({ label, value, children }: {label: string, value: string | React.ReactNode, children?: React.ReactNode}) => (
     <div className="bg-slate-50 p-3 rounded-lg">
-        <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">{label}</p>
-        <div className="text-sm font-bold text-slate-800">{value}</div>
+        <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">{label}</p>
+        <div className="text-base font-bold text-slate-800">{value}</div>
         {children}
     </div>
 );
@@ -245,12 +245,12 @@ export default function LeadDetailsPage() {
            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             <div className="lg:col-span-1 space-y-4">
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="text-center">
                         <CardTitle>Lead Information</CardTitle>
                     </CardHeader>
                     <CardContent className="grid grid-cols-2 gap-3">
                        <div className="col-span-2"><InfoCard label="Name" value={lead.name} /></div>
-                       <InfoCard label="Phone" value={lead.phone} />
+                       <InfoCard label="Phone" value={lead.phone || 'N/A'} />
                        <InfoCard label="Channel" value={<Badge variant="outline">{lead.channel}</Badge>} />
                        <InfoCard label="Stage" value={<Badge variant={lead.stage === 'Ganado' ? 'default' : 'secondary'}>{lead.stage}</Badge>} />
                        <InfoCard label="Owner" value={lead.ownerName} />
