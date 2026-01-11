@@ -14,7 +14,6 @@ import {
   UserCircle2,
   TrendingUp,
   CheckSquare,
-  Calendar,
 } from "lucide-react";
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -32,7 +31,6 @@ import { Notifications } from "./notifications";
 const navItems: NavItemType[] = [
   { href: "/", title: "Dashboard", icon: LayoutDashboard, role: ["Admin", "Supervisor"] },
   { href: "/leads", title: "Leads / CRM", icon: PhoneCall, role: ["Admin", "Supervisor", "Broker"] },
-  { href: "/calendar", title: "Citas", icon: Calendar, role: ["Admin", "Supervisor", "Broker"] },
   { href: "/todos", title: "Daily To-Do", icon: CheckSquare, role: ["Admin", "Supervisor", "Broker"] },
   { href: "/kpi", title: "KPI's & Performance", icon: TrendingUp, role: ["Admin", "Supervisor", "Broker"] },
   { href: "/knowledge", title: "Knowledge Base", icon: BookOpen, role: ["Admin", "Supervisor", "Broker"] },
@@ -162,14 +160,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // Hide date filter on specific pages and on any sub-path of /leads/
   const isDetailPage = pathname.startsWith('/leads/') && pathname.split('/').length > 2;
-  const showDateFilter = (user.role === 'Admin' || user.role === 'Supervisor') && !pathname.startsWith('/kpi') && !pathname.startsWith('/staff') && !pathname.startsWith('/knowledge') && !pathname.startsWith('/todos') && !pathname.startsWith('/calendar') && !isDetailPage;
+  const showDateFilter = (user.role === 'Admin' || user.role === 'Supervisor') && !pathname.startsWith('/kpi') && !pathname.startsWith('/staff') && !pathname.startsWith('/knowledge') && !pathname.startsWith('/todos') && !isDetailPage;
 
 
   const getPageTitle = () => {
     if (pathname === '/kpi') return 'Daily Goals';
     if (pathname === '/') return 'Dashboard';
     const currentPath = pathname.split('/')[1];
-    if (currentPath === 'calendar') return 'Citas'; // Specific case for calendar
     const currentNavItem = navItems.find(item => item.href === `/${currentPath}`);
     if (currentNavItem) return currentNavItem.title;
     if (pathname.includes('/leads/')) return 'Lead Details';
