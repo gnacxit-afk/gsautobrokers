@@ -2,7 +2,7 @@
 "use client";
 
 import type { ColumnDef, Row } from "@tanstack/react-table";
-import { MoreHorizontal, Trash2, Users, ChevronsUpDown, FileText, Bot } from "lucide-react";
+import { MoreHorizontal, Trash2, Users, ChevronsUpDown, FileText, Bot, Calendar } from "lucide-react";
 import { format, isValid } from "date-fns";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
@@ -64,7 +64,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
     <>
       <div className="flex items-center gap-2 justify-end">
         <Button variant="outline" size="sm" onClick={() => router.push(`/leads/${lead.id}/notes`)}>
-          View
+          Details
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -79,6 +79,11 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
             <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/notes`)}>
                 <FileText className="mr-2 h-4 w-4" />
                 <span>Details / Notes</span>
+            </DropdownMenuItem>
+
+             <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/notes`)}>
+                <Calendar className="mr-2 h-4 w-4" />
+                <span>Schedule Appointment</span>
             </DropdownMenuItem>
 
             <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/analysis`)}>

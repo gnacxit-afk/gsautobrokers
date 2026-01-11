@@ -109,8 +109,9 @@ function LeadsPageContent() {
     const [globalFilter, setGlobalFilter] = useState('');
     const [expanded, setExpanded] = useState({});
     
-    const [isAppointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
-    const [leadForAppointment, setLeadForAppointment] = useState<Lead | null>(null);
+    // This state is no longer needed here as the dialog will be opened from the details page.
+    // const [isAppointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
+    // const [leadForAppointment, setLeadForAppointment] = useState<Lead | null>(null);
 
 
     // Stabilize the query object with useMemo.
@@ -184,11 +185,8 @@ function LeadsPageContent() {
 
             toast({ title: "Stage Updated", description: `Lead stage changed to ${newStage}.` });
             
-            // Trigger appointment dialog
-            if (newStage === 'Citado' || newStage === 'En Seguimiento') {
-                setLeadForAppointment(lead);
-                setAppointmentDialogOpen(true);
-            }
+            // REMOVED: Automatic dialog trigger is removed for better user control.
+            // The user will now schedule from the lead details page.
 
         } catch (error) {
              console.error("Error updating stage:", error);
@@ -355,13 +353,7 @@ function LeadsPageContent() {
                 clearAllFilters={clearAllFilters}
                 loading={leadsLoading || staffLoading}
             />
-            <AppointmentDialog
-                open={isAppointmentDialogOpen}
-                onOpenChange={setAppointmentDialogOpen}
-                selectedDate={new Date()}
-                leads={leadForAppointment ? [leadForAppointment] : []}
-                preselectedLead={leadForAppointment}
-            />
+            {/* The dialog is no longer managed here. It will be managed on the details page. */}
         </main>
     );
 }

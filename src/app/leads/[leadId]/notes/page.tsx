@@ -12,7 +12,7 @@ import type { Lead, NoteEntry, Staff } from "@/lib/types";
 import { collection, orderBy, query, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, User, Edit, ArrowLeft, MoreHorizontal, Users, ChevronsUpDown, Trash2, Edit2, Save, X } from "lucide-react";
+import { Bot, User, Edit, ArrowLeft, MoreHorizontal, Users, ChevronsUpDown, Trash2, Edit2, Save, X, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -34,6 +34,7 @@ import { useAuthContext } from "@/lib/auth";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { addNoteEntry as addNoteEntryUtil } from '@/lib/utils';
+import { AppointmentDialog } from "@/components/dialogs/appointment-dialog";
 
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
@@ -69,6 +70,7 @@ export default function LeadDetailsPage() {
   
   const [isEditing, setIsEditing] = useState(false);
   const [draftData, setDraftData] = useState<{name: string, phone: string}>({ name: '', phone: '' });
+  const [isAppointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
 
   const firestore = useFirestore();
   const { user } = useUser();
@@ -242,6 +244,9 @@ export default function LeadDetailsPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Lead Actions</DropdownMenuLabel>
+                     <DropdownMenuItem onSelect={() => setAppointmentDialogOpen(true)}>
+                        <Calendar className="mr-2 h-4 w-4" /> Schedule Appointment
+                    </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/analysis`)}>
                         <Bot className="mr-2 h-4 w-4" /> AI Lead Analysis
                     </DropdownMenuItem>
@@ -292,115 +297,124 @@ export default function LeadDetailsPage() {
         ) : !lead ? (
             <p>Lead not found.</p>
         ) : (
-           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-            <div className="lg:col-span-1 space-y-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle>Lead Information</CardTitle>
-                        {isEditing ? (
-                          <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleEditToggle}>
-                              <X size={16}/>
-                            </Button>
-                            <Button size="sm" onClick={handleSaveChanges}>
-                              <Save size={14} className="mr-2" /> Save
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button variant="outline" size="sm" onClick={handleEditToggle}>
-                            <Edit2 size={14} className="mr-2" /> Edit
-                          </Button>
-                        )}
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label>Name</Label>
+           <>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                <div className="lg:col-span-1 space-y-4">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle>Lead Information</CardTitle>
                             {isEditing ? (
-                                <Input id="name" value={draftData.name} onChange={handleDraftChange} />
+                            <div className="flex items-center gap-2">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleEditToggle}>
+                                <X size={16}/>
+                                </Button>
+                                <Button size="sm" onClick={handleSaveChanges}>
+                                <Save size={14} className="mr-2" /> Save
+                                </Button>
+                            </div>
                             ) : (
-                                <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.name}</Badge>
-                            )}
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Phone</Label>
-                             {isEditing ? (
-                                <Input id="phone" value={draftData.phone} onChange={handleDraftChange} />
-                            ) : (
-                                <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.phone || 'N/A'}</Badge>
-                            )}
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Channel</Label>
-                            <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.channel}</Badge>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Stage</Label>
-                            <Badge variant={lead.stage === 'Ganado' ? 'default' : 'outline'} className={cn("text-base py-1 w-full justify-start", {
-                                "bg-primary text-primary-foreground": lead.stage === 'Ganado',
-                                "text-primary border-primary/50 bg-primary/10": lead.stage !== 'Ganado'
-                            })}>
-                                {lead.stage}
-                            </Badge>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Owner</Label>
-                            <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.ownerName}</Badge>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-            <div className="lg:col-span-2">
-                 <Card className="flex flex-col flex-1 max-h-[calc(100vh-14rem)]">
-                    <CardHeader>
-                        <CardTitle>Notes & History</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex flex-col flex-1">
-                        <ScrollArea className="flex-1 pr-4 -mr-4 mb-4" ref={scrollAreaRef}>
-                             <div className="space-y-6">
-                                {notesLoading ? (
-                                    <>
-                                     <Skeleton className="h-16 w-full" />
-                                     <Skeleton className="h-16 w-full" />
-                                    </>
-                                ) : noteHistory && noteHistory.length > 0 ? (
-                                    noteHistory.map(note => (
-                                        <div key={note.id} className="flex items-start gap-4">
-                                            <div className={cn("flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center", getColorForType(note.type))}>
-                                                {getIconForType(note.type)}
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="flex items-center justify-between">
-                                                    <p className="font-bold text-sm text-slate-800">{note.author}</p>
-                                                    <p className="text-xs text-slate-400">
-                                                        {format((note.date as any)?.toDate ? (note.date as any).toDate() : new Date(note.date as string), 'MMM d, yyyy h:mm a')}
-                                                    </p>
-                                                </div>
-                                                <p className="text-sm text-slate-600">{note.content}</p>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                     <div className="text-center py-10 text-slate-500 h-full flex items-center justify-center">
-                                        <p>No notes or history for this lead yet.</p>
-                                    </div>
-                                )}
-                             </div>
-                        </ScrollArea>
-                        <div className="mt-auto pt-4 border-t">
-                             <Textarea
-                                placeholder="Add a new note..."
-                                value={newNote}
-                                onChange={(e) => setNewNote(e.target.value)}
-                                className="mb-2"
-                            />
-                            <Button onClick={handleSaveNote} className="w-full" disabled={!newNote.trim()}>
-                                Save Note
+                            <Button variant="outline" size="sm" onClick={handleEditToggle}>
+                                <Edit2 size={14} className="mr-2" /> Edit
                             </Button>
-                        </div>
-                    </CardContent>
-                </Card>
+                            )}
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label>Name</Label>
+                                {isEditing ? (
+                                    <Input id="name" value={draftData.name} onChange={handleDraftChange} />
+                                ) : (
+                                    <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.name}</Badge>
+                                )}
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Phone</Label>
+                                {isEditing ? (
+                                    <Input id="phone" value={draftData.phone} onChange={handleDraftChange} />
+                                ) : (
+                                    <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.phone || 'N/A'}</Badge>
+                                )}
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Channel</Label>
+                                <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.channel}</Badge>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Stage</Label>
+                                <Badge variant={lead.stage === 'Ganado' ? 'default' : 'outline'} className={cn("text-base py-1 w-full justify-start", {
+                                    "bg-primary text-primary-foreground": lead.stage === 'Ganado',
+                                    "text-primary border-primary/50 bg-primary/10": lead.stage !== 'Ganado'
+                                })}>
+                                    {lead.stage}
+                                </Badge>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Owner</Label>
+                                <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.ownerName}</Badge>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+                <div className="lg:col-span-2">
+                    <Card className="flex flex-col flex-1 max-h-[calc(100vh-14rem)]">
+                        <CardHeader>
+                            <CardTitle>Notes & History</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex flex-col flex-1">
+                            <ScrollArea className="flex-1 pr-4 -mr-4 mb-4" ref={scrollAreaRef}>
+                                <div className="space-y-6">
+                                    {notesLoading ? (
+                                        <>
+                                        <Skeleton className="h-16 w-full" />
+                                        <Skeleton className="h-16 w-full" />
+                                        </>
+                                    ) : noteHistory && noteHistory.length > 0 ? (
+                                        noteHistory.map(note => (
+                                            <div key={note.id} className="flex items-start gap-4">
+                                                <div className={cn("flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center", getColorForType(note.type))}>
+                                                    {getIconForType(note.type)}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="flex items-center justify-between">
+                                                        <p className="font-bold text-sm text-slate-800">{note.author}</p>
+                                                        <p className="text-xs text-slate-400">
+                                                            {format((note.date as any)?.toDate ? (note.date as any).toDate() : new Date(note.date as string), 'MMM d, yyyy h:mm a')}
+                                                        </p>
+                                                    </div>
+                                                    <p className="text-sm text-slate-600">{note.content}</p>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center py-10 text-slate-500 h-full flex items-center justify-center">
+                                            <p>No notes or history for this lead yet.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </ScrollArea>
+                            <div className="mt-auto pt-4 border-t">
+                                <Textarea
+                                    placeholder="Add a new note..."
+                                    value={newNote}
+                                    onChange={(e) => setNewNote(e.target.value)}
+                                    className="mb-2"
+                                />
+                                <Button onClick={handleSaveNote} className="w-full" disabled={!newNote.trim()}>
+                                    Save Note
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
-           </div>
+            <AppointmentDialog
+                open={isAppointmentDialogOpen}
+                onOpenChange={setAppointmentDialogOpen}
+                selectedDate={new Date()} // Defaults to today, user can change in dialog
+                leads={[]} // Not needed when preselecting
+                preselectedLead={lead}
+            />
+           </>
         )}
     </main>
   );
