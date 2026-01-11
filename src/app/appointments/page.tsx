@@ -4,9 +4,9 @@
 import { useState, useMemo } from 'react';
 import type { Appointment, Lead, Staff } from '@/lib/types';
 import { useFirestore, useUser, useCollection } from '@/firebase';
-import { collection, query, where, orderBy, addDoc, serverTimestamp, updateDoc, doc, type Query, type DocumentData, type QueryConstraint } from 'firebase/firestore';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { format, addMinutes } from 'date-fns';
+import { collection, query, where, orderBy, addDoc, serverTimestamp, updateDoc, doc, type Query, type DocumentData, type QueryConstraint, endAt, startAt } from 'firebase/firestore';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { format, addMinutes, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/lib/auth';
@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AppointmentsPage() {
   const { user } = useAuthContext();
@@ -31,6 +32,12 @@ export default function AppointmentsPage() {
   const [appointmentDate, setAppointmentDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [appointmentTime, setAppointmentTime] = useState('09:00');
   const [isSaving, setIsSaving] = useState(false);
+  
+  // State for filters
+  const [filterOwnerId, setFilterOwnerId] = useState('all');
+  const [filterStartDate, setFilterStartDate] = useState(format(startOfDay(new Date()), 'yyyy-MM-dd'));
+  const [filterEndDate, setFilterEndDate] = useState(format(endOfDay(new Date()), 'yyyy-MM-dd'));
+
 
   // Queries for existing data
   const staffQuery = useMemo(() => {
@@ -42,9 +49,21 @@ export default function AppointmentsPage() {
   const appointmentsQuery = useMemo(() => {
     if (!firestore || !user || !allStaff) return null;
 
-    let constraints: QueryConstraint[] = [orderBy('startTime')];
+    const startDate = new Date(filterStartDate + 'T00:00:00');
+    const endDate = new Date(filterEndDate + 'T23:59:59');
+
+    let constraints: QueryConstraint[] = [
+        orderBy('startTime'),
+        startAt(startDate),
+        endAt(endDate),
+    ];
     
-    if (user.role === 'Broker') {
+    // Filter by specific owner if selected
+    if (filterOwnerId !== 'all') {
+        constraints.push(where('ownerId', '==', filterOwnerId));
+    }
+    // Role-based filtering if no specific owner is selected
+    else if (user.role === 'Broker') {
         constraints.push(where('ownerId', '==', user.id));
     } else if (user.role === 'Supervisor') {
         const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
@@ -57,7 +76,7 @@ export default function AppointmentsPage() {
     }
 
     return query(collection(firestore, 'appointments'), ...constraints);
-  }, [firestore, user, allStaff]);
+  }, [firestore, user, allStaff, filterOwnerId, filterStartDate, filterEndDate]);
 
   const leadsQuery = useMemo(() => {
     if (!firestore) return null;
@@ -66,12 +85,6 @@ export default function AppointmentsPage() {
 
   const { data: appointments, loading: appointmentsLoading } = useCollection<Appointment>(appointmentsQuery as Query<DocumentData> | null);
   const { data: leads, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
-
-  const upcomingAppointments = useMemo(() => {
-    if (!appointments) return [];
-    const now = new Date();
-    return appointments.filter(apt => apt.startTime.toDate() >= now);
-  }, [appointments]);
   
   const ownersMap = useMemo(() => {
       if (!allStaff) return new Map();
@@ -91,8 +104,8 @@ export default function AppointmentsPage() {
     setIsSaving(true);
     
     const [hours, minutes] = appointmentTime.split(':').map(Number);
-    const finalDateTime = new Date(appointmentDate);
-    finalDateTime.setUTCHours(hours, minutes);
+    const finalDateTime = new Date(appointmentDate + 'T00:00:00');
+    finalDateTime.setHours(hours, minutes);
 
     try {
       const appointmentsCollection = collection(firestore, 'appointments');
@@ -136,8 +149,8 @@ export default function AppointmentsPage() {
     }
   };
 
-
   const loading = appointmentsLoading || staffLoading || leadsLoading;
+  const selectableStaff = allStaff?.filter(s => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin') || [];
 
   return (
     <main className="flex-1 space-y-6">
@@ -155,10 +168,6 @@ export default function AppointmentsPage() {
                 <Label htmlFor="lead-select">Lead</Label>
                   <Select
                     onValueChange={(leadId) => {
-                      if (!leadId) {
-                        setSelectedLead(null);
-                        return;
-                      }
                       const lead = leads?.find(l => l.id === leadId);
                       setSelectedLead(lead || null);
                     }}
@@ -168,18 +177,15 @@ export default function AppointmentsPage() {
                     <SelectValue placeholder="Select a lead" />
                   </SelectTrigger>
                   <SelectContent>
-                    {(leads || []).map((lead) => (
-                      <SelectItem key={lead.id} value={lead.id}>
-                        {lead.name}
-                      </SelectItem>
-                    ))}
+                    {leadsLoading ? <div className="p-4 text-center text-sm">Loading leads...</div> :
+                      (leads || []).map((lead) => (
+                        <SelectItem key={lead.id} value={lead.id}>
+                          {lead.name}
+                        </SelectItem>
+                      ))
+                    }
                   </SelectContent>
                 </Select>
-                {selectedLead && (
-                    <div className="mt-2 text-sm font-semibold text-primary p-2 bg-primary/10 rounded-md">
-                        Selected: {selectedLead.name}
-                    </div>
-                )}
               </div>
                <div className="md:col-span-2 grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -210,7 +216,49 @@ export default function AppointmentsPage() {
             </div>
         </CardContent>
       </Card>
-
+      
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle>Filters</CardTitle>
+          <CardDescription>Filter upcoming appointments by date range and owner.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+           {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
+            <div className="space-y-2">
+              <Label htmlFor="owner-filter">Owner</Label>
+              <Select onValueChange={setFilterOwnerId} value={filterOwnerId}>
+                <SelectTrigger id="owner-filter">
+                  <SelectValue placeholder="Filter by Owner" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  {selectableStaff.map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className="space-y-2">
+            <Label htmlFor="start-date-filter">Start Date</Label>
+            <Input
+              id="start-date-filter"
+              type="date"
+              value={filterStartDate}
+              onChange={(e) => setFilterStartDate(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="end-date-filter">End Date</Label>
+            <Input
+              id="end-date-filter"
+              type="date"
+              value={filterEndDate}
+              onChange={(e) => setFilterEndDate(e.target.value)}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 gap-8 items-start">
         <Card className="shadow-sm">
@@ -221,10 +269,14 @@ export default function AppointmentsPage() {
           </CardHeader>
           <CardContent>
             {loading ? (
-                <p>Loading...</p>
-            ) : upcomingAppointments.length > 0 ? (
                 <div className="space-y-4">
-                    {upcomingAppointments.map(apt => (
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                </div>
+            ) : appointments && appointments.length > 0 ? (
+                <div className="space-y-4">
+                    {appointments.map(apt => (
                         <div key={apt.id} className="p-4 border rounded-lg bg-slate-50">
                             <div className="flex justify-between items-start">
                                 <div>
@@ -244,7 +296,7 @@ export default function AppointmentsPage() {
                 </div>
             ) : (
                 <p className="text-muted-foreground text-center p-8">
-                    No upcoming appointments scheduled.
+                    No appointments found for the selected filters.
                 </p>
             )}
           </CardContent>

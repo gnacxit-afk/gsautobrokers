@@ -162,7 +162,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // Hide date filter on specific pages and on any sub-path of /leads/
   const isDetailPage = pathname.startsWith('/leads/') && pathname.split('/').length > 2;
-  const showDateFilter = (user.role === 'Admin' || user.role === 'Supervisor') && !pathname.startsWith('/kpi') && !pathname.startsWith('/staff') && !pathname.startsWith('/knowledge') && !pathname.startsWith('/todos') && !isDetailPage;
+  const pagesToExcludeFilter = ['/kpi', '/staff', '/knowledge', '/todos', '/appointments'];
+  const showDateFilter = (user.role === 'Admin' || user.role === 'Supervisor') && !pagesToExcludeFilter.some(p => pathname.startsWith(p)) && !isDetailPage;
 
 
   const getPageTitle = () => {
