@@ -127,6 +127,8 @@ export function AppointmentCalendar({ appointments, allStaff, leadToOpen }: { ap
         if (!appointmentDate) return;
         
         const date = (appointmentDate as any).toDate ? (appointmentDate as any).toDate() : new Date(appointmentDate as string);
+        if (!isValid(date)) return;
+        
         const dateKey = format(date, 'yyyy-MM-dd');
         
         if (!byDate[dateKey]) byDate[dateKey] = [];
@@ -208,31 +210,38 @@ export function AppointmentCalendar({ appointments, allStaff, leadToOpen }: { ap
                         onMonthChange={setCurrentMonth}
                         className="p-0"
                         modifiers={{
-                            hasAppointment: (date) => !!(date && appointmentsByDate[format(date, 'yyyy-MM-dd')]?.length > 0),
+                            hasAppointment: (date) => {
+                                if (!isValid(date)) return false;
+                                return appointmentsByDate[format(date, 'yyyy-MM-dd')]?.length > 0;
+                            }
                         }}
                         modifiersClassNames={{
                             hasAppointment: 'relative',
                         }}
                         components={{
                             Day: (props) => {
-                                if (!props.date || !isValid(props.date)) return null;
+                                if (!props.date || !isValid(props.date)) return <div className={cn(buttonVariants({ variant: "ghost" }), "h-9 w-9 p-0 font-normal invisible")} />;
                                 const hasAppointment = appointmentsByDate[format(props.date, 'yyyy-MM-dd')]?.length > 0;
-                                const isSelected = props.selected;
-                                const isTodayDate = isToday(props.date);
-                                
+                                const isSelected = isSameDay(props.date, selectedDay);
+
                                 return (
-                                    <div 
-                                        className={cn("relative w-full h-full flex items-center justify-center rounded-md",
-                                           {"bg-primary text-primary-foreground": isSelected},
-                                           {"border-2 border-primary": isTodayDate && !isSelected}
-                                        )}
-                                        onClick={() => props.onClick?.(props.date, { selected: true }, new MouseEvent('click'))}
-                                        role="gridcell"
-                                        aria-selected={isSelected}
-                                    >
-                                        <time dateTime={format(props.date, 'yyyy-MM-dd')}>{format(props.date, 'd')}</time>
-                                        {hasAppointment && !isSelected && <span className="absolute bottom-1.5 h-1.5 w-1.5 rounded-full bg-blue-500"></span>}
-                                        {hasAppointment && isSelected && <span className="absolute bottom-1.5 h-1.5 w-1.5 rounded-full bg-white"></span>}
+                                    <div className="relative h-full w-full">
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedDay(props.date)}
+                                            className={cn(
+                                                buttonVariants({ variant: "ghost" }),
+                                                "h-9 w-9 p-0 font-normal",
+                                                {
+                                                    "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground": isSelected,
+                                                    "text-muted-foreground opacity-50": props.outside,
+                                                    "bg-accent text-accent-foreground": isToday(props.date) && !isSelected,
+                                                }
+                                            )}
+                                        >
+                                            {format(props.date, 'd')}
+                                        </button>
+                                        {hasAppointment && <span className={cn("absolute bottom-1 left-1/2 -translate-x-1/2 h-1.5 w-1.5 rounded-full", isSelected ? "bg-white" : "bg-blue-500")}></span>}
                                     </div>
                                 )
                             }
