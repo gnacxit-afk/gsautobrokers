@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
@@ -252,15 +251,15 @@ export default function LeadDetailsPage() {
                         </div>
                         <div className="space-y-1">
                             <Label>Channel</Label>
-                             <p className="text-base font-medium"><Badge variant="outline">{lead.channel}</Badge></p>
+                             <div className="text-base font-medium"><Badge variant="outline">{lead.channel}</Badge></div>
                         </div>
                         <div className="space-y-1">
                             <Label>Stage</Label>
-                             <p className="text-base font-medium">
+                             <div className="text-base font-medium">
                                 <Badge variant={lead.stage === 'Ganado' ? 'default' : 'secondary'}>
                                     {lead.stage}
                                 </Badge>
-                             </p>
+                             </div>
                         </div>
                         <div className="space-y-1">
                             <Label>Owner</Label>
