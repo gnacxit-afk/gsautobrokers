@@ -4,7 +4,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
-import type { Lead, Staff, Notification, Appointment } from "@/lib/types";
+import type { Lead, Staff, Notification } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
 import { useFirestore, useUser, useCollection } from '@/firebase';
 import { useRouter } from "next/navigation";
@@ -22,8 +22,6 @@ import {
 import { collection, query, orderBy, updateDoc, doc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { isWithinInterval, isValid } from "date-fns";
-import { AppointmentDialog } from "@/app/calendar/components/appointment-dialog";
-import { Button } from "@/components/ui/button";
 
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
@@ -109,8 +107,6 @@ function LeadsPageContent() {
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [globalFilter, setGlobalFilter] = useState('');
     const [expanded, setExpanded] = useState({});
-    const [editingAppointmentLead, setEditingAppointmentLead] = useState<Lead | null>(null);
-
 
     // Stabilize the query object with useMemo.
     const leadsQuery = useMemo(() => 
@@ -178,22 +174,8 @@ function LeadsPageContent() {
                     user.name
                 );
             }
-            
-            if (newStage === 'Citado') {
-                const leadToEdit = data.find(l => l.id === leadId);
-                toast({
-                    title: "Stage Updated to 'Citado'",
-                    description: "You can now schedule the appointment.",
-                    action: (
-                        <Button variant="secondary" size="sm" onClick={() => leadToEdit && setEditingAppointmentLead(leadToEdit)}>
-                          Schedule Now
-                        </Button>
-                    )
-                });
-            } else {
-                 toast({ title: "Stage Updated", description: `Lead stage changed to ${newStage}.` });
-            }
 
+            toast({ title: "Stage Updated", description: `Lead stage changed to ${newStage}.` });
         } catch (error) {
              console.error("Error updating stage:", error);
              toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
@@ -227,7 +209,6 @@ function LeadsPageContent() {
             ...leadData,
             createdAt: serverTimestamp(),
             ownerName: owner.name,
-            appointment: null,
         };
 
         try {
@@ -304,11 +285,6 @@ function LeadsPageContent() {
 
     }, [firestore, user, staffData, toast, addNoteEntry, data]);
 
-    const handleAppointmentSave = () => {
-      // This is the callback from the dialog.
-      // We just need to close the dialog. The dialog itself handles the Firestore update.
-      setEditingAppointmentLead(null);
-    }
 
     const columns = useMemo(
         () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, staffData), 
@@ -354,28 +330,18 @@ function LeadsPageContent() {
     }, [table]);
 
     return (
-        <>
-            <main className="flex flex-1 flex-col gap-4">
-                <DataTable 
-                    table={table}
-                    columns={columns}
-                    onAddLead={handleAddLead}
-                    staff={staffData || []}
-                    stages={leadStages}
-                    channels={channels}
-                    clearAllFilters={clearAllFilters}
-                    loading={leadsLoading || staffLoading}
-                />
-            </main>
-             {editingAppointmentLead && (
-                <AppointmentDialog
-                    lead={editingAppointmentLead}
-                    open={!!editingAppointmentLead}
-                    onOpenChange={() => setEditingAppointmentLead(null)}
-                    onDateSet={handleAppointmentSave}
-                />
-            )}
-        </>
+        <main className="flex flex-1 flex-col gap-4">
+            <DataTable 
+                table={table}
+                columns={columns}
+                onAddLead={handleAddLead}
+                staff={staffData || []}
+                stages={leadStages}
+                channels={channels}
+                clearAllFilters={clearAllFilters}
+                loading={leadsLoading || staffLoading}
+            />
+        </main>
     );
 }
 
@@ -385,3 +351,5 @@ export default function LeadsPage() {
         <LeadsPageContent />
     )
 }
+
+    

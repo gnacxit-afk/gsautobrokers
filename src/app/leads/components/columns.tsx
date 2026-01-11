@@ -82,7 +82,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
                 <span>AI Lead Analysis</span>
             </DropdownMenuItem>
 
-            <DropdownMenuItem onSelect={() => router.push(`/calendar?leadId=${lead.id}`)}>
+            <DropdownMenuItem onSelect={() => alert('This will open the schedule/edit appointment UI.')}>
               <CalendarPlus className="mr-2 h-4 w-4" />
               <span>Schedule/Edit Appointment</span>
             </DropdownMenuItem>
@@ -153,27 +153,6 @@ export const getColumns = (
       return (
         <div>
           <div className="font-bold text-slate-800">{lead.name}</div>
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "appointment.date",
-    header: "Appointment",
-    cell: ({ row }) => {
-      const dateRaw = row.original.appointment?.date;
-      if (!dateRaw) return <span className="text-xs text-slate-400">Not Set</span>;
-
-      const date = (dateRaw as any).toDate ? (dateRaw as any).toDate() : new Date(dateRaw as string);
-      const time = row.original.appointment?.time;
-
-
-      if (!isValid(date)) return null;
-
-      return (
-        <div className="text-xs font-semibold text-slate-600">
-          <div>{format(date, 'MMM d, yyyy')}</div>
-          {time && <div className="text-blue-600">{time}</div>}
         </div>
       );
     },
@@ -264,3 +243,5 @@ export const getColumns = (
     },
   },
 ];
+
+    
