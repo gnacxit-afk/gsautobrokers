@@ -11,6 +11,7 @@ import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { AppointmentDialog } from '@/components/dialogs/appointment-dialog';
 import { useAuthContext } from '@/lib/auth';
+import { Plus } from 'lucide-react';
 
 export default function AppointmentsPage() {
   const { user } = useAuthContext();
@@ -71,10 +72,23 @@ export default function AppointmentsPage() {
     <main className="flex-1 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="font-semibold text-lg md:text-2xl">Appointments</h1>
-         <Button onClick={() => setIsDialogOpen(true)}>Book Appointment</Button>
       </div>
 
       <div className="grid grid-cols-1 gap-8 items-start">
+        <Card className="shadow-sm">
+           <CardHeader>
+             <CardTitle>
+                Book a New Appointment
+             </CardTitle>
+           </CardHeader>
+           <CardContent>
+                <Button onClick={() => setIsDialogOpen(true)} className="w-full md:w-auto">
+                    <Plus size={16} className="mr-2"/>
+                    Book Appointment
+                </Button>
+           </CardContent>
+        </Card>
+
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle>
