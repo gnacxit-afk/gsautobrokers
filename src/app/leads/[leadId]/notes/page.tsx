@@ -32,6 +32,7 @@ import {
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { useAuthContext } from "@/lib/auth";
+import { Label } from "@/components/ui/label";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 
@@ -54,14 +55,6 @@ const getColorForType = (type: NoteEntry['type']) => {
         default: return "bg-slate-100 text-slate-800";
     }
 }
-
-const InfoCard = ({ label, value, children }: {label: string, value: string | React.ReactNode, children?: React.ReactNode}) => (
-    <div className="bg-slate-50 p-3 rounded-lg">
-        <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">{label}</p>
-        <div className="text-base font-bold text-slate-800">{value}</div>
-        {children}
-    </div>
-);
 
 export default function LeadDetailsPage() {
   const [newNote, setNewNote] = useState("");
@@ -248,12 +241,31 @@ export default function LeadDetailsPage() {
                     <CardHeader className="text-center">
                         <CardTitle>Lead Information</CardTitle>
                     </CardHeader>
-                    <CardContent className="grid grid-cols-2 gap-3">
-                       <div className="col-span-2"><InfoCard label="Name" value={lead.name} /></div>
-                       <InfoCard label="Phone" value={lead.phone || 'N/A'} />
-                       <InfoCard label="Channel" value={<Badge variant="outline">{lead.channel}</Badge>} />
-                       <InfoCard label="Stage" value={<Badge variant={lead.stage === 'Ganado' ? 'default' : 'secondary'}>{lead.stage}</Badge>} />
-                       <InfoCard label="Owner" value={lead.ownerName} />
+                    <CardContent className="space-y-4">
+                        <div className="space-y-1">
+                            <Label>Name</Label>
+                            <p className="text-base font-medium">{lead.name}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <Label>Phone</Label>
+                             <p className="text-base font-medium">{lead.phone || 'N/A'}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <Label>Channel</Label>
+                             <p className="text-base font-medium"><Badge variant="outline">{lead.channel}</Badge></p>
+                        </div>
+                        <div className="space-y-1">
+                            <Label>Stage</Label>
+                             <p className="text-base font-medium">
+                                <Badge variant={lead.stage === 'Ganado' ? 'default' : 'secondary'}>
+                                    {lead.stage}
+                                </Badge>
+                             </p>
+                        </div>
+                        <div className="space-y-1">
+                            <Label>Owner</Label>
+                            <p className="text-base font-medium">{lead.ownerName}</p>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
