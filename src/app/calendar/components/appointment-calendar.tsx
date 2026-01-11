@@ -220,7 +220,7 @@ export function AppointmentCalendar({ appointments, allStaff, leadToOpen }: { ap
                         }}
                         components={{
                             Day: (props) => {
-                                if (!props.date || !isValid(props.date)) return <div className={cn(buttonVariants({ variant: "ghost" }), "h-9 w-9 p-0 font-normal invisible")} />;
+                                if (!props.date || !isValid(props.date)) return <td />;
                                 const hasAppointment = appointmentsByDate[format(props.date, 'yyyy-MM-dd')]?.length > 0;
                                 const isSelected = isSameDay(props.date, selectedDay);
 
