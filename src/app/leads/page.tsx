@@ -4,7 +4,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { getColumns } from "./components/columns";
 import { DataTable } from "./components/data-table";
-import type { Lead, Staff, Notification } from "@/lib/types";
+import type { Lead, Staff, Notification, Appointment } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
 import { useFirestore, useUser, useCollection } from '@/firebase';
 import { useRouter } from "next/navigation";
@@ -22,6 +22,7 @@ import {
 import { collection, query, orderBy, updateDoc, doc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { isWithinInterval, isValid } from "date-fns";
+import { AppointmentDialog } from "@/app/calendar/components/appointment-dialog";
 
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
@@ -102,11 +103,13 @@ function LeadsPageContent() {
     const { dateRange } = useDateRange();
     const router = useRouter();
     
-    const [sorting, setSorting] = useState<SortingState>([]);
+    const [sorting, setSorting] = useState<SortingState>([ { id: 'createdAt', desc: true }]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 100 });
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [globalFilter, setGlobalFilter] = useState('');
     const [expanded, setExpanded] = useState({});
+    const [editingAppointmentLead, setEditingAppointmentLead] = useState<Lead | null>(null);
+
 
     // Stabilize the query object with useMemo.
     const leadsQuery = useMemo(() => 
@@ -153,28 +156,24 @@ function LeadsPageContent() {
 
     }, [firestore, user]);
 
-    const handleUpdateStage = useCallback(async (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage'], appointmentDate: Date | null = null) => {
+    const handleUpdateStage = useCallback(async (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage']) => {
         if (!firestore || !user) return;
         const leadRef = doc(firestore, 'leads', leadId);
         
         try {
-            const updateData: { stage: Lead['stage'], appointmentDate?: Date | null } = { stage: newStage };
-            if (newStage === 'Citado') {
-                updateData.appointmentDate = appointmentDate; // Can be null
-            } else {
-                 // If moving away from 'Citado', clear the date.
-                 updateData.appointmentDate = null;
+            const updateData: { stage: Lead['stage'], appointment?: Appointment | null } = { stage: newStage };
+            
+            // If moving away from 'Citado', clear the appointment.
+            if (oldStage === 'Citado' && newStage !== 'Citado') {
+                updateData.appointment = null;
             }
-
+            
             await updateDoc(leadRef, updateData);
-
+            
             let noteContent = `Stage changed from '${oldStage}' to '${newStage}' by ${user.name}.`;
-            if(appointmentDate) {
-                noteContent += ` Appointment set for ${format(appointmentDate, 'PPP')}.`;
-            }
             await addNoteEntry(leadId, noteContent, 'Stage Change');
             
-            // Create notification for the lead owner
+             // Create notification for the lead owner
             const lead = data.find(l => l.id === leadId);
             if (lead && lead.ownerId !== user.id) {
                 await createNotification(
@@ -185,6 +184,22 @@ function LeadsPageContent() {
                     user.name
                 );
             }
+            
+            if (newStage === 'Citado') {
+                const leadToEdit = data.find(l => l.id === leadId);
+                toast({
+                    title: "Stage Updated to 'Citado'",
+                    description: "You can now schedule the appointment.",
+                    action: (
+                        <Button variant="secondary" size="sm" onClick={() => leadToEdit && setEditingAppointmentLead(leadToEdit)}>
+                          Schedule Now
+                        </Button>
+                    )
+                });
+            } else {
+                 toast({ title: "Stage Updated", description: `Lead stage changed to ${newStage}.` });
+            }
+
         } catch (error) {
              console.error("Error updating stage:", error);
              toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
@@ -218,7 +233,7 @@ function LeadsPageContent() {
             ...leadData,
             createdAt: serverTimestamp(),
             ownerName: owner.name,
-            appointmentDate: null,
+            appointment: null,
         };
 
         try {
@@ -352,6 +367,14 @@ function LeadsPageContent() {
                     loading={leadsLoading || staffLoading}
                 />
             </main>
+             {editingAppointmentLead && (
+                <AppointmentDialog
+                    lead={editingAppointmentLead}
+                    open={!!editingAppointmentLead}
+                    onOpenChange={() => setEditingAppointmentLead(null)}
+                    onDateSet={() => setEditingAppointmentLead(null)}
+                />
+            )}
         </>
     );
 }

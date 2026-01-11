@@ -22,6 +22,12 @@ export type NoteEntry = {
   type: 'Manual' | 'Stage Change' | 'Owner Change' | 'System' | 'AI Analysis';
 }
 
+export type Appointment = {
+  date: Timestamp | null;
+  time?: string | null;
+  confirmed?: boolean;
+}
+
 export type Lead = {
   id: string;
   name: string;
@@ -35,7 +41,7 @@ export type Lead = {
   createdAt: Timestamp | Date | string;
   language: 'English' | 'Spanish';
   lastActivity?: Timestamp | Date | string;
-  appointmentDate?: Timestamp | null;
+  appointment?: Appointment;
 };
 
 export type Article = {

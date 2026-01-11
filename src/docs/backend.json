@@ -84,10 +84,24 @@
           "type": "string",
           "description": "The name of the user who owns the lead."
         },
-        "appointmentDate": {
-          "type": ["string", "null"],
-          "format": "date-time",
-          "description": "The scheduled date and time for the appointment. Optional and nullable."
+        "appointment": {
+          "type": "object",
+          "description": "Stores details about a scheduled appointment. This whole object is optional.",
+          "properties": {
+            "date": {
+              "type": ["string", "null"],
+              "format": "date-time",
+              "description": "The scheduled date for the appointment."
+            },
+            "time": {
+              "type": ["string", "null"],
+              "description": "The scheduled time for the appointment (e.g., '14:30')."
+            },
+            "confirmed": {
+              "type": "boolean",
+              "description": "Indicates if the appointment has been confirmed by the lead."
+            }
+          }
         }
       },
       "required": [

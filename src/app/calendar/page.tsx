@@ -8,38 +8,36 @@ import { useCollection, useFirestore } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { AppointmentCalendar } from './components/appointment-calendar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useSearchParams } from 'next/navigation';
 
 export default function CalendarPage() {
   const { user } = useAuthContext();
   const firestore = useFirestore();
+  const searchParams = useSearchParams();
+  const leadIdToOpen = searchParams.get('leadId');
 
   const leadsQuery = useMemo(() => {
-    if (!firestore || !user) return null;
+    if (!firestore) return null;
     
+    // We fetch all leads with an appointment date, and filter by role on the client
+    // This simplifies the query and allows supervisors to see their team's leads
     let q = query(
       collection(firestore, 'leads'),
-      where('stage', '==', 'Citado'),
-      where('appointmentDate', '!=', null)
+      where('appointment.date', '!=', null)
     );
     
-    // Brokers only see their own leads. Supervisors and Admins see more.
-    if (user.role === 'Broker') {
-      q = query(q, where('ownerId', '==', user.id));
-    }
-    
     return q;
-  }, [firestore, user]);
+  }, [firestore]);
 
   const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
 
   const { data: leads, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
   const { data: staff, loading: staffLoading } = useCollection<Staff>(staffQuery);
 
-  // For supervisors, we need to fetch their team members to filter leads client-side
   const visibleLeads = useMemo(() => {
     if (!user || !leads || !staff) return [];
 
-    if (user.role === 'Admin' || user.role === 'Broker') {
+    if (user.role === 'Admin') {
         return leads;
     }
 
@@ -48,11 +46,22 @@ export default function CalendarPage() {
         const visibleIds = [user.id, ...teamIds];
         return leads.filter(lead => visibleIds.includes(lead.ownerId));
     }
+    
+    if (user.role === 'Broker') {
+        return leads.filter(lead => lead.ownerId === user.id);
+    }
 
     return [];
   }, [user, leads, staff]);
   
   const loading = leadsLoading || staffLoading;
+  
+  const leadToAutoOpen = useMemo(() => {
+    if (leadIdToOpen && !loading) {
+      return leads?.find(lead => lead.id === leadIdToOpen) || null;
+    }
+    return null;
+  }, [leadIdToOpen, leads, loading]);
 
   if (loading) {
       return (
@@ -71,7 +80,11 @@ export default function CalendarPage() {
           View and manage scheduled appointments.
         </p>
       </div>
-      <AppointmentCalendar appointments={visibleLeads} allStaff={staff || []} />
+      <AppointmentCalendar 
+        appointments={visibleLeads} 
+        allStaff={staff || []}
+        leadToOpen={leadToAutoOpen}
+      />
     </main>
   );
 }

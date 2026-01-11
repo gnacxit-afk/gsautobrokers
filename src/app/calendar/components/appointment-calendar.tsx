@@ -1,20 +1,14 @@
 
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   format,
-  startOfMonth,
-  endOfMonth,
-  eachDayOfInterval,
-  getDay,
-  isSameMonth,
-  isToday,
-  add,
   isSameDay,
   parseISO,
+  Timestamp,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, User, Clock } from 'lucide-react';
+import { User, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import type { Lead, Staff } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -27,8 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-const colStartClasses = ['', 'col-start-2', 'col-start-3', 'col-start-4', 'col-start-5', 'col-start-6', 'col-start-7'];
+import { Calendar } from '@/components/ui/calendar';
 
 const BrokerColorMap: Record<string, { bg: string, text: string }> = {};
 const brokerColors = [
@@ -48,24 +41,24 @@ const getBrokerColor = (brokerId: string) => {
 }
 
 
-export function AppointmentCalendar({ appointments, allStaff }: { appointments: Lead[], allStaff: Staff[] }) {
+export function AppointmentCalendar({ appointments, allStaff, leadToOpen }: { appointments: Lead[], allStaff: Staff[], leadToOpen: Lead | null }) {
   const { user } = useAuthContext();
-  const [today, setToday] = useState(new Date());
-  const [selectedDay, setSelectedDay] = useState(today);
-  const [currentMonth, setCurrentMonth] = useState(format(today, 'MMM-yyyy'));
+  const [selectedDay, setSelectedDay] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [editingAppointment, setEditingAppointment] = useState<Lead | null>(null);
   const [brokerFilter, setBrokerFilter] = useState('all');
 
-  const firstDayCurrentMonth = useMemo(() => {
-    return parseISO(`${currentMonth.slice(4)}-${format(new Date(currentMonth), 'MM')}-01`);
-  }, [currentMonth]);
-
-  const days = useMemo(() => {
-    return eachDayOfInterval({
-      start: startOfMonth(firstDayCurrentMonth),
-      end: endOfMonth(firstDayCurrentMonth),
-    });
-  }, [firstDayCurrentMonth]);
+  useEffect(() => {
+    if (leadToOpen) {
+      const appointmentDate = leadToOpen.appointment?.date;
+      if (appointmentDate) {
+        const date = (appointmentDate as any).toDate ? (appointmentDate as any).toDate() : new Date(appointmentDate as string);
+        setSelectedDay(date);
+        setCurrentMonth(date);
+      }
+      setEditingAppointment(leadToOpen);
+    }
+  }, [leadToOpen]);
   
   const filteredAppointments = useMemo(() => {
     if (brokerFilter === 'all') {
@@ -76,9 +69,12 @@ export function AppointmentCalendar({ appointments, allStaff }: { appointments: 
 
   const appointmentsByDate = useMemo(() => {
     return filteredAppointments.reduce((acc, appointment) => {
-        if (!appointment.appointmentDate) return acc;
-        const date = (appointment.appointmentDate as any).toDate ? (appointment.appointmentDate as any).toDate() : new Date(appointment.appointmentDate as string);
+        const appointmentDate = appointment.appointment?.date;
+        if (!appointmentDate) return acc;
+        
+        const date = (appointmentDate as any).toDate ? (appointmentDate as any).toDate() : new Date(appointmentDate as string);
         const dateKey = format(date, 'yyyy-MM-dd');
+        
         if (!acc[dateKey]) {
             acc[dateKey] = [];
         }
@@ -87,20 +83,10 @@ export function AppointmentCalendar({ appointments, allStaff }: { appointments: 
     }, {} as Record<string, Lead[]>);
   }, [filteredAppointments]);
 
-  const nextMonth = () => {
-    const firstDayNextMonth = add(firstDayCurrentMonth, { months: 1 });
-    setCurrentMonth(format(firstDayNextMonth, 'MMM-yyyy'));
-  };
-
-  const previousMonth = () => {
-    const firstDayNextMonth = add(firstDayCurrentMonth, { months: -1 });
-    setCurrentMonth(format(firstDayNextMonth, 'MMM-yyyy'));
-  };
-
-  const handleUpdateAppointment = (lead: Lead, date: Date | null) => {
-    // This is a placeholder for the actual Firestore update logic
-    // which should be handled in the parent page component.
-    console.log(`Update lead ${lead.id} to date ${date}`);
+  const handleUpdateAppointment = () => {
+    // This is a placeholder for Firestore update logic, which now happens
+    // inside the AppointmentDialog component itself. This function mainly
+    // serves to close the dialog after an update.
     setEditingAppointment(null);
   };
   
@@ -120,14 +106,10 @@ export function AppointmentCalendar({ appointments, allStaff }: { appointments: 
 
   return (
     <>
-      <div className="md:grid md:grid-cols-2 md:divide-x md:divide-gray-200">
+      <div className="md:grid md:grid-cols-[24rem_1fr] md:divide-x md:divide-gray-200">
         <div className="md:pr-8">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <h2 className="flex-auto text-lg font-semibold text-gray-900">{format(firstDayCurrentMonth, 'MMMM yyyy')}</h2>
-                    <Button onClick={previousMonth} variant="ghost" size="icon"><ChevronLeft className="w-5 h-5" aria-hidden="true" /></Button>
-                    <Button onClick={nextMonth} variant="ghost" size="icon"><ChevronRight className="w-5 h-5" aria-hidden="true" /></Button>
-                </div>
+            <div className="flex items-center justify-between mb-4">
+                 <h2 className="flex-auto text-lg font-semibold text-gray-900">{format(currentMonth, 'MMMM yyyy')}</h2>
                  {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
                     <Select value={brokerFilter} onValueChange={setBrokerFilter}>
                         <SelectTrigger className="w-[180px]">
@@ -142,67 +124,62 @@ export function AppointmentCalendar({ appointments, allStaff }: { appointments: 
                     </Select>
                 )}
             </div>
-          <div className="mt-6 grid grid-cols-7 text-xs leading-6 text-center text-gray-500">
-            <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
-          </div>
-          <div className="mt-2 grid grid-cols-7 text-sm">
-            {days.map((day, dayIdx) => {
-              const dayAppointments = appointmentsByDate[format(day, 'yyyy-MM-dd')] || [];
-              return (
-                <div
-                  key={day.toString()}
-                  className={cn(dayIdx === 0 && colStartClasses[getDay(day)], 'py-2 border border-transparent')}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDay(day)}
-                    className={cn(
-                      isSameDay(day, selectedDay) && 'text-white',
-                      !isSameDay(day, selectedDay) && isToday(day) && 'text-red-500',
-                      !isSameDay(day, selectedDay) && !isToday(day) && isSameMonth(day, firstDayCurrentMonth) && 'text-gray-900',
-                      !isSameDay(day, selectedDay) && !isToday(day) && !isSameMonth(day, firstDayCurrentMonth) && 'text-gray-400',
-                      isSameDay(day, selectedDay) && isToday(day) && 'bg-red-500',
-                      isSameDay(day, selectedDay) && !isToday(day) && 'bg-gray-900',
-                      !isSameDay(day, selectedDay) && 'hover:bg-gray-200',
-                      'mx-auto flex h-8 w-8 items-center justify-center rounded-full font-semibold transition-colors'
-                    )}
-                  >
-                    <time dateTime={format(day, 'yyyy-MM-dd')}>{format(day, 'd')}</time>
-                  </button>
-                  <div className="w-full h-1 mt-1">
-                      {dayAppointments.length > 0 && (
-                          <div className="flex justify-center items-center gap-1">
-                              {dayAppointments.slice(0, 3).map(app => (
-                                  <div key={app.id} className={cn("w-1.5 h-1.5 rounded-full", getBrokerColor(app.ownerId).bg.replace('bg-', ''))}></div>
-                              ))}
-                          </div>
-                      )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+             <Calendar
+                mode="single"
+                selected={selectedDay}
+                onSelect={(day) => day && setSelectedDay(day)}
+                month={currentMonth}
+                onMonthChange={setCurrentMonth}
+                className="rounded-md border p-0"
+                modifiers={{
+                  hasAppointment: (date) => appointmentsByDate[format(date, 'yyyy-MM-dd')]?.length > 0,
+                }}
+                modifiersClassNames={{
+                  hasAppointment: 'bg-blue-100/50 text-blue-800 rounded-full',
+                }}
+             />
         </div>
         <section className="mt-12 md:mt-0 md:pl-8">
           <h2 className="font-semibold text-gray-900">
-            Appointments for <time dateTime={format(selectedDay, 'yyyy-MM-dd')}>{format(selectedDay, 'MMMM d, yyyy')}</time>
+            Agenda for <time dateTime={format(selectedDay, 'yyyy-MM-dd')}>{format(selectedDay, 'MMMM d, yyyy')}</time>
           </h2>
-          <ol className="mt-4 space-y-1 text-sm leading-6 text-gray-500">
+          <ol className="mt-4 space-y-3 text-sm leading-6 text-gray-500">
             {appointmentsByDate[format(selectedDay, 'yyyy-MM-dd')]?.length > 0 ? (
-              appointmentsByDate[format(selectedDay, 'yyyy-MM-dd')].map((appointment) => (
-                <li key={appointment.id} className="group flex items-center space-x-4 rounded-xl py-2 px-4 focus-within:bg-gray-100 hover:bg-gray-100">
-                  <div className="flex-auto">
-                    <p className="text-gray-900 font-semibold">{appointment.name}</p>
-                    <p className="mt-0.5 flex items-center gap-2">
-                        <User size={14} />
-                        {appointment.ownerName}
-                    </p>
-                  </div>
-                  <Button variant="outline" onClick={() => setEditingAppointment(appointment)}>Edit</Button>
-                </li>
-              ))
+              appointmentsByDate[format(selectedDay, 'yyyy-MM-dd')].map((appointment) => {
+                 const appointmentColor = getBrokerColor(appointment.ownerId);
+                 return (
+                    <li 
+                      key={appointment.id} 
+                      className={cn(
+                        "group flex items-center space-x-4 rounded-xl p-3 focus-within:bg-gray-100 hover:bg-gray-100 cursor-pointer",
+                         appointmentColor.bg
+                      )}
+                      onClick={() => setEditingAppointment(appointment)}
+                    >
+                        {appointment.appointment?.time && (
+                            <div className="flex-shrink-0 w-20 text-center">
+                                <p className="font-bold text-base text-slate-800">{appointment.appointment.time}</p>
+                            </div>
+                        )}
+                        <div className="flex-auto">
+                            <p className={cn("font-semibold", appointmentColor.text)}>{appointment.name}</p>
+                            <p className="mt-0.5 flex items-center gap-2 text-xs">
+                                <User size={14} />
+                                {appointment.ownerName}
+                            </p>
+                        </div>
+                        {appointment.appointment?.confirmed ? (
+                            <CheckCircle2 size={18} className="text-green-600" title="Confirmed" />
+                        ) : (
+                           <XCircle size={18} className="text-red-600" title="Not Confirmed" />
+                        )}
+                    </li>
+                 );
+              })
             ) : (
-              <p>No appointments for today.</p>
+              <div className="text-center py-10 text-slate-400">
+                <p>No appointments for this day.</p>
+              </div>
             )}
           </ol>
         </section>
