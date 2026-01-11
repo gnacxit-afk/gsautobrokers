@@ -155,6 +155,10 @@ export default function AppointmentsPage() {
                 <Label htmlFor="lead-select">Lead</Label>
                   <Select
                     onValueChange={(leadId) => {
+                      if (!leadId) {
+                        setSelectedLead(null);
+                        return;
+                      }
                       const lead = leads?.find(l => l.id === leadId);
                       setSelectedLead(lead || null);
                     }}
@@ -164,7 +168,6 @@ export default function AppointmentsPage() {
                     <SelectValue placeholder="Select a lead" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="" disabled>Select a lead</SelectItem>
                     {(leads || []).map((lead) => (
                       <SelectItem key={lead.id} value={lead.id}>
                         {lead.name}
