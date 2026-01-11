@@ -14,6 +14,7 @@ import {
   UserCircle2,
   TrendingUp,
   CheckSquare,
+  Calendar,
 } from "lucide-react";
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -33,6 +34,7 @@ const navItems: NavItemType[] = [
   { href: "/leads", title: "Leads / CRM", icon: PhoneCall, role: ["Admin", "Supervisor", "Broker"] },
   { href: "/todos", title: "Daily To-Do", icon: CheckSquare, role: ["Admin", "Supervisor", "Broker"] },
   { href: "/kpi", title: "KPI's & Performance", icon: TrendingUp, role: ["Admin", "Supervisor", "Broker"] },
+  { href: "/calendar", title: "Calendar", icon: Calendar, role: ["Admin", "Supervisor", "Broker"] },
   { href: "/knowledge", title: "Knowledge Base", icon: BookOpen, role: ["Admin", "Supervisor", "Broker"] },
   { href: "/staff", title: "Staff", icon: Users, role: ["Admin"] },
 ];
@@ -158,8 +160,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  const pagesWithoutDateFilter = ['/leads', '/kpi'];
-  const showDateFilter = (user.role === 'Admin' || user.role === 'Supervisor') && !pagesWithoutDateFilter.includes(pathname);
+  const pagesToFilter = ['/kpi', '/staff', '/knowledge', '/todos', '/calendar'];
+  const showDateFilter = (user.role === 'Admin' || user.role === 'Supervisor') && !pagesToFilter.some(p => pathname.startsWith(p));
 
 
   const getPageTitle = () => {
@@ -168,7 +170,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const currentPath = pathname.split('/')[1];
     const currentNavItem = navItems.find(item => item.href === `/${currentPath}`);
     if (currentNavItem) return currentNavItem.title;
-    if (pathname.includes('/leads/')) return 'Lead Notes & History';
+    if (pathname.includes('/leads/')) return 'Lead Details';
     if (pathname.includes('/staff/')) return 'Edit Staff Profile';
     return 'Dashboard';
   };
@@ -209,5 +211,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </DateRangeProvider>
   );
 }
-
-    
