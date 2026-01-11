@@ -34,7 +34,6 @@ import { useAuthContext } from "@/lib/auth";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { addNoteEntry as addNoteEntryUtil } from '@/lib/utils';
-import { AppointmentDialog } from "@/components/dialogs/appointment-dialog";
 
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
@@ -70,7 +69,6 @@ export default function LeadDetailsPage() {
   
   const [isEditing, setIsEditing] = useState(false);
   const [draftData, setDraftData] = useState<{name: string, phone: string}>({ name: '', phone: '' });
-  const [isAppointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
 
   const firestore = useFirestore();
   const { user } = useUser();
@@ -244,9 +242,6 @@ export default function LeadDetailsPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Lead Actions</DropdownMenuLabel>
-                     <DropdownMenuItem onSelect={() => setAppointmentDialogOpen(true)}>
-                        <Calendar className="mr-2 h-4 w-4" /> Schedule Appointment
-                    </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/analysis`)}>
                         <Bot className="mr-2 h-4 w-4" /> AI Lead Analysis
                     </DropdownMenuItem>
@@ -407,15 +402,10 @@ export default function LeadDetailsPage() {
                     </Card>
                 </div>
             </div>
-            <AppointmentDialog
-                open={isAppointmentDialogOpen}
-                onOpenChange={setAppointmentDialogOpen}
-                selectedDate={new Date()} // Defaults to today, user can change in dialog
-                leads={[]} // Not needed when preselecting
-                preselectedLead={lead}
-            />
            </>
         )}
     </main>
   );
 }
+
+    
