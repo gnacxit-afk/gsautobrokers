@@ -158,66 +158,67 @@ export default function AppointmentsPage() {
         <h1 className="font-semibold text-lg md:text-2xl">Appointments</h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        <div className="lg:col-span-1 space-y-6">
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle>Agenda tu cita</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="lead-select">Lead</Label>
-                    <Select
-                      onValueChange={(leadId) => {
-                        const lead = leads?.find(l => l.id === leadId);
-                        setSelectedLead(lead || null);
-                      }}
-                      value={selectedLead?.id || ''}
-                    >
-                    <SelectTrigger id="lead-select">
-                      <SelectValue placeholder="Select a lead" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {leadsLoading ? <div className="p-4 text-center text-sm">Loading leads...</div> :
-                        (leads || []).map((lead) => (
-                          <SelectItem key={lead.id} value={lead.id}>
-                            {lead.name}
-                          </SelectItem>
-                        ))
-                      }
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                          <Label htmlFor="date">Appointment Date</Label>
-                          <Input 
-                              id="date"
-                              type="date"
-                              value={appointmentDate}
-                              onChange={(e) => setAppointmentDate(e.target.value)}
-                              min={format(new Date(), 'yyyy-MM-dd')}
-                          />
-                      </div>
-                      <div className="space-y-2">
-                          <Label htmlFor="time">Appointment Time</Label>
-                          <Input 
-                              id="time"
-                              type="time"
-                              value={appointmentTime}
-                              onChange={(e) => setAppointmentTime(e.target.value)}
-                          />
-                      </div>
-                </div>
-                <div className="flex justify-end">
-                    <Button onClick={handleSaveAppointment} disabled={!selectedLead || isSaving}>
-                        {isSaving ? "Saving..." : "Guardar Cita"}
-                    </Button>
-                </div>
-            </CardContent>
-          </Card>
+       <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle>Agenda tu cita</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="lead-select">Lead</Label>
+                <Select
+                  onValueChange={(leadId) => {
+                    const lead = leads?.find(l => l.id === leadId);
+                    setSelectedLead(lead || null);
+                  }}
+                  value={selectedLead?.id || ''}
+                >
+                <SelectTrigger id="lead-select">
+                  <SelectValue placeholder="Select a lead" />
+                </SelectTrigger>
+                <SelectContent>
+                  {leadsLoading ? <div className="p-4 text-center text-sm">Loading leads...</div> :
+                    (leads || []).map((lead) => (
+                      <SelectItem key={lead.id} value={lead.id}>
+                        {lead.name}
+                      </SelectItem>
+                    ))
+                  }
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="date">Appointment Date</Label>
+                      <Input 
+                          id="date"
+                          type="date"
+                          value={appointmentDate}
+                          onChange={(e) => setAppointmentDate(e.target.value)}
+                          min={format(new Date(), 'yyyy-MM-dd')}
+                      />
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="time">Appointment Time</Label>
+                      <Input 
+                          id="time"
+                          type="time"
+                          value={appointmentTime}
+                          onChange={(e) => setAppointmentTime(e.target.value)}
+                      />
+                  </div>
+            </div>
+            <div className="flex justify-end">
+                <Button onClick={handleSaveAppointment} disabled={!selectedLead || isSaving}>
+                    {isSaving ? "Saving..." : "Guardar Cita"}
+                </Button>
+            </div>
+        </CardContent>
+      </Card>
 
-          {user?.role === 'Admin' && (
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {user?.role === 'Admin' && (
+          <div className="lg:col-span-1">
             <Card className="shadow-sm">
               <CardHeader>
                 <CardTitle>Filters</CardTitle>
@@ -258,8 +259,8 @@ export default function AppointmentsPage() {
                 </div>
               </CardContent>
             </Card>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="lg:col-span-2">
           <Card className="shadow-sm">
