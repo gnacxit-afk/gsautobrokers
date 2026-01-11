@@ -5,7 +5,7 @@ import * as React from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { es } from 'date-fns/locale';
 import type { Appointment } from '@/lib/types';
-import { isSameDay, startOfDay } from 'date-fns';
+import { startOfDay } from 'date-fns';
 
 interface AppointmentCalendarProps {
   selectedDate: Date;

@@ -9,23 +9,31 @@ import { AppointmentCalendar } from './components/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Button } from '@/components/ui/button';
+import { AppointmentDialog } from './components/appointment-dialog';
 
 export default function AppointmentsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const appointmentsQuery = useMemo(() => {
     if (!firestore || !user) return null;
-    // Query for appointments owned by the user, ordered by start time
     return query(
         collection(firestore, 'appointments'), 
         where('ownerId', '==', user.id),
         orderBy('startTime')
     );
   }, [firestore, user]);
+  
+  const leadsQuery = useMemo(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'leads'), where('ownerId', '==', user.id));
+  }, [firestore, user]);
 
   const { data: appointments, loading: appointmentsLoading } = useCollection<Appointment>(appointmentsQuery);
+  const { data: leads, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
 
   const appointmentsForSelectedDay = useMemo(() => {
     if (!appointments) return [];
@@ -44,6 +52,7 @@ export default function AppointmentsPage() {
     <main className="flex-1 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="font-semibold text-lg md:text-2xl">Appointments</h1>
+         <Button onClick={() => setIsDialogOpen(true)}>Book Appointment</Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -88,6 +97,13 @@ export default function AppointmentsPage() {
           </CardContent>
         </Card>
       </div>
+      
+      <AppointmentDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        selectedDate={selectedDate}
+        leads={leads || []}
+      />
     </main>
   );
 }
