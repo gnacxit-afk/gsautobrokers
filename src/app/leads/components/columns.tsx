@@ -45,7 +45,6 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
   
   const handleStageUpdate = (newStage: Lead['stage']) => {
     onUpdateStage(lead.id, lead.stage, newStage);
-    // The parent component will now handle showing the toast and offering to schedule.
   };
   
   const handleOwnerUpdate = (newOwnerId: string) => {

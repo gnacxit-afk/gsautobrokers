@@ -23,6 +23,7 @@ import { collection, query, orderBy, updateDoc, doc, deleteDoc, addDoc, serverTi
 import { useToast } from "@/hooks/use-toast";
 import { isWithinInterval, isValid } from "date-fns";
 import { AppointmentDialog } from "@/app/calendar/components/appointment-dialog";
+import { Button } from "@/components/ui/button";
 
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
@@ -161,14 +162,7 @@ function LeadsPageContent() {
         const leadRef = doc(firestore, 'leads', leadId);
         
         try {
-            const updateData: { stage: Lead['stage'], appointment?: Appointment | null } = { stage: newStage };
-            
-            // If moving away from 'Citado', clear the appointment.
-            if (oldStage === 'Citado' && newStage !== 'Citado') {
-                updateData.appointment = null;
-            }
-            
-            await updateDoc(leadRef, updateData);
+            await updateDoc(leadRef, { stage: newStage });
             
             let noteContent = `Stage changed from '${oldStage}' to '${newStage}' by ${user.name}.`;
             await addNoteEntry(leadId, noteContent, 'Stage Change');
@@ -310,6 +304,12 @@ function LeadsPageContent() {
 
     }, [firestore, user, staffData, toast, addNoteEntry, data]);
 
+    const handleAppointmentSave = () => {
+      // This is the callback from the dialog.
+      // We just need to close the dialog. The dialog itself handles the Firestore update.
+      setEditingAppointmentLead(null);
+    }
+
     const columns = useMemo(
         () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, staffData), 
         [handleUpdateStage, handleDelete, handleUpdateOwner, staffData]
@@ -372,7 +372,7 @@ function LeadsPageContent() {
                     lead={editingAppointmentLead}
                     open={!!editingAppointmentLead}
                     onOpenChange={() => setEditingAppointmentLead(null)}
-                    onDateSet={() => setEditingAppointmentLead(null)}
+                    onDateSet={handleAppointmentSave}
                 />
             )}
         </>

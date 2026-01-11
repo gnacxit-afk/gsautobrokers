@@ -160,7 +160,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  const pagesWithoutDateFilter = ['/leads', '/kpi'];
+  const pagesWithoutDateFilter = ['/leads', '/kpi', '/calendar'];
   const showDateFilter = (user.role === 'Admin' || user.role === 'Supervisor') && !pagesWithoutDateFilter.includes(pathname);
 
 
