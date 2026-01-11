@@ -22,7 +22,7 @@ function Calendar({
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
-        caption: "flex justify-center pt-1 relative items-center",
+        caption: "hidden",
         caption_label: "text-sm font-medium",
         caption_dropdowns: "flex justify-center gap-1",
         nav: "space-x-1 flex items-center",
@@ -56,9 +56,6 @@ function Calendar({
         IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" />,
         IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" />,
       }}
-      captionLayout="dropdown-buttons"
-      fromYear={2025}
-      toYear={2175}
       {...props}
     />
   )
