@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
 
 export default function AppointmentsPage() {
   const { user } = useAuthContext();
@@ -277,21 +278,23 @@ export default function AppointmentsPage() {
               ) : appointments && appointments.length > 0 ? (
                   <div className="space-y-4">
                       {appointments.map(apt => (
-                          <div key={apt.id} className="p-4 border rounded-lg bg-slate-50">
-                              <div className="flex justify-between items-start">
-                                  <div>
-                                      <p className="font-bold">{apt.leadName}</p>
-                                      <p className="text-sm text-muted-foreground">
-                                          {format(apt.startTime.toDate(), "eeee, d MMM 'at' p", { locale: es })}
-                                      </p>
-                                  </div>
-                                  {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
-                                      <p className="text-xs font-semibold text-slate-500 bg-slate-200 px-2 py-1 rounded-full">
-                                          {ownersMap.get(apt.ownerId) || 'Unknown Owner'}
-                                      </p>
-                                  )}
-                              </div>
-                          </div>
+                          <Link href={`/leads/${apt.leadId}/notes`} key={apt.id}>
+                            <div className="p-4 border rounded-lg bg-slate-50 hover:bg-blue-50 hover:border-blue-200 transition-colors cursor-pointer">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="font-bold">{apt.leadName}</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {format(apt.startTime.toDate(), "eeee, d MMM 'at' p", { locale: es })}
+                                        </p>
+                                    </div>
+                                    {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
+                                        <p className="text-xs font-semibold text-slate-500 bg-slate-200 px-2 py-1 rounded-full">
+                                            {ownersMap.get(apt.ownerId) || 'Unknown Owner'}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                          </Link>
                       ))}
                   </div>
               ) : (
