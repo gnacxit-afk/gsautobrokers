@@ -17,6 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import type { Lead } from "@/lib/types";
 import { useFirestore } from "@/firebase";
 import { doc, updateDoc } from "firebase/firestore";
+import { addNoteEntry } from "@/lib/utils";
+import { useAuthContext } from "@/lib/auth";
 
 interface EditLeadDialogProps {
   open: boolean;
@@ -27,23 +29,21 @@ interface EditLeadDialogProps {
 export function EditLeadDialog({ open, onOpenChange, lead }: EditLeadDialogProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user } = useAuthContext();
 
-  // Initialize state directly from the prop.
-  // This runs only when the component is first rendered or when the `lead` prop identity changes
-  // in a way that forces a re-mount (which doesn't happen in our loop scenario).
   const [formData, setFormData] = useState({
     name: lead.name,
-    phone: lead.phone,
+    phone: lead.phone || '',
   });
 
-  // This effect ensures that if the dialog is kept open and a *different* lead is passed in,
-  // the form updates. It's safe because it only runs when `lead.id` changes.
   useEffect(() => {
-    setFormData({
-      name: lead.name,
-      phone: lead.phone,
-    });
-  }, [lead.id, lead.name, lead.phone]);
+    if (open) {
+      setFormData({
+        name: lead.name,
+        phone: lead.phone || '',
+      });
+    }
+  }, [open, lead]);
 
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,7 +52,7 @@ export function EditLeadDialog({ open, onOpenChange, lead }: EditLeadDialogProps
   };
 
   const handleSave = async () => {
-    if (!firestore) return;
+    if (!firestore || !user) return;
 
     if (!formData.name || !formData.phone) {
       toast({
@@ -65,14 +65,34 @@ export function EditLeadDialog({ open, onOpenChange, lead }: EditLeadDialogProps
 
     const leadRef = doc(firestore, 'leads', lead.id);
     try {
-      await updateDoc(leadRef, {
-        name: formData.name,
-        phone: formData.phone,
-      });
-      toast({
-        title: "Lead Updated",
-        description: "The lead's information has been saved.",
-      });
+      const changes: string[] = [];
+      if (lead.name !== formData.name) {
+        changes.push(`Name changed from '${lead.name}' to '${formData.name}'`);
+      }
+      if (lead.phone !== formData.phone) {
+        changes.push(`Phone changed from '${lead.phone || 'N/A'}' to '${formData.phone}'`);
+      }
+
+      if (changes.length > 0) {
+        await updateDoc(leadRef, {
+          name: formData.name,
+          phone: formData.phone,
+        });
+
+        const noteContent = `Lead information updated: ${changes.join('. ')}.`;
+        await addNoteEntry(firestore, user, lead.id, noteContent, 'System');
+        
+        toast({
+          title: "Lead Updated",
+          description: "The lead's information has been saved.",
+        });
+      } else {
+         toast({
+          title: "No Changes",
+          description: "No changes were made to the lead's information.",
+        });
+      }
+
       onOpenChange(false);
     } catch (error) {
       console.error("Error updating lead:", error);
