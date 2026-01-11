@@ -37,6 +37,16 @@ export type Lead = {
   lastActivity?: Timestamp | Date | string;
 };
 
+export type Appointment = {
+  id: string;
+  leadId: string;
+  leadName: string;
+  startTime: Timestamp;
+  endTime: Timestamp;
+  ownerId: string;
+  status: "Hot" | "Warm" | "Cold" | "Unknown";
+};
+
 export type Article = {
   id: string;
   title: string;

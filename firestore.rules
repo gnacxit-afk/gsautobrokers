@@ -154,5 +154,11 @@ service cloud.firestore {
       // Allow a user to list only their own todos
       allow list: if isSignedIn() && request.query.where.size() == 1 && request.query.where[0][0] == 'userId' && request.query.where[0][1] == '==' && request.query.where[0][2] == request.auth.uid;
     }
+    
+    match /appointments/{appointmentId} {
+      allow get, list: if isSignedIn();
+      allow create: if isOwner(request.resource.data.ownerId);
+      allow update, delete: if isOwner(resource.data.ownerId) || isAdmin();
+    }
   }
 }
