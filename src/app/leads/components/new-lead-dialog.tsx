@@ -46,9 +46,9 @@ const stageColors: Record<Lead['stage'], string> = {
 const initialFormState = {
     name: "",
     phone: "",
+    language: "Spanish" as 'English' | 'Spanish',
     channel: "Facebook" as Lead['channel'],
     stage: "Nuevo" as Lead['stage'],
-    language: "Spanish" as 'English' | 'Spanish',
     initialNotes: "",
 };
 
@@ -110,7 +110,7 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead, onLeadC
             Fill out the lead details manually.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
+        <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="name">Full Name*</Label>
             <Input id="name" value={formData.name} onChange={handleInputChange} />
@@ -119,7 +119,7 @@ export function NewLeadDialog({ children, open, onOpenChange, onAddLead, onLeadC
             <Label htmlFor="phone">Phone*</Label>
             <Input id="phone" type="tel" value={formData.phone} onChange={handleInputChange} placeholder="5551234567" />
           </div>
-          <div className="space-y-2">
+           <div className="space-y-2">
             <Label htmlFor="language">Language</Label>
             <Select onValueChange={(v) => handleSelectChange('language', v as Lead['language'])} value={formData.language}>
               <SelectTrigger>
