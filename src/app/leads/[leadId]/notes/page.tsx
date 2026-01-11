@@ -12,7 +12,7 @@ import type { Lead, NoteEntry, Staff } from "@/lib/types";
 import { collection, orderBy, query, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, User, Edit, ArrowLeft, MoreHorizontal, Users, ChevronsUpDown, Trash2, Edit2 } from "lucide-react";
+import { Bot, User, Edit, ArrowLeft, MoreHorizontal, Users, ChevronsUpDown, Trash2, Edit2, CalendarPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuthContext } from "@/lib/auth";
 import { Label } from "@/components/ui/label";
-import { EditLeadDialog } from "../components/edit-lead-dialog";
+import { EditLeadDialog } from "../../components/edit-lead-dialog";
 
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
@@ -192,6 +192,10 @@ export default function LeadDetailsPage() {
                     <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/analysis`)}>
                         <Bot className="mr-2 h-4 w-4" /> AI Lead Analysis
                     </DropdownMenuItem>
+                     <DropdownMenuItem onSelect={() => router.push(`/calendar?leadId=${lead.id}`)}>
+                      <CalendarPlus className="mr-2 h-4 w-4" />
+                      <span>Schedule/Edit Appointment</span>
+                    </DropdownMenuItem>
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger>
                         <ChevronsUpDown className="mr-2 h-4 w-4" /> Update Stage
@@ -248,11 +252,11 @@ export default function LeadDetailsPage() {
                     <CardContent className="space-y-4">
                         <div className="space-y-1">
                             <Label>Name</Label>
-                             <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.name}</Badge>
+                            <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.name}</Badge>
                         </div>
-                         <div className="space-y-1">
+                        <div className="space-y-1">
                             <Label>Phone</Label>
-                            <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.phone || 'N/A'}</Badge>
+                             <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.phone || 'N/A'}</Badge>
                         </div>
                         <div className="space-y-1">
                             <Label>Channel</Label>
@@ -260,7 +264,7 @@ export default function LeadDetailsPage() {
                         </div>
                         <div className="space-y-1">
                             <Label>Stage</Label>
-                             <Badge variant={lead.stage === 'Ganado' ? 'default' : 'outline'} className={cn("text-base py-1 w-full justify-start", {
+                            <Badge variant={lead.stage === 'Ganado' ? 'default' : 'outline'} className={cn("text-base py-1 w-full justify-start", {
                                 "bg-primary text-primary-foreground": lead.stage === 'Ganado',
                                 "text-primary border-primary/50 bg-primary/10": lead.stage !== 'Ganado'
                             })}>
