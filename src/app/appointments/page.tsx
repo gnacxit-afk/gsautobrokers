@@ -10,10 +10,16 @@ import { format, addMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/lib/auth';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export default function AppointmentsPage() {
   const { user } = useAuthContext();
@@ -146,24 +152,26 @@ export default function AppointmentsPage() {
         <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-1">
-                <Label htmlFor="lead-search">Lead</Label>
-                <Command className="rounded-lg border shadow-sm">
-                  <CommandInput id="lead-search" placeholder="Search for a lead..." />
-                  <CommandList>
-                    <CommandEmpty>No leads found.</CommandEmpty>
-                    <CommandGroup>
-                      {(leads || []).map((lead) => (
-                        <CommandItem
-                          key={lead.id}
-                          value={lead.name}
-                          onSelect={() => setSelectedLead(lead)}
-                        >
-                          {lead.name}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
+                <Label htmlFor="lead-select">Lead</Label>
+                  <Select
+                    onValueChange={(leadId) => {
+                      const lead = leads?.find(l => l.id === leadId);
+                      setSelectedLead(lead || null);
+                    }}
+                    value={selectedLead?.id || ''}
+                  >
+                  <SelectTrigger id="lead-select">
+                    <SelectValue placeholder="Select a lead" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="" disabled>Select a lead</SelectItem>
+                    {(leads || []).map((lead) => (
+                      <SelectItem key={lead.id} value={lead.id}>
+                        {lead.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {selectedLead && (
                     <div className="mt-2 text-sm font-semibold text-primary p-2 bg-primary/10 rounded-md">
                         Selected: {selectedLead.name}
