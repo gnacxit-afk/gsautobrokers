@@ -243,29 +243,32 @@ export default function LeadDetailsPage() {
                     <CardContent className="space-y-4">
                         <div className="space-y-1">
                             <Label>Name</Label>
-                            <p className="text-base font-medium">{lead.name}</p>
+                            <p className="text-base font-medium text-primary">{lead.name}</p>
                         </div>
                         <div className="space-y-1">
                             <Label>Phone</Label>
-                             <p className="text-base font-medium">{lead.phone || 'N/A'}</p>
+                             <p className="text-base font-medium text-primary">{lead.phone || 'N/A'}</p>
                         </div>
                         <div className="space-y-1">
                             <Label>Channel</Label>
                              <div className="text-base font-medium">
-                                <Badge variant="outline" className="text-base py-1">{lead.channel}</Badge>
+                                <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10">{lead.channel}</Badge>
                              </div>
                         </div>
                         <div className="space-y-1">
                             <Label>Stage</Label>
                              <div className="text-base font-medium">
-                                <Badge variant={lead.stage === 'Ganado' ? 'default' : 'secondary'} className="text-base py-1">
+                                <Badge variant={lead.stage === 'Ganado' ? 'default' : 'secondary'} className={cn("text-base py-1", {
+                                    "text-primary border-primary/50 bg-primary/10": lead.stage !== 'Ganado',
+                                    "bg-primary text-primary-foreground": lead.stage === 'Ganado',
+                                })}>
                                     {lead.stage}
                                 </Badge>
                              </div>
                         </div>
                         <div className="space-y-1">
                             <Label>Owner</Label>
-                            <p className="text-base font-medium">{lead.ownerName}</p>
+                            <p className="text-base font-medium text-primary">{lead.ownerName}</p>
                         </div>
                     </CardContent>
                 </Card>
