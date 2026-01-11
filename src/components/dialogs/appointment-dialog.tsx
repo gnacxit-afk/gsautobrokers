@@ -27,7 +27,6 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { format, addMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Calendar } from '@/components/ui/calendar';
 
 interface AppointmentDialogProps {
   open: boolean;
@@ -39,7 +38,7 @@ interface AppointmentDialogProps {
 
 export function AppointmentDialog({ open, onOpenChange, selectedDate: initialDate, leads, preselectedLead }: AppointmentDialogProps) {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(initialDate);
+  const [appointmentDate, setAppointmentDate] = useState<string>('');
   const [time, setTime] = useState('09:00');
   const firestore = useFirestore();
   const { user } = useUser();
@@ -50,13 +49,18 @@ export function AppointmentDialog({ open, onOpenChange, selectedDate: initialDat
         if (preselectedLead) {
             setSelectedLead(preselectedLead);
         }
-        setSelectedDate(initialDate);
+        // Set the initial date to today or the passed date
+        setAppointmentDate(format(initialDate, 'yyyy-MM-dd'));
         setTime('09:00');
+    } else {
+        // Reset when dialog closes
+        setSelectedLead(null);
+        setAppointmentDate('');
     }
   }, [open, preselectedLead, initialDate]);
 
   const handleSave = async () => {
-    if (!firestore || !user || !selectedLead || !selectedDate) {
+    if (!firestore || !user || !selectedLead || !appointmentDate) {
       toast({
         title: 'Error',
         description: 'Missing information to book an appointment.',
@@ -65,17 +69,19 @@ export function AppointmentDialog({ open, onOpenChange, selectedDate: initialDat
       return;
     }
     
+    // Combine date from date picker and time from time picker
     const [hours, minutes] = time.split(':').map(Number);
-    const appointmentTime = new Date(selectedDate);
-    appointmentTime.setHours(hours, minutes);
+    const appointmentDateTime = new Date(appointmentDate);
+    appointmentDateTime.setUTCHours(hours, minutes);
+
 
     try {
       const appointmentsCollection = collection(firestore, 'appointments');
       await addDoc(appointmentsCollection, {
         leadId: selectedLead.id,
         leadName: selectedLead.name,
-        startTime: appointmentTime,
-        endTime: addMinutes(appointmentTime, 30), // Assuming 30 min appointments
+        startTime: appointmentDateTime,
+        endTime: addMinutes(appointmentDateTime, 30), // Assuming 30 min appointments
         ownerId: selectedLead.ownerId, // The appointment owner is the lead's owner
         status: selectedLead.stage === 'Ganado' || selectedLead.stage === 'Calificado' ? 'Hot' : 'Warm', // Example logic
       });
@@ -83,7 +89,7 @@ export function AppointmentDialog({ open, onOpenChange, selectedDate: initialDat
       // Add a note to the lead's history
       const noteHistoryRef = collection(firestore, 'leads', selectedLead.id, 'noteHistory');
       await addDoc(noteHistoryRef, {
-          content: `Appointment scheduled by ${user.name} for ${format(appointmentTime, "eeee, d 'de' MMMM 'at' p", { locale: es })}.`,
+          content: `Appointment scheduled by ${user.name} for ${format(appointmentDateTime, "eeee, d 'de' MMMM 'at' p", { locale: es })}.`,
           author: 'System',
           date: serverTimestamp(),
           type: 'System',
@@ -95,7 +101,7 @@ export function AppointmentDialog({ open, onOpenChange, selectedDate: initialDat
 
       toast({
         title: 'Appointment Booked!',
-        description: `Appointment with ${selectedLead.name} at ${format(appointmentTime, 'p')} has been saved.`,
+        description: `Appointment with ${selectedLead.name} at ${format(appointmentDateTime, 'p')} has been saved.`,
       });
 
       onOpenChange(false);
@@ -110,55 +116,52 @@ export function AppointmentDialog({ open, onOpenChange, selectedDate: initialDat
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Book Appointment</DialogTitle>
           <DialogDescription>
-            Schedule a new appointment for a lead. The appointment will be assigned to the lead's owner.
+            Schedule a new appointment. This will be assigned to the lead's current owner.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+        <div className="space-y-4 py-4">
             <div>
-                 <Label>Select Date</Label>
-                 <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    locale={es}
-                    disabled={{ before: new Date() }}
-                    className="rounded-md border"
-                />
+                <Label htmlFor="lead-search">Lead</Label>
+                {preselectedLead ? (
+                    <div className="p-2 border rounded-md bg-slate-50 font-medium">{preselectedLead.name}</div>
+                ) : (
+                    <Command className="rounded-lg border shadow-sm">
+                    <CommandInput id="lead-search" placeholder="Search for a lead..." />
+                    <CommandList>
+                        <CommandEmpty>No leads found.</CommandEmpty>
+                        <CommandGroup>
+                        {leads.map((lead) => (
+                            <CommandItem
+                            key={lead.id}
+                            value={lead.name}
+                            onSelect={() => setSelectedLead(lead)}
+                            >
+                            {lead.name}
+                            </CommandItem>
+                        ))}
+                        </CommandGroup>
+                    </CommandList>
+                    </Command>
+                )}
             </div>
-            <div className="space-y-4">
-                <div>
-                    <Label htmlFor="lead-search">Lead</Label>
-                    {preselectedLead ? (
-                        <div className="p-2 border rounded-md bg-slate-50">{preselectedLead.name}</div>
-                    ) : (
-                        <Command className="rounded-lg border shadow-sm">
-                        <CommandInput id="lead-search" placeholder="Search for a lead..." />
-                        <CommandList>
-                            <CommandEmpty>No leads found.</CommandEmpty>
-                            <CommandGroup>
-                            {leads.map((lead) => (
-                                <CommandItem
-                                key={lead.id}
-                                value={lead.name}
-                                onSelect={() => {
-                                    setSelectedLead(lead);
-                                }}
-                                >
-                                {lead.name}
-                                </CommandItem>
-                            ))}
-                            </CommandGroup>
-                        </CommandList>
-                        </Command>
-                    )}
-                </div>
 
-                {selectedLead && (
+            {selectedLead && (
+                <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
+                        <Label htmlFor="date">Appointment Date</Label>
+                        <Input 
+                            id="date"
+                            type="date"
+                            value={appointmentDate}
+                            onChange={(e) => setAppointmentDate(e.target.value)}
+                            min={format(new Date(), 'yyyy-MM-dd')}
+                        />
+                    </div>
+                     <div className="space-y-2">
                         <Label htmlFor="time">Appointment Time</Label>
                         <Input 
                             id="time"
@@ -167,13 +170,12 @@ export function AppointmentDialog({ open, onOpenChange, selectedDate: initialDat
                             onChange={(e) => setTime(e.target.value)}
                         />
                     </div>
-                )}
-            </div>
-
+                </div>
+            )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave} disabled={!selectedLead || !selectedDate}>Save Appointment</Button>
+          <Button onClick={handleSave} disabled={!selectedLead || !appointmentDate}>Save Appointment</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
