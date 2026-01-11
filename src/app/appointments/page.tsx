@@ -154,10 +154,6 @@ export default function AppointmentsPage() {
 
   return (
     <main className="flex-1 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="font-semibold text-lg md:text-2xl">Appointments</h1>
-      </div>
-
        <Card className="shadow-sm">
         <CardHeader>
           <CardTitle>Agenda tu cita</CardTitle>
