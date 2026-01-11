@@ -1,3 +1,5 @@
+@import "react-day-picker/dist/style.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -67,4 +69,9 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+}
+
+/* Custom styles for react-day-picker */
+.rdp-day_today:not(.rdp-day_selected) {
+    @apply border-primary border-2 rounded-md;
 }

@@ -207,19 +207,29 @@ export function AppointmentCalendar({ appointments, allStaff, leadToOpen }: { ap
                         className="p-0"
                         modifiers={{
                             hasAppointment: (date) => appointmentsByDate[format(date, 'yyyy-MM-dd')]?.length > 0,
-                            today: isToday,
                         }}
                         modifiersClassNames={{
                             hasAppointment: 'relative',
-                            today: 'border-2 border-primary rounded-md'
                         }}
                         components={{
-                            DayContent: (props) => {
+                            Day: (props) => {
                                 const hasAppointment = appointmentsByDate[format(props.date, 'yyyy-MM-dd')]?.length > 0;
+                                const isSelected = props.selected;
+                                const isTodayDate = isToday(props.date);
+                                
                                 return (
-                                    <div className="relative w-full h-full flex items-center justify-center">
-                                        {props.date.getDate()}
-                                        {hasAppointment && <span className="absolute bottom-1.5 h-1.5 w-1.5 rounded-full bg-blue-500"></span>}
+                                    <div 
+                                        className={cn("relative w-full h-full flex items-center justify-center rounded-md",
+                                           {"bg-primary text-primary-foreground": isSelected},
+                                           {"border-2 border-primary": isTodayDate && !isSelected}
+                                        )}
+                                        onClick={() => props.onClick?.(props.date, { selected: true }, new MouseEvent('click'))}
+                                        role="gridcell"
+                                        aria-selected={isSelected}
+                                    >
+                                        <time dateTime={format(props.date, 'yyyy-MM-dd')}>{format(props.date, 'd')}</time>
+                                        {hasAppointment && !isSelected && <span className="absolute bottom-1.5 h-1.5 w-1.5 rounded-full bg-blue-500"></span>}
+                                        {hasAppointment && isSelected && <span className="absolute bottom-1.5 h-1.5 w-1.5 rounded-full bg-white"></span>}
                                     </div>
                                 )
                             }
