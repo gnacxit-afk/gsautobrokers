@@ -12,7 +12,7 @@ import type { Lead, NoteEntry, Staff } from "@/lib/types";
 import { collection, orderBy, query, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, User, Edit, ArrowLeft, MoreHorizontal, Users, ChevronsUpDown, Trash2, Edit2, CalendarPlus, Save, X } from "lucide-react";
+import { Bot, User, Edit, ArrowLeft, MoreHorizontal, Users, ChevronsUpDown, Trash2, Edit2, Save, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -244,10 +244,6 @@ export default function LeadDetailsPage() {
                     <DropdownMenuLabel>Lead Actions</DropdownMenuLabel>
                     <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/analysis`)}>
                         <Bot className="mr-2 h-4 w-4" /> AI Lead Analysis
-                    </DropdownMenuItem>
-                     <DropdownMenuItem onSelect={() => router.push(`/calendar?leadId=${lead.id}`)}>
-                      <CalendarPlus className="mr-2 h-4 w-4" />
-                      <span>Schedule/Edit Appointment</span>
                     </DropdownMenuItem>
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger>
