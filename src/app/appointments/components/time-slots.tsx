@@ -1,111 +1,147 @@
-
 'use client';
 
-import { useState, useMemo } from 'react';
-import { addMinutes, format, getHours, getMinutes, set } from 'date-fns';
-import { es } from 'date-fns/locale';
-import type { Appointment, Lead } from '@/lib/types';
+import { useState, useEffect } from 'react';
+import type { Lead } from '@/lib/types';
+import { useFirestore, useUser } from '@/firebase';
+import { collection, addDoc } from 'firebase/firestore';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { AppointmentDialog } from './appointment-dialog';
-import { cn } from '@/lib/utils';
-import { Calendar, User, Clock } from 'lucide-react';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { format, addMinutes } from 'date-fns';
+import { es } from 'date-fns/locale';
 
-interface TimeSlotsProps {
-  selectedDate: Date;
-  appointments: Appointment[];
+interface AppointmentDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  selectedDate: Date | null;
   leads: Lead[];
-  loading: boolean;
 }
 
-const generateTimeSlots = (date: Date, interval: number): Date[] => {
-  const slots: Date[] = [];
-  let currentTime = set(date, { hours: 9, minutes: 0, seconds: 0, milliseconds: 0 }); // Start at 9:00 AM
-  const endTime = set(date, { hours: 17, minutes: 0, seconds: 0, milliseconds: 0 }); // End at 5:00 PM
+export function AppointmentDialog({ open, onOpenChange, selectedDate, leads }: AppointmentDialogProps) {
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [time, setTime] = useState('09:00');
+  const firestore = useFirestore();
+  const { user } = useUser();
+  const { toast } = useToast();
 
-  while (currentTime < endTime) {
-    slots.push(currentTime);
-    currentTime = addMinutes(currentTime, interval);
-  }
-  return slots;
-};
+  useEffect(() => {
+    // Reset state when dialog is closed
+    if (!open) {
+      setSelectedLead(null);
+      setTime('09:00');
+    }
+  }, [open]);
 
-export function TimeSlots({ selectedDate, appointments, leads, loading }: TimeSlotsProps) {
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
+  const handleSave = async () => {
+    if (!firestore || !user || !selectedLead || !selectedDate) {
+      toast({
+        title: 'Error',
+        description: 'Missing information to book an appointment.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    const [hours, minutes] = time.split(':').map(Number);
+    const appointmentTime = new Date(selectedDate);
+    appointmentTime.setHours(hours, minutes);
 
-  const slots = useMemo(() => generateTimeSlots(selectedDate, 30), [selectedDate]);
+    try {
+      const appointmentsCollection = collection(firestore, 'appointments');
+      await addDoc(appointmentsCollection, {
+        leadId: selectedLead.id,
+        leadName: selectedLead.name,
+        startTime: appointmentTime,
+        endTime: addMinutes(appointmentTime, 30), // Assuming 30 min appointments
+        ownerId: user.id,
+        status: selectedLead.stage === 'Ganado' || selectedLead.stage === 'Calificado' ? 'Hot' : 'Warm', // Example logic
+      });
 
-  const bookedSlots = useMemo(() => {
-    return new Set(
-      appointments.map(apt => apt.startTime.toDate().getTime())
-    );
-  }, [appointments]);
+      toast({
+        title: 'Appointment Booked!',
+        description: `Appointment with ${selectedLead.name} at ${format(appointmentTime, 'p')} has been saved.`,
+      });
 
-  const handleSlotClick = (slot: Date) => {
-    setSelectedSlot(slot);
-    setDialogOpen(true);
+      onOpenChange(false);
+    } catch (error: any) {
+      toast({
+        title: 'Booking Failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
   };
-  
-  const getAppointmentForSlot = (slot: Date) => {
-    return appointments.find(apt => apt.startTime.toDate().getTime() === slot.getTime());
-  };
-
-
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-6 w-1/3" />
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {[...Array(16)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-4">
-      <h3 className="font-semibold text-lg text-slate-800">
-        {format(selectedDate, 'eeee, d \'de\' MMMM', { locale: es })}
-      </h3>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {slots.map((slot, index) => {
-          const isBooked = bookedSlots.has(slot.getTime());
-          const appointment = isBooked ? getAppointmentForSlot(slot) : null;
-          
-          if(isBooked && appointment) {
-            return (
-              <div key={index} className={cn("p-3 rounded-lg text-left text-xs border", {
-                "bg-red-50 border-red-200 text-red-800": appointment.status === 'Hot',
-                "bg-amber-50 border-amber-200 text-amber-800": appointment.status === 'Warm',
-                "bg-blue-50 border-blue-200 text-blue-800": appointment.status === 'Cold',
-                "bg-slate-50 border-slate-200 text-slate-800": appointment.status === 'Unknown',
-              })}>
-                <div className="font-bold flex items-center gap-2"><Clock size={12}/>{format(slot, 'p', { locale: es })}</div>
-                <div className="mt-1 flex items-center gap-2"><User size={12}/>{appointment.leadName}</div>
-              </div>
-            );
-          }
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Book Appointment</DialogTitle>
+          {selectedDate && (
+            <DialogDescription>
+              Scheduling for {format(selectedDate, "eeee, d 'de' MMMM", { locale: es })}
+            </DialogDescription>
+          )}
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="lead-search">Select a Lead</Label>
+            <Command className="rounded-lg border shadow-sm">
+              <CommandInput id="lead-search" placeholder="Search for a lead..." />
+              <CommandList>
+                <CommandEmpty>No leads found.</CommandEmpty>
+                <CommandGroup>
+                  {leads.map((lead) => (
+                    <CommandItem
+                      key={lead.id}
+                      value={lead.name}
+                      onSelect={() => {
+                        setSelectedLead(lead);
+                      }}
+                    >
+                      {lead.name}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </div>
 
-          return (
-            <Button
-              key={index}
-              variant="outline"
-              onClick={() => handleSlotClick(slot)}
-              disabled={isBooked}
-            >
-              {format(slot, 'p', { locale: es })}
-            </Button>
-          )
-        })}
-      </div>
+          {selectedLead && (
+             <div className="space-y-2">
+                <Label htmlFor="time">Appointment Time</Label>
+                <Input 
+                    id="time"
+                    type="time"
+                    value={time}
+                    onChange={(e) => setTime(e.target.value)}
+                />
+            </div>
+          )}
 
-      <AppointmentDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        selectedSlot={selectedSlot}
-        leads={leads}
-      />
-    </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleSave} disabled={!selectedLead}>Save Appointment</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import type { Lead } from '@/lib/types';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc } from 'firebase/firestore';
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,7 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { format, addMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -30,25 +31,27 @@ import { es } from 'date-fns/locale';
 interface AppointmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedSlot: Date | null;
+  selectedDate: Date | null;
   leads: Lead[];
 }
 
-export function AppointmentDialog({ open, onOpenChange, selectedSlot, leads }: AppointmentDialogProps) {
+export function AppointmentDialog({ open, onOpenChange, selectedDate, leads }: AppointmentDialogProps) {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [time, setTime] = useState('09:00');
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Reset selected lead when dialog is closed
+    // Reset state when dialog is closed
     if (!open) {
       setSelectedLead(null);
+      setTime('09:00');
     }
   }, [open]);
 
   const handleSave = async () => {
-    if (!firestore || !user || !selectedLead || !selectedSlot) {
+    if (!firestore || !user || !selectedLead || !selectedDate) {
       toast({
         title: 'Error',
         description: 'Missing information to book an appointment.',
@@ -56,21 +59,25 @@ export function AppointmentDialog({ open, onOpenChange, selectedSlot, leads }: A
       });
       return;
     }
+    
+    const [hours, minutes] = time.split(':').map(Number);
+    const appointmentTime = new Date(selectedDate);
+    appointmentTime.setHours(hours, minutes);
 
     try {
       const appointmentsCollection = collection(firestore, 'appointments');
       await addDoc(appointmentsCollection, {
         leadId: selectedLead.id,
         leadName: selectedLead.name,
-        startTime: selectedSlot,
-        endTime: addMinutes(selectedSlot, 30), // Assuming 30 min appointments
+        startTime: appointmentTime,
+        endTime: addMinutes(appointmentTime, 30), // Assuming 30 min appointments
         ownerId: user.id,
         status: selectedLead.stage === 'Ganado' || selectedLead.stage === 'Calificado' ? 'Hot' : 'Warm', // Example logic
       });
 
       toast({
         title: 'Appointment Booked!',
-        description: `Appointment with ${selectedLead.name} at ${format(selectedSlot, 'p')} has been saved.`,
+        description: `Appointment with ${selectedLead.name} at ${format(appointmentTime, 'p')} has been saved.`,
       });
 
       onOpenChange(false);
@@ -88,9 +95,9 @@ export function AppointmentDialog({ open, onOpenChange, selectedSlot, leads }: A
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Book Appointment</DialogTitle>
-          {selectedSlot && (
+          {selectedDate && (
             <DialogDescription>
-              Scheduling for {format(selectedSlot, "eeee, d 'de' MMMM 'at' p", { locale: es })}
+              Scheduling for {format(selectedDate, "eeee, d 'de' MMMM", { locale: es })}
             </DialogDescription>
           )}
         </DialogHeader>
@@ -117,12 +124,19 @@ export function AppointmentDialog({ open, onOpenChange, selectedSlot, leads }: A
               </CommandList>
             </Command>
           </div>
+
           {selectedLead && (
-            <div className="p-4 bg-slate-50 rounded-md border text-sm">
-                <p className="font-bold">{selectedLead.name}</p>
-                <p className="text-muted-foreground">{selectedLead.phone}</p>
+             <div className="space-y-2">
+                <Label htmlFor="time">Appointment Time</Label>
+                <Input 
+                    id="time"
+                    type="time"
+                    value={time}
+                    onChange={(e) => setTime(e.target.value)}
+                />
             </div>
           )}
+
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
