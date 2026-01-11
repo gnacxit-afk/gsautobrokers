@@ -12,7 +12,7 @@ import type { Lead, NoteEntry, Staff } from "@/lib/types";
 import { collection, orderBy, query, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, User, Edit, ArrowLeft, MoreHorizontal, Users, ChevronsUpDown, Trash2, Edit2, CalendarPlus } from "lucide-react";
+import { Bot, User, Edit, ArrowLeft, MoreHorizontal, Users, ChevronsUpDown, Trash2, Edit2, CalendarPlus, Save, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -32,7 +32,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuthContext } from "@/lib/auth";
 import { Label } from "@/components/ui/label";
-import { EditLeadDialog } from "../../components/edit-lead-dialog";
+import { Input } from "@/components/ui/input";
+import { addNoteEntry as addNoteEntryUtil } from '@/lib/utils';
 
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
@@ -65,7 +66,9 @@ export default function LeadDetailsPage() {
   const router = useRouter();
   const leadId = params.leadId as string;
   const { toast } = useToast();
-  const [isEditDialogOpen, setEditDialogOpen] = useState(false);
+  
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftData, setDraftData] = useState<{name: string, phone: string}>({ name: '', phone: '' });
 
   const firestore = useFirestore();
   const { user } = useUser();
@@ -84,6 +87,59 @@ export default function LeadDetailsPage() {
   }, [firestore, leadId]);
 
   const {data: noteHistory, loading: notesLoading} = useCollection<NoteEntry>(notesQuery);
+
+  useEffect(() => {
+    if (lead) {
+      setDraftData({ name: lead.name, phone: lead.phone || '' });
+    }
+  }, [lead]);
+
+  const handleEditToggle = () => {
+    if (isEditing) {
+      // If canceling, reset draft data to original lead data
+      if (lead) {
+        setDraftData({ name: lead.name, phone: lead.phone || '' });
+      }
+    }
+    setIsEditing(!isEditing);
+  };
+
+  const handleDraftChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setDraftData(prev => ({...prev, [id]: value}));
+  };
+
+  const handleSaveChanges = async () => {
+    if (!firestore || !user || !lead) return;
+
+    const changes: string[] = [];
+    if (lead.name !== draftData.name) {
+      changes.push(`Name changed from '${lead.name}' to '${draftData.name}'`);
+    }
+    if ((lead.phone || '') !== draftData.phone) {
+      changes.push(`Phone changed from '${lead.phone || 'N/A'}' to '${draftData.phone}'`);
+    }
+
+    if (changes.length === 0) {
+      toast({ title: "No Changes", description: "No information was modified." });
+      setIsEditing(false);
+      return;
+    }
+    
+    const leadRef = doc(firestore, 'leads', lead.id);
+    try {
+      await updateDoc(leadRef, { name: draftData.name, phone: draftData.phone });
+
+      const noteContent = `Lead information updated: ${changes.join('. ')}.`;
+      await addNoteEntryUtil(firestore, user, lead.id, noteContent, 'System');
+
+      toast({ title: "Lead Updated", description: "The lead's information has been saved." });
+      setIsEditing(false);
+    } catch (error) {
+      toast({ title: "Update Failed", description: "Could not save changes.", variant: "destructive" });
+    }
+  };
+
 
   const addNoteEntry = useCallback(async (leadId: string, content: string, type: NoteEntry['type']) => {
     if (!firestore || !user) return;
@@ -186,9 +242,6 @@ export default function LeadDetailsPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Lead Actions</DropdownMenuLabel>
-                     <DropdownMenuItem onSelect={() => setEditDialogOpen(true)}>
-                        <Edit2 className="mr-2 h-4 w-4" /> Edit Information
-                    </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/analysis`)}>
                         <Bot className="mr-2 h-4 w-4" /> AI Lead Analysis
                     </DropdownMenuItem>
@@ -246,23 +299,45 @@ export default function LeadDetailsPage() {
            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             <div className="lg:col-span-1 space-y-4">
                 <Card>
-                    <CardHeader className="text-center">
+                    <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle>Lead Information</CardTitle>
+                        {isEditing ? (
+                          <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleEditToggle}>
+                              <X size={16}/>
+                            </Button>
+                            <Button size="sm" onClick={handleSaveChanges}>
+                              <Save size={14} className="mr-2" /> Save
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button variant="outline" size="sm" onClick={handleEditToggle}>
+                            <Edit2 size={14} className="mr-2" /> Edit
+                          </Button>
+                        )}
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                             <Label>Name</Label>
-                            <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.name}</Badge>
+                            {isEditing ? (
+                                <Input id="name" value={draftData.name} onChange={handleDraftChange} />
+                            ) : (
+                                <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.name}</Badge>
+                            )}
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                             <Label>Phone</Label>
-                             <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.phone || 'N/A'}</Badge>
+                             {isEditing ? (
+                                <Input id="phone" value={draftData.phone} onChange={handleDraftChange} />
+                            ) : (
+                                <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.phone || 'N/A'}</Badge>
+                            )}
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                             <Label>Channel</Label>
                             <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.channel}</Badge>
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                             <Label>Stage</Label>
                             <Badge variant={lead.stage === 'Ganado' ? 'default' : 'outline'} className={cn("text-base py-1 w-full justify-start", {
                                 "bg-primary text-primary-foreground": lead.stage === 'Ganado',
@@ -271,7 +346,7 @@ export default function LeadDetailsPage() {
                                 {lead.stage}
                             </Badge>
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                             <Label>Owner</Label>
                             <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.ownerName}</Badge>
                         </div>
@@ -331,7 +406,6 @@ export default function LeadDetailsPage() {
             </div>
            </div>
         )}
-        {lead && <EditLeadDialog open={isEditDialogOpen} onOpenChange={setEditDialogOpen} lead={lead}/>}
     </main>
   );
 }
