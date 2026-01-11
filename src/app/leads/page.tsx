@@ -22,7 +22,6 @@ import {
 import { collection, query, orderBy, updateDoc, doc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { isWithinInterval, isValid } from "date-fns";
-import { AppointmentDialog } from "@/components/dialogs/appointment-dialog";
 
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
@@ -186,7 +185,7 @@ function LeadsPageContent() {
             toast({ title: "Stage Updated", description: `Lead stage changed to ${newStage}.` });
             
             // REMOVED: Automatic dialog trigger is removed for better user control.
-            // The user will now schedule from the lead details page.
+            // The user will now schedule from the details page.
 
         } catch (error) {
              console.error("Error updating stage:", error);

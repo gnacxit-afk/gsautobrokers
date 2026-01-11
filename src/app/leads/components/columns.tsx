@@ -81,7 +81,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
                 <span>Details / Notes</span>
             </DropdownMenuItem>
 
-             <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/notes`)}>
+             <DropdownMenuItem onSelect={() => router.push(`/appointments`)}>
                 <Calendar className="mr-2 h-4 w-4" />
                 <span>Schedule Appointment</span>
             </DropdownMenuItem>
@@ -167,7 +167,7 @@ export const getColumns = (
     cell: ({ row }) => {
       const lead = row.original;
       return (
-        <div className="text-sm text-slate-600">
+        <div className="text-sm">
           <div>{lead.phone}</div>
           <div className="text-xs opacity-60">{lead.email}</div>
         </div>
@@ -180,11 +180,7 @@ export const getColumns = (
     header: "Channel",
     cell: ({ row }) => {
       const channel = row.getValue("channel") as string;
-      return (
-        <Badge variant="outline" className="text-xs uppercase font-bold">
-          {channel}
-        </Badge>
-      );
+      return <span>{channel}</span>;
     },
      filterFn: 'equalsString',
   },
@@ -193,15 +189,7 @@ export const getColumns = (
     header: "Stage",
     cell: ({ row }) => {
       const stage = row.getValue("stage") as string;
-      const variant: "default" | "secondary" | "destructive" | "outline" =
-        stage === "Ganado"
-          ? "default"
-          : stage === "Perdido"
-          ? "destructive"
-          : stage === "Citado"
-          ? "secondary" // Make 'Citado' stand out
-          : "outline";
-      return <Badge variant={variant} className={stage === 'Citado' ? 'bg-amber-100 text-amber-800 border-amber-200' : ''}>{stage}</Badge>;
+      return <span>{stage}</span>;
     },
     filterFn: 'equalsString',
   },
@@ -226,7 +214,7 @@ export const getColumns = (
         }
 
         return (
-            <div className="text-xs text-slate-500">
+            <div className="text-xs">
                 <div>{format(date, 'MMM d, yyyy')}</div>
                 <div className="opacity-70">{format(date, 'h:mm a')}</div>
             </div>

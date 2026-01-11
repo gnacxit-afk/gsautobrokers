@@ -146,12 +146,12 @@ export function DataTable<TData extends Lead, TValue>({
         </div>
       <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
         <Table>
-          <TableHeader className="bg-gray-50 text-slate-500 text-sm">
+          <TableHeader className="bg-gray-50 text-slate-500">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id} className="px-6 py-4 font-semibold">
+                    <TableHead key={header.id} className="px-6 py-4 font-semibold text-sm">
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -183,7 +183,7 @@ export function DataTable<TData extends Lead, TValue>({
                   className="hover:bg-slate-50 transition-colors"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="px-6 py-4">
+                    <TableCell key={cell.id} className="px-6 py-4 text-sm">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
