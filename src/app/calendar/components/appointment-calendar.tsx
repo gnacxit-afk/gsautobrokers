@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -206,13 +207,14 @@ export function AppointmentCalendar({ appointments, allStaff, leadToOpen }: { ap
                         onMonthChange={setCurrentMonth}
                         className="p-0"
                         modifiers={{
-                            hasAppointment: (date) => appointmentsByDate[format(date, 'yyyy-MM-dd')]?.length > 0,
+                            hasAppointment: (date) => !!(date && appointmentsByDate[format(date, 'yyyy-MM-dd')]?.length > 0),
                         }}
                         modifiersClassNames={{
                             hasAppointment: 'relative',
                         }}
                         components={{
                             Day: (props) => {
+                                if (!props.date) return null;
                                 const hasAppointment = appointmentsByDate[format(props.date, 'yyyy-MM-dd')]?.length > 0;
                                 const isSelected = props.selected;
                                 const isTodayDate = isToday(props.date);
@@ -273,3 +275,4 @@ export function AppointmentCalendar({ appointments, allStaff, leadToOpen }: { ap
     </>
   );
 }
+
