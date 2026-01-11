@@ -33,14 +33,21 @@ interface AppointmentDialogProps {
   onOpenChange: (open: boolean) => void;
   selectedDate: Date | null;
   leads: Lead[];
+  preselectedLead?: Lead | null;
 }
 
-export function AppointmentDialog({ open, onOpenChange, selectedDate, leads }: AppointmentDialogProps) {
+export function AppointmentDialog({ open, onOpenChange, selectedDate, leads, preselectedLead }: AppointmentDialogProps) {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [time, setTime] = useState('09:00');
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (preselectedLead) {
+        setSelectedLead(preselectedLead);
+    }
+  }, [preselectedLead, open]);
 
   useEffect(() => {
     // Reset state when dialog is closed
@@ -71,7 +78,7 @@ export function AppointmentDialog({ open, onOpenChange, selectedDate, leads }: A
         leadName: selectedLead.name,
         startTime: appointmentTime,
         endTime: addMinutes(appointmentTime, 30), // Assuming 30 min appointments
-        ownerId: user.id,
+        ownerId: selectedLead.ownerId, // The appointment owner is the lead's owner
         status: selectedLead.stage === 'Ganado' || selectedLead.stage === 'Calificado' ? 'Hot' : 'Warm', // Example logic
       });
 
@@ -103,26 +110,30 @@ export function AppointmentDialog({ open, onOpenChange, selectedDate, leads }: A
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <Label htmlFor="lead-search">Select a Lead</Label>
-            <Command className="rounded-lg border shadow-sm">
-              <CommandInput id="lead-search" placeholder="Search for a lead..." />
-              <CommandList>
-                <CommandEmpty>No leads found.</CommandEmpty>
-                <CommandGroup>
-                  {leads.map((lead) => (
-                    <CommandItem
-                      key={lead.id}
-                      value={lead.name}
-                      onSelect={() => {
-                        setSelectedLead(lead);
-                      }}
-                    >
-                      {lead.name}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
+            <Label htmlFor="lead-search">Lead</Label>
+            {preselectedLead ? (
+                 <div className="p-2 border rounded-md bg-slate-50">{preselectedLead.name}</div>
+            ) : (
+                <Command className="rounded-lg border shadow-sm">
+                <CommandInput id="lead-search" placeholder="Search for a lead..." />
+                <CommandList>
+                    <CommandEmpty>No leads found.</CommandEmpty>
+                    <CommandGroup>
+                    {leads.map((lead) => (
+                        <CommandItem
+                        key={lead.id}
+                        value={lead.name}
+                        onSelect={() => {
+                            setSelectedLead(lead);
+                        }}
+                        >
+                        {lead.name}
+                        </CommandItem>
+                    ))}
+                    </CommandGroup>
+                </CommandList>
+                </Command>
+            )}
           </div>
 
           {selectedLead && (

@@ -22,6 +22,7 @@ import {
 import { collection, query, orderBy, updateDoc, doc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { isWithinInterval, isValid } from "date-fns";
+import { AppointmentDialog } from "@/components/dialogs/appointment-dialog";
 
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
@@ -107,6 +108,10 @@ function LeadsPageContent() {
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [globalFilter, setGlobalFilter] = useState('');
     const [expanded, setExpanded] = useState({});
+    
+    const [isAppointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
+    const [leadForAppointment, setLeadForAppointment] = useState<Lead | null>(null);
+
 
     // Stabilize the query object with useMemo.
     const leadsQuery = useMemo(() => 
@@ -156,6 +161,9 @@ function LeadsPageContent() {
     const handleUpdateStage = useCallback(async (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage']) => {
         if (!firestore || !user) return;
         const leadRef = doc(firestore, 'leads', leadId);
+        const lead = data.find(l => l.id === leadId);
+
+        if (!lead) return;
         
         try {
             await updateDoc(leadRef, { stage: newStage });
@@ -164,8 +172,7 @@ function LeadsPageContent() {
             await addNoteEntry(leadId, noteContent, 'Stage Change');
             
              // Create notification for the lead owner
-            const lead = data.find(l => l.id === leadId);
-            if (lead && lead.ownerId !== user.id) {
+            if (lead.ownerId !== user.id) {
                 await createNotification(
                     firestore,
                     lead.ownerId,
@@ -176,6 +183,13 @@ function LeadsPageContent() {
             }
 
             toast({ title: "Stage Updated", description: `Lead stage changed to ${newStage}.` });
+            
+            // Trigger appointment dialog
+            if (newStage === 'Citado' || newStage === 'En Seguimiento') {
+                setLeadForAppointment(lead);
+                setAppointmentDialogOpen(true);
+            }
+
         } catch (error) {
              console.error("Error updating stage:", error);
              toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
@@ -340,6 +354,13 @@ function LeadsPageContent() {
                 channels={channels}
                 clearAllFilters={clearAllFilters}
                 loading={leadsLoading || staffLoading}
+            />
+            <AppointmentDialog
+                open={isAppointmentDialogOpen}
+                onOpenChange={setAppointmentDialogOpen}
+                selectedDate={new Date()}
+                leads={leadForAppointment ? [leadForAppointment] : []}
+                preselectedLead={leadForAppointment}
             />
         </main>
     );
