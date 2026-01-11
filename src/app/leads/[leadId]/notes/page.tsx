@@ -12,7 +12,7 @@ import type { Lead, NoteEntry, Staff } from "@/lib/types";
 import { collection, orderBy, query, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, User, Edit, ArrowRight, ArrowLeft, MoreHorizontal, Users, ChevronsUpDown, Trash2, CalendarPlus, FileText } from "lucide-react";
+import { Bot, User, Edit, ArrowLeft, MoreHorizontal, Users, ChevronsUpDown, Trash2, Edit2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -32,15 +32,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuthContext } from "@/lib/auth";
 import { Label } from "@/components/ui/label";
+import { EditLeadDialog } from "../components/edit-lead-dialog";
+
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 
 const getIconForType = (type: NoteEntry['type']) => {
     switch (type) {
         case 'Manual': return <User size={14} />;
-        case 'Stage Change': return <ArrowRight size={14} />;
-        case 'Owner Change': return <Edit size={14} />;
+        case 'Stage Change': return <ChevronsUpDown size={14} />;
+        case 'Owner Change': return <Users size={14} />;
         case 'System': return <Bot size={14} />;
+        case 'AI Analysis': return <Bot size={14} />;
         default: return <Bot size={14} />;
     }
 };
@@ -51,6 +54,7 @@ const getColorForType = (type: NoteEntry['type']) => {
         case 'Stage Change': return "bg-amber-100 text-amber-800";
         case 'Owner Change': return "bg-purple-100 text-purple-800";
         case 'System': return "bg-slate-100 text-slate-800";
+        case 'AI Analysis': return "bg-violet-100 text-violet-800";
         default: return "bg-slate-100 text-slate-800";
     }
 }
@@ -61,6 +65,7 @@ export default function LeadDetailsPage() {
   const router = useRouter();
   const leadId = params.leadId as string;
   const { toast } = useToast();
+  const [isEditDialogOpen, setEditDialogOpen] = useState(false);
 
   const firestore = useFirestore();
   const { user } = useUser();
@@ -80,13 +85,13 @@ export default function LeadDetailsPage() {
 
   const {data: noteHistory, loading: notesLoading} = useCollection<NoteEntry>(notesQuery);
 
-  const addNoteEntry = useCallback(async (leadId: string, content: string, type: NoteEntry['type'], author?: string) => {
+  const addNoteEntry = useCallback(async (leadId: string, content: string, type: NoteEntry['type']) => {
     if (!firestore || !user) return;
     const noteHistoryRef = collection(firestore, 'leads', leadId, 'noteHistory');
     
     await addDoc(noteHistoryRef, {
         content,
-        author: author || user.name,
+        author: user.name,
         date: serverTimestamp(),
         type,
     });
@@ -181,11 +186,11 @@ export default function LeadDetailsPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Lead Actions</DropdownMenuLabel>
+                     <DropdownMenuItem onSelect={() => setEditDialogOpen(true)}>
+                        <Edit2 className="mr-2 h-4 w-4" /> Edit Information
+                    </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/analysis`)}>
                         <Bot className="mr-2 h-4 w-4" /> AI Lead Analysis
-                    </DropdownMenuItem>
-                     <DropdownMenuItem onSelect={() => router.push(`/calendar?leadId=${lead.id}`)}>
-                        <CalendarPlus className="mr-2 h-4 w-4" /> Schedule/Edit Appointment
                     </DropdownMenuItem>
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger>
@@ -243,37 +248,28 @@ export default function LeadDetailsPage() {
                     <CardContent className="space-y-4">
                         <div className="space-y-1">
                             <Label>Name</Label>
-                            <div className="text-base font-medium">
-                                <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10">{lead.name}</Badge>
-                            </div>
+                             <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.name}</Badge>
                         </div>
-                        <div className="space-y-1">
+                         <div className="space-y-1">
                             <Label>Phone</Label>
-                             <div className="text-base font-medium">
-                                <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10">{lead.phone || 'N/A'}</Badge>
-                             </div>
+                            <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.phone || 'N/A'}</Badge>
                         </div>
                         <div className="space-y-1">
                             <Label>Channel</Label>
-                             <div className="text-base font-medium">
-                                <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10">{lead.channel}</Badge>
-                             </div>
+                            <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.channel}</Badge>
                         </div>
                         <div className="space-y-1">
                             <Label>Stage</Label>
-                             <div className="text-base font-medium">
-                                <Badge variant={lead.stage === 'Ganado' ? 'default' : 'secondary'} className={cn("text-base py-1 text-primary border-primary/50 bg-primary/10", {
-                                    "bg-primary text-primary-foreground": lead.stage === 'Ganado',
-                                })}>
-                                    {lead.stage}
-                                </Badge>
-                             </div>
+                             <Badge variant={lead.stage === 'Ganado' ? 'default' : 'outline'} className={cn("text-base py-1 w-full justify-start", {
+                                "bg-primary text-primary-foreground": lead.stage === 'Ganado',
+                                "text-primary border-primary/50 bg-primary/10": lead.stage !== 'Ganado'
+                            })}>
+                                {lead.stage}
+                            </Badge>
                         </div>
                         <div className="space-y-1">
                             <Label>Owner</Label>
-                             <div className="text-base font-medium">
-                                <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10">{lead.ownerName}</Badge>
-                             </div>
+                            <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.ownerName}</Badge>
                         </div>
                     </CardContent>
                 </Card>
@@ -331,6 +327,7 @@ export default function LeadDetailsPage() {
             </div>
            </div>
         )}
+        {lead && <EditLeadDialog open={isEditDialogOpen} onOpenChange={setEditDialogOpen} lead={lead}/>}
     </main>
   );
 }
