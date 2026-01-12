@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState, useCallback } from 'react';
@@ -69,7 +70,7 @@ export default function StaffPage() {
     }
   };
 
-  const columns = useMemo(() => getColumns({ onDelete, isMasterAdmin: user?.email === MASTER_ADMIN_EMAIL }), [user?.email, MASTER_ADMIN_EMAIL]);
+  const columns = useMemo(() => getColumns({ onDelete: handleDelete, isMasterAdmin: user?.email === MASTER_ADMIN_EMAIL }), [user?.email, MASTER_ADMIN_EMAIL, handleDelete]);
 
   const { myTeam, otherStaff } = useMemo(() => {
     if (!user || !staff) return { myTeam: [], otherStaff: [] };
