@@ -33,7 +33,7 @@ const globalFilterFn: FilterFn<any> = (row, columnId, filterValue, addMeta) => {
     const lead = row.original as Lead;
     const { user, allStaff, dateRange } = addMeta as any;
 
-    // Date Range Filtering (Always applied first)
+    // Date Range Filtering
     if (dateRange && dateRange.start && dateRange.end && lead.createdAt) {
         const leadDate = (lead.createdAt as any).toDate ? (lead.createdAt as any).toDate() : new Date(lead.createdAt as string);
         if (isValid(leadDate)) {
@@ -43,7 +43,7 @@ const globalFilterFn: FilterFn<any> = (row, columnId, filterValue, addMeta) => {
         }
     }
 
-    // Role-based Visibility (Always applied)
+    // Role-based Visibility
     if (user) {
         let isVisible = false;
         if (user.role === 'Admin') {
@@ -63,34 +63,48 @@ const globalFilterFn: FilterFn<any> = (row, columnId, filterValue, addMeta) => {
     }
     
     // Keyword Filtering Logic
-    const searchTerms = search.split(/\s+/).filter(Boolean); // Split by space and remove empty strings
-    if (searchTerms.length === 0) {
-        return true; // No search term, so don't filter
+    if (!search) {
+        return true; // No search term, so don't filter (show everything that passes role/date checks)
     }
 
-    // This will check if EVERY term is met.
-    return searchTerms.every(term => {
+    const searchTerms = search.split(/\s+/).filter(Boolean);
+    const keywordFilters = searchTerms.filter(term => term.includes(':'));
+    const textSearchTerms = searchTerms.filter(term => !term.includes(':'));
+
+    // Check if lead matches all keyword filters (AND logic)
+    const matchesAllKeywords = keywordFilters.every(term => {
         const [key, ...valueParts] = term.split(':');
         const value = valueParts.join(':').toLowerCase();
+        
+        if (!value) return true; // Ignore empty filters like 'stage:'
 
-        if (value) { // This is a key:value filter
-            switch (key) {
-                case 'stage':
-                    return lead.stage?.toLowerCase().includes(value);
-                case 'owner':
-                    return lead.ownerName?.toLowerCase().includes(value);
-                case 'channel':
-                    return lead.channel?.toLowerCase().includes(value);
-                default:
-                    // If the key is not recognized, treat it as a normal search term
-                    const textSearch = `${lead.name} ${lead.phone} ${lead.email}`.toLowerCase();
-                    return textSearch.includes(term);
-            }
-        } else { // This is a free-text search
-            const textSearch = `${lead.name} ${lead.phone} ${lead.email} ${lead.ownerName} ${lead.stage} ${lead.channel}`.toLowerCase();
-            return textSearch.includes(key);
+        switch (key) {
+            case 'stage':
+                return lead.stage?.toLowerCase().includes(value);
+            case 'owner':
+                return lead.ownerName?.toLowerCase().includes(value);
+            case 'channel':
+                return lead.channel?.toLowerCase().includes(value);
+            default:
+                // If key is not recognized, treat it as a normal text search for this term
+                const fullText = `${lead.name} ${lead.phone} ${lead.email}`.toLowerCase();
+                return fullText.includes(term);
         }
     });
+
+    if (!matchesAllKeywords) {
+        return false;
+    }
+
+    // If there are text search terms, check if the lead matches any of them (OR logic for text, but AND with keywords)
+    if (textSearchTerms.length > 0) {
+        const fullText = `${lead.name} ${lead.phone} ${lead.email} ${lead.ownerName} ${lead.stage} ${lead.channel}`.toLowerCase();
+        const matchesAnyTextTerm = textSearchTerms.some(term => fullText.includes(term));
+        return matchesAnyTextTerm;
+    }
+
+    // If we are here, it means all keyword filters passed and there were no text-only terms.
+    return true;
 };
 
 const createNotification = async (
