@@ -74,35 +74,35 @@ export function BonusStatus({ allLeads, loading }: { allLeads: Lead[], loading: 
 
     const getBonusMessage = () => {
       if (bonusInfo.needed > 0) {
-        return `You are ${bonusInfo.needed} sale${bonusInfo.needed > 1 ? 's' : ''} away from the next bonus of $${calculateBonus(bonusInfo.nextGoal)}!`;
+        return `Estás a ${bonusInfo.needed} venta${bonusInfo.needed > 1 ? 's' : ''} de tu siguiente bono de $${calculateBonus(bonusInfo.nextGoal)}!`;
       }
-      return "You've reached the highest bonus tier! Great job!";
+      return "¡Has alcanzado el nivel de bono más alto! ¡Excelente trabajo!";
     }
 
     return (
         <Card>
           <CardHeader>
-            <CardTitle>Your Monthly Bonus Progress</CardTitle>
+            <CardTitle>Tu Progreso de Bonos Mensuales</CardTitle>
             <CardDescription>
               {getBonusMessage()}
             </CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
              <StatCard 
-                label="Sales in last 30 days"
+                label="Ventas (últimos 30 días)"
                 value={bonusInfo.sales}
                 icon={<Trophy size={24} className="text-green-500"/>}
                 color="green"
             />
             <StatCard 
-                label="Current Bonus"
+                label="Bono Actual"
                 value={`$${bonusInfo.bonus}`}
                 icon={<Award size={24} className="text-amber-500"/>}
                 color="amber"
             />
             <StatCard 
-                label="Next Bonus Goal"
-                value={`${bonusInfo.nextGoal} Sales`}
+                label="Meta Próximo Bono"
+                value={`${bonusInfo.nextGoal} Ventas`}
                 icon={<Target size={24} className="text-blue-500"/>}
                 color="blue"
             />

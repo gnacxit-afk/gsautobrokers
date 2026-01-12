@@ -42,20 +42,16 @@ const StatCard = ({ label, value, color }: { label: string, value: string | numb
   );
 };
 
-function BrokerMonthlyGoals() {
-  const firestore = useFirestore();
+function BrokerGoalsView({kpis, kpisLoading, allLeads, staff, loading}) {
   const { user } = useUser();
   const { dateRange } = useDateRange();
   
-  const leadsQuery = useMemo(() => firestore ? collection(firestore, 'leads') : null, [firestore]);
-  const { data: leadsData } = useCollection<Lead>(leadsQuery);
-
   const brokerStats = useMemo(() => {
-    if (!user || user.role !== 'Broker' || !leadsData) {
+    if (!user || user.role !== 'Broker' || !allLeads) {
       return null;
     }
 
-    const brokerLeads = leadsData.filter(l => {
+    const brokerLeads = allLeads.filter(l => {
         const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
         if (isNaN(leadDate.getTime())) return false;
         return l.ownerId === user.id && isWithinInterval(leadDate, dateRange);
@@ -74,29 +70,82 @@ function BrokerMonthlyGoals() {
       totalCommissions,
       brokerBonus
     };
-  }, [user, leadsData, dateRange]);
+  }, [user, allLeads, dateRange]);
+  
+  const performanceLeads = useMemo(() => {
+    return allLeads.filter(l => {
+        if (!l.createdAt) return false;
+        const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
+        if (!isValid(leadDate)) return false;
+        return isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end });
+    });
+  }, [allLeads, dateRange]);
+
 
   if (!brokerStats) return null;
 
   return (
-    <div className="space-y-8">
+    <main className="flex-1 space-y-8">
       <div>
         <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Monthly Goals</h1>
-            <p className="text-muted-foreground">Your performance for the selected date range.</p>
+            <h1 className="text-2xl font-bold">Mis Metas</h1>
+            <p className="text-muted-foreground">Tu rendimiento para el período seleccionado.</p>
           </div>
           <DateRangePicker />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <StatCard label="Total Leads" value={brokerStats.totalLeads} color="blue" />
-            <StatCard label="Closed Sales" value={brokerStats.closedSales} color="green" />
-            <StatCard label="Conversion" value={`${brokerStats.conversion.toFixed(1)}%`} color="indigo" />
-            <StatCard label="Commissions" value={`$${brokerStats.totalCommissions.toLocaleString()}`} color="amber" />
-            <StatCard label="Bonus" value={`$${brokerStats.brokerBonus.toLocaleString()}`} color="violet" />
+            <StatCard label="Ventas Cerradas" value={brokerStats.closedSales} color="green" />
+            <StatCard label="Conversión" value={`${brokerStats.conversion.toFixed(1)}%`} color="indigo" />
+            <StatCard label="Comisiones" value={`$${brokerStats.totalCommissions.toLocaleString()}`} color="amber" />
+            <StatCard label="Bono" value={`$${brokerStats.brokerBonus.toLocaleString()}`} color="violet" />
         </div>
       </div>
-    </div>
+      
+       <div className="border-t pt-8">
+          <div className="mb-6 text-center">
+            <h1 className="text-2xl font-bold">Daily Goals</h1>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Cada vendedor profesional genera resultados todos los días, porque
+              entiende que el éxito no se espera, se provoca.
+            </p>
+          </div>
+          <KpiClient initialKpis={kpis} loading={kpisLoading} />
+           <div className="mt-8 p-4 bg-gray-100 border border-gray-200 rounded-lg text-center">
+            <p className="text-sm font-semibold text-gray-700">
+              👉 “Los vendedores que ganan saben esto: sin número no hay control,
+              y sin control no hay ventas.”
+            </p>
+          </div>
+       </div>
+
+       <div className="border-t pt-8">
+          <div className="mb-6">
+            <div>
+              <h1 className="text-2xl font-bold">Estado de Bonos</h1>
+              <p className="text-muted-foreground">
+                Tu progreso de bonos por ventas en los últimos 30 días.
+              </p>
+            </div>
+          </div>
+          <BonusStatus allLeads={allLeads} loading={loading} />
+        </div>
+
+        <div className="border-t pt-8">
+            <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold">Dashboard en Tiempo Real</h1>
+                    <p className="text-muted-foreground">Resumen del rendimiento diario.</p>
+                </div>
+            </div>
+            <PerformanceDashboard
+                allLeads={performanceLeads}
+                allStaff={staff}
+                loading={loading}
+            />
+        </div>
+    </main>
   )
 }
 
@@ -147,51 +196,13 @@ function KpiPage() {
 
   if (user?.role === 'Broker') {
     return (
-        <main className="flex-1 space-y-8">
-          <BrokerMonthlyGoals />
-           <div>
-              <div className="mb-6 text-center">
-                <h1 className="text-2xl font-bold">Daily Goals</h1>
-                <p className="text-muted-foreground max-w-2xl mx-auto">
-                  Cada vendedor profesional genera resultados todos los días, porque
-                  entiende que el éxito no se espera, se provoca.
-                </p>
-              </div>
-              <KpiClient initialKpis={kpis} loading={kpisLoading} />
-               <div className="mt-8 p-4 bg-gray-100 border border-gray-200 rounded-lg text-center">
-                <p className="text-sm font-semibold text-gray-700">
-                  👉 “Los vendedores que ganan saben esto: sin número no hay control,
-                  y sin control no hay ventas.”
-                </p>
-              </div>
-           </div>
-           <div className="border-t pt-8">
-              <div className="mb-6">
-                <div>
-                  <h1 className="text-2xl font-bold">Bonus Status</h1>
-                  <p className="text-muted-foreground">
-                    Your sales bonus progress over the last 30 days.
-                  </p>
-                </div>
-              </div>
-              <BonusStatus allLeads={allLeads} loading={loading} />
-            </div>
-
-            <div className="border-t pt-8">
-                <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold">Real-Time Dashboard</h1>
-                        <p className="text-muted-foreground">Daily performance overview.</p>
-                    </div>
-                    <DateRangePicker />
-                </div>
-                <PerformanceDashboard
-                    allLeads={performanceLeads}
-                    allStaff={staff}
-                    loading={loading}
-                />
-            </div>
-        </main>
+        <BrokerGoalsView 
+            kpis={kpis}
+            kpisLoading={kpisLoading}
+            allLeads={allLeads}
+            staff={staff}
+            loading={loading}
+        />
     )
   }
 
@@ -230,9 +241,9 @@ function KpiPage() {
       <div className="border-t pt-8">
         <div className="mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Bonus Status</h1>
+            <h1 className="text-2xl font-bold">Estado de Bonos</h1>
             <p className="text-muted-foreground">
-              Your sales bonus progress over the last 30 days.
+              Progreso de bonos por ventas en los últimos 30 días.
             </p>
           </div>
         </div>
@@ -242,8 +253,8 @@ function KpiPage() {
         <div className="border-t pt-8">
             <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold">Real-Time Dashboard</h1>
-                    <p className="text-muted-foreground">Performance overview for the selected date range.</p>
+                    <h1 className="text-2xl font-bold">Dashboard en Tiempo Real</h1>
+                    <p className="text-muted-foreground">Resumen de rendimiento para el período seleccionado.</p>
                 </div>
                 <DateRangePicker />
             </div>
