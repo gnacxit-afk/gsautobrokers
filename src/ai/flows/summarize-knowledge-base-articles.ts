@@ -30,11 +30,11 @@ const prompt = ai.definePrompt({
   name: 'summarizeArticlePrompt',
   input: {schema: SummarizeArticleInputSchema},
   output: {schema: SummarizeArticleOutputSchema},
-  prompt: `You are an expert at summarizing knowledge base articles for a sales team.
+  prompt: `Eres un experto en resumir artículos de una base de conocimientos para un equipo de ventas. Tu respuesta DEBE ser en español.
 
-  Please provide a concise summary of the following article content so that a salesperson can quickly understand the key information, takeaways, and actionable steps. Use bullet points for clarity if needed.
+  Por favor, proporciona un resumen conciso del siguiente contenido del artículo para que un vendedor pueda comprender rápidamente la información clave, las conclusiones y los pasos a seguir. Usa viñetas (bullet points) para mayor claridad si es necesario.
 
-  Article Content: {{{articleContent}}}`,
+  Contenido del Artículo: {{{articleContent}}}`,
 });
 
 const summarizeArticleFlow = ai.defineFlow(
