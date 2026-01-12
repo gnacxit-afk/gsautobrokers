@@ -17,13 +17,10 @@ import {
   Legend,
   Line,
   LineChart,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
-  Cell,
 } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -35,6 +32,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { format, eachDayOfInterval, isValid } from 'date-fns';
+import { Progress } from '@/components/ui/progress';
 
 const StatCard = ({ label, value, icon: Icon, color }: { label: string, value: string | number, icon: React.ElementType, color: string }) => {
   const colors: { [key: string]: string } = {
@@ -117,7 +115,7 @@ export default function DashboardPage() {
   }, [allLeads, allStaff, dateRange, user]);
 
 
-  const { stats, sellerPerformanceData, salesByChannelData, salesTrendData } = useMemo(() => {
+  const { stats, sellerPerformanceData, channelConversionData, salesTrendData } = useMemo(() => {
     const totalLeads = filteredLeads.length;
     const closedSales = filteredLeads.filter(l => l.stage === 'Ganado').length;
     const conversion = totalLeads > 0 ? (closedSales / totalLeads) * 100 : 0;
@@ -156,15 +154,22 @@ export default function DashboardPage() {
     const grossMargin = (closedSales * MARGIN_PER_VEHICLE) - totalBonuses;
     const totalToPay = totalCommissions + totalBonuses;
 
-    const channels: { [key: string]: number } = {};
+    const channels: { [key: string]: { leads: number, sales: number } } = {};
     filteredLeads.forEach(l => {
+      if (!channels[l.channel]) channels[l.channel] = { leads: 0, sales: 0 };
+      channels[l.channel].leads++;
       if (l.stage === 'Ganado') {
-        if (!channels[l.channel]) channels[l.channel] = 0;
-        channels[l.channel]++;
+        channels[l.channel].sales++;
       }
     });
 
-    const salesByChannelData = Object.entries(channels).map(([name, value]) => ({ name, value }));
+    const channelConversionData = Object.entries(channels)
+        .map(([name, data]) => ({ 
+            name, 
+            ...data, 
+            conversion: data.leads > 0 ? (data.sales / data.leads) * 100 : 0
+        }))
+        .sort((a, b) => b.sales - a.sales);
     
     const dailyData: { [key: string]: { leads: number, sales: number } } = {};
     const interval = eachDayOfInterval({ start: dateRange.start, end: dateRange.end });
@@ -191,7 +196,7 @@ export default function DashboardPage() {
       totalLeads, closedSales, conversion, totalRevenue, totalCommissions, grossMargin, totalBonuses, totalToPay
     };
     
-    return { stats, sellerPerformanceData, salesByChannelData, salesTrendData };
+    return { stats, sellerPerformanceData, channelConversionData, salesTrendData };
 
   }, [filteredLeads, allStaff, dateRange]);
 
@@ -199,8 +204,6 @@ export default function DashboardPage() {
   if (user?.role === 'Broker') {
     return null; // Redirect is handled in useEffect
   }
-  
-  const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444'];
 
   return (
     <div className="space-y-8">
@@ -215,8 +218,7 @@ export default function DashboardPage() {
         <StatCard label="Gross Margin" value={`$${stats.grossMargin.toLocaleString()}`} icon={PiggyBank} color="emerald" />
       </div>
 
-       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        <Card className="lg:col-span-2 shadow-sm">
+       <Card className="shadow-sm">
           <CardHeader>
             <CardTitle>Sales & Leads Trend</CardTitle>
             <CardDescription>Daily closed sales and new leads over the selected period.</CardDescription>
@@ -235,103 +237,88 @@ export default function DashboardPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-        
-        <Card className="shadow-sm">
-           <CardHeader>
-            <CardTitle>Sales by Channel</CardTitle>
-            <CardDescription>Distribution of sales across different channels.</CardDescription>
-          </CardHeader>
-          <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                    <Pie
-                        data={salesByChannelData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        nameKey="name"
-                        label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-                          const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-                          const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
-                          const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
-                          return (
-                            <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize={12}>
-                              {`${(percent * 100).toFixed(0)}%`}
-                            </text>
-                          );
-                        }}
-                    >
-                       {salesByChannelData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                    </Pie>
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend iconSize={10} wrapperStyle={{fontSize: "12px"}}/>
-                </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-       </div>
        
-       {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
-         <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 size={20} /> Seller Performance
-            </CardTitle>
-            <CardDescription>Leads, sales, and commissions per salesperson.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={400}>
-               <BarChart data={sellerPerformanceData} layout="vertical" margin={{ left: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 12 }} />
-                  <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={80} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend wrapperStyle={{fontSize: "12px"}} />
-                  <Bar dataKey="sales" fill="#10B981" name="Sales" />
-                  <Bar dataKey="commission" fill="#8B5CF6" name="Commission" />
-                  <Bar dataKey="leads" fill="#3B82F6" name="Leads"/>
-                </BarChart>
-            </ResponsiveContainer>
-            <div className="mt-6 overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="font-bold">Salesperson</TableHead>
-                    <TableHead className="text-center">Leads</TableHead>
-                    <TableHead className="text-center">Sales</TableHead>
-                    <TableHead className="text-center">Conversion</TableHead>
-                    <TableHead className="text-right">Commissions</TableHead>
-                    <TableHead className="text-right">Bonus</TableHead>
-                    <TableHead className="text-right font-bold">Total to Pay</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sellerPerformanceData.map((seller) => {
-                    const conversionRate = seller.leads > 0 ? (seller.sales / seller.leads) * 100 : 0;
-                    const totalToPay = seller.commission + seller.bonus;
-                    return (
-                      <TableRow key={seller.name}>
-                        <TableCell className="font-medium">{seller.name}</TableCell>
-                        <TableCell className="text-center">{seller.leads}</TableCell>
-                        <TableCell className="text-center font-bold">{seller.sales}</TableCell>
-                        <TableCell className="text-center">{conversionRate.toFixed(1)}%</TableCell>
-                        <TableCell className="text-right">${seller.commission.toLocaleString()}</TableCell>
-                        <TableCell className="text-right">${seller.bonus.toLocaleString()}</TableCell>
-                        <TableCell className="text-right font-bold">${totalToPay.toLocaleString()}</TableCell>
+       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+         <div className="lg:col-span-3">
+             {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
+             <Card className="shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 size={20} /> Seller Performance
+                </CardTitle>
+                <CardDescription>Leads, sales, and commissions per salesperson.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={400}>
+                   <BarChart data={sellerPerformanceData} layout="vertical" margin={{ left: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                      <XAxis type="number" tick={{ fontSize: 12 }} />
+                      <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={80} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend wrapperStyle={{fontSize: "12px"}} />
+                      <Bar dataKey="sales" fill="#10B981" name="Sales" />
+                      <Bar dataKey="commission" fill="#8B5CF6" name="Commission" />
+                      <Bar dataKey="leads" fill="#3B82F6" name="Leads"/>
+                    </BarChart>
+                </ResponsiveContainer>
+                <div className="mt-6 overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="font-bold">Salesperson</TableHead>
+                        <TableHead className="text-center">Leads</TableHead>
+                        <TableHead className="text-center">Sales</TableHead>
+                        <TableHead className="text-center">Conversion</TableHead>
+                        <TableHead className="text-right">Commissions</TableHead>
+                        <TableHead className="text-right">Bonus</TableHead>
+                        <TableHead className="text-right font-bold">Total to Pay</TableHead>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-         </Card>
-       )}
+                    </TableHeader>
+                    <TableBody>
+                      {sellerPerformanceData.map((seller) => {
+                        const conversionRate = seller.leads > 0 ? (seller.sales / seller.leads) * 100 : 0;
+                        const totalToPay = seller.commission + seller.bonus;
+                        return (
+                          <TableRow key={seller.name}>
+                            <TableCell className="font-medium">{seller.name}</TableCell>
+                            <TableCell className="text-center">{seller.leads}</TableCell>
+                            <TableCell className="text-center font-bold">{seller.sales}</TableCell>
+                            <TableCell className="text-center">{conversionRate.toFixed(1)}%</TableCell>
+                            <TableCell className="text-right">${seller.commission.toLocaleString()}</TableCell>
+                            <TableCell className="text-right">${seller.bonus.toLocaleString()}</TableCell>
+                            <TableCell className="text-right font-bold">${totalToPay.toLocaleString()}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+             </Card>
+           )}
+         </div>
+         <div className="lg:col-span-2">
+            <Card className="shadow-sm">
+               <CardHeader>
+                <CardTitle>Channel Conversion</CardTitle>
+                <CardDescription>Sales and conversion rate by acquisition channel.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                  {channelConversionData.map(channel => (
+                    <div key={channel.name}>
+                        <div className="flex justify-between items-center mb-1">
+                            <p className="text-sm font-medium">{channel.name}</p>
+                            <p className="text-sm text-muted-foreground">{channel.sales} Ventas / {channel.leads} Leads</p>
+                        </div>
+                        <Progress value={channel.conversion} className="h-2" />
+                        <p className="text-right text-xs text-primary font-semibold mt-1">{channel.conversion.toFixed(1)}% Conversion</p>
+                    </div>
+                  ))}
+                  {channelConversionData.length === 0 && <p className="text-sm text-center text-muted-foreground py-8">No sales data for the selected period.</p>}
+              </CardContent>
+            </Card>
+         </div>
+       </div>
     </div>
   );
 }
