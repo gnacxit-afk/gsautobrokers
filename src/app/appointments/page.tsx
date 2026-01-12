@@ -23,6 +23,7 @@ import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AppointmentDialog } from '@/components/dialogs/appointment-dialog';
 import Link from 'next/link';
+import { Label } from '@/components/ui/label';
 
 
 const TimeSlot = ({ time, appointments, onSlotClick, leadsMap }: { time: Date; appointments: (Appointment & { overlapCount: number; overlapIndex: number; })[]; onSlotClick: (time: Date) => void; leadsMap: Map<string, Lead> }) => {
