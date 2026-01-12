@@ -34,6 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isLoggingIn, setIsLoggingIn] = useState(false); // New state to track login process specifically
 
   const router = useRouter();
   const pathname = usePathname();
@@ -102,6 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         setLoading(true);
+        setIsLoggingIn(false); // Reset login process tracker
         if (firebaseUser) {
             const userProfile = await fetchAppUser(firebaseUser);
             if (userProfile) {
@@ -119,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading && !isLoggingIn) {
       if (!user && pathname !== "/login") {
         router.push("/login");
       } else if (user && pathname === "/login") {
@@ -128,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         router.push(destination);
       }
     }
-  }, [user, loading, pathname, router]);
+  }, [user, loading, isLoggingIn, pathname, router]);
 
 
   const login = useCallback(async (email: string, pass: string): Promise<void> => {
@@ -136,15 +138,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAuthError("Authentication service is not available.");
         return;
     }
+    setIsLoggingIn(true); // Start the login process
     setLoading(true);
     setAuthError(null);
     try {
         await signInWithEmailAndPassword(auth, email, pass);
-        // On success, onAuthStateChanged listener handles user state update.
+        // On success, onAuthStateChanged listener handles user state update and will set loading to false.
     } catch (error: any) {
         setAuthError(error.message);
         setUser(null);
-    } finally {
+        setIsLoggingIn(false); // Stop login process on error
         setLoading(false);
     }
   }, [auth]);
@@ -175,11 +178,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [auth, fetchAppUser]);
 
   const value = useMemo(
-    () => ({ user, loading, authError, login, logout, setUserRole, reloadUser, MASTER_ADMIN_EMAIL }),
-    [user, loading, authError, login, logout, setUserRole, reloadUser]
+    () => ({ user, loading: loading || isLoggingIn, authError, login, logout, setUserRole, reloadUser, MASTER_ADMIN_EMAIL }),
+    [user, loading, isLoggingIn, authError, login, logout, setUserRole, reloadUser]
   );
   
-  if (loading && pathname !== "/login") {
+  if ((loading || isLoggingIn) && pathname !== "/login") {
      return (
         <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
             <Logo />
