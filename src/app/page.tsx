@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { REVENUE_PER_VEHICLE, COMMISSION_PER_VEHICLE, MARGIN_PER_VEHICLE } from "@/lib/mock-data";
 import { useDateRange } from '@/hooks/use-date-range';
 import { useCollection, useFirestore, useUser } from '@/firebase';
-import { Users, BarChart3, TrendingUp, DollarSign, Percent, Target, Briefcase, HandCoins, PiggyBank } from "lucide-react";
+import { Users, BarChart3, TrendingUp, DollarSign, Percent, Target, Briefcase, HandCoins, PiggyBank, Wallet } from "lucide-react";
 import type { Lead, Staff } from '@/lib/types';
 import { calculateBonus } from '@/lib/utils';
 import { collection } from 'firebase/firestore';
@@ -145,7 +145,8 @@ export default function DashboardPage() {
       .map(([name, data]) => ({ name, ...data }))
       .sort((a,b) => b.sales - a.sales);
 
-    const totalMargin = (closedSales * MARGIN_PER_VEHICLE) - totalBonuses;
+    const grossMargin = (closedSales * MARGIN_PER_VEHICLE) - totalBonuses;
+    const totalToPay = totalCommissions + totalBonuses;
 
     const channels: { [key: string]: number } = {};
     filteredLeads.forEach(l => {
@@ -178,7 +179,7 @@ export default function DashboardPage() {
     const salesTrendData = Object.entries(salesByDate).map(([date, sales]) => ({ date, sales }));
     
     const stats = {
-      totalLeads, closedSales, conversion, totalRevenue, totalCommissions, totalMargin, totalBonuses
+      totalLeads, closedSales, conversion, totalRevenue, totalCommissions, grossMargin, totalBonuses, totalToPay
     };
     
     return { stats, sellerPerformanceData, salesByChannelData, salesTrendData };
@@ -192,22 +193,17 @@ export default function DashboardPage() {
   
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444'];
 
-  const adminStats = [
-    { label: "Total Revenue", value: `$${stats.totalRevenue.toLocaleString()}`, icon: Briefcase, color: "rose" },
-    { label: "Total Commissions", value: `$${stats.totalCommissions.toLocaleString()}`, icon: HandCoins, color: "amber" },
-    { label: "Total Margin", value: `$${stats.totalMargin.toLocaleString()}`, icon: PiggyBank, color: "emerald" },
-    { label: "Total Bonuses", value: `$${stats.totalBonuses.toLocaleString()}`, icon: Target, color: "violet" },
-  ];
-
   return (
     <div className="space-y-8">
-       <div className={`grid grid-cols-1 sm:grid-cols-2 ${user?.role === 'Admin' ? 'xl:grid-cols-4' : 'lg:grid-cols-3'} gap-6`}>
+       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         <StatCard label="Total Leads" value={stats.totalLeads} color="blue" icon={Users} />
         <StatCard label="Closed Sales" value={stats.closedSales} color="green" icon={DollarSign} />
         <StatCard label="Conversion" value={`${stats.conversion.toFixed(1)}%`} color="indigo" icon={Percent}/>
-        {(user?.role === 'Admin') && (
-           <StatCard label="Total Bonuses" value={`$${stats.totalBonuses.toLocaleString()}`} color="violet" icon={Target} />
-        )}
+        <StatCard label="Total Revenue" value={`$${stats.totalRevenue.toLocaleString()}`} icon={Briefcase} color="rose" />
+        <StatCard label="Total to Pay" value={`$${stats.totalToPay.toLocaleString()}`} icon={Wallet} color="violet" />
+        <StatCard label="Total Commissions" value={`$${stats.totalCommissions.toLocaleString()}`} icon={HandCoins} color="amber" />
+        <StatCard label="Total Bonuses" value={`$${stats.totalBonuses.toLocaleString()}`} color="blue" icon={Target} />
+        <StatCard label="Gross Margin" value={`$${stats.grossMargin.toLocaleString()}`} icon={PiggyBank} color="emerald" />
       </div>
 
        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
