@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import type { Appointment } from '@/lib/types';
+import type { Appointment, Staff } from '@/lib/types';
 import { useFirestore, useUser, useCollection } from '@/firebase';
 import { collection, query, where, orderBy, type Query, type DocumentData } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -79,7 +79,7 @@ export default function AppointmentsPage() {
 
 
   const { data: appointments, loading } = useCollection<Appointment>(appointmentsQuery as Query<DocumentData> | null);
-  const { data: staff, loading: staffLoading } = useCollection(staffQuery);
+  const { data: staff, loading: staffLoading } = useCollection<Staff>(staffQuery);
 
   const handleAppointmentAdded = () => {
     // The useCollection hook will automatically update the list.
