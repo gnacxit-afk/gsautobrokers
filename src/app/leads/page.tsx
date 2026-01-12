@@ -28,76 +28,6 @@ const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguim
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
 
 
-const globalFilterFn: FilterFn<any> = (row, columnId, filterValue, addMeta) => {
-    const search = (filterValue || '').toLowerCase();
-    const lead = row.original as Lead;
-    const { user, allStaff, dateRange } = addMeta as any;
-
-    // 1. Role-based Visibility Filter (must pass this first)
-    if (user) {
-        let isVisible = false;
-        if (user.role === 'Admin') {
-            isVisible = true;
-        } else if (user.role === 'Supervisor') {
-            const teamIds = allStaff.filter((s: Staff) => s.supervisorId === user.id).map((s: Staff) => s.id);
-            const visibleIds = [user.id, ...teamIds];
-            isVisible = visibleIds.includes(lead.ownerId);
-        } else if (user.role === 'Broker') {
-            isVisible = lead.ownerId === user.id;
-        }
-        if (!isVisible) {
-            return false;
-        }
-    } else {
-        return false; // No user, no data
-    }
-    
-    // 2. Date Range Filter
-    if (dateRange && dateRange.start && dateRange.end) {
-        const leadDate = (lead.createdAt as any)?.toDate ? (lead.createdAt as any).toDate() : new Date(lead.createdAt as string);
-        if (isValid(leadDate)) {
-            if (!isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end })) {
-                return false;
-            }
-        }
-    }
-
-    // 3. Search Term Filter
-    if (!search) {
-        return true; // If no search term, and it passed role/date, show it.
-    }
-
-    const searchTerms = search.split(/\s+/).filter(Boolean);
-
-    // The lead must match ALL search terms (AND logic)
-    return searchTerms.every(term => {
-        if (term.includes(':')) {
-            // Keyword filter
-            const [key, ...valueParts] = term.split(':');
-            const value = valueParts.join(':').toLowerCase();
-            if (!value) return true;
-
-            switch (key) {
-                case 'stage':
-                    return lead.stage?.toLowerCase().includes(value);
-                case 'owner':
-                    return lead.ownerName?.toLowerCase().includes(value);
-                case 'channel':
-                    return lead.channel?.toLowerCase().includes(value);
-                default:
-                    // Unrecognized key, treat as plain text search
-                    const fullText = `${lead.name} ${lead.phone} ${lead.email}`.toLowerCase();
-                    return fullText.includes(term);
-            }
-        } else {
-            // Free text search
-            const fullText = `${lead.name} ${lead.phone} ${lead.email} ${lead.ownerName} ${lead.stage} ${lead.channel}`.toLowerCase();
-            return fullText.includes(term);
-        }
-    });
-};
-
-
 const createNotification = async (
     firestore: any,
     userId: string,
@@ -127,7 +57,6 @@ function LeadsPageContent() {
     
     const [sorting, setSorting] = useState<SortingState>([ { id: 'lastActivity', desc: true }]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 100 });
-    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [globalFilter, setGlobalFilter] = useState('');
     const [expanded, setExpanded] = useState({});
     
@@ -149,16 +78,75 @@ function LeadsPageContent() {
 
     useEffect(() => {
         if (!leadsSnapshot) return;
-        // Map snapshot to data, ensuring 'id' is included.
         const nextData = leadsSnapshot.map(doc => ({
             id: doc.id,
             ...(doc as Omit<Lead, "id">),
         }));
-
-        // Prevent unnecessary re-renders by comparing the new data with the old.
-        // This is a simple but effective way to stabilize the data flow.
         setData(prev => JSON.stringify(prev) === JSON.stringify(nextData) ? prev : nextData);
     }, [leadsSnapshot]);
+
+    const filteredData = useMemo(() => {
+        if (!user) return [];
+
+        const search = globalFilter.toLowerCase();
+        const searchTerms = search.split(/\s+/).filter(Boolean);
+        
+        const keywordFilters: Record<string, string> = {};
+        const textTerms: string[] = [];
+
+        searchTerms.forEach(term => {
+            if (term.includes(':')) {
+                const [key, ...valueParts] = term.split(':');
+                const value = valueParts.join(':').toLowerCase();
+                if (value) {
+                    keywordFilters[key] = value;
+                }
+            } else {
+                textTerms.push(term);
+            }
+        });
+        
+        return data.filter(lead => {
+            // 1. Role-based visibility
+            let isVisible = false;
+            if (user.role === 'Admin') {
+                isVisible = true;
+            } else if (user.role === 'Supervisor') {
+                const teamIds = staffData.filter(s => s.supervisorId === user.id).map(s => s.id);
+                isVisible = teamIds.includes(lead.ownerId) || lead.ownerId === user.id;
+            } else if (user.role === 'Broker') {
+                isVisible = lead.ownerId === user.id;
+            }
+            if (!isVisible) return false;
+
+            // 2. Date Range Filter
+            if (dateRange && dateRange.start && dateRange.end) {
+                const leadDate = (lead.createdAt as any)?.toDate ? (lead.createdAt as any).toDate() : new Date(lead.createdAt as string);
+                if (isValid(leadDate)) {
+                    if (!isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end })) {
+                        return false;
+                    }
+                }
+            }
+            
+            // 3. Keyword Filter
+            const matchesKeywords = Object.entries(keywordFilters).every(([key, value]) => {
+                const leadValue = (lead as any)[key]?.toString().toLowerCase();
+                return leadValue?.includes(value);
+            });
+            if (!matchesKeywords) return false;
+            
+            // 4. Free Text Search
+            if (textTerms.length > 0) {
+                 const fullText = `${lead.name} ${lead.phone} ${lead.email}`.toLowerCase();
+                 const matchesText = textTerms.every(term => fullText.includes(term));
+                 if (!matchesText) return false;
+            }
+            
+            return true;
+        });
+
+    }, [data, globalFilter, user, staffData, dateRange]);
     
     const addNoteEntry = useCallback(async (leadId: string, content: string, type: 'Manual' | 'Stage Change' | 'Owner Change' | 'System') => {
         if (!firestore || !user) return;
@@ -171,7 +159,6 @@ function LeadsPageContent() {
             type,
         });
         
-        // Also update the parent lead to trigger real-time updates on the table
         const leadRef = doc(firestore, 'leads', leadId);
         await updateDoc(leadRef, { lastActivity: serverTimestamp() });
 
@@ -190,7 +177,6 @@ function LeadsPageContent() {
             let noteContent = `Stage changed from '${oldStage}' to '${newStage}' by ${user.name}.`;
             await addNoteEntry(leadId, noteContent, 'Stage Change');
             
-             // Create notification for the lead owner
             if (lead.ownerId !== user.id) {
                 await createNotification(
                     firestore,
@@ -235,16 +221,15 @@ function LeadsPageContent() {
         const finalLeadData = {
             ...leadData,
             createdAt: serverTimestamp(),
+            lastActivity: serverTimestamp(),
             ownerName: owner.name,
         };
 
         try {
             const newDocRef = await addDoc(leadsCollection, finalLeadData);
             
-            // Add system note for creation
             await addNoteEntry(newDocRef.id, "Lead created.", "System");
 
-            // Add initial note if provided
             if (initialNotes && initialNotes.trim() !== '') {
                 await addNoteEntry(newDocRef.id, initialNotes, 'Manual');
             }
@@ -282,7 +267,6 @@ function LeadsPageContent() {
             const noteContent = `Owner changed from '${oldOwnerName}' to '${newOwnerName}' by ${user.name}`;
             await addNoteEntry(id, noteContent, 'Owner Change');
             
-            // Notify new owner
             if (newOwnerId !== user.id) {
                 await createNotification(
                     firestore,
@@ -292,7 +276,6 @@ function LeadsPageContent() {
                     user.name
                 );
             }
-            // Notify old owner
             const oldOwner = staffData.find(s => s.name === oldOwnerName);
             if (oldOwner && oldOwner.id !== user.id) {
                  await createNotification(
@@ -318,43 +301,28 @@ function LeadsPageContent() {
         [handleUpdateStage, handleDelete, handleUpdateOwner, staffData]
     );
     
-    const memoizedData = useMemo(() => data, [data]);
-
-    const memoizedMeta = useMemo(() => ({
-      user,
-      allStaff: staffData,
-      dateRange
-    }), [user, staffData, dateRange]);
-    
     const table = useReactTable({
-      data: memoizedData, 
+      data: filteredData, 
       columns,
-      globalFilterFn: globalFilterFn,
       getCoreRowModel: getCoreRowModel(),
       getPaginationRowModel: getPaginationRowModel(),
       onSortingChange: setSorting,
       onPaginationChange: setPagination,
       getSortedRowModel: getSortedRowModel(),
-      onGlobalFilterChange: setGlobalFilter,
       getFilteredRowModel: getFilteredRowModel(),
       getExpandedRowModel: getExpandedRowModel(),
       onExpandedChange: setExpanded,
-      onColumnFiltersChange: setColumnFilters,
       state: {
         sorting,
         pagination,
-        globalFilter,
         expanded,
-        columnFilters
       },
-      getRowCanExpand: () => false, // No expandable rows in this table
-      meta: memoizedMeta
+      getRowCanExpand: () => false,
     });
 
     const clearAllFilters = useCallback(() => {
-        table.setGlobalFilter('');
-        table.setColumnFilters([]);
-    }, [table]);
+        setGlobalFilter('');
+    }, []);
 
     return (
         <main className="flex flex-1 flex-col gap-4">
@@ -363,10 +331,10 @@ function LeadsPageContent() {
                 columns={columns}
                 onAddLead={handleAddLead}
                 staff={staffData || []}
-                stages={leadStages}
-                channels={channels}
                 clearAllFilters={clearAllFilters}
                 loading={leadsLoading || staffLoading}
+                globalFilter={globalFilter}
+                setGlobalFilter={setGlobalFilter}
             />
         </main>
     );
@@ -378,5 +346,3 @@ export default function LeadsPage() {
         <LeadsPageContent />
     )
 }
-
-    

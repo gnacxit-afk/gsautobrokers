@@ -8,13 +8,6 @@ import {
   Table as ReactTable,
   Row,
 } from "@tanstack/react-table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 
 import {
   Table,
@@ -39,10 +32,10 @@ interface DataTableProps<TData, TValue> {
   table: ReactTable<TData>;
   onAddLead: (lead: Omit<Lead, 'id' | 'createdAt' | 'ownerName'>) => void;
   staff: Staff[];
-  stages: Lead['stage'][];
-  channels: Lead['channel'][];
   clearAllFilters: () => void;
   loading: boolean;
+  globalFilter: string;
+  setGlobalFilter: (value: string) => void;
 }
 
 export function DataTable<TData extends Lead, TValue>({
@@ -50,16 +43,14 @@ export function DataTable<TData extends Lead, TValue>({
   table,
   onAddLead,
   staff,
-  stages,
-  channels,
   clearAllFilters,
   loading,
+  globalFilter,
+  setGlobalFilter,
 }: DataTableProps<TData, TValue>) {
   
   const { user } = useAuthContext();
   const [isNewLeadDialogOpen, setNewLeadDialogOpen] = React.useState(false);
-  const globalFilter = table.getState().globalFilter;
-  const setGlobalFilter = (filter: string) => table.setGlobalFilter(filter);
 
   return (
     <div className="space-y-6">
@@ -68,7 +59,7 @@ export function DataTable<TData extends Lead, TValue>({
                 <div className="relative w-full">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <Input
-                        placeholder="Search by name, contact, or use filters like 'stage:Nuevo' or 'owner:John'..."
+                        placeholder="Search name, phone, or filter with 'stage:Nuevo', 'owner:Ana'..."
                         value={globalFilter ?? ''}
                         onChange={event => setGlobalFilter(event.target.value)}
                         className="w-full pl-10 pr-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
@@ -156,7 +147,7 @@ export function DataTable<TData extends Lead, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No leads found.
+                  No leads found for the current filters.
                 </TableCell>
               </TableRow>
             )}
