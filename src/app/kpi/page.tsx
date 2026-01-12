@@ -179,9 +179,9 @@ function BrokerGoalsView({kpis, kpisLoading, allLeads, staff, loading}) {
       </div>
       
        <div className="border-t pt-8">
-          <div className="mb-6 text-center">
+          <div className="mb-6">
             <h1 className="text-2xl font-bold">Progreso Diario</h1>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-muted-foreground max-w-2xl">
               Tu avance de hoy frente a las metas diarias del equipo.
             </p>
           </div>
@@ -283,9 +283,9 @@ function KpiPage() {
     <main className="flex-1 space-y-8">
        
       <div>
-        <div className="mb-6 text-center">
+        <div className="mb-6">
           <h1 className="text-2xl font-bold">Daily Goals</h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-muted-foreground max-w-2xl">
             Cada vendedor profesional genera resultados todos los días, porque
             entiende que el éxito no se espera, se provoca.
           </p>
@@ -348,5 +348,3 @@ const KpiPageWithProvider = () => {
 };
 
 export default KpiPageWithProvider;
-
-    
