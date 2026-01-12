@@ -33,7 +33,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Start as true to wait for initial auth check
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const router = useRouter();
@@ -70,7 +70,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             };
         } else {
              // If user exists in Auth but not in 'staff', create their profile.
-             // This is important for the Master Admin's first login or any new valid user.
              const isMasterAdmin = fbUser.email === MASTER_ADMIN_EMAIL;
              const newUserProfile: Omit<Staff, 'id'> = {
                  authUid: fbUser.uid,
@@ -103,18 +102,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
-            // Keep loading true while we fetch the user profile
             const userProfile = await fetchAppUser(firebaseUser);
-            if (userProfile) {
-              setUser(userProfile);
-              setAuthError(null);
-            }
-            setIsLoggingIn(false); // User is fetched, login process is complete
+            setUser(userProfile);
         } else {
             setUser(null);
-            setIsLoggingIn(false); // No user, so no login process is active
         }
-        setLoading(false); // Final state is determined, stop global loading
+        // Auth state is now confirmed, set loading to false.
+        setLoading(false);
     });
 
     return () => unsubscribe();
@@ -122,18 +116,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 
   useEffect(() => {
-    if (!loading && !isLoggingIn) {
-      if (!user && pathname !== "/login") {
-        router.push("/login");
-      } else if (user && pathname === "/login") {
-        if (user.role === 'Broker') {
-            router.push('/leads');
-        } else {
-            router.push('/');
-        }
+    // Only run redirection logic once the initial auth check is complete.
+    if (loading) return;
+
+    if (!user && pathname !== "/login") {
+      router.push("/login");
+    } else if (user && pathname === "/login") {
+      if (user.role === 'Broker') {
+          router.push('/leads');
+      } else {
+          router.push('/');
       }
     }
-  }, [user, loading, isLoggingIn, pathname, router]);
+  }, [user, loading, pathname, router]);
 
 
   const login = useCallback(async (email: string, pass: string): Promise<void> => {
@@ -142,25 +137,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
     }
     setIsLoggingIn(true);
-    setLoading(true);
     setAuthError(null);
     try {
         await signInWithEmailAndPassword(auth, email, pass);
         // On success, onAuthStateChanged listener handles user state update and navigation.
     } catch (error: any) {
         setAuthError(error.message);
-        setUser(null);
         setIsLoggingIn(false);
-        setLoading(false);
     }
   }, [auth]);
 
 
   const logout = useCallback(async () => {
     if (!auth) return;
-    setLoading(true);
+    setIsLoggingIn(false);
+    setUser(null);
     await signOut(auth);
-  }, [auth]);
+    router.push('/login'); // Force redirect on logout
+  }, [auth, router]);
 
   const setUserRole = useCallback((role: Role) => {
     if (user && user.email === MASTER_ADMIN_EMAIL) {
@@ -185,7 +179,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [user, loading, isLoggingIn, authError, login, logout, setUserRole, reloadUser]
   );
   
-  if ((loading || isLoggingIn) && pathname !== "/login") {
+  // This initial loading screen is important for the first page load
+  if (loading) {
      return (
         <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
             <Logo />
