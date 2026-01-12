@@ -6,10 +6,10 @@ import { useRouter } from 'next/navigation';
 import { REVENUE_PER_VEHICLE, COMMISSION_PER_VEHICLE, MARGIN_PER_VEHICLE } from "@/lib/mock-data";
 import { useDateRange } from '@/hooks/use-date-range';
 import { useCollection, useFirestore, useUser } from '@/firebase';
-import { Users, BarChart3, TrendingUp, DollarSign, Percent, Target, Briefcase, HandCoins, PiggyBank, Wallet } from "lucide-react";
-import type { Lead, Staff } from '@/lib/types';
+import { Users, BarChart3, TrendingUp, DollarSign, Percent, Target, Briefcase, HandCoins, PiggyBank, Wallet, Crown, TrendingDown, Star, Phone, Calendar as CalendarIcon } from "lucide-react";
+import type { Lead, Staff, Appointment } from '@/lib/types';
 import { calculateBonus } from '@/lib/utils';
-import { collection } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import {
   Bar,
   BarChart,
@@ -21,6 +21,9 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -73,6 +76,28 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
+const SummaryItem = ({ icon: Icon, label, value, color }: { icon: React.ElementType, label: string, value: string, color: string }) => {
+    const colors: { [key: string]: string } = {
+        green: "text-green-600",
+        red: "text-red-600",
+        blue: "text-blue-600",
+        amber: "text-amber-600",
+        violet: "text-violet-600",
+    };
+    return (
+        <div className="flex items-center gap-3">
+            <div className={`h-8 w-8 flex-shrink-0 rounded-lg flex items-center justify-center bg-slate-100 ${colors[color] || 'text-slate-600'}`}>
+                <Icon size={18} />
+            </div>
+            <div>
+                <p className="text-xs text-muted-foreground">{label}</p>
+                <p className="text-sm font-bold">{value}</p>
+            </div>
+        </div>
+    )
+};
+
+
 export default function DashboardPage() {
   const { dateRange } = useDateRange();
   const { user } = useUser();
@@ -85,18 +110,21 @@ export default function DashboardPage() {
     }
   }, [user, router]);
 
-  const leadsQuery = useMemo(() => (firestore ? collection(firestore, 'leads') : null), [firestore]);
+  const leadsQuery = useMemo(() => (firestore ? query(collection(firestore, 'leads'), where('createdAt', '>=', dateRange.start), where('createdAt', '<=', dateRange.end)) : null), [firestore, dateRange]);
   const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
+  const appointmentsQuery = useMemo(() => (firestore ? query(collection(firestore, 'appointments'), where('startTime', '>=', dateRange.start), where('startTime', '<=', dateRange.end)) : null), [firestore, dateRange]);
 
   const { data: leadsData } = useCollection<Lead>(leadsQuery);
   const { data: staffData } = useCollection<Staff>(staffQuery);
+  const { data: appointmentsData } = useCollection<Appointment>(appointmentsQuery);
   
   const allLeads = leadsData || [];
   const allStaff = staffData || [];
+  const allAppointments = appointmentsData || [];
 
   const filteredLeads = useMemo(() => {
       if (!user) return [];
-      const visibleLeads = allLeads.filter(lead => {
+      return allLeads.filter(lead => {
         if (user.role === 'Admin') return true;
         if (user.role === 'Broker') return lead.ownerId === user.id;
         if (user.role === 'Supervisor') {
@@ -105,17 +133,10 @@ export default function DashboardPage() {
         }
         return false;
       });
-
-      return visibleLeads.filter(l => {
-          if (!l.createdAt) return false;
-          const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
-          if (!isValid(leadDate)) return false;
-          return leadDate >= dateRange.start && leadDate <= dateRange.end;
-      });
-  }, [allLeads, allStaff, dateRange, user]);
+  }, [allLeads, allStaff, user]);
 
 
-  const { stats, sellerPerformanceData, channelConversionData, salesTrendData } = useMemo(() => {
+  const { stats, sellerPerformanceData, channelConversionData, salesTrendData, summaryStats } = useMemo(() => {
     const totalLeads = filteredLeads.length;
     const closedSales = filteredLeads.filter(l => l.stage === 'Ganado').length;
     const conversion = totalLeads > 0 ? (closedSales / totalLeads) * 100 : 0;
@@ -169,7 +190,7 @@ export default function DashboardPage() {
             ...data, 
             conversion: data.leads > 0 ? (data.sales / data.leads) * 100 : 0
         }))
-        .sort((a, b) => b.sales - a.sales);
+        .sort((a, b) => b.conversion - a.conversion);
     
     const dailyData: { [key: string]: { leads: number, sales: number } } = {};
     const interval = eachDayOfInterval({ start: dateRange.start, end: dateRange.end });
@@ -196,9 +217,16 @@ export default function DashboardPage() {
       totalLeads, closedSales, conversion, totalRevenue, totalCommissions, grossMargin, totalBonuses, totalToPay
     };
     
-    return { stats, sellerPerformanceData, channelConversionData, salesTrendData };
+    const summaryStats = {
+        mostProfitableChannel: channelConversionData.length > 0 ? channelConversionData[0].name : 'N/A',
+        topSeller: sellerPerformanceData.length > 0 ? sellerPerformanceData[0].name : 'N/A',
+        laggingSeller: sellerPerformanceData.length > 1 ? sellerPerformanceData[sellerPerformanceData.length - 1].name : 'N/A',
+        totalAppointments: allAppointments.length,
+    }
 
-  }, [filteredLeads, allStaff, dateRange]);
+    return { stats, sellerPerformanceData, channelConversionData, salesTrendData, summaryStats };
+
+  }, [filteredLeads, allStaff, allAppointments, dateRange]);
 
 
   if (user?.role === 'Broker') {
@@ -208,14 +236,14 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard label="Total Revenue" value={`$${stats.totalRevenue.toLocaleString()}`} icon={Briefcase} color="rose" />
+        <StatCard label="Gross Margin" value={`$${stats.grossMargin.toLocaleString()}`} icon={PiggyBank} color="emerald" />
+        <StatCard label="Total to Pay" value={`$${stats.totalToPay.toLocaleString()}`} icon={Wallet} color="violet" />
+        <StatCard label="Total Commissions" value={`$${stats.totalCommissions.toLocaleString()}`} icon={HandCoins} color="amber" />
+        <StatCard label="Total Bonuses" value={`$${stats.totalBonuses.toLocaleString()}`} icon={Target} color="blue" />
         <StatCard label="Total Leads" value={stats.totalLeads} color="blue" icon={Users} />
         <StatCard label="Closed Sales" value={stats.closedSales} color="green" icon={DollarSign} />
         <StatCard label="Conversion" value={`${stats.conversion.toFixed(1)}%`} color="indigo" icon={Percent}/>
-        <StatCard label="Total Revenue" value={`$${stats.totalRevenue.toLocaleString()}`} icon={Briefcase} color="rose" />
-        <StatCard label="Total to Pay" value={`$${stats.totalToPay.toLocaleString()}`} icon={Wallet} color="violet" />
-        <StatCard label="Total Commissions" value={`$${stats.totalCommissions.toLocaleString()}`} icon={HandCoins} color="amber" />
-        <StatCard label="Total Bonuses" value={`$${stats.totalBonuses.toLocaleString()}`} color="blue" icon={Target} />
-        <StatCard label="Gross Margin" value={`$${stats.grossMargin.toLocaleString()}`} icon={PiggyBank} color="emerald" />
       </div>
 
        <Card className="shadow-sm">
@@ -249,19 +277,21 @@ export default function DashboardPage() {
                 <CardDescription>Leads, sales, and commissions per salesperson.</CardDescription>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={400}>
-                   <BarChart data={sellerPerformanceData} layout="vertical" margin={{ left: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                      <XAxis type="number" tick={{ fontSize: 12 }} />
-                      <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={80} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend wrapperStyle={{fontSize: "12px"}} />
-                      <Bar dataKey="sales" fill="#10B981" name="Sales" />
-                      <Bar dataKey="commission" fill="#8B5CF6" name="Commission" />
-                      <Bar dataKey="leads" fill="#3B82F6" name="Leads"/>
-                    </BarChart>
-                </ResponsiveContainer>
-                <div className="mt-6 overflow-x-auto">
+                <div className="mb-8">
+                  <ResponsiveContainer width="100%" height={400}>
+                    <BarChart data={sellerPerformanceData} layout="vertical" margin={{ left: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                        <XAxis type="number" tick={{ fontSize: 12 }} />
+                        <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={80} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend wrapperStyle={{fontSize: "12px"}} />
+                        <Bar dataKey="sales" fill="#10B981" name="Sales" />
+                        <Bar dataKey="commission" fill="#8B5CF6" name="Commission" />
+                        <Bar dataKey="leads" fill="#3B82F6" name="Leads"/>
+                      </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -297,7 +327,7 @@ export default function DashboardPage() {
              </Card>
            )}
          </div>
-         <div className="lg:col-span-2">
+         <div className="lg:col-span-2 space-y-8">
             <Card className="shadow-sm">
                <CardHeader>
                 <CardTitle>Channel Conversion</CardTitle>
@@ -317,6 +347,22 @@ export default function DashboardPage() {
                   {channelConversionData.length === 0 && <p className="text-sm text-center text-muted-foreground py-8">No sales data for the selected period.</p>}
               </CardContent>
             </Card>
+
+            <Card className="shadow-sm">
+                <CardHeader>
+                    <CardTitle>Executive Summary</CardTitle>
+                    <CardDescription>Key insights for the selected period.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 gap-x-4 gap-y-6">
+                    <SummaryItem icon={Star} label="Most Profitable Channel" value={summaryStats.mostProfitableChannel} color="violet" />
+                    <SummaryItem icon={Crown} label="Top Seller" value={summaryStats.topSeller} color="green" />
+                    <SummaryItem icon={TrendingDown} label="Lagging Seller" value={summaryStats.laggingSeller} color="red" />
+                    <SummaryItem icon={Phone} label="Total Leads" value={`${stats.totalLeads}`} color="blue" />
+                    <SummaryItem icon={CalendarIcon} label="Total Appointments" value={`${summaryStats.totalAppointments}`} color="amber" />
+                    <SummaryItem icon={DollarSign} label="Total Sales" value={`${stats.closedSales}`} color="green" />
+                </CardContent>
+            </Card>
+
          </div>
        </div>
     </div>
