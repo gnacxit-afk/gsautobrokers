@@ -390,7 +390,7 @@ export function TodoList({
       />
 
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold px-1">Tasks - {pending.length}</h3>
+        <h3 className="text-lg font-semibold px-1">Tareas Pendientes - {pending.length}</h3>
         <div className="space-y-3">
           {pending.length > 0 ? (
             pending.map((todo) => (
@@ -417,7 +417,7 @@ export function TodoList({
       {completed.length > 0 && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold px-1">
-            Completed - {completed.length}
+            Tareas Completadas - {completed.length}
           </h3>
           <div className="space-y-3">
             {completed.map((todo) => (
