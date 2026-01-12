@@ -33,7 +33,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true); // Start as true to wait for initial auth check
+  const [loading, setLoading] = useState(true); // Always start true
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const router = useRouter();
@@ -101,29 +101,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!auth || !firestore) return;
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-        if (firebaseUser) {
-            if (!user) { // Only fetch if we don't have a user, to prevent re-fetching on token refresh
-                const userProfile = await fetchAppUser(firebaseUser);
-                setUser(userProfile);
-            }
-        } else {
-            setUser(null);
+      if (firebaseUser) {
+        // Fetch user profile if we don't have one or if the UID is different
+        if (!user || user.authUid !== firebaseUser.uid) {
+          const userProfile = await fetchAppUser(firebaseUser);
+          setUser(userProfile);
         }
-        // This is the key change: ensure loading is set to false after the check.
-        setLoading(false);
+      } else {
+        setUser(null);
+      }
+      setLoading(false); // <--- THIS IS THE CRITICAL FIX
     });
 
     return () => unsubscribe();
+    // Re-run this effect only when auth or firestore instances change.
   }, [auth, firestore, fetchAppUser, user]);
 
 
   useEffect(() => {
-    // Only run redirection logic once the initial auth check is complete.
+    // This effect now correctly waits for the initial loading to finish.
     if (loading) return;
 
-    if (!user && pathname !== "/login") {
+    const isAuthPage = pathname === "/login";
+
+    if (!user && !isAuthPage) {
       router.push("/login");
-    } else if (user && pathname === "/login") {
+    } else if (user && isAuthPage) {
       if (user.role === 'Broker') {
           router.push('/leads');
       } else {
@@ -141,12 +144,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoggingIn(true);
     setAuthError(null);
     try {
+        // The onAuthStateChanged listener will handle the rest.
         await signInWithEmailAndPassword(auth, email, pass);
-        // onAuthStateChanged now handles setting the user and loading states.
-        // We leave isLoggingIn as true, as the main loading state will take over.
     } catch (error: any) {
         setAuthError(error.message);
-        setIsLoggingIn(false); // Only set to false on error
+        setIsLoggingIn(false);
     }
   }, [auth]);
 
@@ -154,11 +156,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     if (!auth) return;
     setIsLoggingIn(false);
-    setLoading(true); // Show loader during logout transition
+    setLoading(true);
     await signOut(auth);
     setUser(null);
-    router.push('/login'); // Force redirect on logout
-    setLoading(false);
+    router.push('/login');
+    // setLoading will be set to false by the onAuthStateChanged listener
   }, [auth, router]);
 
   const setUserRole = useCallback((role: Role) => {
@@ -184,6 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [user, loading, isLoggingIn, authError, login, logout, setUserRole, reloadUser]
   );
   
+  // This top-level loading screen handles the very initial app load
   if (loading) {
      return (
         <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
