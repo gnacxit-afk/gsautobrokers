@@ -1,9 +1,9 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { Article } from '@/lib/types';
-import { Search, Plus, Save, X, Edit2, Trash2, BookOpen, ChevronRight, Bold, Italic, Code, List, AlignCenter, AlignLeft, AlignRight, Smile, Minus, Heading, ArrowLeft } from 'lucide-react';
+import { Search, Plus, Save, X, Edit2, Trash2, BookOpen, ChevronRight, Bold, Italic, Code, List, AlignCenter, AlignLeft, AlignRight, Smile, Minus, Heading, ArrowLeft, Bot, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,6 +14,9 @@ import { useFirestore } from '@/firebase';
 import { collection, addDoc, serverTimestamp, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { useAuthContext } from '@/lib/auth';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { summarizeArticle } from '@/ai/flows/summarize-knowledge-base-articles';
 
 function EmojiPicker({ onEmojiInsert }: { onEmojiInsert: (emoji: string) => void }) {
   const emojis = ['😀', '😂', '👍', '🚀', '💡', '🎉', '❤️', '🔥', '🤔', '💯', '🙏', '✍️'];
@@ -42,7 +45,6 @@ function EmojiPicker({ onEmojiInsert }: { onEmojiInsert: (emoji: string) => void
     </Popover>
   );
 }
-
 
 function MarkdownToolbar({ textareaRef, onContentChange, onAlignChange, onEmojiInsert }: { textareaRef: React.RefObject<HTMLTextAreaElement>, onContentChange: (value: string) => void, onAlignChange: (align: 'left' | 'center' | 'right') => void, onEmojiInsert: (emoji: string) => void }) {
   const insertMarkdown = (syntax: string) => {
@@ -79,7 +81,7 @@ function MarkdownToolbar({ textareaRef, onContentChange, onAlignChange, onEmojiI
     if (syntax === '\n- ') { // for lists
        newText = `${textarea.value.substring(0, start)}${syntax}${selectedText || placeholder}${textarea.value.substring(end)}`;
     } else if (syntax === '\n---\n') { // for horizontal line
-      newText = `${textarea.value.substring(0, start)}${syntax}${selectedText}${textarea.value.substring(end)}`;
+      newText = `${textarea.value.substring(0, start)}${syntax}${textarea.value.substring(end)}`;
     } else {
        newText = `${textarea.value.substring(0, start)}${syntax}${selectedText || placeholder}${syntax}${textarea.value.substring(end)}`;
     }
@@ -180,15 +182,28 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState<Omit<Article, 'id' | 'author' | 'date' | 'tags'>>({ title: '', category: '', content: '', align: 'left' });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  
+  const [summary, setSummary] = useState<string | null>(null);
+  const [isSummarizing, setIsSummarizing] = useState(false);
+
   useEffect(() => {
     setArticles(initialArticles);
   }, [initialArticles]);
+  
+  const groupedArticles = useMemo(() => {
+    const filtered = articles.filter(i => 
+      i.title?.toLowerCase().includes(search.toLowerCase()) || 
+      i.category?.toLowerCase().includes(search.toLowerCase())
+    );
+    return filtered.reduce((acc, article) => {
+        const category = article.category || 'Uncategorized';
+        if (!acc[category]) {
+            acc[category] = [];
+        }
+        acc[category].push(article);
+        return acc;
+    }, {} as Record<string, Article[]>);
+  }, [articles, search]);
 
-  const filteredKB = articles.filter(i => 
-    i.title?.toLowerCase().includes(search.toLowerCase()) || 
-    i.category?.toLowerCase().includes(search.toLowerCase())
-  );
 
   useEffect(() => {
     // If the selected article is deleted from the main list, deselect it.
@@ -242,6 +257,20 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
         toast({ title: "Article Deleted", variant: "destructive" });
     }
   }
+  
+  const handleSummarize = async () => {
+    if (!selected) return;
+    setIsSummarizing(true);
+    try {
+      const result = await summarizeArticle({ articleContent: selected.content });
+      setSummary(result.summary);
+    } catch (e: any) {
+      toast({ title: "Summarization Failed", description: e.message, variant: "destructive" });
+      setSummary(null);
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
 
   const startNew = () => {
     setSelected(null);
@@ -262,8 +291,12 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
     // It's a Timestamp
     return (date as any).toDate().toLocaleDateString();
   }
+  
+  const openSummaryModal = summary !== null;
+  const handleSummaryModalClose = () => setSummary(null);
 
   return (
+    <>
     <div className="flex flex-col md:flex-row gap-8 h-full md:h-[calc(100vh-8rem)]">
       {/* Mobile: Show list only if no article is selected/editing */}
       <div className={cn("w-full md:w-1/3 lg:w-1/4 space-y-4 flex-col", (selected || editing) ? 'hidden md:flex' : 'flex' )}>
@@ -284,30 +317,42 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
             <Plus size={16}/> New Article
           </Button>
         )}
-        <div className="bg-white border rounded-2xl divide-y flex-1 overflow-y-auto">
+        <ScrollArea className="flex-1 bg-white border rounded-2xl">
           {loading ? (
             <div className="p-4 space-y-4">
               {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
             </div>
           ) : (
-            filteredKB.map(item => (
-              <button 
-                key={item.id}
-                onClick={() => { setSelected(item); setEditing(false); }}
-                className={cn(
-                  "w-full p-4 text-left hover:bg-blue-50 transition-colors flex justify-between items-center group",
-                  selected?.id === item.id && !editing ? 'bg-blue-50 border-l-4 border-blue-600' : ''
-                )}
-              >
-                <div>
-                  <p className="font-bold text-slate-700 line-clamp-1">{item.title}</p>
-                  <p className="text-xs text-slate-400 uppercase tracking-wider">{item.category}</p>
-                </div>
-                <ChevronRight size={16} className="text-gray-300 group-hover:text-blue-500" />
-              </button>
-            ))
+            <Accordion type="multiple" defaultValue={Object.keys(groupedArticles)} className="w-full">
+              {Object.entries(groupedArticles).map(([category, articles]) => (
+                <AccordionItem value={category} key={category}>
+                  <AccordionTrigger className="px-4 py-3 text-sm font-bold text-slate-500 uppercase tracking-wider">
+                    {category} ({articles.length})
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-0">
+                    <div className="divide-y">
+                      {articles.map(item => (
+                        <button 
+                          key={item.id}
+                          onClick={() => { setSelected(item); setEditing(false); }}
+                          className={cn(
+                            "w-full p-4 text-left hover:bg-blue-50 transition-colors flex justify-between items-center group",
+                            selected?.id === item.id && !editing ? 'bg-blue-50 border-l-4 border-blue-600' : ''
+                          )}
+                        >
+                          <div>
+                            <p className="font-bold text-slate-700 line-clamp-1">{item.title}</p>
+                          </div>
+                          <ChevronRight size={16} className="text-gray-300 group-hover:text-blue-500 ml-2 shrink-0" />
+                        </button>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           )}
-        </div>
+        </ScrollArea>
       </div>
 
        {/* Mobile: Show content only if an article is selected/editing */}
@@ -364,12 +409,17 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
                     <p className="text-sm text-muted-foreground">By {selected.author} on {renderDate(selected.date)}</p>
                   </div>
                </div>
-              {user?.role === 'Admin' && (
-                <div className="flex gap-2 not-prose">
-                  <Button onClick={startEdit} variant="outline" size="icon"><Edit2 size={16}/></Button>
-                  <Button onClick={() => handleDeleteArticle(selected.id)} variant="destructive" size="icon"><Trash2 size={16}/></Button>
-                </div>
-              )}
+              <div className="flex gap-2 not-prose">
+                <Button onClick={handleSummarize} variant="outline" size="icon" disabled={isSummarizing}>
+                    {isSummarizing ? <Loader2 className="animate-spin" size={16}/> : <Bot size={16}/>}
+                </Button>
+                {user?.role === 'Admin' && (
+                    <>
+                    <Button onClick={startEdit} variant="outline" size="icon"><Edit2 size={16}/></Button>
+                    <Button onClick={() => handleDeleteArticle(selected.id)} variant="destructive" size="icon"><Trash2 size={16}/></Button>
+                    </>
+                )}
+              </div>
             </div>
             <SimpleMarkdownRenderer content={selected.content} align={selected.align} />
           </div>
@@ -382,5 +432,18 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
         )}
       </div>
     </div>
+    
+    <Dialog open={openSummaryModal} onOpenChange={handleSummaryModalClose}>
+        <DialogContent className="max-w-2xl">
+            <DialogHeader>
+                <DialogTitle className="flex items-center gap-2"><Bot size={20} /> AI Summary</DialogTitle>
+                <DialogDescription>A concise summary of the article: "{selected?.title}"</DialogDescription>
+            </DialogHeader>
+            <div className="max-h-[60vh] overflow-y-auto p-1">
+                <SimpleMarkdownRenderer content={summary || ''} />
+            </div>
+        </DialogContent>
+    </Dialog>
+    </>
   );
 }

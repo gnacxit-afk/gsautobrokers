@@ -19,7 +19,6 @@ export type SummarizeArticleInput = z.infer<typeof SummarizeArticleInputSchema>;
 
 const SummarizeArticleOutputSchema = z.object({
   summary: z.string().describe('A concise summary of the knowledge base article.'),
-  progress: z.string().describe('Progress of article summarization')
 });
 export type SummarizeArticleOutput = z.infer<typeof SummarizeArticleOutputSchema>;
 
@@ -29,14 +28,11 @@ export async function summarizeArticle(input: SummarizeArticleInput): Promise<Su
 
 const prompt = ai.definePrompt({
   name: 'summarizeArticlePrompt',
-  input: {schema: z.object({
-    articleContent: SummarizeArticleInputSchema.shape.articleContent,
-    progress: z.string().optional(),
-  })},
+  input: {schema: SummarizeArticleInputSchema},
   output: {schema: SummarizeArticleOutputSchema},
-  prompt: `You are an expert at summarizing knowledge base articles.
+  prompt: `You are an expert at summarizing knowledge base articles for a sales team.
 
-  Please provide a concise summary of the following article content so that users can quickly understand the key information. Also, indicate progress that summarization has started.
+  Please provide a concise summary of the following article content so that a salesperson can quickly understand the key information, takeaways, and actionable steps. Use bullet points for clarity if needed.
 
   Article Content: {{{articleContent}}}`,
 });
@@ -48,7 +44,7 @@ const summarizeArticleFlow = ai.defineFlow(
     outputSchema: SummarizeArticleOutputSchema,
   },
   async input => {
-    const {output} = await prompt({...input, progress: 'Summarization in progress.'});
-    return {...output!, progress: 'Generated a short summary of the article.'};
+    const {output} = await prompt(input);
+    return output!;
   }
 );
