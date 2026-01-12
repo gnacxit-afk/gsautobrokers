@@ -74,7 +74,8 @@ export function BonusStatus({ allLeads, loading }: { allLeads: Lead[], loading: 
 
     const getBonusMessage = () => {
       if (bonusInfo.needed > 0) {
-        return `Estás a ${bonusInfo.needed} venta${bonusInfo.needed > 1 ? 's' : ''} de tu siguiente bono de $${calculateBonus(bonusInfo.nextGoal)}!`;
+        const nextBonusAmount = calculateBonus(bonusInfo.nextGoal);
+        return `Estás a ${bonusInfo.needed} venta${bonusInfo.needed > 1 ? 's' : ''} de tu siguiente bono de $${nextBonusAmount}!`;
       }
       return "¡Has alcanzado el nivel de bono más alto! ¡Excelente trabajo!";
     }

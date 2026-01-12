@@ -2,13 +2,23 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import type { Lead, Staff, PerformanceMetric } from '@/lib/types';
+import type { Lead, Staff, PerformanceMetric, KPI } from '@/lib/types';
 import { useAuthContext } from '@/lib/auth';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { calculateBonus } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Progress } from '@/components/ui/progress';
+
+const getAvatarFallback = (name: string) => {
+    if (!name) return 'U';
+    const parts = name.split(' ');
+    if (parts.length > 1) {
+        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+}
 
 
 const calculateMetrics = (leads: Lead[]): Omit<PerformanceMetric, 'userId' | 'userName'> => {
@@ -30,7 +40,7 @@ const calculateMetrics = (leads: Lead[]): Omit<PerformanceMetric, 'userId' | 'us
 };
 
 
-export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads: Lead[], allStaff: Staff[], loading: boolean }) {
+export function PerformanceDashboard({ allLeads, allStaff, loading, salesGoal }: { allLeads: Lead[], allStaff: Staff[], loading: boolean, salesGoal: number }) {
     const { user } = useAuthContext();
     const [selectedUserId, setSelectedUserId] = useState<string>('all');
     
@@ -157,27 +167,41 @@ export function PerformanceDashboard({ allLeads, allStaff, loading }: { allLeads
                             <TableHead className="text-center">Leads Recibidos</TableHead>
                             <TableHead className="text-center">Números Obtenidos</TableHead>
                             <TableHead className="text-center">Citas Agendadas</TableHead>
-                            <TableHead className="text-center">Citas Confirmadas</TableHead>
-                            <TableHead className="text-center">Leads Descartados</TableHead>
                             <TableHead className="text-center">Ventas</TableHead>
+                            <TableHead className="text-center w-[150px]">Progreso de Ventas</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {filteredData.length > 0 ? (
-                            filteredData.map(data => (
+                            filteredData.map(data => {
+                                const progress = salesGoal > 0 ? (data.ventas / salesGoal) * 100 : 0;
+                                return (
                                 <TableRow key={data.userId}>
-                                    <TableCell className="font-medium">{data.userName}</TableCell>
+                                    <TableCell className="font-medium">
+                                        <div className="flex items-center gap-3">
+                                            <Avatar className="h-8 w-8">
+                                                <AvatarFallback className="text-xs bg-slate-100 text-slate-500 font-semibold">
+                                                    {getAvatarFallback(data.userName)}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <span>{data.userName}</span>
+                                        </div>
+                                    </TableCell>
                                     <TableCell className="text-center">{data.leadsRecibidos}</TableCell>
                                     <TableCell className="text-center">{data.numerosObtenidos}</TableCell>
                                     <TableCell className="text-center">{data.citasAgendadas}</TableCell>
-                                    <TableCell className="text-center">{data.citasConfirmadas}</TableCell>
-                                    <TableCell className="text-center">{data.leadsDescartados}</TableCell>
                                     <TableCell className="text-center font-bold text-green-600">{data.ventas}</TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center gap-2">
+                                            <Progress value={progress} className="h-2"/>
+                                            <span className="text-xs font-semibold text-muted-foreground w-12 text-right">{Math.round(progress)}%</span>
+                                        </div>
+                                    </TableCell>
                                 </TableRow>
-                            ))
+                            )})
                          ) : (
                             <TableRow>
-                                <TableCell colSpan={7} className="h-24 text-center">
+                                <TableCell colSpan={6} className="h-24 text-center">
                                     No performance data for the selected criteria.
                                 </TableCell>
                             </TableRow>
@@ -199,3 +223,5 @@ const MetricCard = ({ label, value }: { label: string, value: number | string })
         </CardContent>
     </Card>
 );
+
+    

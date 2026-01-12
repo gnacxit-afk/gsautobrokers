@@ -7,15 +7,17 @@ import { PerformanceDashboard } from './components/performance-dashboard';
 import { BonusStatus } from './components/bonus-status';
 import { useFirestore, useUser, useCollection, useDoc } from '@/firebase';
 import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
-import type { Lead, Staff, KPI } from '@/lib/types';
+import type { Lead, Staff, KPI, PerformanceMetric } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/lib/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useDateRange } from '@/hooks/use-date-range';
 import { calculateBonus } from '@/lib/utils';
 import { COMMISSION_PER_VEHICLE } from '@/lib/mock-data';
-import { isWithinInterval, isValid } from 'date-fns';
+import { isWithinInterval, isValid, startOfToday, endOfToday } from 'date-fns';
 import { DateRangePicker } from '@/components/layout/date-range-picker';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 
 const DEFAULT_KPIS: KPI[] = [
     { id: 'leads_recibidos', label: 'Leads recibidos', target: 'informativo', description: 'Total de leads que ingresan al sistema.' },
@@ -42,6 +44,30 @@ const StatCard = ({ label, value, color }: { label: string, value: string | numb
   );
 };
 
+const ProgressKpiCard = ({ label, value, target, progress, color }: { label: string, value: string | number, target: string, progress: number, color: string }) => {
+    const colors: { [key: string]: string } = {
+        blue: "text-blue-600",
+        green: "text-green-600",
+        indigo: "text-indigo-600",
+        amber: "text-amber-600",
+        violet: "text-violet-600",
+    };
+    return (
+        <Card className="shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="pb-2">
+                <CardTitle className="text-base font-semibold text-slate-700">{label}</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="flex justify-between items-baseline mb-2">
+                    <p className={`text-3xl font-bold ${colors[color] || 'text-primary'}`}>{value}</p>
+                    <p className="text-sm text-muted-foreground font-medium">Meta: {target}</p>
+                </div>
+                <Progress value={progress} />
+            </CardContent>
+        </Card>
+    )
+}
+
 function BrokerGoalsView({kpis, kpisLoading, allLeads, staff, loading}) {
   const { user } = useUser();
   const { dateRange } = useDateRange();
@@ -63,12 +89,32 @@ function BrokerGoalsView({kpis, kpisLoading, allLeads, staff, loading}) {
     const totalCommissions = closedSales * COMMISSION_PER_VEHICLE;
     const brokerBonus = calculateBonus(closedSales);
 
+    // Daily stats
+    const todayStart = startOfToday();
+    const todayEnd = endOfToday();
+    const todayLeads = allLeads.filter(l => {
+      const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
+      return l.ownerId === user.id && isWithinInterval(leadDate, {start: todayStart, end: todayEnd});
+    });
+
+    const dailyStats: PerformanceMetric = {
+        userId: user.id,
+        userName: user.name,
+        leadsRecibidos: todayLeads.length,
+        numerosObtenidos: todayLeads.filter(l => l.phone && l.phone.trim() !== '').length,
+        citasAgendadas: todayLeads.filter(l => l.stage === 'Citado').length,
+        leadsDescartados: todayLeads.filter(l => l.stage === 'Perdido').length,
+        ventas: todayLeads.filter(l => l.stage === 'Ganado').length,
+        citasConfirmadas: 0, // Placeholder, logic depends on definition
+    }
+
     return {
       totalLeads,
       closedSales,
       conversion,
       totalCommissions,
-      brokerBonus
+      brokerBonus,
+      dailyStats
     };
   }, [user, allLeads, dateRange]);
   
@@ -80,6 +126,35 @@ function BrokerGoalsView({kpis, kpisLoading, allLeads, staff, loading}) {
         return isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end });
     });
   }, [allLeads, dateRange]);
+
+  const kpiProgress = useMemo(() => {
+      if (!brokerStats?.dailyStats || !kpis) return {};
+      
+      const progress: { [key: string]: { value: number, target: number, progress: number } } = {};
+      const stats = brokerStats.dailyStats;
+
+      const kpiMapping: { [key: string]: number } = {
+          'leads_recibidos': stats.leadsRecibidos,
+          'numeros_obtenidos': stats.numerosObtenidos,
+          'citas_agendadas': stats.citasAgendadas,
+          'ventas': stats.ventas,
+      };
+
+      kpis.forEach(kpi => {
+          if (kpiMapping[kpi.id] !== undefined) {
+              const value = kpiMapping[kpi.id];
+              const target = parseInt(kpi.target.replace(/\D/g, '')) || 1; // Extract number from target, default to 1
+              progress[kpi.id] = {
+                  value,
+                  target,
+                  progress: target > 0 ? (value / target) * 100 : 0
+              };
+          }
+      });
+      
+      return progress;
+
+  }, [brokerStats, kpis]);
 
 
   if (!brokerStats) return null;
@@ -105,13 +180,23 @@ function BrokerGoalsView({kpis, kpisLoading, allLeads, staff, loading}) {
       
        <div className="border-t pt-8">
           <div className="mb-6 text-center">
-            <h1 className="text-2xl font-bold">Daily Goals</h1>
+            <h1 className="text-2xl font-bold">Progreso Diario</h1>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Cada vendedor profesional genera resultados todos los días, porque
-              entiende que el éxito no se espera, se provoca.
+              Tu avance de hoy frente a las metas diarias del equipo.
             </p>
           </div>
-          <KpiClient initialKpis={kpis} loading={kpisLoading} />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {kpis.filter(kpi => kpiProgress[kpi.id]).map(kpi => (
+                  <ProgressKpiCard 
+                      key={kpi.id}
+                      label={kpi.label}
+                      value={kpiProgress[kpi.id].value}
+                      target={`${kpiProgress[kpi.id].target}`}
+                      progress={kpiProgress[kpi.id].progress}
+                      color="blue"
+                  />
+              ))}
+          </div>
            <div className="mt-8 p-4 bg-gray-100 border border-gray-200 rounded-lg text-center">
             <p className="text-sm font-semibold text-gray-700">
               👉 “Los vendedores que ganan saben esto: sin número no hay control,
@@ -130,20 +215,6 @@ function BrokerGoalsView({kpis, kpisLoading, allLeads, staff, loading}) {
             </div>
           </div>
           <BonusStatus allLeads={allLeads} loading={loading} />
-        </div>
-
-        <div className="border-t pt-8">
-            <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold">Dashboard en Tiempo Real</h1>
-                    <p className="text-muted-foreground">Resumen del rendimiento diario.</p>
-                </div>
-            </div>
-            <PerformanceDashboard
-                allLeads={performanceLeads}
-                allStaff={staff}
-                loading={loading}
-            />
         </div>
     </main>
   )
@@ -168,6 +239,7 @@ function KpiPage() {
   const kpis = kpisData?.list || [];
   const allLeads = leadsData || [];
   const staff = staffData || [];
+  const salesGoalKPI = kpis.find(kpi => kpi.id === 'ventas');
 
   const loading = kpisLoading || leadsLoading || staffLoading;
 
@@ -262,6 +334,7 @@ function KpiPage() {
                 allLeads={performanceLeads}
                 allStaff={staff}
                 loading={loading}
+                salesGoal={salesGoalKPI ? parseInt(salesGoalKPI.target, 10) : 1}
             />
         </div>
     </main>
@@ -275,3 +348,5 @@ const KpiPageWithProvider = () => {
 };
 
 export default KpiPageWithProvider;
+
+    
