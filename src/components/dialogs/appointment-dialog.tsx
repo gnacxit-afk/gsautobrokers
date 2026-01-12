@@ -51,7 +51,7 @@ export function AppointmentDialog({ open, onOpenChange, selectedDate: initialDat
         }
         // Set the initial date to today or the passed date
         setAppointmentDate(format(initialDate, 'yyyy-MM-dd'));
-        setTime('09:00');
+        setTime(format(initialDate, 'HH:mm'));
     } else {
         // Reset when dialog closes
         setSelectedLead(null);
@@ -71,8 +71,8 @@ export function AppointmentDialog({ open, onOpenChange, selectedDate: initialDat
     
     // Combine date from date picker and time from time picker
     const [hours, minutes] = time.split(':').map(Number);
-    const appointmentDateTime = new Date(appointmentDate);
-    appointmentDateTime.setUTCHours(hours, minutes);
+    const finalDateTime = new Date(appointmentDate);
+    finalDateTime.setHours(hours, minutes, 0, 0);
 
 
     try {
@@ -80,8 +80,8 @@ export function AppointmentDialog({ open, onOpenChange, selectedDate: initialDat
       await addDoc(appointmentsCollection, {
         leadId: selectedLead.id,
         leadName: selectedLead.name,
-        startTime: appointmentDateTime,
-        endTime: addMinutes(appointmentDateTime, 30), // Assuming 30 min appointments
+        startTime: finalDateTime,
+        endTime: addMinutes(finalDateTime, 30), // Assuming 30 min appointments
         ownerId: selectedLead.ownerId, // The appointment owner is the lead's owner
         status: selectedLead.stage === 'Ganado' || selectedLead.stage === 'Calificado' ? 'Hot' : 'Warm', // Example logic
       });
@@ -89,7 +89,7 @@ export function AppointmentDialog({ open, onOpenChange, selectedDate: initialDat
       // Add a note to the lead's history
       const noteHistoryRef = collection(firestore, 'leads', selectedLead.id, 'noteHistory');
       await addDoc(noteHistoryRef, {
-          content: `Appointment scheduled by ${user.name} for ${format(appointmentDateTime, "eeee, d 'de' MMMM 'at' p", { locale: es })}.`,
+          content: `Appointment scheduled by ${user.name} for ${format(finalDateTime, "eeee, d 'de' MMMM 'at' p", { locale: es })}.`,
           author: 'System',
           date: serverTimestamp(),
           type: 'System',
@@ -101,7 +101,7 @@ export function AppointmentDialog({ open, onOpenChange, selectedDate: initialDat
 
       toast({
         title: 'Appointment Booked!',
-        description: `Appointment with ${selectedLead.name} at ${format(appointmentDateTime, 'p')} has been saved.`,
+        description: `Appointment with ${selectedLead.name} at ${format(finalDateTime, 'p')} has been saved.`,
       });
 
       onOpenChange(false);
@@ -149,7 +149,7 @@ export function AppointmentDialog({ open, onOpenChange, selectedDate: initialDat
                 )}
             </div>
 
-            {selectedLead && (
+            {selectedLead ? (
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="date">Appointment Date</Label>
@@ -171,6 +171,8 @@ export function AppointmentDialog({ open, onOpenChange, selectedDate: initialDat
                         />
                     </div>
                 </div>
+            ) : (
+                <p className="text-sm text-muted-foreground text-center pt-4">Select a lead to continue.</p>
             )}
         </div>
         <DialogFooter>
@@ -181,3 +183,5 @@ export function AppointmentDialog({ open, onOpenChange, selectedDate: initialDat
     </Dialog>
   );
 }
+
+    

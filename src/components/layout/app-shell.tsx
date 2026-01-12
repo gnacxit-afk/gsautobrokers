@@ -1,6 +1,6 @@
 
 
-"use client";
+'use client';
 
 import React, { useState } from "react";
 import Link from "next/link";
@@ -77,7 +77,7 @@ function MainNav({ items, onLinkClick }: { items: NavItemType[], onLinkClick?: (
           <NavItem 
             key={item.href}
             href={item.href}
-            active={pathname.startsWith(item.href) && (item.href !== '/' || pathname === '/')}
+            active={pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))}
             icon={<item.icon size={20} />}
             label={item.title}
             onLinkClick={onLinkClick}
@@ -219,3 +219,5 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </DateRangeProvider>
   );
 }
+
+    
