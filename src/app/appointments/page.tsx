@@ -32,8 +32,8 @@ export default function AppointmentsPage() {
   const { user } = useAuthContext();
   const firestore = useFirestore();
 
-  // Default to showing appointments from now onwards
-  const [dateFilter, setDateFilter] = useState('today');
+  // Default to showing upcoming appointments to avoid timezone issues with 'today'
+  const [dateFilter, setDateFilter] = useState('upcoming');
   const [ownerFilter, setOwnerFilter] = useState('all');
 
   const appointmentsQuery = useMemo(() => {
@@ -60,9 +60,8 @@ export default function AppointmentsPage() {
              if (user.role === 'Broker') {
                 constraints.push(where('ownerId', '==', user.id));
              } else if (user.role === 'Supervisor') {
-                // This would require fetching the supervisor's team, which adds complexity.
-                // For now, supervisors see their own, or can filter to a specific user.
-                // A better implementation might use a 'supervisorId' field on appointments.
+                // In a real app, this would require fetching the supervisor's team, which adds complexity.
+                // For now, supervisors see all, or can filter to a specific user.
              }
         }
     }
@@ -116,8 +115,8 @@ export default function AppointmentsPage() {
                                 <SelectValue placeholder="Filter by date" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="today">Today</SelectItem>
                                 <SelectItem value="upcoming">Upcoming</SelectItem>
+                                <SelectItem value="today">Today</SelectItem>
                                 <SelectItem value="all">All</SelectItem>
                             </SelectContent>
                         </Select>
