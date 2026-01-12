@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select"
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 export default function AppointmentsPage() {
   const { user } = useAuthContext();
@@ -91,6 +92,11 @@ export default function AppointmentsPage() {
       if (!allStaff) return new Map();
       return new Map(allStaff.map(s => [s.id, s.name]));
   }, [allStaff]);
+
+  const leadsMap = useMemo(() => {
+    if (!leads) return new Map();
+    return new Map(leads.map(l => [l.id, l]));
+  }, [leads]);
   
   const handleSaveAppointment = async () => {
     if (!firestore || !user || !selectedLead || !appointmentDate || !appointmentTime) {
@@ -277,25 +283,37 @@ export default function AppointmentsPage() {
                   </div>
               ) : appointments && appointments.length > 0 ? (
                   <div className="space-y-4">
-                      {appointments.map(apt => (
-                          <Link href={`/leads/${apt.leadId}/notes`} key={apt.id}>
-                            <div className="p-4 border rounded-lg bg-slate-50 hover:bg-blue-50 hover:border-blue-200 transition-colors cursor-pointer">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <p className="font-bold">{apt.leadName}</p>
-                                        <p className="text-sm text-muted-foreground">
-                                            {format(apt.startTime.toDate(), "eeee, d MMM 'at' p", { locale: es })}
-                                        </p>
+                      {appointments.map(apt => {
+                          const lead = leadsMap.get(apt.leadId);
+                          const stage = lead?.stage;
+                          
+                          const itemClasses = cn("p-4 border rounded-lg transition-colors cursor-pointer", {
+                            'bg-green-50 hover:bg-green-100 border-green-200': stage === 'Ganado',
+                            'bg-red-50 hover:bg-red-100 border-red-200': stage === 'Perdido',
+                            'bg-amber-50 hover:bg-amber-100 border-amber-200': stage === 'Citado' || stage === 'En Seguimiento',
+                            'bg-slate-50 hover:bg-blue-50 border-slate-200 hover:border-blue-200': !stage || (stage !== 'Ganado' && stage !== 'Perdido' && stage !== 'Citado' && stage !== 'En Seguimiento'),
+                          });
+
+                          return (
+                            <Link href={`/leads/${apt.leadId}/notes`} key={apt.id}>
+                                <div className={itemClasses}>
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="font-bold">{apt.leadName}</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {format(apt.startTime.toDate(), "eeee, d MMM 'at' p", { locale: es })}
+                                            </p>
+                                        </div>
+                                        {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
+                                            <p className="text-xs font-semibold text-slate-500 bg-slate-200 px-2 py-1 rounded-full">
+                                                {ownersMap.get(apt.ownerId) || 'Unknown Owner'}
+                                            </p>
+                                        )}
                                     </div>
-                                    {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
-                                        <p className="text-xs font-semibold text-slate-500 bg-slate-200 px-2 py-1 rounded-full">
-                                            {ownersMap.get(apt.ownerId) || 'Unknown Owner'}
-                                        </p>
-                                    )}
                                 </div>
-                            </div>
-                          </Link>
-                      ))}
+                            </Link>
+                          );
+                      })}
                   </div>
               ) : (
                   <p className="text-muted-foreground text-center p-8">
