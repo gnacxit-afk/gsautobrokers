@@ -132,6 +132,7 @@ export const SignContractInputSchema = z.object({
   userId: z.string().describe("The ID of the user signing the contract."),
   userName: z.string().describe("The name of the user signing the contract."),
   contractId: z.string().describe("The ID of the contract being signed."),
+  contractVersion: z.string().describe("The version of the contract being signed."),
 });
 export type SignContractInput = z.infer<typeof SignContractInputSchema>;
 

@@ -52,7 +52,8 @@ export function ContractSigningModal({ isOpen, onClose, contract }: ContractSign
         const result = await signContract({
             userId: user.id,
             userName: user.name,
-            contractId: contract.id
+            contractId: contract.id,
+            contractVersion: contract.version, // Pass the version from the client
         });
 
         if (result.success) {

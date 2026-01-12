@@ -3,21 +3,19 @@
  * @fileOverview A Genkit flow for securely handling employment contract signatures.
  *
  * @exported
- * - `signContract`: A server-side function to record a user's contract signature.
+ * - `signContract`: a server-side function to record a user's contract signature.
  */
 
 import { ai } from '@/ai/genkit';
-import { getFirestore, doc, setDoc, serverTimestamp, getDoc, collection } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
 import { headers } from 'next/headers';
 import { SignContractInputSchema, SignContractOutputSchema, type SignContractInput, type SignContractOutput } from '@/lib/types';
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
-
 
 export async function signContract(input: SignContractInput): Promise<SignContractOutput> {
   return signContractFlow(input);
 }
-
 
 const signContractFlow = ai.defineFlow(
   {
@@ -33,15 +31,6 @@ const signContractFlow = ai.defineFlow(
     const firestore = getFirestore();
 
     try {
-      // Fetch the contract to get its version
-      const contractRef = doc(firestore, "contracts", input.contractId);
-      const contractSnap = await getDoc(contractRef);
-
-      if (!contractSnap.exists()) {
-        throw new Error("Contract not found.");
-      }
-      const contractData = contractSnap.data();
-
       // Get user's IP Address from request headers
       const headersList = headers();
       const ipAddress = headersList.get('x-forwarded-for') ?? 'unknown';
@@ -53,7 +42,7 @@ const signContractFlow = ai.defineFlow(
         userId: input.userId,
         userName: input.userName,
         contractId: input.contractId,
-        contractVersion: contractData.version,
+        contractVersion: input.contractVersion, // Use version from input
         signedAt: serverTimestamp(),
         ipAddress: ipAddress,
       };
