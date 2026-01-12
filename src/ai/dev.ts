@@ -7,4 +7,3 @@ import '@/ai/flows/summarize-knowledge-base-resources.ts';
 import '@/ai/flows/summarize-knowledge-base-articles.ts';
 import '@/ai/flows/enhance-lead-notes.ts';
 import '@/ai/flows/qualify-lead-flow.ts';
-import '@/ai/flows/sign-contract-flow.ts';

@@ -9,8 +9,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@/firebase';
-import { signContract } from '@/ai/flows/sign-contract-flow';
+import { useFirestore, useUser } from '@/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+
 
 function MarkdownRenderer({ content }: { content: string }) {
   const renderLine = (line: string, index: number) => {
@@ -39,32 +40,42 @@ export function ContractSigningModal({ isOpen, onClose, contract }: ContractSign
   const [isChecked, setIsChecked] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
   const { user } = useUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
 
   const handleSign = async () => {
-    if (!user) {
+    if (!user || !firestore) {
         toast({ title: 'Error', description: 'You must be logged in to sign.', variant: 'destructive'});
         return;
     }
     
     setIsSigning(true);
     try {
-        const result = await signContract({
-            userId: user.id,
-            userName: user.name,
-            contractId: contract.id,
-            contractVersion: contract.version, // Pass the version from the client
-        });
-
-        if (result.success) {
-            toast({
-                title: 'Contract Signed!',
-                description: 'Thank you. Your signature has been recorded.',
-            });
-            onClose();
-        } else {
-            throw new Error(result.message);
+        // Fetch the user's IP address from our API endpoint
+        const ipResponse = await fetch('/api/ip');
+        if (!ipResponse.ok) {
+          throw new Error('Could not verify your location.');
         }
+        const { ip } = await ipResponse.json();
+
+        // Create a new signature document directly on the client
+        const signaturesCollection = collection(firestore, "signatures");
+        const signatureData = {
+          userId: user.id,
+          userName: user.name,
+          contractId: contract.id,
+          contractVersion: contract.version,
+          signedAt: serverTimestamp(),
+          ipAddress: ip,
+        };
+
+        await addDoc(signaturesCollection, signatureData);
+        
+        toast({
+            title: 'Contract Signed!',
+            description: 'Thank you. Your signature has been recorded.',
+        });
+        onClose();
 
     } catch (error: any) {
         toast({
