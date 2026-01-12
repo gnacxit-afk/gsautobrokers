@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isLoggingIn, setIsLoggingIn] = useState(false); // New state to track login process specifically
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -102,18 +102,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!auth || !firestore) return;
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-        setLoading(true);
-        setIsLoggingIn(false); // Reset login process tracker
         if (firebaseUser) {
+            // Keep loading true while we fetch the user profile
             const userProfile = await fetchAppUser(firebaseUser);
             if (userProfile) {
               setUser(userProfile);
-              setAuthError(null); // Clear any previous errors on successful login
+              setAuthError(null);
             }
+            setIsLoggingIn(false); // User is fetched, login process is complete
         } else {
             setUser(null);
+            setIsLoggingIn(false); // No user, so no login process is active
         }
-        setLoading(false);
+        setLoading(false); // Final state is determined, stop global loading
     });
 
     return () => unsubscribe();
@@ -125,9 +126,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!user && pathname !== "/login") {
         router.push("/login");
       } else if (user && pathname === "/login") {
-        // Redirect to /leads for all roles except Broker. Broker goes to /kpi
-        const destination = user.role === 'Broker' ? '/kpi' : '/leads';
-        router.push(destination);
+        // Redirect all users to the main dashboard
+        router.push("/");
       }
     }
   }, [user, loading, isLoggingIn, pathname, router]);
@@ -138,16 +138,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAuthError("Authentication service is not available.");
         return;
     }
-    setIsLoggingIn(true); // Start the login process
+    setIsLoggingIn(true);
     setLoading(true);
     setAuthError(null);
     try {
         await signInWithEmailAndPassword(auth, email, pass);
-        // On success, onAuthStateChanged listener handles user state update and will set loading to false.
+        // On success, onAuthStateChanged listener handles user state update and navigation.
     } catch (error: any) {
         setAuthError(error.message);
         setUser(null);
-        setIsLoggingIn(false); // Stop login process on error
+        setIsLoggingIn(false);
         setLoading(false);
     }
   }, [auth]);
