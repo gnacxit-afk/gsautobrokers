@@ -8,14 +8,10 @@ import { format } from 'date-fns';
 
 interface SignatureListProps {
     signatures: ContractSignature[];
-    contracts: EmploymentContract[];
-    staff: Staff[];
     loading: boolean;
 }
 
-export function SignatureList({ signatures, contracts, staff, loading }: SignatureListProps) {
-    
-    const contractMap = new Map(contracts.map(c => [c.id, c.title]));
+export function SignatureList({ signatures, loading }: SignatureListProps) {
 
     const renderDate = (date: any) => {
         if (!date) return 'N/A';
@@ -30,7 +26,6 @@ export function SignatureList({ signatures, contracts, staff, loading }: Signatu
                     <TableHeader>
                         <TableRow>
                             <TableHead>Employee</TableHead>
-                            <TableHead>Contract</TableHead>
                             <TableHead>Version</TableHead>
                             <TableHead>Signed On</TableHead>
                             <TableHead>IP Address</TableHead>
@@ -41,7 +36,6 @@ export function SignatureList({ signatures, contracts, staff, loading }: Signatu
                              [...Array(5)].map((_, i) => (
                                 <TableRow key={i}>
                                     <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                                    <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-12" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-36" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-24" /></TableCell>
@@ -51,7 +45,6 @@ export function SignatureList({ signatures, contracts, staff, loading }: Signatu
                             signatures.map((sig) => (
                                 <TableRow key={sig.id}>
                                     <TableCell className="font-medium">{sig.userName}</TableCell>
-                                    <TableCell>{contractMap.get(sig.contractId) || 'Unknown Contract'}</TableCell>
                                     <TableCell>{sig.contractVersion}</TableCell>
                                     <TableCell>{renderDate(sig.signedAt)}</TableCell>
                                     <TableCell className="font-mono text-xs">{sig.ipAddress}</TableCell>
@@ -59,8 +52,8 @@ export function SignatureList({ signatures, contracts, staff, loading }: Signatu
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={5} className="h-24 text-center">
-                                    No signatures recorded yet.
+                                <TableCell colSpan={4} className="h-24 text-center">
+                                    No signatures recorded for this contract yet.
                                 </TableCell>
                             </TableRow>
                         )}

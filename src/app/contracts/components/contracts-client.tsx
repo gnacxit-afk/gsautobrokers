@@ -6,16 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { ContractList } from './contract-list';
 import { ContractEditor } from './contract-editor';
-import { SignatureList } from './signature-list';
+import { SignatureDashboard } from './signature-dashboard';
 
 interface ContractsClientProps {
     initialContracts: EmploymentContract[];
-    initialSignatures: ContractSignature[];
+    activeContract: EmploymentContract | null;
+    signatures: ContractSignature[];
     allStaff: Staff[];
     loading: boolean;
 }
 
-export function ContractsClient({ initialContracts, initialSignatures, allStaff, loading }: ContractsClientProps) {
+export function ContractsClient({ initialContracts, activeContract, signatures, allStaff, loading }: ContractsClientProps) {
     const [selectedContract, setSelectedContract] = useState<EmploymentContract | null>(null);
     const [isEditing, setIsEditing] = useState(false);
 
@@ -67,11 +68,11 @@ export function ContractsClient({ initialContracts, initialSignatures, allStaff,
             </div>
             
              <div>
-                <h2 className="text-xl font-semibold mb-4">Recent Signatures</h2>
-                <SignatureList 
-                    signatures={initialSignatures}
-                    contracts={initialContracts}
-                    staff={allStaff}
+                <h2 className="text-xl font-semibold mb-4">Signature Status</h2>
+                 <SignatureDashboard
+                    activeContract={activeContract}
+                    signatures={signatures}
+                    allStaff={allStaff}
                     loading={loading}
                 />
             </div>

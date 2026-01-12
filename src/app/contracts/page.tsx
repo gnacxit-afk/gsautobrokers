@@ -18,9 +18,11 @@ export default function ContractsPage() {
   , [firestore]);
   const { data: contracts, loading: contractsLoading } = useCollection<EmploymentContract>(contractsQuery);
 
+  const activeContract = useMemo(() => contracts?.find(c => c.isActive), [contracts]);
+
   const signaturesQuery = useMemo(() =>
-    firestore ? query(collection(firestore, 'signatures'), orderBy('signedAt', 'desc')) : null
-  , [firestore]);
+    firestore && activeContract ? query(collection(firestore, 'signatures'), where('contractId', '==', activeContract.id)) : null
+  , [firestore, activeContract]);
   const { data: signatures, loading: signaturesLoading } = useCollection<ContractSignature>(signaturesQuery);
 
   const staffQuery = useMemo(() =>
@@ -37,6 +39,8 @@ export default function ContractsPage() {
     return <AccessDenied />;
   }
 
+  const loading = contractsLoading || signaturesLoading || staffLoading;
+
   return (
     <main className="flex-1">
       <div className="mb-6">
@@ -47,9 +51,10 @@ export default function ContractsPage() {
       </div>
       <ContractsClient 
         initialContracts={contracts || []}
-        initialSignatures={signatures || []}
+        activeContract={activeContract || null}
+        signatures={signatures || []}
         allStaff={staff || []}
-        loading={contractsLoading || signaturesLoading || staffLoading}
+        loading={loading}
       />
     </main>
   );
