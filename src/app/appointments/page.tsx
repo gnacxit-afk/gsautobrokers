@@ -52,7 +52,8 @@ export default function AppointmentsPage() {
   const [ownerFilter, setOwnerFilter] = useState('all');
 
   const appointmentsQuery = useMemo(() => {
-    if (!firestore) return null;
+    // FIX: Wait for both firestore and user to be loaded.
+    if (!firestore || !user) return null;
 
     const constraints = [];
     
@@ -68,17 +69,15 @@ export default function AppointmentsPage() {
     }
 
     // Owner filtering based on role
-    if (user) {
-        if (ownerFilter !== 'all') {
-            constraints.push(where('ownerId', '==', ownerFilter));
-        } else {
-             if (user.role === 'Broker') {
-                constraints.push(where('ownerId', '==', user.id));
-             } else if (user.role === 'Supervisor') {
-                // In a real app, this would require fetching the supervisor's team, which adds complexity.
-                // For now, supervisors see all, or can filter to a specific user.
-             }
-        }
+    if (ownerFilter !== 'all') {
+        constraints.push(where('ownerId', '==', ownerFilter));
+    } else {
+         if (user.role === 'Broker') {
+            constraints.push(where('ownerId', '==', user.id));
+         } else if (user.role === 'Supervisor') {
+            // In a real app, this would require fetching the supervisor's team, which adds complexity.
+            // For now, supervisors see all, or can filter to a specific user.
+         }
     }
     
     constraints.push(orderBy('startTime', 'asc'));
