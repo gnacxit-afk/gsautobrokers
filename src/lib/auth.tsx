@@ -126,8 +126,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!user && pathname !== "/login") {
         router.push("/login");
       } else if (user && pathname === "/login") {
-        // Redirect all users to the main dashboard
-        router.push("/");
+        if (user.role === 'Broker') {
+            router.push('/leads');
+        } else {
+            router.push('/');
+        }
       }
     }
   }, [user, loading, isLoggingIn, pathname, router]);
