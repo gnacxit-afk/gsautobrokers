@@ -4,9 +4,9 @@
 import { useState, useMemo, useCallback } from 'react';
 import type { Appointment, Lead, Staff } from '@/lib/types';
 import { useFirestore, useUser, useCollection } from '@/firebase';
-import { collection, query, where, orderBy, type Query, type DocumentData, type QueryConstraint, endOfDay, startOfDay, getDocs } from 'firebase/firestore';
+import { collection, query, where, orderBy, type Query, type DocumentData, type QueryConstraint, getDocs } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { format, addMinutes, startOfHour, getDay, isSameDay, set } from 'date-fns';
+import { format, addMinutes, startOfHour, getDay, isSameDay, set, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/lib/auth';
@@ -260,5 +260,3 @@ export default function AppointmentsPage() {
     </>
   );
 }
-
-    
