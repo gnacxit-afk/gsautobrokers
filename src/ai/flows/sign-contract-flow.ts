@@ -10,6 +10,8 @@ import { ai } from '@/ai/genkit';
 import { getFirestore, doc, setDoc, serverTimestamp, getDoc, collection } from 'firebase/firestore';
 import { headers } from 'next/headers';
 import { SignContractInputSchema, SignContractOutputSchema, type SignContractInput, type SignContractOutput } from '@/lib/types';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { firebaseConfig } from '@/firebase/config';
 
 
 export async function signContract(input: SignContractInput): Promise<SignContractOutput> {
@@ -24,6 +26,10 @@ const signContractFlow = ai.defineFlow(
     outputSchema: SignContractOutputSchema,
   },
   async (input) => {
+    // Ensure Firebase is initialized on the server
+    if (!getApps().length) {
+      initializeApp(firebaseConfig);
+    }
     const firestore = getFirestore();
 
     try {
