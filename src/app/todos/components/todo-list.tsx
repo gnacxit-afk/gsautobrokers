@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { Todo, Lead } from '@/lib/types';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
@@ -18,6 +18,8 @@ import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, Command
 import Link from 'next/link';
 import { NewLeadDialog } from '@/app/leads/components/new-lead-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { DragDropContext, Droppable, Draggable, type DropResult } from 'react-beautiful-dnd';
+
 
 function AddTodoForm({
   onAdd,
@@ -134,16 +136,20 @@ function TodoItem({
   todo,
   onToggle,
   onDelete,
+  dragHandleProps,
 }: {
   todo: Todo;
   onToggle: (id: string, completed: boolean) => void;
   onDelete: (id: string) => void;
+  dragHandleProps?: any;
 }) {
 
   return (
     <Card className={cn("group transition-shadow hover:shadow-md", todo.completed ? 'bg-slate-50' : 'bg-white')}>
       <CardContent className="p-3 flex items-center gap-3">
-        <GripVertical size={16} className={cn("cursor-grab text-slate-300 transition-opacity", todo.completed ? 'opacity-0' : 'opacity-50 group-hover:opacity-100')}/>
+        <div {...dragHandleProps}>
+            <GripVertical size={16} className={cn("cursor-grab text-slate-300 transition-opacity", todo.completed ? 'opacity-0' : 'opacity-50 group-hover:opacity-100')}/>
+        </div>
         <Checkbox
             id={`todo-${todo.id}`}
             checked={todo.completed}
@@ -191,6 +197,16 @@ export function TodoList({
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
+  const [todos, setTodos] = useState(initialTodos);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    setTodos(initialTodos);
+  }, [initialTodos]);
 
   const handleAddTodo = async (title: string, linkedLead?: {id: string, name: string}) => {
     if (!firestore || !user) return;
@@ -222,7 +238,6 @@ export function TodoList({
         const { initialNotes, ...leadData } = finalLeadData;
         const newDocRef = await addDoc(leadsCollection, leadData);
 
-        // After successfully creating the lead, create the associated notes.
         const noteHistoryRef = collection(firestore, 'leads', newDocRef.id, 'noteHistory');
         await addDoc(noteHistoryRef, {
             content: "Lead created via To-Do page.",
@@ -242,11 +257,10 @@ export function TodoList({
         
         toast({ title: "Lead Added", description: "New lead created successfully. A task will be added." });
         
-        // Pass the newly created lead (with its ID) to the callback
         const createdLead: Lead = {
             id: newDocRef.id,
             ...finalLeadData,
-            createdAt: new Date(), // Use current date as placeholder
+            createdAt: new Date(),
         };
         callback(createdLead);
 
@@ -271,10 +285,24 @@ export function TodoList({
   };
 
   const { pending, completed } = useMemo(() => {
-    const pending = initialTodos.filter(t => !t.completed);
-    const completed = initialTodos.filter(t => t.completed);
+    const pending = todos.filter(t => !t.completed);
+    const completed = todos.filter(t => t.completed);
     return { pending, completed };
-  }, [initialTodos]);
+  }, [todos]);
+
+  const onDragEnd = (result: DropResult) => {
+    const { destination, source } = result;
+    if (!destination) return;
+    if (destination.droppableId === source.droppableId && destination.index === source.index) {
+        return;
+    }
+
+    const newPendingTodos = Array.from(pending);
+    const [reorderedItem] = newPendingTodos.splice(source.index, 1);
+    newPendingTodos.splice(destination.index, 0, reorderedItem);
+    
+    setTodos([...newPendingTodos, ...completed]);
+  };
 
 
   if (loading) {
@@ -290,51 +318,89 @@ export function TodoList({
           </div>
       )
   }
-
-  return (
-    <div className="space-y-8">
-      <AddTodoForm 
-        onAdd={handleAddTodo} 
-        userLeads={userLeads}
-        onAddLeadAndTask={handleAddLeadAndTask}
-      />
-
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold px-1">Tasks - {pending.length}</h3>
-        <div className="space-y-3">
-            {pending.length > 0 ? (
-                pending.map(todo => (
-                    <TodoItem
-                        key={todo.id}
-                        todo={todo}
-                        onToggle={handleToggleTodo}
-                        onDelete={handleDeleteTodo}
-                    />
-                ))
-            ) : (
-                <div className="text-center py-16 bg-slate-50 rounded-lg border border-dashed">
-                  <p className="text-muted-foreground font-medium">You're all caught up!</p>
-                  <p className="text-sm text-slate-400">Add a new task above to get started.</p>
-                </div>
-            )}
+  
+  if (!hasMounted) {
+    // Render a simplified version or a skeleton on the server to avoid SSR issues.
+    return (
+       <div className="space-y-8">
+         <AddTodoForm 
+            onAdd={handleAddTodo} 
+            userLeads={userLeads}
+            onAddLeadAndTask={handleAddLeadAndTask}
+        />
+        <div className="space-y-4">
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
         </div>
       </div>
+    );
+  }
 
-      {completed.length > 0 && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold px-1">Completed - {completed.length}</h3>
-            <div className="space-y-3">
-                {completed.map(todo => (
-                <TodoItem
-                    key={todo.id}
-                    todo={todo}
-                    onToggle={handleToggleTodo}
-                    onDelete={handleDeleteTodo}
-                />
-                ))}
-            </div>
+  return (
+    <DragDropContext onDragEnd={onDragEnd}>
+        <div className="space-y-8">
+        <AddTodoForm 
+            onAdd={handleAddTodo} 
+            userLeads={userLeads}
+            onAddLeadAndTask={handleAddLeadAndTask}
+        />
+
+        <div className="space-y-4">
+            <h3 className="text-lg font-semibold px-1">Tasks - {pending.length}</h3>
+            <Droppable droppableId="pending-todos">
+                {(provided) => (
+                    <div 
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className="space-y-3"
+                    >
+                        {pending.length > 0 ? (
+                            pending.map((todo, index) => (
+                                <Draggable key={todo.id} draggableId={todo.id} index={index}>
+                                    {(provided) => (
+                                        <div
+                                            ref={provided.innerRef}
+                                            {...provided.draggableProps}
+                                        >
+                                            <TodoItem
+                                                todo={todo}
+                                                onToggle={handleToggleTodo}
+                                                onDelete={handleDeleteTodo}
+                                                dragHandleProps={provided.dragHandleProps}
+                                            />
+                                        </div>
+                                    )}
+                                </Draggable>
+                            ))
+                        ) : (
+                            <div className="text-center py-16 bg-slate-50 rounded-lg border border-dashed">
+                                <p className="text-muted-foreground font-medium">You're all caught up!</p>
+                                <p className="text-sm text-slate-400">Add a new task above to get started.</p>
+                            </div>
+                        )}
+                        {provided.placeholder}
+                    </div>
+                )}
+            </Droppable>
         </div>
-      )}
-    </div>
+
+        {completed.length > 0 && (
+            <div className="space-y-4">
+                <h3 className="text-lg font-semibold px-1">Completed - {completed.length}</h3>
+                <div className="space-y-3">
+                    {completed.map(todo => (
+                        <TodoItem
+                            key={todo.id}
+                            todo={todo}
+                            onToggle={handleToggleTodo}
+                            onDelete={handleDeleteTodo}
+                        />
+                    ))}
+                </div>
+            </div>
+        )}
+        </div>
+    </DragDropContext>
   );
 }
