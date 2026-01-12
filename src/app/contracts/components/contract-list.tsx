@@ -5,11 +5,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Edit2, CheckCircle, XCircle } from 'lucide-react';
+import { Edit2, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useFirestore } from '@/firebase';
-import { doc, updateDoc, writeBatch } from 'firebase/firestore';
+import { useFirestore, useUser } from '@/firebase';
+import { doc, writeBatch, serverTimestamp, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 interface ContractListProps {
@@ -21,9 +21,10 @@ interface ContractListProps {
 export function ContractList({ contracts, loading, onEdit }: ContractListProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { user } = useUser();
   
   const handleSetActive = async (contractToActivate: EmploymentContract) => {
-    if (!firestore) return;
+    if (!firestore || !user) return;
     
     const batch = writeBatch(firestore);
     
@@ -37,6 +38,19 @@ export function ContractList({ contracts, loading, onEdit }: ContractListProps) 
         const otherRef = doc(firestore, 'contracts', c.id);
         batch.update(otherRef, { isActive: false });
       }
+    });
+
+    // Log the activation event
+    const eventsCollection = collection(firestore, 'contract_events');
+    const newEventRef = doc(eventsCollection);
+    batch.set(newEventRef, {
+        contractId: contractToActivate.id,
+        contractTitle: contractToActivate.title,
+        contractVersion: contractToActivate.version,
+        userEmail: user.email,
+        userName: user.name,
+        eventType: 'Activated',
+        timestamp: serverTimestamp(),
     });
 
     try {

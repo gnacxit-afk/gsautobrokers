@@ -276,6 +276,23 @@
         "ipAddress": { "type": "string", "description": "The IP address from which the contract was signed." }
       },
       "required": ["id", "userId", "userName", "contractId", "contractVersion", "signedAt", "ipAddress"]
+    },
+    "ContractEvent": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ContractEvent",
+      "type": "object",
+      "description": "Represents an audit log entry for a contract.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the event." },
+        "contractId": { "type": "string", "description": "The ID of the contract related to this event." },
+        "contractTitle": { "type": "string", "description": "The title of the contract at the time of the event." },
+        "contractVersion": { "type": "string", "description": "The version of the contract at the time of the event." },
+        "userEmail": { "type": "string", "description": "The email of the user who triggered the event." },
+        "userName": { "type": "string", "description": "The name of the user who triggered the event." },
+        "eventType": { "type": "string", "description": "The type of event.", "enum": ["Created", "Activated", "Archived"] },
+        "timestamp": { "type": "string", "description": "The timestamp of when the event occurred.", "format": "date-time" }
+      },
+      "required": ["contractId", "contractTitle", "contractVersion", "userEmail", "userName", "eventType", "timestamp"]
     }
   },
   "auth": {
@@ -457,6 +474,17 @@
           "description": "Stores records of contract signatures by users.",
           "params": [
             { "name": "signatureId", "description": "The unique signature ID." }
+          ]
+        }
+      },
+      {
+        "path": "contract_events/{eventId}",
+        "definition": {
+          "entityName": "ContractEvent",
+          "schema": { "$ref": "#/backend/entities/ContractEvent" },
+          "description": "Stores audit log events related to contract management.",
+          "params": [
+            { "name": "eventId", "description": "The unique event ID." }
           ]
         }
       }

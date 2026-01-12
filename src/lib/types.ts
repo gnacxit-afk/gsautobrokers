@@ -146,3 +146,14 @@ export type ContractSignature = {
   signedAt: Timestamp;
   ipAddress: string;
 };
+
+export type ContractEvent = {
+  id: string;
+  contractId: string;
+  contractTitle: string;
+  contractVersion: string;
+  userEmail: string;
+  userName: string;
+  eventType: 'Created' | 'Activated' | 'Archived';
+  timestamp: Timestamp;
+};

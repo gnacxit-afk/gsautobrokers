@@ -174,5 +174,11 @@ service cloud.firestore {
       // Signatures are immutable.
       allow update, delete: if false;
     }
+
+    match /contract_events/{eventId} {
+      allow get, list: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false;
+    }
   }
 }

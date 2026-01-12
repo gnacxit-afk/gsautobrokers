@@ -1,17 +1,22 @@
 'use client';
 
-import type { ContractSignature, EmploymentContract, Staff } from '@/lib/types';
+import type { ContractSignature, Staff } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
+import Link from 'next/link';
+
+interface SignedStaff extends ContractSignature {
+    staff?: Staff;
+}
 
 interface SignatureListProps {
-    signatures: ContractSignature[];
+    signedStaff: SignedStaff[];
     loading: boolean;
 }
 
-export function SignatureList({ signatures, loading }: SignatureListProps) {
+export function SignatureList({ signedStaff, loading }: SignatureListProps) {
 
     const renderDate = (date: any) => {
         if (!date) return 'N/A';
@@ -41,10 +46,18 @@ export function SignatureList({ signatures, loading }: SignatureListProps) {
                                     <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                                 </TableRow>
                              ))
-                        ) : signatures.length > 0 ? (
-                            signatures.map((sig) => (
+                        ) : signedStaff.length > 0 ? (
+                            signedStaff.map((sig) => (
                                 <TableRow key={sig.id}>
-                                    <TableCell className="font-medium">{sig.userName}</TableCell>
+                                    <TableCell className="font-medium">
+                                        {sig.staff ? (
+                                            <Link href={`/staff/${sig.staff.id}`} className="hover:underline text-primary">
+                                                {sig.userName}
+                                            </Link>
+                                        ) : (
+                                            sig.userName
+                                        )}
+                                    </TableCell>
                                     <TableCell>{sig.contractVersion}</TableCell>
                                     <TableCell>{renderDate(sig.signedAt)}</TableCell>
                                     <TableCell className="font-mono text-xs">{sig.ipAddress}</TableCell>

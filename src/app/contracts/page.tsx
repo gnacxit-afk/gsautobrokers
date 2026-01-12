@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import type { EmploymentContract, ContractSignature, Staff } from '@/lib/types';
+import { useMemo } from 'react';
+import type { EmploymentContract, ContractSignature, Staff, ContractEvent } from '@/lib/types';
 import { useFirestore, useUser, useCollection } from '@/firebase';
 import { collection, orderBy, query, where } from 'firebase/firestore';
 import { AccessDenied } from '@/components/access-denied';
@@ -30,6 +30,11 @@ export default function ContractsPage() {
   , [firestore]);
   const { data: staff, loading: staffLoading } = useCollection<Staff>(staffQuery);
 
+  const eventsQuery = useMemo(() =>
+      firestore ? query(collection(firestore, 'contract_events'), orderBy('timestamp', 'desc')) : null
+  , [firestore]);
+  const { data: events, loading: eventsLoading } = useCollection<ContractEvent>(eventsQuery);
+
 
   if (userLoading) {
     return <div className="flex-1 flex items-center justify-center">Loading...</div>;
@@ -39,7 +44,7 @@ export default function ContractsPage() {
     return <AccessDenied />;
   }
 
-  const loading = contractsLoading || signaturesLoading || staffLoading;
+  const loading = contractsLoading || signaturesLoading || staffLoading || eventsLoading;
 
   return (
     <main className="flex-1">
@@ -54,6 +59,7 @@ export default function ContractsPage() {
         activeContract={activeContract || null}
         signatures={signatures || []}
         allStaff={staff || []}
+        events={events || []}
         loading={loading}
       />
     </main>
