@@ -189,23 +189,28 @@ export const getColumns = (
   },
   {
     accessorKey: "ownerName",
-    header: "Owner & Channel",
+    header: "Owner",
     cell: ({row}) => {
         const lead = row.original;
         return (
             <div className="flex items-center gap-2">
                  <Avatar className="h-6 w-6">
-                    {/* <AvatarImage src={row.original.avatarUrl} /> */}
                     <AvatarFallback className="text-[10px] bg-slate-200 text-slate-600 font-semibold">
                         {getAvatarFallback(lead.ownerName)}
                     </AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col">
-                    <span className="text-sm font-medium">{lead.ownerName}</span>
-                    <span className="text-xs text-slate-500 capitalize">{lead.channel}</span>
-                </div>
+                <span className="text-sm font-medium">{lead.ownerName}</span>
             </div>
         )
+    },
+    filterFn: 'equalsString',
+  },
+  {
+    accessorKey: "channel",
+    header: "Channel",
+    cell: ({ row }) => {
+      const channel = row.getValue("channel") as string;
+      return <Badge variant="outline" className="capitalize">{channel}</Badge>;
     },
     filterFn: 'equalsString',
   },
@@ -252,5 +257,3 @@ export const getColumns = (
     },
   },
 ];
-
-    
