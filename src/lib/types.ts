@@ -144,3 +144,4 @@ export type ContractSignature = {
   signedAt: Timestamp;
   ipAddress: string;
 };
+

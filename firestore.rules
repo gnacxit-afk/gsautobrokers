@@ -160,5 +160,18 @@ service cloud.firestore {
       allow create: if isOwner(request.resource.data.ownerId);
       allow update, delete: if isOwner(resource.data.ownerId) || isAdmin();
     }
+
+    match /contracts/{contractId} {
+      allow get, list, create, update, delete: if isAdmin();
+    }
+
+    match /signatures/{signatureId} {
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+      // Users can only create signatures for themselves.
+      allow create: if isOwner(request.resource.data.userId);
+      // Signatures are immutable.
+      allow update, delete: if false;
+    }
   }
 }

@@ -245,6 +245,37 @@
         "status": { "type": "string", "description": "The status of the lead at the time of booking.", "enum": ["Hot", "Warm", "Cold", "Unknown"] }
       },
       "required": ["leadId", "leadName", "startTime", "endTime", "ownerId", "status"]
+    },
+    "EmploymentContract": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "EmploymentContract",
+      "type": "object",
+      "description": "Represents a template for an employment contract.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the contract." },
+        "title": { "type": "string", "description": "The title of the contract (e.g., 'Broker Services Agreement')." },
+        "version": { "type": "string", "description": "The version of the contract (e.g., '1.0')." },
+        "content": { "type": "string", "description": "The full text of the contract, likely in Markdown." },
+        "isActive": { "type": "boolean", "description": "Whether this contract is the current active version to be signed." },
+        "createdAt": { "type": "string", "description": "The timestamp of when the contract was created.", "format": "date-time" }
+      },
+      "required": ["id", "title", "version", "content", "isActive", "createdAt"]
+    },
+    "ContractSignature": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ContractSignature",
+      "type": "object",
+      "description": "Represents a record of a user signing a specific contract.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the signature record." },
+        "userId": { "type": "string", "description": "The ID of the staff member who signed." },
+        "userName": { "type": "string", "description": "The name of the staff member who signed." },
+        "contractId": { "type": "string", "description": "The ID of the employment contract that was signed." },
+        "contractVersion": { "type": "string", "description": "The version of the contract at the time of signing." },
+        "signedAt": { "type": "string", "description": "The timestamp of when the signature was recorded.", "format": "date-time" },
+        "ipAddress": { "type": "string", "description": "The IP address from which the contract was signed." }
+      },
+      "required": ["id", "userId", "userName", "contractId", "contractVersion", "signedAt", "ipAddress"]
     }
   },
   "auth": {
@@ -404,6 +435,28 @@
               "name": "appointmentId",
               "description": "The unique appointment ID."
             }
+          ]
+        }
+      },
+      {
+        "path": "contracts/{contractId}",
+        "definition": {
+          "entityName": "EmploymentContract",
+          "schema": { "$ref": "#/backend/entities/EmploymentContract" },
+          "description": "Stores employment contract templates. Managed by Admins.",
+          "params": [
+            { "name": "contractId", "description": "The unique contract ID." }
+          ]
+        }
+      },
+      {
+        "path": "signatures/{signatureId}",
+        "definition": {
+          "entityName": "ContractSignature",
+          "schema": { "$ref": "#/backend/entities/ContractSignature" },
+          "description": "Stores records of contract signatures by users.",
+          "params": [
+            { "name": "signatureId", "description": "The unique signature ID." }
           ]
         }
       }
