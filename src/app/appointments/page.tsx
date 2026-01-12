@@ -40,6 +40,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 export default function AppointmentsPage() {
   const { user } = useAuthContext();
@@ -204,7 +205,11 @@ export default function AppointmentsPage() {
                             ) : appointments && appointments.length > 0 ? (
                                 appointments.map((apt) => (
                                     <TableRow key={apt.id}>
-                                    <TableCell className="font-medium">{apt.leadName}</TableCell>
+                                    <TableCell className="font-medium">
+                                        <Link href={`/leads/${apt.leadId}/notes`} className="hover:underline">
+                                            {apt.leadName}
+                                        </Link>
+                                    </TableCell>
                                     <TableCell>
                                         <div className="flex flex-col">
                                             <span>{format(apt.startTime.toDate(), "d 'de' MMMM, yyyy", { locale: es })}</span>
@@ -254,4 +259,3 @@ export default function AppointmentsPage() {
     </main>
   );
 }
-
