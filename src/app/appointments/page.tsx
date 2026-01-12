@@ -6,7 +6,7 @@ import type { Appointment, Staff } from '@/lib/types';
 import { useFirestore, useUser, useCollection } from '@/firebase';
 import { collection, query, where, orderBy, type Query, type DocumentData } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { NewAppointmentForm } from './components/new-appointment-form';
@@ -44,10 +44,10 @@ export default function AppointmentsPage() {
     // Date filtering
     const now = new Date();
     if (dateFilter === 'today') {
-      const startOfDay = new Date(now.setHours(0, 0, 0, 0));
-      const endOfDay = new Date(now.setHours(23, 59, 59, 999));
-      constraints.push(where('startTime', '>=', startOfDay));
-      constraints.push(where('startTime', '<=', endOfDay));
+      const start = startOfDay(now);
+      const end = endOfDay(now);
+      constraints.push(where('startTime', '>=', start));
+      constraints.push(where('startTime', '<=', end));
     } else if (dateFilter === 'upcoming') {
        constraints.push(where('startTime', '>=', now));
     }
