@@ -1,17 +1,34 @@
 
-"use client";
+'use client';
 
 import { useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { REVENUE_PER_VEHICLE, COMMISSION_PER_VEHICLE, MARGIN_PER_VEHICLE } from "@/lib/mock-data";
 import { useDateRange } from '@/hooks/use-date-range';
 import { useCollection, useFirestore, useUser } from '@/firebase';
-import { Users, BarChart3, Award } from "lucide-react";
+import { Users, BarChart3, TrendingUp, DollarSign, Percent, Target } from "lucide-react";
 import type { Lead, Staff } from '@/lib/types';
 import { calculateBonus } from '@/lib/utils';
 import { collection } from 'firebase/firestore';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+  Cell,
+} from "recharts";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { format, eachDayOfInterval, isValid } from 'date-fns';
 
-const StatCard = ({ label, value, color }: { label: string, value: string | number, color: string }) => {
+const StatCard = ({ label, value, icon: Icon, color }: { label: string, value: string | number, icon: React.ElementType, color: string }) => {
   const colors: { [key: string]: string } = {
     blue: "text-blue-600 bg-blue-50 border-blue-100",
     green: "text-green-600 bg-green-50 border-green-100",
@@ -22,13 +39,33 @@ const StatCard = ({ label, value, color }: { label: string, value: string | numb
     violet: "text-violet-600 bg-violet-50 border-violet-100",
   };
   return (
-    <div className={`p-5 rounded-2xl border ${colors[color] || colors.blue} shadow-sm`}>
-      <p className="text-xs font-semibold uppercase tracking-wider opacity-70 mb-1">{label}</p>
-      <p className="text-2xl font-bold">{value}</p>
+    <div className={`p-5 rounded-2xl border ${colors[color] || colors.blue} shadow-sm flex items-center gap-4`}>
+       <div className="p-3 bg-white rounded-full">
+         <Icon size={20} />
+       </div>
+       <div>
+         <p className="text-2xl font-bold">{value}</p>
+         <p className="text-xs font-semibold uppercase tracking-wider opacity-70">{label}</p>
+       </div>
     </div>
   );
 };
 
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-3 rounded-lg border shadow-sm">
+        <p className="font-bold text-sm">{label}</p>
+        {payload.map((pld: any) => (
+          <p key={pld.dataKey} style={{ color: pld.color }} className="text-xs">
+            {pld.name}: {pld.value}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
 
 export default function DashboardPage() {
   const { dateRange } = useDateRange();
@@ -51,187 +88,204 @@ export default function DashboardPage() {
   const allLeads = leadsData || [];
   const allStaff = staffData || [];
 
+  const filteredLeads = useMemo(() => {
+      if (!user) return [];
+      const visibleLeads = allLeads.filter(lead => {
+        if (user.role === 'Admin') return true;
+        if (user.role === 'Broker') return lead.ownerId === user.id;
+        if (user.role === 'Supervisor') {
+          const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
+          return lead.ownerId === user.id || teamIds.includes(lead.ownerId);
+        }
+        return false;
+      });
 
-  const stats = useMemo(() => {
-    if (!user) return { totalLeads: 0, closedSales: 0, conversion: 0, totalRevenue: 0, totalCommissions: 0, totalMargin: 0, totalBonuses: 0, channels: {}, sellerStats: {} };
+      return visibleLeads.filter(l => {
+          if (!l.createdAt) return false;
+          const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
+          if (!isValid(leadDate)) return false;
+          return leadDate >= dateRange.start && leadDate <= dateRange.end;
+      });
+  }, [allLeads, allStaff, dateRange, user]);
 
-    const visibleLeads = allLeads.filter(lead => {
-      if (user.role === 'Admin') return true;
-      if (user.role === 'Broker') return lead.ownerId === user.id;
-      if (user.role === 'Supervisor') {
-        const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
-        return lead.ownerId === user.id || teamIds.includes(lead.ownerId);
-      }
-      return false;
-    });
 
-    const filteredLeads = visibleLeads.filter(l => {
-      if (!l.createdAt) return false;
-      const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
-      return leadDate >= dateRange.start && leadDate <= dateRange.end;
-    });
-
+  const { stats, sellerPerformanceData, salesByChannelData, salesTrendData } = useMemo(() => {
     const totalLeads = filteredLeads.length;
     const closedSales = filteredLeads.filter(l => l.stage === 'Ganado').length;
     const conversion = totalLeads > 0 ? (closedSales / totalLeads) * 100 : 0;
     const totalRevenue = closedSales * REVENUE_PER_VEHICLE;
     const totalCommissions = closedSales * COMMISSION_PER_VEHICLE;
 
-    const sellerStats: { [key: string]: { leads: number; sales: number; id: string; bonus: number } } = {};
-    filteredLeads.forEach(l => {
-      if (!sellerStats[l.ownerName]) sellerStats[l.ownerName] = { leads: 0, sales: 0, id: l.ownerId, bonus: 0 };
-      sellerStats[l.ownerName].leads++;
-      if (l.stage === 'Ganado') sellerStats[l.ownerName].sales++;
+    const sellerStats: { [key: string]: { leads: number; sales: number; commission: number; bonus: number; } } = {};
+    allStaff.forEach(staff => {
+      if (staff.role === 'Broker' || staff.role === 'Supervisor') {
+        sellerStats[staff.name] = { leads: 0, sales: 0, commission: 0, bonus: 0 };
+      }
     });
 
+    filteredLeads.forEach(l => {
+      if (sellerStats[l.ownerName]) {
+        sellerStats[l.ownerName].leads++;
+        if (l.stage === 'Ganado') {
+          sellerStats[l.ownerName].sales++;
+        }
+      }
+    });
+    
     let totalBonuses = 0;
     Object.keys(sellerStats).forEach(name => {
-      const bonus = calculateBonus(sellerStats[name].sales);
+      const sales = sellerStats[name].sales;
+      const bonus = calculateBonus(sales);
+      sellerStats[name].commission = sales * COMMISSION_PER_VEHICLE;
       sellerStats[name].bonus = bonus;
       totalBonuses += bonus;
     });
+    
+    const sellerPerformanceData = Object.entries(sellerStats)
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a,b) => b.sales - a.sales);
 
     const totalMargin = (closedSales * MARGIN_PER_VEHICLE) - totalBonuses;
 
-    const channels: { [key: string]: { leads: number; sales: number } } = {};
+    const channels: { [key: string]: number } = {};
     filteredLeads.forEach(l => {
-      if (!channels[l.channel]) channels[l.channel] = { leads: 0, sales: 0 };
-      channels[l.channel].leads++;
-      if (l.stage === 'Ganado') channels[l.channel].sales++;
+      if (l.stage === 'Ganado') {
+        if (!channels[l.channel]) channels[l.channel] = 0;
+        channels[l.channel]++;
+      }
     });
 
-    return {
-      totalLeads, closedSales, conversion, totalRevenue, totalCommissions, totalMargin, totalBonuses,
-      channels, sellerStats
-    };
-  }, [allLeads, allStaff, dateRange, user]);
+    const salesByChannelData = Object.entries(channels).map(([name, value]) => ({ name, value }));
+    
+    const salesByDate: { [key: string]: number } = {};
+    const interval = eachDayOfInterval({ start: dateRange.start, end: dateRange.end });
+    interval.forEach(day => {
+        salesByDate[format(day, 'MMM d')] = 0;
+    });
+    
+    filteredLeads.forEach(lead => {
+        if (lead.stage === 'Ganado') {
+            const leadDate = (lead.createdAt as any).toDate ? (lead.createdAt as any).toDate() : new Date(lead.createdAt as string);
+            if (isValid(leadDate)) {
+                const formattedDate = format(leadDate, 'MMM d');
+                if (salesByDate.hasOwnProperty(formattedDate)) {
+                    salesByDate[formattedDate]++;
+                }
+            }
+        }
+    });
 
-  const topSellers = Object.entries(stats.sellerStats).sort(([, a], [, b]) => b.sales - a.sales);
-  const topChannel = Object.entries(stats.channels).sort(([, a], [, b]) => (b.sales / (b.leads || 1)) - (a.sales / (a.leads || 1)))[0];
+    const salesTrendData = Object.entries(salesByDate).map(([date, sales]) => ({ date, sales }));
+    
+    const stats = {
+      totalLeads, closedSales, conversion, totalRevenue, totalCommissions, totalMargin, totalBonuses
+    };
+    
+    return { stats, sellerPerformanceData, salesByChannelData, salesTrendData };
+
+  }, [filteredLeads, allStaff, dateRange]);
 
 
   if (user?.role === 'Broker') {
-    return null; // or a loading spinner, as the redirect will happen shortly
+    return null; // Redirect is handled in useEffect
   }
+  
+  const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444'];
 
   return (
     <div className="space-y-8">
-       <div className={`grid grid-cols-1 md:grid-cols-3 ${user?.role === 'Admin' ? 'lg:grid-cols-8' : 'lg:grid-cols-5'} gap-4`}>
-        <StatCard label="Total Leads" value={stats.totalLeads} color="blue" />
-        <StatCard label="Closed Sales" value={stats.closedSales} color="green" />
-        <StatCard label="Conversion" value={`${stats.conversion.toFixed(1)}%`} color="indigo" />
-        <StatCard label="Commissions" value={`$${stats.totalCommissions.toLocaleString()}`} color="amber" />
+       <div className={`grid grid-cols-1 sm:grid-cols-2 ${user?.role === 'Admin' ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6`}>
+        <StatCard label="Total Leads" value={stats.totalLeads} color="blue" icon={Users} />
+        <StatCard label="Closed Sales" value={stats.closedSales} color="green" icon={DollarSign} />
+        <StatCard label="Conversion" value={`${stats.conversion.toFixed(1)}%`} color="indigo" icon={Percent}/>
         {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
-            <StatCard label="Total Bonuses" value={`$${stats.totalBonuses.toLocaleString()}`} color="violet" />
-        )}
-        {user?.role === 'Admin' && (
-          <>
-            <StatCard label="Total To Pay" value={`$${(stats.totalCommissions + stats.totalBonuses).toLocaleString()}`} color="emerald" />
-            <StatCard label="Gross Margin" value={`$${stats.totalMargin.toLocaleString()}`} color="emerald" />
-            <StatCard label="Total Revenue" value={`$${stats.totalRevenue.toLocaleString()}`} color="rose" />
-          </>
+            <StatCard label="Total Bonuses" value={`$${stats.totalBonuses.toLocaleString()}`} color="violet" icon={Target} />
         )}
       </div>
 
-      {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-              <Users size={18} className="text-blue-500" /> Seller Performance
-            </h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-gray-500 border-b">
-                    <th className="pb-3 font-medium">Name</th>
-                    <th className="pb-3 font-medium text-center">Leads</th>
-                    <th className="pb-3 font-medium text-center">Sales</th>
-                    <th className="pb-3 font-medium text-center">Conv.</th>
-                    <th className="pb-3 font-medium text-right">Commission</th>
-                    <th className="pb-3 font-medium text-right">Bonus</th>
-                    {user?.role === 'Admin' && (
-                      <th className="pb-3 font-medium text-right">TTP</th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {topSellers.map(([name, data]) => (
-                    <tr key={name}>
-                      <td className="py-3 font-medium text-slate-700">{name}</td>
-                      <td className="py-3 text-center">{data.leads}</td>
-                      <td className="py-3 text-center">{data.sales}</td>
-                      <td className="py-3 text-center font-bold text-blue-600">
-                        {data.leads > 0 ? ((data.sales / data.leads) * 100).toFixed(1) : 0}%
-                      </td>
-                      <td className="py-3 text-right text-amber-600 font-medium">${(data.sales * COMMISSION_PER_VEHICLE).toLocaleString()}</td>
-                      <td className="py-3 text-right text-violet-600 font-medium">${data.bonus.toLocaleString()}</td>
-                      {user?.role === 'Admin' && (
-                        <td className="py-3 text-right text-emerald-600 font-medium">${((data.sales * COMMISSION_PER_VEHICLE) + data.bonus).toLocaleString()}</td>
-                      )}
-                    </tr>
-                  ))}
-                  {topSellers.length === 0 && (
-                    <tr>
-                      <td colSpan={user?.role === 'Admin' ? 7 : 6} className="text-center py-8 text-gray-500">No seller data for this period.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-              <BarChart3 size={18} className="text-indigo-500" /> Channel Conversion
-            </h3>
-            <div className="space-y-4">
-              {Object.entries(stats.channels).map(([channel, data]) => (
-                <div key={channel}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="font-medium text-slate-600 capitalize">{channel}</span>
-                    <span className="text-slate-400">{data.sales} sales / {data.leads} leads</span>
-                  </div>
-                  <div 
-                    className="h-2 w-full bg-gray-100 rounded-full overflow-hidden"
-                  >
-                    <div 
-                      className="h-full bg-indigo-500 rounded-full transition-all duration-1000" 
-                      style={{ width: `${(data.sales / (data.leads || 1)) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
-              {Object.keys(stats.channels).length === 0 && (
-                  <div className="text-center py-8 text-gray-500">No channel data for this period.</div>
-              )}
-            </div>
-
-            <div className="mt-8 p-4 bg-slate-50 rounded-xl border border-slate-100">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Executive Summary</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-slate-500">Most Profitable Channel</p>
-                  <p className="font-bold text-slate-800 capitalize">{topChannel ? topChannel[0] : 'N/A'}</p>
-                </div>
-                {user?.role === 'Admin' && (
-                  <div>
-                    <p className="text-xs text-slate-500">Estimated Revenue</p>
-                    <p className="font-bold text-slate-800">${stats.totalRevenue.toLocaleString()}</p>
-                  </div>
-                )}
-                <div>
-                  <p className="text-xs text-slate-500">Top Seller</p>
-                  <p className="font-bold text-emerald-600">{topSellers[0] ? topSellers[0][0] : 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500">Lagging Seller</p>
-                  <p className="font-bold text-red-400">{topSellers.length > 1 ? topSellers[topSellers.length - 1][0] : 'N-A'}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <Card className="lg:col-span-2 shadow-sm">
+          <CardHeader>
+            <CardTitle>Sales Trend</CardTitle>
+            <CardDescription>Daily closed sales over the selected period.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={salesTrendData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Line type="monotone" dataKey="sales" stroke="#3B82F6" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Sales"/>
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        
+        <Card className="shadow-sm">
+           <CardHeader>
+            <CardTitle>Sales by Channel</CardTitle>
+            <CardDescription>Distribution of sales across different channels.</CardDescription>
+          </CardHeader>
+          <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                    <Pie
+                        data={salesByChannelData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                        nameKey="name"
+                        label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+                          const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                          const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
+                          const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
+                          return (
+                            <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize={12}>
+                              {`${(percent * 100).toFixed(0)}%`}
+                            </text>
+                          );
+                        }}
+                    >
+                       {salesByChannelData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend iconSize={10} wrapperStyle={{fontSize: "12px"}}/>
+                </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+       </div>
+       
+       {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
+         <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 size={20} /> Seller Performance
+            </CardTitle>
+            <CardDescription>Leads, sales, and commissions per salesperson.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={400}>
+               <BarChart data={sellerPerformanceData} layout="vertical" margin={{ left: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 12 }} />
+                  <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={80} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend wrapperStyle={{fontSize: "12px"}} />
+                  <Bar dataKey="sales" fill="#10B981" name="Sales" />
+                  <Bar dataKey="commission" fill="#8B5CF6" name="Commission" />
+                  <Bar dataKey="leads" fill="#3B82F6" name="Leads"/>
+                </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+         </Card>
+       )}
     </div>
   );
 }
