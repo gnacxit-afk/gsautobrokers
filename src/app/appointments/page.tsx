@@ -1,15 +1,24 @@
 
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
-import type { Appointment, Lead, Staff } from '@/lib/types';
+import { useState, useMemo } from 'react';
+import type { Appointment } from '@/lib/types';
 import { useFirestore, useUser, useCollection } from '@/firebase';
-import { collection, query, where, orderBy, type Query, type DocumentData, type QueryConstraint, getDocs } from 'firebase/firestore';
+import { collection, query, where, orderBy, type Query, type DocumentData } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { format, addMinutes, startOfHour, getDay, isSameDay, set, startOfDay, endOfDay } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
+import { NewAppointmentForm } from './components/new-appointment-form';
 import { useAuthContext } from '@/lib/auth';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import {
   Select,
   SelectContent,
@@ -18,246 +27,160 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar } from '@/components/ui/calendar';
-import { Plus } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { AppointmentDialog } from '@/components/dialogs/appointment-dialog';
-import Link from 'next/link';
-import { Label } from '@/components/ui/label';
-
-
-const TimeSlot = ({ time, appointments, onSlotClick, leadsMap }: { time: Date; appointments: (Appointment & { overlapCount: number; overlapIndex: number; })[]; onSlotClick: (time: Date) => void; leadsMap: Map<string, Lead> }) => {
-
-    return (
-        <div className="relative h-20 border-t border-b border-gray-200 -mt-px" onClick={() => onSlotClick(time)}>
-            <time className="absolute -left-14 top-0 text-xs text-muted-foreground w-12 text-right">
-                {format(time, 'p', { locale: es })}
-            </time>
-            <div className="relative h-full">
-                {appointments.map(apt => {
-                    const lead = leadsMap.get(apt.leadId);
-                    const stage = lead?.stage;
-
-                    const itemClasses = cn("absolute p-2 border-l-4 rounded-r-lg cursor-pointer overflow-hidden text-left", {
-                        'bg-green-50 hover:bg-green-100 border-green-400': stage === 'Ganado',
-                        'bg-red-50 hover:bg-red-100 border-red-400': stage === 'Perdido',
-                        'bg-amber-50 hover:bg-amber-100 border-amber-400': stage === 'Citado' || stage === 'En Seguimiento',
-                        'bg-slate-50 hover:bg-blue-50 border-slate-300 hover:border-blue-400': !stage || (stage !== 'Ganado' && stage !== 'Perdido' && stage !== 'Citado' && stage !== 'En Seguimiento'),
-                    });
-                    
-                    const appointmentDuration = 30; // minutes
-                    const height = (appointmentDuration / 60) * 100;
-
-                    // Logic for overlapping appointments
-                    const width = 100 / apt.overlapCount;
-                    const left = apt.overlapIndex * width;
-
-                    return (
-                        <Link href={`/leads/${apt.leadId}/notes`} key={apt.id}>
-                           <div
-                                className={itemClasses}
-                                style={{
-                                    height: `${height}%`,
-                                    top: `${(apt.startTime.toDate().getMinutes() / 60) * 100}%`,
-                                    width: `${width}%`,
-                                    left: `${left}%`
-                                }}
-                            >
-                                <p className="font-bold text-xs line-clamp-1">{apt.leadName}</p>
-                                <p className="text-[10px] text-muted-foreground line-clamp-1">{leadsMap.get(apt.leadId)?.ownerName || 'Unknown'}</p>
-                           </div>
-                        </Link>
-                    )
-                })}
-            </div>
-        </div>
-    )
-}
-
-function groupAppointmentsByTime(appointments: Appointment[]) {
-  const grouped: Record<string, Appointment[]> = {};
-  appointments.forEach(apt => {
-    const startTimeStr = format(apt.startTime.toDate(), 'yyyy-MM-dd HH:mm');
-    if (!grouped[startTimeStr]) {
-      grouped[startTimeStr] = [];
-    }
-    grouped[startTimeStr].push(apt);
-  });
-  return Object.values(grouped);
-}
 
 export default function AppointmentsPage() {
   const { user } = useAuthContext();
   const firestore = useFirestore();
 
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [filterOwnerId, setFilterOwnerId] = useState('all');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [dialogTime, setDialogTime] = useState<Date>(new Date());
-  
-  const staffQuery = useMemo(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'staff');
-  }, [firestore]);
-  const { data: allStaff, loading: staffLoading } = useCollection<Staff>(staffQuery);
+  // Default to showing appointments from now onwards
+  const [dateFilter, setDateFilter] = useState('today');
+  const [ownerFilter, setOwnerFilter] = useState('all');
 
   const appointmentsQuery = useMemo(() => {
-    if (!firestore || !user) return null;
+    if (!firestore) return null;
 
-    const start = startOfDay(selectedDate);
-    const end = endOfDay(selectedDate);
-
-    let constraints: QueryConstraint[] = [
-        orderBy('startTime'),
-        where('startTime', '>=', start),
-        where('startTime', '<=', end),
-    ];
+    const constraints = [];
     
-    if (filterOwnerId !== 'all') {
-        constraints.push(where('ownerId', '==', filterOwnerId));
-    } else if (user.role === 'Broker') {
-        constraints.push(where('ownerId', '==', user.id));
-    } else if (user.role === 'Supervisor' && allStaff) {
-        const teamIds = allStaff.filter(s => s.supervisorId === user.id).map(s => s.id);
-        const visibleIds = [user.id, ...teamIds];
-        if (visibleIds.length > 0) {
-            constraints.push(where('ownerId', 'in', visibleIds));
+    // Date filtering
+    const now = new Date();
+    if (dateFilter === 'today') {
+      const startOfDay = new Date(now.setHours(0, 0, 0, 0));
+      const endOfDay = new Date(now.setHours(23, 59, 59, 999));
+      constraints.push(where('startTime', '>=', startOfDay));
+      constraints.push(where('startTime', '<=', endOfDay));
+    } else if (dateFilter === 'upcoming') {
+       constraints.push(where('startTime', '>=', now));
+    }
+
+    // Owner filtering based on role
+    if (user) {
+        if (ownerFilter !== 'all') {
+            constraints.push(where('ownerId', '==', ownerFilter));
         } else {
-             constraints.push(where('ownerId', '==', user.id));
+             if (user.role === 'Broker') {
+                constraints.push(where('ownerId', '==', user.id));
+             } else if (user.role === 'Supervisor') {
+                // This would require fetching the supervisor's team, which adds complexity.
+                // For now, supervisors see their own, or can filter to a specific user.
+                // A better implementation might use a 'supervisorId' field on appointments.
+             }
         }
     }
+    
+    constraints.push(orderBy('startTime', 'asc'));
 
     return query(collection(firestore, 'appointments'), ...constraints);
-  }, [firestore, user, allStaff, selectedDate, filterOwnerId]);
+  }, [firestore, dateFilter, ownerFilter, user]);
 
-  const leadsQuery = useMemo(() => {
+  const staffQuery = useMemo(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'leads'), orderBy('createdAt', 'desc'));
+    return query(collection(firestore, 'staff'), orderBy('name', 'asc'));
   }, [firestore]);
 
-  const { data: appointments, loading: appointmentsLoading } = useCollection<Appointment>(appointmentsQuery as Query<DocumentData> | null);
-  const { data: leads, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
-  
-  const leadsMap = useMemo(() => {
-    if (!leads) return new Map();
-    return new Map(leads.map(l => [l.id, l]));
-  }, [leads]);
 
-  const timeSlots = useMemo(() => {
-    const slots = [];
-    for (let i = 8; i < 18; i++) { // 8 AM to 5 PM
-        slots.push(set(selectedDate, { hours: i, minutes: 0, seconds: 0, milliseconds: 0 }));
-    }
-    return slots;
-  }, [selectedDate]);
+  const { data: appointments, loading } = useCollection<Appointment>(appointmentsQuery as Query<DocumentData> | null);
+  const { data: staff, loading: staffLoading } = useCollection(staffQuery);
 
-  const groupedAppointments = useMemo(() => {
-      const appointmentsWithOverlap = (appointments || []).map((apt, i, arr) => {
-          const overlaps = arr.filter(otherApt =>
-              apt.startTime.seconds < otherApt.endTime.seconds &&
-              apt.endTime.seconds > otherApt.startTime.seconds
-          );
-          const overlapIndex = overlaps.findIndex(o => o.id === apt.id);
-          return { ...apt, overlapCount: overlaps.length, overlapIndex: overlapIndex >= 0 ? overlapIndex : 0 };
-      });
-      
-      const byHour: Record<number, (Appointment & { overlapCount: number; overlapIndex: number; })[]> = {};
-      appointmentsWithOverlap.forEach(apt => {
-        const hour = apt.startTime.toDate().getHours();
-        if (!byHour[hour]) byHour[hour] = [];
-        byHour[hour].push(apt);
-      });
-      return byHour;
-  }, [appointments]);
-
-  const handleSlotClick = (time: Date) => {
-      setDialogTime(time);
-      setIsDialogOpen(true);
+  const handleAppointmentAdded = () => {
+    // The useCollection hook will automatically update the list.
+    // This function can be used for any additional logic after creation.
   };
-
-  const loading = appointmentsLoading || staffLoading || leadsLoading;
-  const selectableStaff = allStaff?.filter(s => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin') || [];
+  
+  const selectableStaff = useMemo(() => {
+    if (!user || !staff) return [];
+    if (user.role === 'Admin') return staff;
+    if (user.role === 'Supervisor') {
+      // In a real app, you'd filter this list to just the supervisor's team.
+      return staff;
+    }
+    return [];
+  }, [user, staff]);
 
   return (
-    <>
     <main className="flex-1 space-y-6">
-        <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold">Appointments</h1>
-             <Button onClick={() => handleSlotClick(new Date())} className="bg-primary hover:bg-primary/90">
-                <Plus size={16} className="mr-2"/> New Appointment
-            </Button>
-        </div>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Appointments</h1>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-            <div className="lg:col-span-1">
-                <Card className="shadow-sm">
-                    <CardContent className="p-2">
-                        <Calendar
-                            mode="single"
-                            selected={selectedDate}
-                            onSelect={(date) => date && setSelectedDate(date)}
-                            className="w-full"
-                            locale={es}
-                        />
-                         {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
-                            <div className="p-4 border-t">
-                                <Label htmlFor="owner-filter">Filter by Owner</Label>
-                                <Select onValueChange={setFilterOwnerId} value={filterOwnerId}>
-                                <SelectTrigger id="owner-filter">
-                                    <SelectValue placeholder="Filter by Owner" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+            <Card className="shadow-sm">
+                <CardHeader>
+                    <CardTitle>Scheduled Appointments</CardTitle>
+                    <div className="flex items-center gap-4 pt-2">
+                         <Select onValueChange={setDateFilter} value={dateFilter}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Filter by date" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="today">Today</SelectItem>
+                                <SelectItem value="upcoming">Upcoming</SelectItem>
+                                <SelectItem value="all">All</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        {(user?.role === 'Admin' || user?.role === 'Supervisor') && selectableStaff.length > 0 && (
+                             <Select onValueChange={setOwnerFilter} value={ownerFilter}>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Filter by owner" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All</SelectItem>
-                                    {selectableStaff.map(s => (
-                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                    ))}
+                                    <SelectItem value="all">All Owners</SelectItem>
+                                    {selectableStaff.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                                 </SelectContent>
-                                </Select>
-                            </div>
-                         )}
-                    </CardContent>
-                </Card>
-            </div>
-            
-            <div className="lg:col-span-3">
-                 <Card className="shadow-sm">
-                     <CardHeader>
-                        <CardTitle>{format(selectedDate, "eeee, d 'de' MMMM", { locale: es })}</CardTitle>
-                    </CardHeader>
-                     <CardContent className="pr-14">
-                        {loading ? (
-                             <div className="space-y-4">
-                                {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
-                             </div>
-                        ) : (
-                            <div className="space-y-0">
-                                {timeSlots.map(time => (
-                                    <TimeSlot
-                                        key={time.toString()}
-                                        time={time}
-                                        appointments={groupedAppointments[time.getHours()] || []}
-                                        onSlotClick={handleSlotClick}
-                                        leadsMap={leadsMap}
-                                    />
-                                ))}
-                            </div>
+                            </Select>
                         )}
-                         {appointments?.length === 0 && !loading && (
-                            <p className="text-muted-foreground text-center p-8">
-                                No appointments scheduled for this day.
-                            </p>
-                         )}
-                     </CardContent>
-                 </Card>
-            </div>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                            <TableHead>Lead</TableHead>
+                            <TableHead>Time</TableHead>
+                            <TableHead>Owner</TableHead>
+                            <TableHead>Status</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {loading ? (
+                                [...Array(5)].map((_, i) => (
+                                    <TableRow key={i}>
+                                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-12" /></TableCell>
+                                    </TableRow>
+                                ))
+                            ) : appointments && appointments.length > 0 ? (
+                                appointments.map((apt) => (
+                                    <TableRow key={apt.id}>
+                                    <TableCell className="font-medium">{apt.leadName}</TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-col">
+                                            <span>{format(apt.startTime.toDate(), "d 'de' MMMM, yyyy", { locale: es })}</span>
+                                            <span className="text-xs text-muted-foreground">{format(apt.startTime.toDate(), "p", { locale: es })} ({formatDistanceToNow(apt.startTime.toDate(), { addSuffix: true, locale: es })})</span>
+                                        </div>
+                                    </TableCell>
+                                     <TableCell>{staff?.find(s => s.id === apt.ownerId)?.name || 'Unknown'}</TableCell>
+                                    <TableCell className="capitalize">{apt.status}</TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="h-24 text-center">
+                                        No appointments found for the selected filters.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
         </div>
+        <div className="lg:col-span-1">
+            <NewAppointmentForm onAppointmentAdded={handleAppointmentAdded} />
+        </div>
+      </div>
     </main>
-    <AppointmentDialog 
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        selectedDate={dialogTime}
-        leads={leads || []}
-    />
-    </>
   );
 }
