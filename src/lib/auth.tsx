@@ -102,17 +102,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
-            const userProfile = await fetchAppUser(firebaseUser);
-            setUser(userProfile);
+            if (!user) { // Only fetch if we don't have a user, to prevent re-fetching on token refresh
+                const userProfile = await fetchAppUser(firebaseUser);
+                setUser(userProfile);
+            }
         } else {
             setUser(null);
         }
-        // Auth state is now confirmed, set loading to false.
+        // This is the key change: ensure loading is set to false after the check.
         setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [auth, firestore, fetchAppUser]);
+  }, [auth, firestore, fetchAppUser, user]);
 
 
   useEffect(() => {
@@ -140,10 +142,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthError(null);
     try {
         await signInWithEmailAndPassword(auth, email, pass);
-        // On success, onAuthStateChanged listener handles user state update and navigation.
+        // onAuthStateChanged now handles setting the user and loading states.
+        // We leave isLoggingIn as true, as the main loading state will take over.
     } catch (error: any) {
         setAuthError(error.message);
-        setIsLoggingIn(false);
+        setIsLoggingIn(false); // Only set to false on error
     }
   }, [auth]);
 
@@ -151,9 +154,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     if (!auth) return;
     setIsLoggingIn(false);
-    setUser(null);
+    setLoading(true); // Show loader during logout transition
     await signOut(auth);
+    setUser(null);
     router.push('/login'); // Force redirect on logout
+    setLoading(false);
   }, [auth, router]);
 
   const setUserRole = useCallback((role: Role) => {
@@ -179,7 +184,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [user, loading, isLoggingIn, authError, login, logout, setUserRole, reloadUser]
   );
   
-  // This initial loading screen is important for the first page load
   if (loading) {
      return (
         <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
