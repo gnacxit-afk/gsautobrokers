@@ -102,7 +102,7 @@ function LeadsPageContent() {
     const { dateRange } = useDateRange();
     const router = useRouter();
     
-    const [sorting, setSorting] = useState<SortingState>([ { id: 'createdAt', desc: true }]);
+    const [sorting, setSorting] = useState<SortingState>([ { id: 'lastActivity', desc: true }]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 100 });
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [globalFilter, setGlobalFilter] = useState('');
