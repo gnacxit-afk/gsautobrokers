@@ -17,6 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { summarizeArticle } from '@/ai/flows/summarize-knowledge-base-articles';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 function EmojiPicker({ onEmojiInsert }: { onEmojiInsert: (emoji: string) => void }) {
   const emojis = ['😀', '😂', '👍', '🚀', '💡', '🎉', '❤️', '🔥', '🤔', '💯', '🙏', '✍️'];
