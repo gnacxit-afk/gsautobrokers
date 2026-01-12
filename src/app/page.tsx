@@ -158,25 +158,26 @@ export default function DashboardPage() {
 
     const salesByChannelData = Object.entries(channels).map(([name, value]) => ({ name, value }));
     
-    const salesByDate: { [key: string]: number } = {};
+    const dailyData: { [key: string]: { leads: number, sales: number } } = {};
     const interval = eachDayOfInterval({ start: dateRange.start, end: dateRange.end });
     interval.forEach(day => {
-        salesByDate[format(day, 'MMM d')] = 0;
+        dailyData[format(day, 'MMM d')] = { leads: 0, sales: 0 };
     });
     
     filteredLeads.forEach(lead => {
-        if (lead.stage === 'Ganado') {
-            const leadDate = (lead.createdAt as any).toDate ? (lead.createdAt as any).toDate() : new Date(lead.createdAt as string);
-            if (isValid(leadDate)) {
-                const formattedDate = format(leadDate, 'MMM d');
-                if (salesByDate.hasOwnProperty(formattedDate)) {
-                    salesByDate[formattedDate]++;
+        const leadDate = (lead.createdAt as any).toDate ? (lead.createdAt as any).toDate() : new Date(lead.createdAt as string);
+        if (isValid(leadDate)) {
+            const formattedDate = format(leadDate, 'MMM d');
+            if (dailyData.hasOwnProperty(formattedDate)) {
+                dailyData[formattedDate].leads++;
+                if (lead.stage === 'Ganado') {
+                    dailyData[formattedDate].sales++;
                 }
             }
         }
     });
 
-    const salesTrendData = Object.entries(salesByDate).map(([date, sales]) => ({ date, sales }));
+    const salesTrendData = Object.entries(dailyData).map(([date, data]) => ({ date, ...data }));
     
     const stats = {
       totalLeads, closedSales, conversion, totalRevenue, totalCommissions, grossMargin, totalBonuses, totalToPay
@@ -195,7 +196,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard label="Total Leads" value={stats.totalLeads} color="blue" icon={Users} />
         <StatCard label="Closed Sales" value={stats.closedSales} color="green" icon={DollarSign} />
         <StatCard label="Conversion" value={`${stats.conversion.toFixed(1)}%`} color="indigo" icon={Percent}/>
@@ -209,8 +210,8 @@ export default function DashboardPage() {
        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <Card className="lg:col-span-2 shadow-sm">
           <CardHeader>
-            <CardTitle>Sales Trend</CardTitle>
-            <CardDescription>Daily closed sales over the selected period.</CardDescription>
+            <CardTitle>Sales & Leads Trend</CardTitle>
+            <CardDescription>Daily closed sales and new leads over the selected period.</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -219,7 +220,9 @@ export default function DashboardPage() {
                 <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                 <Tooltip content={<CustomTooltip />} />
-                <Line type="monotone" dataKey="sales" stroke="#3B82F6" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Sales"/>
+                <Legend wrapperStyle={{fontSize: "12px"}}/>
+                <Line type="monotone" dataKey="leads" stroke="#3B82F6" strokeWidth={2} name="New Leads"/>
+                <Line type="monotone" dataKey="sales" stroke="#10B981" strokeWidth={2} name="Sales"/>
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
