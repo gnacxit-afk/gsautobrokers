@@ -125,4 +125,22 @@ export type Todo = {
   leadName?: string;
 };
 
-    
+
+export type EmploymentContract = {
+  id: string;
+  title: string;
+  version: string;
+  content: string;
+  isActive: boolean;
+  createdAt: Timestamp;
+};
+
+export type ContractSignature = {
+  id: string;
+  userId: string;
+  userName: string;
+  contractId: string;
+  contractVersion: string;
+  signedAt: Timestamp;
+  ipAddress: string;
+};

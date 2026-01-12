@@ -15,6 +15,7 @@ import {
   TrendingUp,
   CheckSquare,
   Calendar,
+  FileText,
 } from "lucide-react";
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -37,6 +38,7 @@ const navItems: NavItemType[] = [
   { href: "/kpi", title: "KPI's & Performance", icon: TrendingUp, role: ["Admin", "Supervisor", "Broker"] },
   { href: "/knowledge", title: "Knowledge Base", icon: BookOpen, role: ["Admin", "Supervisor", "Broker"] },
   { href: "/staff", title: "Staff", icon: Users, role: ["Admin"] },
+  { href: "/contracts", title: "Contracts", icon: FileText, role: ["Admin"] },
 ];
 
 const hasAccess = (userRole: Role, requiredRoles: Role[]) => {
