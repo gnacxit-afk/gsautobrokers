@@ -25,6 +25,13 @@ import type { Lead, Staff } from "@/lib/types";
 import { DateRangePicker } from "@/components/layout/date-range-picker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthContext } from "@/lib/auth";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 
 interface DataTableProps<TData, TValue> {
@@ -51,6 +58,22 @@ export function DataTable<TData extends Lead, TValue>({
   
   const { user } = useAuthContext();
   const [isNewLeadDialogOpen, setNewLeadDialogOpen] = React.useState(false);
+  const ownerFilter = table.getColumn("ownerName")?.getFilterValue() as string | undefined;
+
+  const setOwnerFilter = (value: string | undefined) => {
+    table.getColumn("ownerName")?.setFilterValue(value === "all" ? undefined : value);
+  };
+
+  const selectableStaff = React.useMemo(() => {
+    if (!user) return [];
+    if (user.role === 'Admin') return staff;
+    if (user.role === 'Supervisor') {
+        const teamIds = staff.filter(s => s.supervisorId === user.id).map(s => s.id);
+        const visibleIds = [user.id, ...teamIds];
+        return staff.filter(s => visibleIds.includes(s.id));
+    }
+    return staff.filter(s => s.id === user.id);
+  }, [user, staff]);
 
   return (
     <div className="space-y-6">
@@ -78,10 +101,28 @@ export function DataTable<TData extends Lead, TValue>({
                     </Button>
                 </NewLeadDialog>
             </div>
-             <div className="flex flex-col md:flex-row gap-4 w-full">
+             <div className="flex flex-col md:flex-row gap-4 w-full items-center">
                 <div className="flex-shrink-0">
                    <DateRangePicker />
                 </div>
+                 {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
+                    <div className="w-full md:w-auto md:max-w-xs">
+                        <Select
+                            value={ownerFilter || 'all'}
+                            onValueChange={setOwnerFilter}
+                        >
+                            <SelectTrigger className="w-full md:w-[180px]">
+                                <SelectValue placeholder="Filter by Owner" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Owners</SelectItem>
+                                {selectableStaff.map(s => (
+                                    <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                 )}
                  <div className="flex-grow"></div>
                  <Button
                     onClick={clearAllFilters}
