@@ -1,5 +1,5 @@
 
-"use client";
+'use client';
 
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -19,9 +19,19 @@ import { collection, deleteDoc, doc, getDocs, query, updateDoc, where, writeBatc
 import { Skeleton } from "@/components/ui/skeleton";
 import { signOut } from "firebase/auth";
 import { useAuthContext } from "@/lib/auth";
-
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const roles: Role[] = ["Admin", "Supervisor", "Broker"];
+
+const getAvatarFallback = (name: string) => {
+    if (!name) return 'U';
+    const parts = name.split(' ');
+    if (parts.length > 1) {
+        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+}
+
 
 export default function StaffProfilePage() {
   const { user, loading: isUserLoading, MASTER_ADMIN_EMAIL } = useAuthContext();
@@ -203,20 +213,23 @@ export default function StaffProfilePage() {
              <Button variant="outline" size="icon" onClick={() => router.back()}>
                 <ArrowLeft />
             </Button>
-            <h3 className="text-xl font-bold">Edit Staff Profile</h3>
+            <div className="flex items-center gap-4">
+                <Avatar className="h-10 w-10">
+                    <AvatarFallback className="text-base bg-slate-200 text-slate-600 font-semibold">
+                        {getAvatarFallback(formData.name || '')}
+                    </AvatarFallback>
+                </Avatar>
+                <div>
+                     <h3 className="text-xl font-bold">Edit Staff Profile</h3>
+                     <p className="text-sm text-muted-foreground">Editing profile for {formData.name}</p>
+                </div>
+            </div>
         </div>
 
         <Card>
             <CardHeader>
-                <div className="flex items-center gap-4">
-                     <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center">
-                        <UserCircle2 className="h-10 w-10 text-slate-400" />
-                    </div>
-                    <div>
-                        <CardTitle className="text-2xl">{formData.name}</CardTitle>
-                        <CardDescription>ID: {formData.id}</CardDescription>
-                    </div>
-                </div>
+                <CardTitle>Profile Information</CardTitle>
+                <CardDescription>Manage the main details of the staff member.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -279,43 +292,52 @@ export default function StaffProfilePage() {
                         </div>
                     )}
                 </div>
-                 <div className="flex justify-end">
-                    <Button onClick={handleSaveChanges}>Save Changes</Button>
-                </div>
             </CardContent>
-            {!isEditingMasterAdmin && (
-              <CardFooter className="bg-red-50/50 border-t p-6 rounded-b-lg flex-col items-start gap-3">
-                  <h4 className="font-bold text-red-700">Danger Zone</h4>
-                  <p className="text-sm text-red-600">
-                      Deleting a staff member will reassign all their leads to the Master Admin and remove their profile. This cannot be undone.
-                  </p>
-                  <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                          <Button variant="destructive">
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete Profile
-                          </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                          <AlertDialogHeader>
-                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete the profile for
-                              <span className="font-bold"> {formData.name}</span> and reassign their leads.
-                          </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-                              Yes, delete profile
-                          </AlertDialogAction>
-                          </AlertDialogFooter>
-                      </AlertDialogContent>
-                  </AlertDialog>
-              </CardFooter>
-            )}
+             <CardFooter className="flex justify-end">
+                <Button onClick={handleSaveChanges}>Save Changes</Button>
+            </CardFooter>
         </Card>
+        
+        {/* We can add the password reset card here in the future if needed */}
+
+        {!isEditingMasterAdmin && (
+             <Card className="border-destructive">
+                <CardHeader>
+                    <CardTitle className="text-destructive">Danger Zone</CardTitle>
+                </CardHeader>
+                <CardContent>
+                     <p className="text-sm text-muted-foreground mb-4">
+                      Deleting a staff member will reassign all their leads to the Master Admin and remove their profile. This action is permanent and cannot be undone.
+                    </p>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete Profile for {formData.name}
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete the profile for
+                                <span className="font-bold"> {formData.name}</span> and reassign their leads.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                                Yes, delete profile
+                            </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </CardContent>
+            </Card>
+        )}
 
     </main>
   );
 }
+
+    

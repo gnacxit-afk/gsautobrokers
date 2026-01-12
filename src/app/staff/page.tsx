@@ -70,7 +70,7 @@ export default function StaffPage() {
     }
   };
 
-  const columns = useMemo(() => getColumns({ onDelete: handleDelete, isMasterAdmin: user?.email === MASTER_ADMIN_EMAIL }), [user?.email, MASTER_ADMIN_EMAIL, handleDelete]);
+  const columns = useMemo(() => getColumns({ onDelete: handleDelete, isMasterAdmin: user?.email === MASTER_ADMIN_EMAIL, allStaff: staff || [] }), [user?.email, MASTER_ADMIN_EMAIL, staff, handleDelete]);
 
   const { myTeam, otherStaff } = useMemo(() => {
     if (!user || !staff) return { myTeam: [], otherStaff: [] };
@@ -163,3 +163,5 @@ export default function StaffPage() {
     </main>
   );
 }
+
+    

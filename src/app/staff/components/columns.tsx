@@ -40,9 +40,10 @@ const roleColors: Record<Role, string> = {
 interface GetColumnsProps {
   onDelete: (id: string, name: string) => void;
   isMasterAdmin: boolean;
+  allStaff: Staff[];
 }
 
-export const getColumns = ({ onDelete, isMasterAdmin }: GetColumnsProps): ColumnDef<Staff>[] => [
+export const getColumns = ({ onDelete, isMasterAdmin, allStaff }: GetColumnsProps): ColumnDef<Staff>[] => [
     {
       accessorKey: "name",
       header: ({ column }) => {
@@ -85,13 +86,12 @@ export const getColumns = ({ onDelete, isMasterAdmin }: GetColumnsProps): Column
       },
     },
     {
-        accessorKey: 'supervisor.name',
+        accessorKey: 'supervisorId',
         header: 'Supervisor',
         cell: ({ row }) => {
             const staff = row.original;
-            // This requires passing allStaff to look up the name.
-            // For now, let's assume we can get it or display the ID.
-            return staff.supervisor?.name || 'N/A';
+            const supervisor = allStaff.find(s => s.id === staff.supervisorId);
+            return supervisor?.name || 'N/A';
         }
     },
     {
@@ -147,3 +147,5 @@ export const getColumns = ({ onDelete, isMasterAdmin }: GetColumnsProps): Column
       },
     },
 ];
+
+    
