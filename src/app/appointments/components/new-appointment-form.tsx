@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import type { Lead } from '@/lib/types';
 import { useFirestore, useUser, useCollection } from '@/firebase';
-import { collection, addDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, where } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -58,8 +58,11 @@ export function NewAppointmentForm({ onAppointmentAdded }: NewAppointmentFormPro
     }
 
     const [hours, minutes] = time.split(':').map(Number);
-    const appointmentTime = new Date(date);
-    appointmentTime.setHours(hours, minutes);
+    // CRITICAL FIX: Replace dashes with slashes to force local time zone interpretation
+    // new Date('2024-07-20') might be interpreted as UTC, leading to the previous day in some timezones.
+    // new Date('2024/07/20') is consistently interpreted as local time.
+    const appointmentTime = new Date(date.replace(/-/g, '/'));
+    appointmentTime.setHours(hours, minutes, 0, 0);
 
     try {
       const appointmentsCollection = collection(firestore, 'appointments');
