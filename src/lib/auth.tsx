@@ -33,8 +33,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true); // Always start true
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -48,7 +47,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const staffCollection = collection(firestore, 'staff');
         let q = query(staffCollection, where("authUid", "==", fbUser.uid));
         
-        // Master Admin special handling
         if (fbUser.email === MASTER_ADMIN_EMAIL) {
             q = query(staffCollection, where("email", "==", MASTER_ADMIN_EMAIL));
         }
@@ -69,7 +67,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 dui: staffData.dui
             };
         } else {
-             // If user exists in Auth but not in 'staff', create their profile.
              const isMasterAdmin = fbUser.email === MASTER_ADMIN_EMAIL;
              const newUserProfile: Omit<Staff, 'id'> = {
                  authUid: fbUser.uid,
@@ -87,7 +84,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                  ...newUserProfile
              } as User;
         }
-
     } catch (error: any) {
         console.error("Error fetching or validating user document:", error);
         setAuthError(error.message);
@@ -96,30 +92,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [firestore, auth]);
 
-
   useEffect(() => {
-    if (!auth || !firestore) return;
+    if (!auth || !firestore) {
+      setLoading(false);
+      return;
+    };
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // Fetch user profile if we don't have one or if the UID is different
-        if (!user || user.authUid !== firebaseUser.uid) {
-          const userProfile = await fetchAppUser(firebaseUser);
-          setUser(userProfile);
-        }
+        const userProfile = await fetchAppUser(firebaseUser);
+        setUser(userProfile);
       } else {
         setUser(null);
       }
-      setLoading(false); // <--- THIS IS THE CRITICAL FIX
+      setLoading(false);
     });
 
     return () => unsubscribe();
-    // Re-run this effect only when auth or firestore instances change.
-  }, [auth, firestore, fetchAppUser, user]);
-
+  }, [auth, firestore, fetchAppUser]);
 
   useEffect(() => {
-    // This effect now correctly waits for the initial loading to finish.
     if (loading) return;
 
     const isAuthPage = pathname === "/login";
@@ -135,32 +127,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, pathname, router]);
 
-
   const login = useCallback(async (email: string, pass: string): Promise<void> => {
     if (!auth) {
         setAuthError("Authentication service is not available.");
         return;
     }
-    setIsLoggingIn(true);
+    setLoading(true);
     setAuthError(null);
     try {
-        // The onAuthStateChanged listener will handle the rest.
         await signInWithEmailAndPassword(auth, email, pass);
+        // onAuthStateChanged will handle setting user and loading state
     } catch (error: any) {
         setAuthError(error.message);
-        setIsLoggingIn(false);
+        setLoading(false);
     }
   }, [auth]);
 
-
   const logout = useCallback(async () => {
     if (!auth) return;
-    setIsLoggingIn(false);
     setLoading(true);
     await signOut(auth);
     setUser(null);
     router.push('/login');
-    // setLoading will be set to false by the onAuthStateChanged listener
+    setLoading(false);
   }, [auth, router]);
 
   const setUserRole = useCallback((role: Role) => {
@@ -182,11 +171,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [auth, fetchAppUser]);
 
   const value = useMemo(
-    () => ({ user, loading: loading || isLoggingIn, authError, login, logout, setUserRole, reloadUser, MASTER_ADMIN_EMAIL }),
-    [user, loading, isLoggingIn, authError, login, logout, setUserRole, reloadUser]
+    () => ({ user, loading, authError, login, logout, setUserRole, reloadUser, MASTER_ADMIN_EMAIL }),
+    [user, loading, authError, login, logout, setUserRole, reloadUser]
   );
   
-  // This top-level loading screen handles the very initial app load
   if (loading) {
      return (
         <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
