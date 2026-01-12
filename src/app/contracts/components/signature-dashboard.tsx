@@ -15,9 +15,9 @@ interface SignatureDashboardProps {
 
 export function SignatureDashboard({ activeContract, signatures, allStaff, loading }: SignatureDashboardProps) {
 
-    const { signedStaffIds, pendingStaff } = useMemo(() => {
+    const { pendingStaff } = useMemo(() => {
         if (!activeContract || allStaff.length === 0) {
-            return { signedStaffIds: new Set<string>(), pendingStaff: [] };
+            return { pendingStaff: [] };
         }
 
         const signedIds = new Set(signatures.map(s => s.userId));
@@ -27,7 +27,7 @@ export function SignatureDashboard({ activeContract, signatures, allStaff, loadi
 
         const pending = staffToSign.filter(s => !signedIds.has(s.id));
 
-        return { signedStaffIds, pendingStaff: pending };
+        return { pendingStaff: pending };
     }, [activeContract, signatures, allStaff]);
 
 
