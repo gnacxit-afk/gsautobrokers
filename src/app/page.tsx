@@ -26,6 +26,14 @@ import {
   Cell,
 } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { format, eachDayOfInterval, isValid } from 'date-fns';
 
 const StatCard = ({ label, value, icon: Icon, color }: { label: string, value: string | number, icon: React.ElementType, color: string }) => {
@@ -289,6 +297,38 @@ export default function DashboardPage() {
                   <Bar dataKey="leads" fill="#3B82F6" name="Leads"/>
                 </BarChart>
             </ResponsiveContainer>
+            <div className="mt-6 overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="font-bold">Salesperson</TableHead>
+                    <TableHead className="text-center">Leads</TableHead>
+                    <TableHead className="text-center">Sales</TableHead>
+                    <TableHead className="text-center">Conversion</TableHead>
+                    <TableHead className="text-right">Commissions</TableHead>
+                    <TableHead className="text-right">Bonus</TableHead>
+                    <TableHead className="text-right font-bold">Total to Pay</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sellerPerformanceData.map((seller) => {
+                    const conversionRate = seller.leads > 0 ? (seller.sales / seller.leads) * 100 : 0;
+                    const totalToPay = seller.commission + seller.bonus;
+                    return (
+                      <TableRow key={seller.name}>
+                        <TableCell className="font-medium">{seller.name}</TableCell>
+                        <TableCell className="text-center">{seller.leads}</TableCell>
+                        <TableCell className="text-center font-bold">{seller.sales}</TableCell>
+                        <TableCell className="text-center">{conversionRate.toFixed(1)}%</TableCell>
+                        <TableCell className="text-right">${seller.commission.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">${seller.bonus.toLocaleString()}</TableCell>
+                        <TableCell className="text-right font-bold">${totalToPay.toLocaleString()}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
          </Card>
        )}
