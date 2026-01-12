@@ -3,7 +3,7 @@
 
 import type { ColumnDef, Row } from "@tanstack/react-table";
 import { MoreHorizontal, Trash2, Users, ChevronsUpDown, FileText, Bot, Calendar } from "lucide-react";
-import { format, isValid } from "date-fns";
+import { format, formatDistanceToNow, isValid } from "date-fns";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import Link from 'next/link';
@@ -26,8 +26,20 @@ import { Badge } from "@/components/ui/badge";
 import type { Lead, NoteEntry, Staff } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthContext } from "@/lib/auth";
+import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
+
+const stageColors: Record<Lead['stage'], string> = {
+  "Nuevo": "bg-gray-100 text-gray-800 border-gray-200",
+  "Calificado": "bg-blue-100 text-blue-800 border-blue-200",
+  "Citado": "bg-yellow-100 text-yellow-800 border-yellow-200",
+  "En Seguimiento": "bg-orange-100 text-orange-800 border-orange-200",
+  "Ganado": "bg-green-100 text-green-800 border-green-200",
+  "Perdido": "bg-red-100 text-red-800 border-red-200",
+};
+
 
 // Props for the CellActions component
 interface CellActionsProps {
@@ -143,6 +155,16 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
   );
 };
 
+const getAvatarFallback = (name: string) => {
+    if (!name) return 'U';
+    const parts = name.split(' ');
+    if (parts.length > 1) {
+        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+}
+
+
 export const getColumns = (
   onUpdateStage: (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage']) => void,
   onDelete: (id: string) => void,
@@ -155,68 +177,63 @@ export const getColumns = (
     cell: ({ row }) => {
       const lead = row.original;
       return (
-        <Link href={`/leads/${lead.id}/notes`} className="hover:underline font-bold text-slate-800">
-            {lead.name}
-        </Link>
-      );
-    },
-  },
-  {
-    accessorKey: "contact",
-    header: "Contact",
-    cell: ({ row }) => {
-      const lead = row.original;
-      return (
-        <div className="text-sm">
-          <div>{lead.phone}</div>
-          <div className="text-xs opacity-60">{lead.email}</div>
+         <div className="flex flex-col">
+            <Link href={`/leads/${lead.id}/notes`} className="hover:underline font-bold text-slate-800">
+                {lead.name}
+            </Link>
+            <span className="text-xs text-slate-500">{lead.phone}</span>
+             <span className="text-xs text-slate-400">{lead.email}</span>
         </div>
       );
     },
-    enableGlobalFilter: true,
   },
   {
-    accessorKey: "channel",
-    header: "Channel",
-    cell: ({ row }) => {
-      const channel = row.getValue("channel") as string;
-      return <span>{channel}</span>;
+    accessorKey: "ownerName",
+    header: "Owner & Channel",
+    cell: ({row}) => {
+        const lead = row.original;
+        return (
+            <div className="flex items-center gap-2">
+                 <Avatar className="h-6 w-6">
+                    {/* <AvatarImage src={row.original.avatarUrl} /> */}
+                    <AvatarFallback className="text-[10px] bg-slate-200 text-slate-600 font-semibold">
+                        {getAvatarFallback(lead.ownerName)}
+                    </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col">
+                    <span className="text-sm font-medium">{lead.ownerName}</span>
+                    <span className="text-xs text-slate-500 capitalize">{lead.channel}</span>
+                </div>
+            </div>
+        )
     },
-     filterFn: 'equalsString',
+    filterFn: 'equalsString',
   },
   {
     accessorKey: "stage",
     header: "Stage",
     cell: ({ row }) => {
-      const stage = row.getValue("stage") as string;
-      return <span>{stage}</span>;
+      const stage = row.getValue("stage") as Lead['stage'];
+      return <Badge className={cn("text-xs", stageColors[stage])}>{stage}</Badge>;
     },
     filterFn: 'equalsString',
   },
-   {
-    accessorKey: "ownerName",
-    header: "Owner",
-    filterFn: 'equalsString',
-  },
   {
-    accessorKey: "createdAt",
-    header: "Created At",
+    accessorKey: "lastActivity",
+    header: "Last Activity",
     cell: ({ row }) => {
-        const dateRaw = row.getValue("createdAt");
-        if (!dateRaw) return null;
+        const dateRaw = row.getValue("lastActivity") || row.original.createdAt;
+        if (!dateRaw) return <span className="text-xs text-slate-400">No activity</span>;
         
-        // Convert Firestore Timestamp to JS Date if necessary
         const date = (dateRaw as any).toDate ? (dateRaw as any).toDate() : new Date(dateRaw as string);
         
-        // Check for invalid date
         if (!isValid(date)) {
           return <div className="text-xs text-slate-500">Invalid date</div>;
         }
 
         return (
-            <div className="text-xs">
-                <div>{format(date, 'MMM d, yyyy')}</div>
-                <div className="opacity-70">{format(date, 'h:mm a')}</div>
+            <div className="text-xs text-slate-500">
+                {formatDistanceToNow(date, { addSuffix: true })}
             </div>
         )
     }
@@ -235,3 +252,5 @@ export const getColumns = (
     },
   },
 ];
+
+    
