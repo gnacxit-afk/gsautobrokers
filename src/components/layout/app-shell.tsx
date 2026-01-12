@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState } from "react";
@@ -29,6 +30,8 @@ import { Logo } from "../icons";
 import { Loader2 } from "lucide-react";
 import { DateRangeProvider } from "@/providers/date-range-provider";
 import { Notifications } from "./notifications";
+import { ContractSigningBanner } from '../contracts/contract-signing-banner';
+
 
 const navItems: NavItemType[] = [
   { href: "/", title: "Dashboard", icon: LayoutDashboard, role: ["Admin", "Supervisor"] },
@@ -163,7 +166,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   // Hide date filter on specific pages.
-  const pagesToExcludeFilter = ['/kpi', '/staff', '/knowledge', '/todos', '/appointments', '/leads'];
+  const pagesToExcludeFilter = ['/kpi', '/staff', '/knowledge', '/todos', '/appointments', '/leads', '/contracts'];
   const showDateFilter = (user.role === 'Admin' || user.role === 'Supervisor') && !pagesToExcludeFilter.some(p => pathname.startsWith(p));
 
 
@@ -175,6 +178,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (currentNavItem) return currentNavItem.title;
     if (pathname.includes('/leads/')) return 'Lead Details';
     if (pathname.includes('/staff/')) return 'Edit Staff Profile';
+    if (pathname.includes('/contracts')) return 'Contract Management';
     return 'Dashboard';
   };
 
@@ -206,7 +210,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto p-4 md:p-8">
+          <div className="flex-1 overflow-y-auto p-4 md:p-8 relative">
+             <ContractSigningBanner />
             {children}
           </div>
         </main>

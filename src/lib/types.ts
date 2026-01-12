@@ -1,6 +1,8 @@
 
 import type { LucideIcon } from "lucide-react";
 import type { Timestamp } from "firebase/firestore";
+import { z } from 'zod';
+
 
 export type Role = "Admin" | "Supervisor" | "Broker";
 
@@ -126,6 +128,21 @@ export type Todo = {
 };
 
 
+export const SignContractInputSchema = z.object({
+  userId: z.string().describe("The ID of the user signing the contract."),
+  userName: z.string().describe("The name of the user signing the contract."),
+  contractId: z.string().describe("The ID of the contract being signed."),
+});
+export type SignContractInput = z.infer<typeof SignContractInputSchema>;
+
+export const SignContractOutputSchema = z.object({
+  success: z.boolean(),
+  signatureId: z.string().optional(),
+  message: z.string(),
+});
+export type SignContractOutput = z.infer<typeof SignContractOutputSchema>;
+
+
 export type EmploymentContract = {
   id: string;
   title: string;
@@ -144,4 +161,3 @@ export type ContractSignature = {
   signedAt: Timestamp;
   ipAddress: string;
 };
-
