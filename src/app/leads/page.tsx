@@ -27,23 +27,13 @@ import { isWithinInterval, isValid } from "date-fns";
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
 
-// This function is now outside the component, so it's not recreated on every render.
+
 const globalFilterFn: FilterFn<any> = (row, columnId, filterValue, addMeta) => {
     const search = (filterValue || '').toLowerCase();
     const lead = row.original as Lead;
     const { user, allStaff, dateRange } = addMeta as any;
 
-    // Date Range Filtering
-    if (dateRange && dateRange.start && dateRange.end && lead.createdAt) {
-        const leadDate = (lead.createdAt as any).toDate ? (lead.createdAt as any).toDate() : new Date(lead.createdAt as string);
-        if (isValid(leadDate)) {
-            if (!isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end })) {
-                return false;
-            }
-        }
-    }
-
-    // Role-based Visibility
+    // 1. Role-based Visibility Filter (must pass this first)
     if (user) {
         let isVisible = false;
         if (user.role === 'Admin') {
@@ -62,50 +52,51 @@ const globalFilterFn: FilterFn<any> = (row, columnId, filterValue, addMeta) => {
         return false; // No user, no data
     }
     
-    // Keyword Filtering Logic
+    // 2. Date Range Filter
+    if (dateRange && dateRange.start && dateRange.end) {
+        const leadDate = (lead.createdAt as any)?.toDate ? (lead.createdAt as any).toDate() : new Date(lead.createdAt as string);
+        if (isValid(leadDate)) {
+            if (!isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end })) {
+                return false;
+            }
+        }
+    }
+
+    // 3. Search Term Filter
     if (!search) {
-        return true; // No search term, so don't filter (show everything that passes role/date checks)
+        return true; // If no search term, and it passed role/date, show it.
     }
 
     const searchTerms = search.split(/\s+/).filter(Boolean);
-    const keywordFilters = searchTerms.filter(term => term.includes(':'));
-    const textSearchTerms = searchTerms.filter(term => !term.includes(':'));
 
-    // Check if lead matches all keyword filters (AND logic)
-    const matchesAllKeywords = keywordFilters.every(term => {
-        const [key, ...valueParts] = term.split(':');
-        const value = valueParts.join(':').toLowerCase();
-        
-        if (!value) return true; // Ignore empty filters like 'stage:'
+    // The lead must match ALL search terms (AND logic)
+    return searchTerms.every(term => {
+        if (term.includes(':')) {
+            // Keyword filter
+            const [key, ...valueParts] = term.split(':');
+            const value = valueParts.join(':').toLowerCase();
+            if (!value) return true;
 
-        switch (key) {
-            case 'stage':
-                return lead.stage?.toLowerCase().includes(value);
-            case 'owner':
-                return lead.ownerName?.toLowerCase().includes(value);
-            case 'channel':
-                return lead.channel?.toLowerCase().includes(value);
-            default:
-                // If key is not recognized, treat it as a normal text search for this term
-                const fullText = `${lead.name} ${lead.phone} ${lead.email}`.toLowerCase();
-                return fullText.includes(term);
+            switch (key) {
+                case 'stage':
+                    return lead.stage?.toLowerCase().includes(value);
+                case 'owner':
+                    return lead.ownerName?.toLowerCase().includes(value);
+                case 'channel':
+                    return lead.channel?.toLowerCase().includes(value);
+                default:
+                    // Unrecognized key, treat as plain text search
+                    const fullText = `${lead.name} ${lead.phone} ${lead.email}`.toLowerCase();
+                    return fullText.includes(term);
+            }
+        } else {
+            // Free text search
+            const fullText = `${lead.name} ${lead.phone} ${lead.email} ${lead.ownerName} ${lead.stage} ${lead.channel}`.toLowerCase();
+            return fullText.includes(term);
         }
     });
-
-    if (!matchesAllKeywords) {
-        return false;
-    }
-
-    // If there are text search terms, check if the lead matches any of them (OR logic for text, but AND with keywords)
-    if (textSearchTerms.length > 0) {
-        const fullText = `${lead.name} ${lead.phone} ${lead.email} ${lead.ownerName} ${lead.stage} ${lead.channel}`.toLowerCase();
-        const matchesAnyTextTerm = textSearchTerms.some(term => fullText.includes(term));
-        return matchesAnyTextTerm;
-    }
-
-    // If we are here, it means all keyword filters passed and there were no text-only terms.
-    return true;
 };
+
 
 const createNotification = async (
     firestore: any,
