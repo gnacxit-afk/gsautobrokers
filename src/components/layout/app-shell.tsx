@@ -31,6 +31,7 @@ import { Loader2 } from "lucide-react";
 import { DateRangeProvider } from "@/providers/date-range-provider";
 import { Notifications } from "./notifications";
 import { ContractSigningBanner } from '../contracts/contract-signing-banner';
+import { Avatar, AvatarFallback } from "../ui/avatar";
 
 
 const navItems: NavItemType[] = [
@@ -88,6 +89,16 @@ function MainNav({ items, onLinkClick }: { items: NavItemType[], onLinkClick?: (
   );
 }
 
+const getAvatarFallback = (name: string) => {
+    if (!name) return 'U';
+    const parts = name.split(' ');
+    if (parts.length > 1) {
+        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+}
+
+
 function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
     const { user, logout, MASTER_ADMIN_EMAIL } = useAuthContext();
     
@@ -101,12 +112,13 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
 
             <div className="p-4 border-b border-slate-800">
                 <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center">
-                        <UserCircle2 className="h-6 w-6 text-slate-500" />
-                    </div>
+                     <Avatar className="h-9 w-9">
+                        <AvatarFallback className="bg-slate-700 text-slate-300 text-sm font-bold">
+                            {getAvatarFallback(user.name)}
+                        </AvatarFallback>
+                    </Avatar>
                     <div className="overflow-hidden">
-                        <p className="text-sm font-medium truncate">{user.name}</p>
-                        {user.dui && <p className="text-xs text-slate-400 truncate">DUI: {user.dui}</p>}
+                        <p className="text-sm font-semibold text-white truncate">{user.name}</p>
                         <p className="text-xs text-slate-400 truncate capitalize">{user.role}</p>
                     </div>
                 </div>
@@ -219,5 +231,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </DateRangeProvider>
   );
 }
-
-    
