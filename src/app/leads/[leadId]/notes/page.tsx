@@ -245,6 +245,9 @@ export default function LeadDetailsPage() {
                     <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/analysis`)}>
                         <Bot className="mr-2 h-4 w-4" /> AI Lead Analysis
                     </DropdownMenuItem>
+                     <DropdownMenuItem onSelect={() => router.push('/appointments')}>
+                        <Calendar className="mr-2 h-4 w-4" /> Schedule Appointment
+                    </DropdownMenuItem>
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger>
                         <ChevronsUpDown className="mr-2 h-4 w-4" /> Update Stage
