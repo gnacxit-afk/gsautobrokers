@@ -29,7 +29,7 @@ const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'O
 
 // This function is now outside the component, so it's not recreated on every render.
 const globalFilterFn: FilterFn<any> = (row, columnId, filterValue, addMeta) => {
-    const search = filterValue.toLowerCase();
+    const search = (filterValue || '').toLowerCase();
 
     // Access the full original data object
     const lead = row.original as Lead;
@@ -66,13 +66,18 @@ const globalFilterFn: FilterFn<any> = (row, columnId, filterValue, addMeta) => {
         return false; // No user, no data
     }
 
-    // Original search filtering
-    const nameMatch = lead.name?.toLowerCase().includes(search);
-    const emailMatch = lead.email?.toLowerCase().includes(search);
-    const phoneMatch = lead.phone?.toLowerCase().includes(search);
-    const ownerNameMatch = lead.ownerName?.toLowerCase().includes(search);
-    
-    return nameMatch || emailMatch || phoneMatch || ownerNameMatch;
+    // If we've passed all the other filters, now check the text search
+    if (search) {
+        const nameMatch = lead.name?.toLowerCase().includes(search);
+        const emailMatch = lead.email?.toLowerCase().includes(search);
+        const phoneMatch = lead.phone?.toLowerCase().includes(search);
+        const ownerNameMatch = lead.ownerName?.toLowerCase().includes(search);
+        
+        return nameMatch || emailMatch || phoneMatch || ownerNameMatch;
+    }
+
+    // If no search text, and it passed other filters, show it
+    return true;
 };
 
 const createNotification = async (
