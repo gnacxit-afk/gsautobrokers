@@ -324,7 +324,7 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
               {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
             </div>
           ) : (
-            <Accordion type="multiple" defaultValue={Object.keys(groupedArticles)} className="w-full">
+            <Accordion type="multiple" className="w-full">
               {Object.entries(groupedArticles).map(([category, articles]) => (
                 <AccordionItem value={category} key={category}>
                   <AccordionTrigger className="px-4 py-3 text-sm font-bold text-slate-500 uppercase tracking-wider">
