@@ -102,8 +102,11 @@ export default function AppointmentsPage() {
         <h1 className="text-2xl font-bold">Appointments</h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
+      <div className="space-y-8">
+        <div>
+          <NewAppointmentForm onAppointmentAdded={handleAppointmentAdded} />
+        </div>
+        <div>
             <Card className="shadow-sm">
                 <CardHeader>
                     <CardTitle>Scheduled Appointments</CardTitle>
@@ -176,9 +179,6 @@ export default function AppointmentsPage() {
                     </Table>
                 </CardContent>
             </Card>
-        </div>
-        <div className="lg:col-span-1">
-            <NewAppointmentForm onAppointmentAdded={handleAppointmentAdded} />
         </div>
       </div>
     </main>
