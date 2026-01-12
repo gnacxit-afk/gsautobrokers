@@ -133,7 +133,7 @@ function MarkdownToolbar({ textareaRef, onContentChange, onAlignChange, onEmojiI
   );
 }
 
-function SimpleMarkdownRenderer({ content, align }: { content: string, align?: 'left' | 'center' | 'right' }) {
+function SimpleMarkdownRenderer({ content }: { content: string }) {
   const renderLine = (line: string, index: number) => {
     // Headings
     if (line.startsWith('### ')) {
@@ -162,11 +162,7 @@ function SimpleMarkdownRenderer({ content, align }: { content: string, align?: '
   };
 
   return (
-    <div className={cn("prose prose-slate max-w-none whitespace-pre-wrap space-y-2", {
-        'text-center': align === 'center',
-        'text-right': align === 'right',
-        'text-left': align === 'left' || !align,
-    })}>
+    <div className="prose prose-slate max-w-none whitespace-pre-wrap space-y-2 text-left">
       {content.split('\n').map(renderLine)}
     </div>
   );
@@ -422,7 +418,7 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
                 )}
               </div>
             </div>
-            <SimpleMarkdownRenderer content={selected.content} align={selected.align} />
+            <SimpleMarkdownRenderer content={selected.content} />
           </div>
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-center text-gray-400 space-y-4">
