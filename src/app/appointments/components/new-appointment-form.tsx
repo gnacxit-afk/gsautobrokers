@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import type { Lead } from '@/lib/types';
 import { useFirestore, useUser, useCollection } from '@/firebase';
-import { collection, addDoc, serverTimestamp, query, orderBy, where } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, where, doc, updateDoc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -22,6 +22,7 @@ import { addMinutes, format } from 'date-fns';
 import { ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthContext } from '@/lib/auth';
+import { es } from 'date-fns/locale';
 
 interface NewAppointmentFormProps {
   onAppointmentAdded: () => void;
@@ -74,6 +75,31 @@ export function NewAppointmentForm({ onAppointmentAdded }: NewAppointmentFormPro
         ownerId: selectedLead.ownerId, // The appointment owner is the lead's owner
         status: 'Warm',
       });
+
+      // Automatically update lead stage to "Citado" if it isn't already
+      if (selectedLead.stage !== 'Citado') {
+          const leadRef = doc(firestore, 'leads', selectedLead.id);
+          await updateDoc(leadRef, { stage: 'Citado' });
+
+          // Add a note to the lead's history for the stage change
+          const noteHistoryRef = collection(firestore, 'leads', selectedLead.id, 'noteHistory');
+          await addDoc(noteHistoryRef, {
+              content: `Stage automatically changed to "Citado" upon scheduling an appointment.`,
+              author: 'System',
+              date: serverTimestamp(),
+              type: 'Stage Change',
+          });
+      }
+      
+      // Also add a note for the appointment itself
+      const noteHistoryRef = collection(firestore, 'leads', selectedLead.id, 'noteHistory');
+      await addDoc(noteHistoryRef, {
+          content: `Appointment scheduled by ${user.name} for ${format(appointmentTime, "eeee, d 'de' MMMM 'at' p", { locale: es })}.`,
+          author: 'System',
+          date: serverTimestamp(),
+          type: 'System',
+      });
+
 
       toast({
         title: 'Appointment Booked!',
