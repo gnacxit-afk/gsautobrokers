@@ -4,7 +4,7 @@
 import { useState, useMemo } from 'react';
 import type { Appointment, Staff } from '@/lib/types';
 import { useFirestore, useUser, useCollection } from '@/firebase';
-import { collection, query, where, orderBy, type Query, type DocumentData } from 'firebase/firestore';
+import { collection, query, where, orderBy, type Query, type DocumentData, deleteDoc, doc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { format, formatDistanceToNow, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -27,10 +27,24 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from '@/components/ui/skeleton';
+import { Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { useToast } from '@/hooks/use-toast';
 
 export default function AppointmentsPage() {
   const { user } = useAuthContext();
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   // Default to showing upcoming appointments to avoid timezone issues with 'today'
   const [dateFilter, setDateFilter] = useState('upcoming');
@@ -84,6 +98,38 @@ export default function AppointmentsPage() {
     // The useCollection hook will automatically update the list.
     // This function can be used for any additional logic after creation.
   };
+
+  const handleDelete = async (appointment: Appointment) => {
+    if (!firestore || !user) return;
+    
+    const appointmentRef = doc(firestore, 'appointments', appointment.id);
+    const leadRef = doc(firestore, 'leads', appointment.leadId);
+    const noteHistoryRef = collection(firestore, 'leads', appointment.leadId, 'noteHistory');
+
+    try {
+        await deleteDoc(appointmentRef);
+        await updateDoc(leadRef, { stage: 'En Seguimiento' });
+        
+        await addDoc(noteHistoryRef, {
+            content: `Appointment for ${format(appointment.startTime.toDate(), "d MMM yyyy, p")} was canceled. Stage automatically changed to "En Seguimiento".`,
+            author: 'System',
+            date: serverTimestamp(),
+            type: 'System',
+        });
+
+        toast({
+            title: 'Appointment Canceled',
+            description: `The appointment for ${appointment.leadName} has been removed.`,
+        });
+
+    } catch (error: any) {
+        toast({
+            title: 'Error',
+            description: 'Could not cancel the appointment.',
+            variant: 'destructive',
+        });
+    }
+  }
   
   const selectableStaff = useMemo(() => {
     if (!user || !staff) return [];
@@ -141,6 +187,7 @@ export default function AppointmentsPage() {
                             <TableHead>Time</TableHead>
                             <TableHead>Owner</TableHead>
                             <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -151,6 +198,7 @@ export default function AppointmentsPage() {
                                         <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                                         <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                                         <TableCell><Skeleton className="h-5 w-12" /></TableCell>
+                                        <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                                     </TableRow>
                                 ))
                             ) : appointments && appointments.length > 0 ? (
@@ -165,11 +213,34 @@ export default function AppointmentsPage() {
                                     </TableCell>
                                      <TableCell>{staff?.find(s => s.id === apt.ownerId)?.name || 'Unknown'}</TableCell>
                                     <TableCell className="capitalize">{apt.status}</TableCell>
+                                    <TableCell className="text-right">
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
+                                                    <Trash2 size={16}/>
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This action cannot be undone. This will cancel the appointment for <span className="font-bold">{apt.leadName}</span> and change the lead's stage to "En Seguimiento".
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleDelete(apt)} className="bg-destructive hover:bg-destructive/90">
+                                                        Yes, cancel appointment
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </TableCell>
                                     </TableRow>
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="h-24 text-center">
+                                    <TableCell colSpan={5} className="h-24 text-center">
                                         No appointments found for the selected filters.
                                     </TableCell>
                                 </TableRow>
@@ -183,3 +254,4 @@ export default function AppointmentsPage() {
     </main>
   );
 }
+
