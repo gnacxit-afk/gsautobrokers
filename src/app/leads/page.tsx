@@ -38,7 +38,7 @@ const globalFilterFn: FilterFn<any> = (row, columnId, filterValue, addMeta) => {
     const { user, allStaff, dateRange } = addMeta as any;
 
     // Date Range Filtering
-    if (lead.createdAt) {
+    if (dateRange && dateRange.start && dateRange.end && lead.createdAt) {
         const leadDate = (lead.createdAt as any).toDate ? (lead.createdAt as any).toDate() : new Date(lead.createdAt as string);
         if (isValid(leadDate)) {
             if (!isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end })) {
