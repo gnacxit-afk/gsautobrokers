@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { REVENUE_PER_VEHICLE, COMMISSION_PER_VEHICLE, MARGIN_PER_VEHICLE } from "@/lib/mock-data";
 import { useDateRange } from '@/hooks/use-date-range';
 import { useCollection, useFirestore, useUser } from '@/firebase';
-import { Users, BarChart3, TrendingUp, DollarSign, Percent, Target } from "lucide-react";
+import { Users, BarChart3, TrendingUp, DollarSign, Percent, Target, Briefcase, HandCoins, PiggyBank } from "lucide-react";
 import type { Lead, Staff } from '@/lib/types';
 import { calculateBonus } from '@/lib/utils';
 import { collection } from 'firebase/firestore';
@@ -192,14 +192,21 @@ export default function DashboardPage() {
   
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444'];
 
+  const adminStats = [
+    { label: "Total Revenue", value: `$${stats.totalRevenue.toLocaleString()}`, icon: Briefcase, color: "rose" },
+    { label: "Total Commissions", value: `$${stats.totalCommissions.toLocaleString()}`, icon: HandCoins, color: "amber" },
+    { label: "Total Margin", value: `$${stats.totalMargin.toLocaleString()}`, icon: PiggyBank, color: "emerald" },
+    { label: "Total Bonuses", value: `$${stats.totalBonuses.toLocaleString()}`, icon: Target, color: "violet" },
+  ];
+
   return (
     <div className="space-y-8">
-       <div className={`grid grid-cols-1 sm:grid-cols-2 ${user?.role === 'Admin' ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6`}>
+       <div className={`grid grid-cols-1 sm:grid-cols-2 ${user?.role === 'Admin' ? 'xl:grid-cols-4' : 'lg:grid-cols-3'} gap-6`}>
         <StatCard label="Total Leads" value={stats.totalLeads} color="blue" icon={Users} />
         <StatCard label="Closed Sales" value={stats.closedSales} color="green" icon={DollarSign} />
         <StatCard label="Conversion" value={`${stats.conversion.toFixed(1)}%`} color="indigo" icon={Percent}/>
-        {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
-            <StatCard label="Total Bonuses" value={`$${stats.totalBonuses.toLocaleString()}`} color="violet" icon={Target} />
+        {(user?.role === 'Admin') && (
+           <StatCard label="Total Bonuses" value={`$${stats.totalBonuses.toLocaleString()}`} color="violet" icon={Target} />
         )}
       </div>
 
