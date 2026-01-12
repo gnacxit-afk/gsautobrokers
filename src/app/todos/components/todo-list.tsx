@@ -141,10 +141,10 @@ function TodoItem({
 }) {
 
   return (
-    <div className={cn("flex items-center gap-3 p-4 rounded-lg transition-colors", 
-        todo.completed ? 'bg-slate-50 text-muted-foreground' : 'bg-white hover:bg-slate-50'
-    )}>
-       <Checkbox
+    <Card className={cn("group transition-shadow hover:shadow-md", todo.completed ? 'bg-slate-50' : 'bg-white')}>
+      <CardContent className="p-3 flex items-center gap-3">
+        <GripVertical size={16} className={cn("cursor-grab text-slate-300 transition-opacity", todo.completed ? 'opacity-0' : 'opacity-50 group-hover:opacity-100')}/>
+        <Checkbox
             id={`todo-${todo.id}`}
             checked={todo.completed}
             onCheckedChange={(checked) => onToggle(todo.id, !!checked)}
@@ -153,7 +153,7 @@ function TodoItem({
         <div className="flex-1">
             <label 
                 htmlFor={`todo-${todo.id}`}
-                className={cn("font-medium cursor-pointer", { 'line-through': todo.completed })}
+                className={cn("font-medium cursor-pointer", { 'line-through text-muted-foreground': todo.completed })}
             >
                 {todo.title}
             </label>
@@ -171,10 +171,11 @@ function TodoItem({
                 )}
             </div>
         </div>
-      <Button variant="ghost" size="icon" onClick={() => onDelete(todo.id)} className="text-destructive h-8 w-8">
-        <Trash2 size={16} />
-      </Button>
-    </div>
+        <Button variant="ghost" size="icon" onClick={() => onDelete(todo.id)} className="text-destructive h-8 w-8 opacity-50 group-hover:opacity-100">
+          <Trash2 size={16} />
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -279,61 +280,61 @@ export function TodoList({
   if (loading) {
       return (
           <div className="space-y-4">
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-36 w-full" />
+              <div className="space-y-3">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+              </div>
           </div>
       )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <AddTodoForm 
         onAdd={handleAddTodo} 
         userLeads={userLeads}
         onAddLeadAndTask={handleAddLeadAndTask}
       />
 
-      <div className="space-y-3">
-        <h3 className="text-lg font-semibold px-4">Tasks - {pending.length}</h3>
-        <Card>
-            <CardContent className="p-2 divide-y">
-                {pending.length > 0 ? (
-                    pending.map(todo => (
-                        <TodoItem
-                            key={todo.id}
-                            todo={todo}
-                            onToggle={handleToggleTodo}
-                            onDelete={handleDeleteTodo}
-                        />
-                    ))
-                ) : (
-                    <p className="text-muted-foreground text-center p-8">You're all caught up!</p>
-                )}
-            </CardContent>
-        </Card>
-      </div>
-
-      {completed.length > 0 && (
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold px-4">Completed - {completed.length}</h3>
-            <Card>
-                <CardContent className="p-2 divide-y">
-                    {completed.map(todo => (
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold px-1">Tasks - {pending.length}</h3>
+        <div className="space-y-3">
+            {pending.length > 0 ? (
+                pending.map(todo => (
                     <TodoItem
                         key={todo.id}
                         todo={todo}
                         onToggle={handleToggleTodo}
                         onDelete={handleDeleteTodo}
                     />
-                    ))}
-                </CardContent>
-            </Card>
+                ))
+            ) : (
+                <div className="text-center py-16 bg-slate-50 rounded-lg border border-dashed">
+                  <p className="text-muted-foreground font-medium">You're all caught up!</p>
+                  <p className="text-sm text-slate-400">Add a new task above to get started.</p>
+                </div>
+            )}
+        </div>
+      </div>
+
+      {completed.length > 0 && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold px-1">Completed - {completed.length}</h3>
+            <div className="space-y-3">
+                {completed.map(todo => (
+                <TodoItem
+                    key={todo.id}
+                    todo={todo}
+                    onToggle={handleToggleTodo}
+                    onDelete={handleDeleteTodo}
+                />
+                ))}
+            </div>
         </div>
       )}
     </div>
   );
 }
-
-    
