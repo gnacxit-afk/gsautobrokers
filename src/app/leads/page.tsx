@@ -30,24 +30,20 @@ const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'O
 // This function is now outside the component, so it's not recreated on every render.
 const globalFilterFn: FilterFn<any> = (row, columnId, filterValue, addMeta) => {
     const search = (filterValue || '').toLowerCase();
-
-    // Access the full original data object
     const lead = row.original as Lead;
-    
-    // Access global filter context if needed (passed from table options)
     const { user, allStaff, dateRange } = addMeta as any;
 
-    // Date Range Filtering
+    // Date Range Filtering (Always applied first)
     if (dateRange && dateRange.start && dateRange.end && lead.createdAt) {
         const leadDate = (lead.createdAt as any).toDate ? (lead.createdAt as any).toDate() : new Date(lead.createdAt as string);
         if (isValid(leadDate)) {
             if (!isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end })) {
-                return false; // Exclude if outside date range
+                return false;
             }
         }
     }
 
-    // Role-based Filtering
+    // Role-based Visibility (Always applied)
     if (user) {
         let isVisible = false;
         if (user.role === 'Admin') {
@@ -60,24 +56,41 @@ const globalFilterFn: FilterFn<any> = (row, columnId, filterValue, addMeta) => {
             isVisible = lead.ownerId === user.id;
         }
         if (!isVisible) {
-            return false; // Exclude if not visible to the user's role
+            return false;
         }
     } else {
         return false; // No user, no data
     }
-
-    // If we've passed all the other filters, now check the text search
-    if (search) {
-        const nameMatch = lead.name?.toLowerCase().includes(search);
-        const emailMatch = lead.email?.toLowerCase().includes(search);
-        const phoneMatch = lead.phone?.toLowerCase().includes(search);
-        const ownerNameMatch = lead.ownerName?.toLowerCase().includes(search);
-        
-        return nameMatch || emailMatch || phoneMatch || ownerNameMatch;
+    
+    // Keyword Filtering Logic
+    const searchTerms = search.split(/\s+/).filter(Boolean); // Split by space and remove empty strings
+    if (searchTerms.length === 0) {
+        return true; // No search term, so don't filter
     }
 
-    // If no search text, and it passed other filters, show it
-    return true;
+    // This will check if EVERY term is met.
+    return searchTerms.every(term => {
+        const [key, ...valueParts] = term.split(':');
+        const value = valueParts.join(':').toLowerCase();
+
+        if (value) { // This is a key:value filter
+            switch (key) {
+                case 'stage':
+                    return lead.stage?.toLowerCase().includes(value);
+                case 'owner':
+                    return lead.ownerName?.toLowerCase().includes(value);
+                case 'channel':
+                    return lead.channel?.toLowerCase().includes(value);
+                default:
+                    // If the key is not recognized, treat it as a normal search term
+                    const textSearch = `${lead.name} ${lead.phone} ${lead.email}`.toLowerCase();
+                    return textSearch.includes(term);
+            }
+        } else { // This is a free-text search
+            const textSearch = `${lead.name} ${lead.phone} ${lead.email} ${lead.ownerName} ${lead.stage} ${lead.channel}`.toLowerCase();
+            return textSearch.includes(key);
+        }
+    });
 };
 
 const createNotification = async (
@@ -113,10 +126,6 @@ function LeadsPageContent() {
     const [globalFilter, setGlobalFilter] = useState('');
     const [expanded, setExpanded] = useState({});
     
-    // This state is no longer needed here as the dialog will be opened from the details page.
-    // const [isAppointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
-    // const [leadForAppointment, setLeadForAppointment] = useState<Lead | null>(null);
-
 
     // Stabilize the query object with useMemo.
     const leadsQuery = useMemo(() => 
@@ -189,9 +198,6 @@ function LeadsPageContent() {
 
             toast({ title: "Stage Updated", description: `Lead stage changed to ${newStage}.` });
             
-            // REMOVED: Automatic dialog trigger is removed for better user control.
-            // The user will now schedule from the details page.
-
         } catch (error) {
              console.error("Error updating stage:", error);
              toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
@@ -357,7 +363,6 @@ function LeadsPageContent() {
                 clearAllFilters={clearAllFilters}
                 loading={leadsLoading || staffLoading}
             />
-            {/* The dialog is no longer managed here. It will be managed on the details page. */}
         </main>
     );
 }

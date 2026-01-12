@@ -61,26 +61,14 @@ export function DataTable<TData extends Lead, TValue>({
   const globalFilter = table.getState().globalFilter;
   const setGlobalFilter = (filter: string) => table.setGlobalFilter(filter);
 
-  const ownerFilter = table.getColumn("ownerName")?.getFilterValue() as string | undefined;
-  const stageFilter = table.getColumn("stage")?.getFilterValue() as string | undefined;
-  const channelFilter = table.getColumn("channel")?.getFilterValue() as string | undefined;
-
-  const setOwnerFilter = (value: string) => table.getColumn("ownerName")?.setFilterValue(value === "all" ? undefined : value);
-  const setStageFilter = (value: string) => table.getColumn("stage")?.setFilterValue(value === "all" ? undefined : value);
-  const setChannelFilter = (value: string) => table.getColumn("channel")?.setFilterValue(value === "all" ? undefined : value);
-
-  const assignableStaff = staff.filter(
-    (s) => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin'
-  );
-
   return (
     <div className="space-y-6">
         <div className="space-y-4">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                <div className="relative w-full md:w-80">
+                <div className="relative w-full">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <Input
-                        placeholder="Search by name, contact..."
+                        placeholder="Search by name, contact, or use filters like 'stage:Nuevo' or 'owner:John'..."
                         value={globalFilter ?? ''}
                         onChange={event => setGlobalFilter(event.target.value)}
                         className="w-full pl-10 pr-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
@@ -99,46 +87,15 @@ export function DataTable<TData extends Lead, TValue>({
                     </Button>
                 </NewLeadDialog>
             </div>
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 w-full">
-                <div className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-1">
+             <div className="flex flex-col md:flex-row gap-4 w-full">
+                <div className="flex-shrink-0">
                    <DateRangePicker />
                 </div>
-                {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
-                    <Select value={ownerFilter || 'all'} onValueChange={setOwnerFilter}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Filter by Owner" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Owners</SelectItem>
-                            {assignableStaff.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                )}
-
-                <Select value={stageFilter || 'all'} onValueChange={setStageFilter}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Filter by Stage" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Stages</SelectItem>
-                        {stages.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-                
-                <Select value={channelFilter || 'all'} onValueChange={setChannelFilter}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Filter by Channel" />
-                    </SelectTrigger>
-                    <SelectContent>
-                         <SelectItem value="all">All Channels</SelectItem>
-                        {channels.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-
+                 <div className="flex-grow"></div>
                  <Button
                     onClick={clearAllFilters}
                     variant="ghost"
-                    className="text-muted-foreground hover:text-foreground col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-1"
+                    className="text-muted-foreground hover:text-foreground"
                 >
                     <XCircle className="mr-2 h-4 w-4" /> Clear Filters
                 </Button>
