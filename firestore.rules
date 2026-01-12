@@ -162,7 +162,8 @@ service cloud.firestore {
     }
 
     match /contracts/{contractId} {
-      allow get, list, create, update, delete: if isAdmin();
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
     }
 
     match /signatures/{signatureId} {
