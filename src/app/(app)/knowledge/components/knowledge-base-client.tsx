@@ -39,26 +39,37 @@ function MarkdownRenderer({ content }: { content: string }) {
             .replace(/!\[([^\]]+)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="max-w-full h-auto my-4 rounded-md shadow-sm" />')
             .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">$1</a>')
             // HR
-            .replace(/^(-{3,}|\*{3,})$/gm, '<hr class="my-6" />')
-            // Lists
-            .replace(/^\s*([*+-]) (.*)/gm, '<ul><li>$2</li></ul>')
-            .replace(/^\s*(\d+\.) (.*)/gm, '<ol><li>$2</li></ol>')
-            // Consolidate list tags
-            .replace(/<\/ul>\s*<ul>/g, '')
-            .replace(/<\/ol>\s*<ol>/g, '')
-            // Paragraphs (any line that isn't a special tag)
-            .replace(/^(?!<[h1-3|ul|ol|li|hr|blockquote|img]).*$/gm, (match) => {
-                 if (match.trim() === '') return '';
-                 return `<p class="text-slate-700 leading-relaxed">${match}</p>`;
-            })
-            // Cleanup empty paragraphs
-            .replace(/<p><\/p>/g, '');
-        
+            .replace(/^(-{3,}|\*{3,})$/gm, '<hr class="my-6" />');
+
+        // Unordered Lists
+        html = html.replace(/^( *[-*+] .*\n?)+/gm, (match) => {
+            const items = match.split('\n').filter(Boolean).map(item =>
+                `<li>${item.replace(/ *[-*+] /, '')}</li>`
+            ).join('');
+            return `<ul class="list-disc pl-5 space-y-1">${items}</ul>`;
+        });
+
+        // Ordered Lists
+        html = html.replace(/^( *\d+\. .*\n?)+/gm, (match) => {
+            const items = match.split('\n').filter(Boolean).map(item =>
+                `<li>${item.replace(/ *\d+\. /, '')}</li>`
+            ).join('');
+            return `<ol class="list-decimal pl-5 space-y-1">${items}</ol>`;
+        });
+
+        // Paragraphs (any line that isn't a special tag)
+        html = html.replace(/^(?!<[h1-3|ul|ol|li|hr|blockquote|img|a]).*$/gm, (match) => {
+             if (match.trim() === '') return '';
+             return `<p class="text-slate-700 leading-relaxed">${match}</p>`;
+        })
+        // Cleanup empty paragraphs
+        .replace(/<p><\/p>/g, '');
+
         return { __html: html };
     };
 
     return (
-        <div 
+        <div
             className="prose prose-slate max-w-none space-y-4"
             dangerouslySetInnerHTML={renderMarkdown(content)}
         />
@@ -66,7 +77,7 @@ function MarkdownRenderer({ content }: { content: string }) {
 }
 
 
-export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseClientProps) {
+export function KnowledgeBaseClient({ initialArticles, loading }: { initialArticles: Article[]; loading: boolean }) {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -112,7 +123,7 @@ export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseC
     setIsEditing(false);
     setSummary(null);
   };
-  
+
   const handleGenerateSummary = async () => {
     if (!selectedArticle) return;
     setIsSummarizing(true);
@@ -149,16 +160,16 @@ export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseC
     setSelectedArticle(updatedArticle);
     setIsEditing(false);
   };
-  
+
   const displayedContent = isCreating || isEditing ? (
-    <NewArticleForm 
-        onArticleCreated={onArticleCreated} 
+    <NewArticleForm
+        onArticleCreated={onArticleCreated}
         editingArticle={isEditing ? selectedArticle : null}
         onArticleUpdated={onArticleUpdated}
         onCancel={() => setIsEditing(false)}
     />
   ) : selectedArticle;
-  
+
   const renderDate = (date: any) => {
     if (!date) return 'No date';
     const jsDate = (date as any).toDate ? (date as any).toDate() : new Date(date);
@@ -172,7 +183,7 @@ export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseC
         <div className="flex justify-between items-center mb-4 gap-4">
           <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input 
+              <Input
                   placeholder="Search articles..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -229,8 +240,8 @@ export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseC
         ) : displayedContent ? (
           <ScrollArea className="h-full pr-4">
             {isCreating || isEditing ? (
-                 <NewArticleForm 
-                    onArticleCreated={onArticleCreated} 
+                 <NewArticleForm
+                    onArticleCreated={onArticleCreated}
                     editingArticle={isEditing ? selectedArticle : null}
                     onArticleUpdated={onArticleUpdated}
                     onCancel={() => {
@@ -280,7 +291,7 @@ export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseC
                             )}
                         </div>
                     </div>
-                    
+
                     {(isSummarizing || summary) && (
                       <Card className="mb-6 bg-blue-50 border-blue-200">
                         <CardHeader>
