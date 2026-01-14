@@ -34,11 +34,11 @@ const stageColors: Record<PipelineStatus, string> = {
 };
 
 const statusOptions: Record<PipelineStatus, PipelineStatus[]> = {
-    'New Applicant': ['Pre-Filter Approved', '5-Minute Filter', 'Approved', 'Rejected'],
-    'Pre-Filter Approved': ['5-Minute Filter', 'Approved', 'Rejected'],
-    '5-Minute Filter': ['Approved', 'Onboarding', 'Rejected'],
-    'Approved': ['Onboarding', 'Active', 'Rejected'],
-    'Onboarding': ['Active', 'Rejected'],
+    'New Applicant': ['Pre-Filter Approved', '5-Minute Filter', 'Approved', 'Onboarding', 'Rejected', 'Inactive'],
+    'Pre-Filter Approved': ['5-Minute Filter', 'Approved', 'Onboarding', 'Rejected', 'Inactive'],
+    '5-Minute Filter': ['Approved', 'Onboarding', 'Rejected', 'Inactive'],
+    'Approved': ['Onboarding', 'Rejected', 'Inactive'],
+    'Onboarding': ['Active', 'Inactive'],
     'Active': ['Inactive'],
     'Rejected': [],
     'Inactive': ['New Applicant'], // Can be reactivated
