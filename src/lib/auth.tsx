@@ -40,20 +40,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!firestore) throw new Error("Firestore not initialized");
 
     const staffCollection = collection(firestore, 'staff');
-    let q = query(staffCollection, where("authUid", "==", fbUser.uid));
     
+    // Find staff document ID by auth UID.
+    const q = query(staffCollection, where("authUid", "==", fbUser.uid));
     const querySnapshot = await getDocs(q);
 
+    let staffDocRef;
+    let staffDocId: string | null = null;
+    
     if (!querySnapshot.empty) {
-        const staffDoc = querySnapshot.docs[0];
-        const staffData = staffDoc.data() as Staff;
-        
-        if (staffData.email === MASTER_ADMIN_EMAIL && staffData.authUid !== fbUser.uid) {
-            await setDoc(doc(firestore, "staff", staffDoc.id), { authUid: fbUser.uid }, { merge: true });
-        }
-        
+        staffDocId = querySnapshot.docs[0].id;
+    } else if (fbUser.email === MASTER_ADMIN_EMAIL) {
+        // Special case for Master Admin on first login in a new environment
+        const newUserProfile: Omit<Staff, 'id'> = {
+            authUid: fbUser.uid,
+            name: "Angel Nacxit Gomez Campos",
+            email: fbUser.email!,
+            role: 'Admin',
+            createdAt: serverTimestamp(),
+            hireDate: serverTimestamp(),
+            avatarUrl: '',
+            dui: "04451625-5",
+        };
+        const docRef = await addDoc(staffCollection, newUserProfile);
+        staffDocId = docRef.id;
+    } else {
+        throw new Error("User profile not found in database.");
+    }
+    
+    if (!staffDocId) throw new Error("Could not retrieve user profile.");
+    
+    staffDocRef = doc(firestore, 'staff', staffDocId);
+    const staffDocSnap = await getDoc(staffDocRef);
+
+    if (staffDocSnap.exists()) {
+        const staffData = staffDocSnap.data() as Staff;
         return {
-            id: staffDoc.id,
+            id: staffDocSnap.id,
             authUid: staffData.authUid,
             name: staffData.name,
             email: staffData.email,
@@ -61,23 +84,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: staffData.role,
             dui: staffData.dui
         };
-    } else {
-         if (fbUser.email === MASTER_ADMIN_EMAIL) {
-             const newUserProfile: Omit<Staff, 'id'> = {
-                 authUid: fbUser.uid,
-                 name: "Angel Nacxit Gomez Campos",
-                 email: fbUser.email!,
-                 role: 'Admin',
-                 createdAt: serverTimestamp(),
-                 hireDate: serverTimestamp(),
-                 avatarUrl: '',
-                 dui: "04451625-5",
-             };
-             const docRef = await addDoc(staffCollection, newUserProfile);
-             return { id: docRef.id, ...newUserProfile } as User;
-         }
-         throw new Error("User profile not found in database.");
     }
+
+    return null;
   }, [firestore]);
 
  useEffect(() => {
