@@ -41,16 +41,26 @@ function AuthHandler({ children }: { children: React.ReactNode }) {
     }
     
     // Define public paths that don't require authentication
-    const isPublicPage = pathname === '/apply' || pathname === '/login';
+    const isPublicPage = pathname === '/apply';
 
-    // If we are on a public page, do nothing.
+    // If the user is on a public page, do nothing.
     if (isPublicPage) {
+        // If the user is logged in and tries to go to login, redirect to leads.
+        if (user && pathname === '/login') {
+            router.push('/leads');
+        }
       return;
     }
     
     // If not logged in and not on a public page, redirect to login
     if (!user) {
       router.push('/login');
+      return;
+    }
+    
+    // If logged in and on the login page, redirect to the main app page
+    if (user && pathname === '/login') {
+      router.push('/leads');
     }
 
   }, [user, loading, router, pathname]);
@@ -65,7 +75,28 @@ function AuthHandler({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
+  
+  // If it's a public page, render it immediately without waiting for auth state.
+  if (pathname === '/apply' || pathname === '/login') {
+      return <>{children}</>;
+  }
 
+  // If we are on a protected route and still loading, show loading screen.
+  if (loading) {
+    return (
+        <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
+            <Logo />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Loading Application...</p>
+        </div>
+    );
+  }
+
+  // If on a protected route and not logged in, this will be blank briefly before redirect.
+  if (!user) {
+      return null;
+  }
+  
   return <>{children}</>;
 }
 
@@ -201,11 +232,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [user, loading, authError, login, logout, setUserRole, reloadUser]
   );
   
+  // Conditionally wrap children in AuthHandler ONLY if it's not a public page
+  const isPublicPage = pathname === '/apply';
+
   return (
     <AuthContext.Provider value={value}>
-      <AuthHandler>
-          {children}
-      </AuthHandler>
+      {isPublicPage ? children : <AuthHandler>{children}</AuthHandler>}
     </AuthContext.Provider>
   );
 }

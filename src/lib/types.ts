@@ -186,7 +186,6 @@ export type Candidate = {
 };
 
 export type Application = {
-  id: string;
   fullName: string;
   whatsappNumber: string;
   email: string;
@@ -195,8 +194,6 @@ export type Application = {
   comfortableWithSales: 'yes' | 'no';
   salesExperienceDescription?: string;
   motivation: string;
-  pipelineStatus: 'Applied';
   source: 'Organic';
-  appliedDate: string; // ISO String
-  lastStatusChangeDate: string; // ISO String
+  appliedDate: Timestamp;
 };

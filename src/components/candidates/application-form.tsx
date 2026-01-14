@@ -4,9 +4,8 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { v4 as uuidv4 } from 'uuid';
 import { useFirestore } from '@/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -77,17 +76,16 @@ export function ApplicationForm() {
     }
 
     try {
-      const now = new Date().toISOString();
-      const newCandidate: Application = {
-        id: uuidv4(),
+      const now = new Date();
+      // Data to be saved in the public-facing collection
+      const publicApplicationData = {
         ...values,
-        pipelineStatus: 'Applied',
         source: 'Organic',
-        appliedDate: now,
-        lastStatusChangeDate: now,
+        appliedDate: serverTimestamp(),
       };
 
-      await addDoc(collection(firestore, 'candidates'), newCandidate);
+      // Use the new public collection for submissions
+      await addDoc(collection(firestore, 'publicApplications'), publicApplicationData);
 
       toast({
         title: 'Application Submitted!',
