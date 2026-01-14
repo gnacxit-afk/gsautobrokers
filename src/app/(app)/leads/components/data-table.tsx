@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Search, X } from 'lucide-react';
 import type { Lead, Staff } from '@/lib/types';
-import { AddLeadDialog } from './add-lead-dialog';
+import { AddLeadDialog } from '@/app/(app)/leads/components/add-lead-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DateRangePicker } from '@/components/layout/date-range-picker';
 import { useUser } from '@/firebase';
