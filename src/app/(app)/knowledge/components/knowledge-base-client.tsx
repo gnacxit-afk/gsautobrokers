@@ -10,6 +10,7 @@ import { FilePlus2, BookOpen } from 'lucide-react';
 import { NewArticleForm } from './new-article-form';
 import { cn } from '@/lib/utils';
 import { format, isValid } from 'date-fns';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 interface KnowledgeBaseClientProps {
   initialArticles: Article[];
@@ -40,7 +41,16 @@ export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseC
   const [isCreating, setIsCreating] = useState(false);
   const { user } = useUser();
 
-  const articles = useMemo(() => initialArticles, [initialArticles]);
+  const articlesByCategory = useMemo(() => {
+    return initialArticles.reduce((acc, article) => {
+      const category = article.category || 'Uncategorized';
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(article);
+      return acc;
+    }, {} as Record<string, Article[]>);
+  }, [initialArticles]);
 
   const handleSelectArticle = (article: Article) => {
     setSelectedArticle(article);
@@ -83,22 +93,30 @@ export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseC
               {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
             </div>
           ) : (
-            <ul className="space-y-2">
-              {articles.map((article) => (
-                <li key={article.id}>
-                  <button
-                    onClick={() => handleSelectArticle(article)}
-                    className={cn(
-                      "w-full text-left p-3 rounded-lg transition-colors",
-                      selectedArticle?.id === article.id ? "bg-primary text-white" : "hover:bg-slate-100"
-                    )}
-                  >
-                    <p className="font-semibold">{article.title}</p>
-                    <p className="text-xs opacity-70">{article.category}</p>
-                  </button>
-                </li>
+             <Accordion type="multiple" defaultValue={Object.keys(articlesByCategory)} className="w-full">
+              {Object.entries(articlesByCategory).map(([category, articles]) => (
+                <AccordionItem value={category} key={category}>
+                  <AccordionTrigger className="text-sm font-medium hover:no-underline">{category}</AccordionTrigger>
+                  <AccordionContent>
+                    <ul className="space-y-1 pl-1">
+                      {articles.map((article) => (
+                         <li key={article.id}>
+                          <button
+                            onClick={() => handleSelectArticle(article)}
+                            className={cn(
+                              "w-full text-left p-2.5 rounded-lg transition-colors text-sm",
+                              selectedArticle?.id === article.id ? "bg-primary text-white" : "hover:bg-slate-100"
+                            )}
+                          >
+                            <p className="font-medium">{article.title}</p>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </AccordionContent>
+                </AccordionItem>
               ))}
-            </ul>
+            </Accordion>
           )}
         </ScrollArea>
       </aside>
