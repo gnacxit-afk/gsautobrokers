@@ -40,7 +40,7 @@ function AppointmentsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const [dateFilter, setDateFilter] = useState('upcoming');
+  const [dateFilter, setDateFilter] = useState('all');
   const [ownerFilter, setOwnerFilter] = useState('all');
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   
