@@ -170,21 +170,14 @@ export type ContractEvent = {
   timestamp: Timestamp;
 };
 
+
 export type Candidate = {
   id: string;
   fullName: string;
-  whatsappNumber: string;
   email: string;
-  city: string;
-  country: string;
-  source: string;
-  pipelineStatus: string;
-  acceptsCommission: boolean;
-  availableHours: number;
-  comfortableWithSales: boolean;
+  pipelineStatus: 'New Applicant' | 'Pre-Filter' | '5-Minute Filter' | 'Approved' | 'Onboarding' | 'Active' | 'Rejected';
   appliedDate: Timestamp | string;
   lastStatusChangeDate: Timestamp | string;
-  approvedBy?: string;
+  approvedBy?: string; // Recruiter's name or ID
+  [key: string]: any;
 };
-
-    
