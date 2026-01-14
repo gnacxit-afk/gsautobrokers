@@ -84,6 +84,7 @@ const navItems: NavItemGroup[] = [
       { href: '/recruiting/pipeline/5-minute-filter', label: '5-Minute Filter', icon: 'Clock5' },
       { href: '/recruiting/onboarding/approved', label: 'Approved for Onboarding', icon: 'UserCheck' },
       { href: '/recruiting/onboarding/onboarding', label: 'Onboarding', icon: 'Rocket' },
+      { href: '/apply', label: 'Public Application Form', icon: 'Briefcase', target: '_blank' },
     ],
   },
 ];
@@ -119,7 +120,7 @@ function MainNav({ items, onLinkClick }: { items: NavItemGroup[], onLinkClick?: 
   
   return (
     <nav className="flex-1 px-4 space-y-2">
-      <Accordion type="multiple" defaultValue={['CRM']} className="w-full">
+      <Accordion type="multiple" defaultValue={['CRM', 'Recruiting']} className="w-full">
         {items.map((group) => (
           group.heading && group.items && Array.isArray(group.items) && (
             <AccordionItem key={group.heading} value={group.heading} className="border-b-0">
@@ -268,5 +269,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
   );
 }
-
-    
