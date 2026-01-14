@@ -41,24 +41,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchAppUser = useCallback(async (fbUser: FirebaseUser): Promise<User | null> => {
     if (!firestore) throw new Error("Firestore not initialized");
 
-    // The user's profile in 'staff' collection might use a different ID scheme.
-    // We need a reliable way to find the user's document. The most robust
-    // way is to query by a unique, known field like 'authUid'.
-    const staffCollection = collection(firestore, 'staff');
-    const q = query(staffCollection, where("authUid", "==", fbUser.uid));
-    const querySnapshot = await getDocs(q);
+    const staffDocRef = doc(firestore, 'staff', fbUser.uid);
+    const staffDocSnap = await getDoc(staffDocRef);
 
-    if (!querySnapshot.empty) {
-        const staffDocSnap = querySnapshot.docs[0];
+    if (staffDocSnap.exists()) {
         const staffData = staffDocSnap.data() as Omit<Staff, 'id'>;
         return {
             id: staffDocSnap.id,
             ...staffData
         } as User;
-    } else if (fbUser.email === MASTER_ADMIN_EMAIL) {
-        // Master admin doesn't exist, create it. Use the auth UID as the document ID
-        // for direct lookups in the future.
-        const adminDocRef = doc(firestore, 'staff', fbUser.uid);
+    }
+    
+    // Fallback for users who might exist under a different doc ID, like the master admin before migration.
+    const staffCollection = collection(firestore, 'staff');
+    const q = query(staffCollection, where("authUid", "==", fbUser.uid));
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+        const userDoc = querySnapshot.docs[0];
+        return { id: userDoc.id, ...userDoc.data() } as User;
+    }
+    
+    if (fbUser.email === MASTER_ADMIN_EMAIL) {
         const newAdminProfile: Staff = {
             id: fbUser.uid,
             authUid: fbUser.uid,
@@ -70,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             avatarUrl: '',
             dui: "04451625-5",
         };
-        await setDoc(adminDocRef, newAdminProfile);
+        await setDoc(staffDocRef, newAdminProfile);
         return newAdminProfile as User;
     }
     
@@ -80,14 +84,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
  useEffect(() => {
     if (!auth || !firestore) {
-        // If services aren't ready, stop loading and wait.
-        // This can happen on initial load.
-        if (loading) setLoading(false);
+        setLoading(false);
         return;
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setLoading(true); // Always start loading when auth state changes.
+      setLoading(true);
       if (firebaseUser) {
         try {
           const userProfile = await fetchAppUser(firebaseUser);
@@ -95,8 +97,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(userProfile);
             setAuthError(null);
           } else {
-            // User is authenticated with Firebase, but no profile found.
-            // This is an error state. Sign them out.
             setUser(null);
             setAuthError("Your user profile could not be found.");
             await signOut(auth);
@@ -107,10 +107,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setAuthError(error.message || "An error occurred fetching your profile.");
           await signOut(auth);
         } finally {
-          setLoading(false); // Stop loading after all operations.
+          setLoading(false);
         }
       } else {
-        // No Firebase user.
         setUser(null);
         setLoading(false);
       }
@@ -128,7 +127,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthError(null);
     try {
         await signInWithEmailAndPassword(auth, email, pass);
-        // onAuthStateChanged will handle the rest.
     } catch (error: any) {
         let friendlyMessage = "An unexpected error occurred.";
         switch (error.code) {
@@ -143,7 +141,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         setAuthError(friendlyMessage);
         setUser(null);
-        setLoading(false); 
+    } finally {
+        // setLoading(false) is handled by onAuthStateChanged
     }
   }, [auth]);
 
