@@ -116,11 +116,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return;
 
-    const isAuthPage = pathname === '/login';
+    const publicPages = ['/login', '/apply'];
+    const isPublicPage = publicPages.includes(pathname);
 
-    if (!user && !isAuthPage) {
+    if (!user && !isPublicPage) {
       router.push('/login');
-    } else if (user && isAuthPage) {
+    } else if (user && isPublicPage) {
        router.push('/leads');
     }
   }, [user, loading, pathname, router]);
