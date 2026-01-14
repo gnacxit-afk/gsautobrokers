@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 import {
   Card,
   CardContent,
@@ -19,7 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import type { Article } from '@/lib/types';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { useEffect } from 'react';
 
 const articleSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters.'),
@@ -31,56 +31,90 @@ type ArticleFormValues = z.infer<typeof articleSchema>;
 
 interface NewArticleFormProps {
   onArticleCreated: (newArticle: Article) => void;
+  editingArticle?: Article | null;
+  onArticleUpdated: (updatedArticle: Article) => void;
+  onCancel: () => void;
 }
 
-export function NewArticleForm({ onArticleCreated }: NewArticleFormProps) {
+export function NewArticleForm({ onArticleCreated, editingArticle, onArticleUpdated, onCancel }: NewArticleFormProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
+  
+  const isEditing = !!editingArticle;
+
   const {
     register,
     handleSubmit,
-    control,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<ArticleFormValues>({
     resolver: zodResolver(articleSchema),
   });
 
+  useEffect(() => {
+    if (isEditing && editingArticle) {
+        reset({
+            title: editingArticle.title,
+            category: editingArticle.category,
+            content: editingArticle.content,
+        });
+    } else {
+        reset({ title: '', category: '', content: '' });
+    }
+  }, [isEditing, editingArticle, reset]);
+
   const onSubmit = async (data: ArticleFormValues) => {
     if (!firestore || !user) {
-      toast({ title: 'Error', description: 'Cannot create article.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Authentication or database error.', variant: 'destructive' });
       return;
     }
 
     try {
-      const articlesCollection = collection(firestore, 'articles');
-      
-      const newArticleData = {
-        ...data,
-        author: user.name,
-        date: serverTimestamp(),
-        tags: data.category.split(',').map(t => t.trim()),
-      };
-      
-      const docRef = await addDoc(articlesCollection, newArticleData);
-      
-      const createdArticle = {
-        id: docRef.id,
-        ...newArticleData,
-        date: new Date(),
-      };
+        if (isEditing && editingArticle) {
+            // Update existing article
+            const articleRef = doc(firestore, 'articles', editingArticle.id);
+            await updateDoc(articleRef, {
+                ...data,
+                tags: data.category.split(',').map(t => t.trim()),
+            });
 
-      toast({
-        title: 'Article Created',
-        description: `"${data.title}" has been added to the knowledge base.`,
-      });
-      reset();
-      onArticleCreated(createdArticle as Article);
+            const updatedArticle = { ...editingArticle, ...data };
+            
+            toast({
+                title: 'Article Updated',
+                description: `"${data.title}" has been successfully updated.`,
+            });
+            onArticleUpdated(updatedArticle);
+
+        } else {
+            // Create new article
+            const articlesCollection = collection(firestore, 'articles');
+            const newArticleData = {
+                ...data,
+                author: user.name,
+                date: serverTimestamp(),
+                tags: data.category.split(',').map(t => t.trim()),
+            };
+            const docRef = await addDoc(articlesCollection, newArticleData);
+            
+            const createdArticle = {
+                id: docRef.id,
+                ...newArticleData,
+                date: new Date(),
+            };
+
+            toast({
+                title: 'Article Created',
+                description: `"${data.title}" has been added to the knowledge base.`,
+            });
+            reset();
+            onArticleCreated(createdArticle as Article);
+        }
     } catch (error: any) {
       toast({
-        title: 'Creation Failed',
-        description: error.message || 'Could not save the new article.',
+        title: isEditing ? 'Update Failed' : 'Creation Failed',
+        description: error.message || 'An unexpected error occurred.',
         variant: 'destructive',
       });
     }
@@ -89,9 +123,9 @@ export function NewArticleForm({ onArticleCreated }: NewArticleFormProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Create New Article</CardTitle>
+        <CardTitle>{isEditing ? 'Edit Article' : 'Create New Article'}</CardTitle>
         <CardDescription>
-          Author a new knowledge base article. Use Markdown for formatting.
+          {isEditing ? `You are editing "${editingArticle?.title}".` : 'Author a new knowledge base article. Use Markdown for formatting.'}
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -119,9 +153,12 @@ export function NewArticleForm({ onArticleCreated }: NewArticleFormProps) {
             {errors.content && <p className="text-xs text-red-500">{errors.content.message}</p>}
           </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving...' : 'Save Article'}
+            {isSubmitting ? (isEditing ? 'Saving...' : 'Creating...') : (isEditing ? 'Save Changes' : 'Save Article')}
           </Button>
         </CardFooter>
       </form>

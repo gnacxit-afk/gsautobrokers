@@ -6,7 +6,7 @@ import { useFirestore, useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FilePlus2, BookOpen, Bot, Edit, Trash2, Loader2 } from 'lucide-react';
+import { FilePlus2, BookOpen, Bot, Edit, Trash2, Loader2, X } from 'lucide-react';
 import { NewArticleForm } from './new-article-form';
 import { cn } from '@/lib/utils';
 import { format, isValid } from 'date-fns';
@@ -44,6 +44,7 @@ function MarkdownRenderer({ content }: { content: string }) {
 export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseClientProps) {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const { user } = useUser();
@@ -64,12 +65,14 @@ export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseC
   const handleSelectArticle = (article: Article) => {
     setSelectedArticle(article);
     setIsCreating(false);
+    setIsEditing(false);
     setSummary(null); // Reset summary when changing articles
   };
 
   const handleNewArticleClick = () => {
     setSelectedArticle(null);
     setIsCreating(true);
+    setIsEditing(false);
     setSummary(null);
   };
   
@@ -94,6 +97,7 @@ export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseC
       await deleteDoc(articleRef);
       toast({ title: 'Article Deleted', description: `"${selectedArticle.title}" has been removed.` });
       setSelectedArticle(null);
+      setIsEditing(false);
     } catch (error) {
       toast({ title: 'Deletion Failed', description: 'Could not delete the article.', variant: 'destructive'});
     }
@@ -103,8 +107,20 @@ export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseC
     setIsCreating(false);
     setSelectedArticle(newArticle);
   };
+
+  const onArticleUpdated = (updatedArticle: Article) => {
+    setSelectedArticle(updatedArticle);
+    setIsEditing(false);
+  };
   
-  const displayedContent = isCreating ? <NewArticleForm onArticleCreated={onArticleCreated} /> : selectedArticle;
+  const displayedContent = isCreating || isEditing ? (
+    <NewArticleForm 
+        onArticleCreated={onArticleCreated} 
+        editingArticle={isEditing ? selectedArticle : null}
+        onArticleUpdated={onArticleUpdated}
+        onCancel={() => setIsEditing(false)}
+    />
+  ) : selectedArticle;
   
   const renderDate = (date: any) => {
     if (!date) return 'No date';
@@ -147,7 +163,7 @@ export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseC
                             onClick={() => handleSelectArticle(article)}
                             className={cn(
                               "w-full text-left p-2.5 rounded-lg transition-colors text-sm",
-                              selectedArticle?.id === article.id ? "bg-primary text-white" : "hover:bg-slate-100"
+                              selectedArticle?.id === article.id && !isEditing ? "bg-primary text-white" : "hover:bg-slate-100"
                             )}
                           >
                             <p className="font-medium">{article.title}</p>
@@ -167,8 +183,16 @@ export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseC
            <Skeleton className="h-full w-full" />
         ) : displayedContent ? (
           <ScrollArea className="h-full pr-4">
-            {isCreating ? (
-                <NewArticleForm onArticleCreated={onArticleCreated} />
+            {isCreating || isEditing ? (
+                 <NewArticleForm 
+                    onArticleCreated={onArticleCreated} 
+                    editingArticle={isEditing ? selectedArticle : null}
+                    onArticleUpdated={onArticleUpdated}
+                    onCancel={() => {
+                        setIsCreating(false);
+                        setIsEditing(false);
+                    }}
+                />
             ) : selectedArticle ? (
                 <div>
                     <div className="mb-6 pb-6 border-b">
@@ -183,7 +207,7 @@ export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseC
                                   {isSummarizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
                                   AI Summary
                                 </Button>
-                                <Button size="sm" variant="outline" disabled>
+                                <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
                                   <Edit className="mr-2 h-4 w-4" /> Edit
                                 </Button>
                                 <AlertDialog>
