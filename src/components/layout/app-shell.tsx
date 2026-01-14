@@ -33,15 +33,13 @@ import { Button } from "@/components/ui/button";
 import { useAuthContext } from "@/lib/auth";
 import type { NavItemGroup, Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { DateRangePicker } from "./date-range-picker";
 import { RoleSwitcher } from "./role-switcher";
 import { Logo } from "../icons";
-import { Loader2 } from "lucide-react";
-import { DateRangeProvider } from "@/providers/date-range-provider";
 import { Notifications } from "./notifications";
 import { ContractSigningBanner } from '@/components/contracts/contract-signing-banner';
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { ScrollArea } from "../ui/scroll-area";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const icons: { [key: string]: LucideIcon } = {
   LayoutDashboard,
@@ -121,25 +119,33 @@ function MainNav({ items, onLinkClick }: { items: NavItemGroup[], onLinkClick?: 
   
   return (
     <nav className="flex-1 px-4 space-y-2">
-      {items.map((group, index) => (
-        <div key={index}>
-            {group.heading && <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 mt-4 mb-2">{group.heading}</h3>}
-            {Array.isArray(group.items) ? group.items.map(item => {
-                 const Icon = icons[item.icon];
-                 return hasAccess(user.role, item.role) && (
-                    <NavItem 
-                        key={item.href}
-                        href={item.href}
-                        active={pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))}
-                        icon={<Icon size={20} />}
-                        label={item.label}
-                        onLinkClick={onLinkClick}
-                        target={item.target}
-                    />
-                )
-            }) : null }
-        </div>
-      ))}
+      <Accordion type="multiple" defaultValue={['CRM']} className="w-full">
+        {items.map((group) => (
+          group.heading && group.items && Array.isArray(group.items) && (
+            <AccordionItem key={group.heading} value={group.heading} className="border-b-0">
+              <AccordionTrigger className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-2 hover:no-underline hover:text-white data-[state=open]:text-white">
+                {group.heading}
+              </AccordionTrigger>
+              <AccordionContent className="pb-0 pl-2 pr-1 space-y-1">
+                {group.items.map(item => {
+                    const Icon = icons[item.icon];
+                    return hasAccess(user.role, item.role) && (
+                      <NavItem 
+                          key={item.href}
+                          href={item.href}
+                          active={pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))}
+                          icon={<Icon size={20} />}
+                          label={item.label}
+                          onLinkClick={onLinkClick}
+                          target={item.target}
+                      />
+                    )
+                })}
+              </AccordionContent>
+            </AccordionItem>
+          )
+        ))}
+      </Accordion>
     </nav>
   );
 }
@@ -220,13 +226,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     
     if (currentItem) return currentItem.label;
 
+    // Handle nested lead pages
+    if (pathname.startsWith('/leads/')) return 'Lead Details';
+
     return 'Dashboard';
   };
 
-  const showDateFilter = !pathname.startsWith('/kpi') && !pathname.startsWith('/staff') && !pathname.startsWith('/knowledge') && !pathname.startsWith('/todos') && !pathname.startsWith('/appointments') && !pathname.startsWith('/leads') && !pathname.startsWith('/contracts') && !pathname.startsWith('/recruiting');
 
   return (
-    <DateRangeProvider>
       <div className="flex h-screen bg-gray-50 overflow-hidden font-sans text-slate-900">
         <Sidebar />
         <main className="flex-1 flex flex-col overflow-hidden">
@@ -249,7 +256,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <h2 className="text-xl font-semibold text-slate-800 capitalize hidden sm:block">{getPageTitle()}</h2>
             </div>
             <div className="flex items-center gap-4">
-              {showDateFilter && <DateRangePicker />}
+               {/* Any header actions can go here */}
             </div>
           </header>
 
@@ -259,6 +266,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </main>
       </div>
-    </DateRangeProvider>
   );
 }
+
+    
