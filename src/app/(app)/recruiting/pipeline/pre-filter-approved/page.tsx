@@ -14,7 +14,7 @@ export default function PreFilterApprovedPage() {
     return query(
       collection(firestore, 'candidates'),
       where('pipelineStatus', '==', 'Pre-Filter Approved'),
-      orderBy('appliedDate', 'desc')
+      orderBy('lastStatusChangeDate', 'desc')
     );
   }, [firestore]);
 

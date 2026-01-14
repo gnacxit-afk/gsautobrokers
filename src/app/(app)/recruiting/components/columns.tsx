@@ -2,7 +2,7 @@
 'use client';
 
 import type { ColumnDef, Row } from '@tanstack/react-table';
-import type { Candidate, PipelineStatus } from '@/lib/types';
+import type { Candidate, Application, PipelineStatus } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { formatDistanceToNow, isValid } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 
 const getAvatarFallback = (name: string) => {
     if (!name) return 'U';
@@ -34,11 +34,11 @@ const stageColors: Record<PipelineStatus, string> = {
 };
 
 const statusOptions: Record<PipelineStatus, PipelineStatus[]> = {
-    'New Applicant': ['Pre-Filter Approved', '5-Minute Filter', 'Approved', 'Onboarding', 'Rejected', 'Inactive'],
-    'Pre-Filter Approved': ['5-Minute Filter', 'Approved', 'Onboarding', 'Rejected', 'Inactive'],
-    '5-Minute Filter': ['Approved', 'Onboarding', 'Rejected', 'Inactive'],
-    'Approved': ['Onboarding', 'Rejected', 'Inactive'],
-    'Onboarding': ['Rejected', 'Inactive'],
+    'New Applicant': ['Pre-Filter Approved', '5-Minute Filter', 'Approved', 'Rejected'],
+    'Pre-Filter Approved': ['5-Minute Filter', 'Approved', 'Rejected'],
+    '5-Minute Filter': ['Approved', 'Onboarding', 'Rejected'],
+    'Approved': ['Onboarding', 'Active', 'Rejected'],
+    'Onboarding': ['Active', 'Rejected'],
     'Active': ['Inactive'],
     'Rejected': [],
     'Inactive': ['New Applicant'], // Can be reactivated
@@ -56,14 +56,39 @@ const CellActions: React.FC<{ row: Row<Candidate> }> = ({ row }) => {
 
     const handleStatusChange = async (newStatus: PipelineStatus) => {
         if (!firestore) return;
-        const candidateRef = doc(firestore, 'candidates', candidate.id);
+
         try {
-            await updateDoc(candidateRef, {
-                pipelineStatus: newStatus,
-                lastStatusChangeDate: serverTimestamp(),
-            });
+            const batch = writeBatch(firestore);
+
+            // If the candidate is a 'New Applicant', it exists in 'publicApplications'
+            // We need to move it to the 'candidates' collection.
+            if (candidate.pipelineStatus === 'New Applicant') {
+                const publicAppRef = doc(firestore, 'publicApplications', candidate.id);
+                const newCandidateRef = doc(firestore, 'candidates', candidate.id);
+
+                const newCandidateData = {
+                    ...candidate,
+                    pipelineStatus: newStatus,
+                    lastStatusChangeDate: serverTimestamp(),
+                };
+                
+                batch.set(newCandidateRef, newCandidateData);
+                batch.delete(publicAppRef);
+
+            } else {
+                // If the candidate is already in the main pipeline, just update it.
+                const candidateRef = doc(firestore, 'candidates', candidate.id);
+                batch.update(candidateRef, {
+                    pipelineStatus: newStatus,
+                    lastStatusChangeDate: serverTimestamp(),
+                });
+            }
+            
+            await batch.commit();
+
             toast({ title: 'Status Updated', description: `${candidate.fullName}'s status changed to ${newStatus}.` });
         } catch (error) {
+            console.error("Error updating status:", error);
             toast({ title: 'Update Failed', description: 'Could not update candidate status.', variant: 'destructive' });
         }
     };
@@ -84,23 +109,21 @@ const CellActions: React.FC<{ row: Row<Candidate> }> = ({ row }) => {
                 <Copy className="mr-2 h-4 w-4" />
                 Copy Email
             </DropdownMenuItem>
-            <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                    <ChevronsUpDown className="mr-2 h-4 w-4" />
-                    Change Status
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                    {availableOptions.length > 0 ? (
-                        availableOptions.map(status => (
+            {availableOptions.length > 0 && (
+                 <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                        <ChevronsUpDown className="mr-2 h-4 w-4" />
+                        Change Status
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                        {availableOptions.map(status => (
                             <DropdownMenuItem key={status} onSelect={() => handleStatusChange(status)}>
                                 {status}
                             </DropdownMenuItem>
-                        ))
-                    ) : (
-                        <DropdownMenuItem disabled>No actions available</DropdownMenuItem>
-                    )}
-                </DropdownMenuSubContent>
-            </DropdownMenuSub>
+                        ))}
+                    </DropdownMenuSubContent>
+                </DropdownMenuSub>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       );

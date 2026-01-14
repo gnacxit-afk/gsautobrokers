@@ -14,8 +14,8 @@ export default function FiveMinuteFilterPage() {
     if (!firestore) return null;
     return query(
       collection(firestore, 'candidates'),
-      where('pipelineStatus', '==', '5-Min Filter'),
-      orderBy('appliedDate', 'desc')
+      where('pipelineStatus', '==', '5-Minute Filter'),
+      orderBy('lastStatusChangeDate', 'desc')
     );
   }, [firestore]);
 
