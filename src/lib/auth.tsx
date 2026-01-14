@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from "react";
@@ -118,7 +119,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await signInWithEmailAndPassword(auth, email, pass);
     } catch (error: any) {
         setAuthError(error.message);
-        setLoading(false);
+    } finally {
+        // We don't set loading to false here immediately.
+        // The onAuthStateChanged listener will handle setting user and loading state.
     }
   }, [auth]);
 
@@ -126,8 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!auth) return;
     setLoading(true);
     await signOut(auth);
-    setUser(null);
-    setLoading(false);
+    // onAuthStateChanged will handle setting user to null and loading to false.
   }, [auth]);
 
   const setUserRole = useCallback((role: Role) => {
