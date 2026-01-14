@@ -58,26 +58,28 @@ function AppointmentsContent() {
 
   const appointmentsQuery = useMemo(() => {
     if (!firestore || !user) return null;
-    const constraints = [];
+
+    const baseQuery = collection(firestore, 'appointments');
+    const constraints = [orderBy('startTime', 'asc')];
     const now = new Date();
+
     if (dateFilter === 'today') {
       const start = startOfDay(now);
       const end = endOfDay(now);
-      constraints.push(where('startTime', '>=', start));
-      constraints.push(where('startTime', '<=', end));
+      constraints.unshift(where('startTime', '<=', end));
+      constraints.unshift(where('startTime', '>=', start));
     } else if (dateFilter === 'upcoming') {
-       constraints.push(where('startTime', '>=', now));
+       constraints.unshift(where('startTime', '>=', now));
     }
-    if (ownerFilter !== 'all') {
-        constraints.push(where('ownerId', '==', ownerFilter));
-    } else {
-         if (user.role === 'Broker') {
-            constraints.push(where('ownerId', '==', user.id));
-         }
+
+    if (user.role === 'Broker') {
+        constraints.unshift(where('ownerId', '==', user.id));
+    } else if (ownerFilter !== 'all') {
+        constraints.unshift(where('ownerId', '==', ownerFilter));
     }
-    constraints.push(orderBy('startTime', 'asc'));
-    return query(collection(firestore, 'appointments'), ...constraints);
-  }, [firestore, dateFilter, ownerFilter, user]);
+
+    return query(baseQuery, ...constraints);
+}, [firestore, dateFilter, ownerFilter, user]);
 
   const staffQuery = useMemo(() => {
     if (!firestore) return null;

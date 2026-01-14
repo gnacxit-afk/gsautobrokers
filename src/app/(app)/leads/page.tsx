@@ -54,7 +54,7 @@ function LeadsPageContent() {
     const firestore = useFirestore();
     const { toast } = useToast();
     const { dateRange } = useDateRange();
-    const router = useRouter();
+    router = useRouter();
     
     const [sorting, setSorting] = useState<SortingState>([ { id: 'lastActivity', desc: true }]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 100 });
@@ -62,20 +62,30 @@ function LeadsPageContent() {
     const [expanded, setExpanded] = useState({});
     
 
-    // Stabilize the query object with useMemo.
-    const leadsQuery = useMemo(() => 
-        firestore ? query(collection(firestore, 'leads'), orderBy('createdAt', 'desc')) : null,
-    [firestore]);
-
     const staffQuery = useMemo(() => 
         firestore ? query(collection(firestore, 'staff')) : null,
     [firestore]);
+    
+    const { data: staffSnapshot, loading: staffLoading } = useCollection<Staff>(staffQuery);
+    const staffData = useMemo(() => staffSnapshot || [], [staffSnapshot]);
+
+    // This query will now be conditional based on the user's role
+    const leadsQuery = useMemo(() => {
+        if (!firestore || !user) return null;
+        
+        const q = collection(firestore, 'leads');
+        const constraints = [orderBy('createdAt', 'desc')];
+        
+        if (user.role === 'Broker') {
+            constraints.unshift(where('ownerId', '==', user.id));
+        }
+        
+        return query(q, ...constraints);
+
+    }, [firestore, user]);
 
     const { data: leadsSnapshot, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
-    const { data: staffSnapshot, loading: staffLoading } = useCollection<Staff>(staffQuery);
-
     const [data, setData] = useState<Lead[]>([]);
-    const staffData = useMemo(() => staffSnapshot || [], [staffSnapshot]);
 
     useEffect(() => {
         if (!leadsSnapshot) return;
@@ -108,14 +118,16 @@ function LeadsPageContent() {
         });
         
         return data.filter(lead => {
-            // 1. Role-based visibility
             let isVisible = false;
+            // The main role-based visibility is now handled by the Firestore query for Brokers.
+            // We keep the logic for Admin and Supervisor, which fetch broader sets of data.
             if (user.role === 'Admin') {
                 isVisible = true;
             } else if (user.role === 'Supervisor') {
                 const teamIds = staffData.filter(s => s.supervisorId === user.id).map(s => s.id);
                 isVisible = teamIds.includes(lead.ownerId) || lead.ownerId === user.id;
             } else if (user.role === 'Broker') {
+                // This is redundant if the query is correct, but safe to keep.
                 isVisible = lead.ownerId === user.id;
             }
             if (!isVisible) return false;
