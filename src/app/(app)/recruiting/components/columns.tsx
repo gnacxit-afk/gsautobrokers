@@ -12,6 +12,7 @@ import { formatDistanceToNow, isValid } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import { doc, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
 
 const getAvatarFallback = (name: string) => {
     if (!name) return 'U';
@@ -117,7 +118,13 @@ const CellActions: React.FC<{ row: Row<Candidate> }> = ({ row }) => {
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent>
                         {availableOptions.map(status => (
-                            <DropdownMenuItem key={status} onSelect={() => handleStatusChange(status)}>
+                            <DropdownMenuItem 
+                                key={status} 
+                                onSelect={() => handleStatusChange(status)}
+                                className={cn({
+                                    'text-destructive focus:text-destructive': status === 'Rejected' || status === 'Inactive'
+                                })}
+                            >
                                 {status}
                             </DropdownMenuItem>
                         ))}
