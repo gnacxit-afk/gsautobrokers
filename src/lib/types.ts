@@ -170,12 +170,13 @@ export type ContractEvent = {
   timestamp: Timestamp;
 };
 
+export type PipelineStatus = 'New Applicant' | 'Pre-Filter Approved' | '5-Minute Filter' | 'Approved' | 'Onboarding' | 'Active' | 'Rejected' | 'Inactive';
 
 export type Candidate = {
   id: string;
   fullName: string;
   email: string;
-  pipelineStatus: 'New Applicant' | 'Applied' | 'Pre-Filter' | '5-Minute Filter' | 'Approved' | 'Onboarding' | 'Active' | 'Rejected';
+  pipelineStatus: PipelineStatus;
   appliedDate: Timestamp | string;
   lastStatusChangeDate: Timestamp | string;
   approvedBy?: string; // Recruiter's name or ID
@@ -186,6 +187,7 @@ export type Candidate = {
 };
 
 export type Application = {
+  id: string;
   fullName: string;
   whatsappNumber: string;
   email: string;
@@ -197,3 +199,4 @@ export type Application = {
   source: 'Organic';
   appliedDate: Timestamp;
 };
+
