@@ -20,7 +20,7 @@ import {
   type ColumnFiltersState,
   type FilterFn,
 } from '@tanstack/react-table';
-import { collection, query, orderBy, updateDoc, doc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, updateDoc, doc, deleteDoc, addDoc, serverTimestamp, where, getDocs, writeBatch } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { isWithinInterval, isValid } from "date-fns";
 
@@ -252,19 +252,35 @@ function LeadsPageContent() {
 
     const handleUpdateOwner = useCallback(async (id: string, oldOwnerName: string, newOwnerId: string, newOwnerName: string) => {
         if (!firestore || !user || !staffData) return;
-        
-        const leadRef = doc(firestore, 'leads', id);
-
-        const updateData = { 
-            ownerId: newOwnerId, 
-            ownerName: newOwnerName,
-        };
-        
+    
+        const leadDoc = data.find(l => l.id === id);
+        if (!leadDoc) {
+            toast({ title: "Error", description: "Lead not found.", variant: "destructive"});
+            return;
+        }
+    
         try {
-            const leadDoc = data.find(l => l.id === id);
-            if (!leadDoc) throw new Error("Lead not found");
-
-            await updateDoc(leadRef, updateData);
+            const batch = writeBatch(firestore);
+    
+            // 1. Update the lead owner
+            const leadRef = doc(firestore, 'leads', id);
+            batch.update(leadRef, { ownerId: newOwnerId, ownerName: newOwnerName });
+    
+            // 2. Find and update all future appointments for this lead
+            const appointmentsQuery = query(
+                collection(firestore, 'appointments'),
+                where('leadId', '==', id),
+                where('startTime', '>=', new Date())
+            );
+            const appointmentsSnapshot = await getDocs(appointmentsQuery);
+            appointmentsSnapshot.forEach(appointmentDoc => {
+                const appointmentRef = doc(firestore, 'appointments', appointmentDoc.id);
+                batch.update(appointmentRef, { ownerId: newOwnerId });
+            });
+    
+            await batch.commit();
+    
+            // 3. Create notifications and notes after batch commit
             const noteContent = `Owner changed from '${oldOwnerName}' to '${newOwnerName}' by ${user.name}`;
             await addNoteEntry(id, noteContent, 'Owner Change');
             
@@ -277,6 +293,7 @@ function LeadsPageContent() {
                     user.name
                 );
             }
+    
             const oldOwner = staffData.find(s => s.name === oldOwnerName);
             if (oldOwner && oldOwner.id !== user.id) {
                  await createNotification(
@@ -288,12 +305,12 @@ function LeadsPageContent() {
                 );
             }
             
-            toast({ title: "Owner Updated", description: `${leadDoc.name} is now assigned to ${newOwnerName}.` });
+            toast({ title: "Owner Updated", description: `${leadDoc.name} and their future appointments are now assigned to ${newOwnerName}.` });
+    
         } catch (error) {
-            console.error("Error updating owner:", error);
-            toast({ title: "Error", description: "Could not update lead owner.", variant: "destructive"});
+            console.error("Error updating owner and appointments:", error);
+            toast({ title: "Error", description: "Could not update lead owner and associated appointments.", variant: "destructive"});
         }
-
     }, [firestore, user, staffData, toast, addNoteEntry, data]);
 
 
