@@ -29,20 +29,19 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { AppointmentActions } from './components/appointment-actions';
-import { ChangeAppointmentOwnerDialog } from './components/change-owner-dialog';
 
 function AppointmentsContent() {
   const { user } = useAuthContext();
   const firestore = useFirestore();
   const { toast } = useToast();
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [dateFilter, setDateFilter] = useState('upcoming');
   const [ownerFilter, setOwnerFilter] = useState('all');
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
-  const [changingOwnerAppointment, setChangingOwnerAppointment] = useState<Appointment | null>(null);
   
   const preselectedLeadId = searchParams.get('leadId');
 
@@ -100,10 +99,6 @@ function AppointmentsContent() {
 
   const handleAppointmentUpdated = () => {
     setEditingAppointment(null);
-  }
-  
-  const handleOwnerChanged = () => {
-    setChangingOwnerAppointment(null);
   }
 
   const handleDelete = async (appointment: Appointment) => {
@@ -233,7 +228,7 @@ function AppointmentsContent() {
                                             userRole={user!.role}
                                             onEdit={() => setEditingAppointment(apt)}
                                             onDelete={() => handleDelete(apt)}
-                                            onChangeOwner={() => setChangingOwnerAppointment(apt)}
+                                            onChangeOwner={() => router.push(`/leads/${apt.leadId}/notes`)}
                                           />
                                       </TableCell>
                                       </TableRow>
@@ -258,15 +253,6 @@ function AppointmentsContent() {
             open={!!editingAppointment}
             onOpenChange={(isOpen) => !isOpen && setEditingAppointment(null)}
             onAppointmentUpdated={handleAppointmentUpdated}
-        />
-      )}
-      {changingOwnerAppointment && (
-        <ChangeAppointmentOwnerDialog
-          appointment={changingOwnerAppointment}
-          open={!!changingOwnerAppointment}
-          onOpenChange={(isOpen) => !isOpen && setChangingOwnerAppointment(null)}
-          onAppointmentUpdated={handleOwnerChanged}
-          brokers={brokers}
         />
       )}
     </>
