@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
@@ -223,7 +224,7 @@ function TodoItem({
               <>
                 <span className="text-slate-300">|</span>
                 <Link
-                  href={`/leads/${todo.leadId}/notes`}
+                  href={`/crm/leads/${todo.leadId}/notes`}
                   className="flex items-center gap-1 hover:underline text-blue-500"
                 >
                   <LinkIcon size={12} /> {todo.leadName}
@@ -434,3 +435,5 @@ export function TodoList({
     </div>
   );
 }
+
+    

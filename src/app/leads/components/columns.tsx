@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import type { ColumnDef, Row } from "@tanstack/react-table";
@@ -75,7 +76,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
   return (
     <>
       <div className="flex items-center gap-2 justify-end">
-        <Button variant="outline" size="sm" onClick={() => router.push(`/leads/${lead.id}/notes`)}>
+        <Button variant="outline" size="sm" onClick={() => router.push(`/crm/leads/${lead.id}/notes`)}>
           Details
         </Button>
         <DropdownMenu>
@@ -88,17 +89,17 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             
-            <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/notes`)}>
+            <DropdownMenuItem onSelect={() => router.push(`/crm/leads/${lead.id}/notes`)}>
                 <FileText className="mr-2 h-4 w-4" />
                 <span>Details / Notes</span>
             </DropdownMenuItem>
 
-             <DropdownMenuItem onSelect={() => router.push(`/appointments`)}>
+             <DropdownMenuItem onSelect={() => router.push(`/crm/appointments`)}>
                 <Calendar className="mr-2 h-4 w-4" />
                 <span>Schedule Appointment</span>
             </DropdownMenuItem>
 
-            <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/analysis`)}>
+            <DropdownMenuItem onSelect={() => router.push(`/crm/leads/${lead.id}/analysis`)}>
                 <Bot className="mr-2 h-4 w-4" />
                 <span>AI Lead Analysis</span>
             </DropdownMenuItem>
@@ -178,7 +179,7 @@ export const getColumns = (
       const lead = row.original;
       return (
          <div className="flex flex-col">
-            <Link href={`/leads/${lead.id}/notes`} className="hover:underline font-bold text-slate-800">
+            <Link href={`/crm/leads/${lead.id}/notes`} className="hover:underline font-bold text-slate-800">
                 {lead.name}
             </Link>
             <span className="text-xs text-slate-500">{lead.phone}</span>
@@ -257,3 +258,5 @@ export const getColumns = (
     },
   },
 ];
+
+    

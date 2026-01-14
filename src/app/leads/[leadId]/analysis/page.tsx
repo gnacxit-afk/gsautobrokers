@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -208,7 +209,7 @@ Sales Recommendation:
         <main className="flex flex-1 flex-col">
             <div className="flex items-start justify-between gap-4 mb-6">
                 <div className="flex items-center gap-4">
-                    <Button variant="outline" size="icon" onClick={() => router.push('/leads')}>
+                    <Button variant="outline" size="icon" onClick={() => router.push('/crm/leads')}>
                         <ArrowLeft />
                     </Button>
                     <div>
@@ -219,7 +220,7 @@ Sales Recommendation:
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button onClick={() => router.push(`/leads/${leadId}/notes`)} variant="outline">
+                    <Button onClick={() => router.push(`/crm/leads/${leadId}/notes`)} variant="outline">
                         <FileText size={16} />
                         View Notes & History
                     </Button>
@@ -235,3 +236,5 @@ Sales Recommendation:
         </main>
     );
 }
+
+    

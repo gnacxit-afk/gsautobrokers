@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
@@ -52,7 +53,7 @@ function LeadsPageContent() {
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
-    const { dateRange } = useDateRange();
+    const { dateRange } } from "@/hooks/use-date-range";
     const router = useRouter();
     
     const [sorting, setSorting] = useState<SortingState>([ { id: 'lastActivity', desc: true }]);
@@ -346,3 +347,5 @@ export default function LeadsPage() {
         <LeadsPageContent />
     )
 }
+
+    

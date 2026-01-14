@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from "react";
@@ -196,7 +197,7 @@ export default function StaffProfilePage() {
         await signOut(auth);
         router.push('/login');
       } else {
-        router.push('/staff');
+        router.push('/crm/staff');
       }
     } catch (error: any) {
       toast({
@@ -317,19 +318,19 @@ export default function StaffProfilePage() {
                             </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
-                            <AlertDialogHeader>
+                          <AlertDialogHeader>
                             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete the profile for
-                                <span className="font-bold"> {formData.name}</span> and reassign their leads.
+                              This action cannot be undone. This will permanently delete the profile for
+                              <span className="font-bold"> {formData.name}</span> and reassign their leads.
                             </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-                                Yes, delete profile
+                              Yes, delete profile
                             </AlertDialogAction>
-                            </AlertDialogFooter>
+                          </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
                 </CardContent>

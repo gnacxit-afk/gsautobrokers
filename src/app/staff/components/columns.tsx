@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import type { ColumnDef } from "@tanstack/react-table";
@@ -114,7 +115,7 @@ export const getColumns = ({ onDelete, isMasterAdmin, allStaff }: GetColumnsProp
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuItem asChild>
-                  <Link href={`/staff/${staff.id}`}>View/Edit Profile</Link>
+                  <Link href={`/crm/staff/${staff.id}`}>View/Edit Profile</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                  {isMasterAdmin && staff.email !== 'gnacxit@gmail.com' && (

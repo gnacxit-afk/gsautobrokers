@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from "react";
@@ -34,6 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -106,6 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
       }
       setLoading(false);
+      setIsLoggingIn(false);
     });
 
     return () => unsubscribe();
@@ -114,15 +117,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return;
 
-    const isAuthPage = pathname === "/login";
+    const publicRoutes = ["/login", "/apply"];
+    const isPublicPage = publicRoutes.includes(pathname);
 
-    if (!user && !isAuthPage) {
+    if (!user && !isPublicPage) {
       router.push("/login");
-    } else if (user && isAuthPage) {
+    } else if (user && pathname === "/login") {
       if (user.role === 'Broker') {
-          router.push('/leads');
+          router.push('/crm/leads');
       } else {
-          router.push('/');
+          router.push('/crm/dashboard');
       }
     }
   }, [user, loading, pathname, router]);
@@ -132,14 +136,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAuthError("Authentication service is not available.");
         return;
     }
-    setLoading(true);
+    setIsLoggingIn(true);
     setAuthError(null);
     try {
         await signInWithEmailAndPassword(auth, email, pass);
-        // onAuthStateChanged will handle setting user and loading state
     } catch (error: any) {
         setAuthError(error.message);
-        setLoading(false);
+        setIsLoggingIn(false);
     }
   }, [auth]);
 
@@ -171,11 +174,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [auth, fetchAppUser]);
 
   const value = useMemo(
-    () => ({ user, loading, authError, login, logout, setUserRole, reloadUser, MASTER_ADMIN_EMAIL }),
-    [user, loading, authError, login, logout, setUserRole, reloadUser]
+    () => ({ user, loading: loading || isLoggingIn, authError, login, logout, setUserRole, reloadUser, MASTER_ADMIN_EMAIL }),
+    [user, loading, isLoggingIn, authError, login, logout, setUserRole, reloadUser]
   );
   
-  if (loading) {
+   if ((loading || isLoggingIn) && pathname !== '/apply') {
      return (
         <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
             <Logo />
@@ -199,3 +202,5 @@ export function useAuthContext() {
   }
   return context;
 }
+
+    

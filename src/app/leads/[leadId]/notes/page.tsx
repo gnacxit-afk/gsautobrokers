@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
@@ -79,7 +80,7 @@ export default function LeadDetailsPage() {
   const {data: lead, loading: leadLoading} = useDoc<Lead>(leadDocRef);
   
   const staffQuery = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
-  const { data: staff, loading: staffLoading } = useCollection<Staff>(staffQuery);
+  const { data: staff, loading: staffLoading } } from useCollection<Staff>(staffQuery);
 
   const notesQuery = useMemo(() => {
     if (!firestore || !leadId) return null;
@@ -201,7 +202,7 @@ export default function LeadDetailsPage() {
           try {
               await deleteDoc(leadRef);
               toast({ title: "Lead Deleted", description: "The lead has been removed." });
-              router.push('/leads');
+              router.push('/crm/leads');
           } catch (error) {
                toast({ title: "Error Deleting Lead", description: "Could not remove the lead.", variant: "destructive" });
           }
@@ -225,7 +226,7 @@ export default function LeadDetailsPage() {
     <main className="flex flex-1 flex-col">
         <div className="flex items-start justify-between gap-4 mb-6">
              <div className="flex items-center gap-4">
-                <Button variant="outline" size="icon" onClick={() => router.push('/leads')}>
+                <Button variant="outline" size="icon" onClick={() => router.push('/crm/leads')}>
                     <ArrowLeft />
                 </Button>
                 <div>
@@ -242,10 +243,10 @@ export default function LeadDetailsPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Lead Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/analysis`)}>
+                    <DropdownMenuItem onSelect={() => router.push(`/crm/leads/${lead.id}/analysis`)}>
                         <Bot className="mr-2 h-4 w-4" /> AI Lead Analysis
                     </DropdownMenuItem>
-                     <DropdownMenuItem onSelect={() => router.push('/appointments')}>
+                     <DropdownMenuItem onSelect={() => router.push('/crm/appointments')}>
                         <Calendar className="mr-2 h-4 w-4" /> Schedule Appointment
                     </DropdownMenuItem>
                     <DropdownMenuSub>
@@ -410,5 +411,7 @@ export default function LeadDetailsPage() {
     </main>
   );
 }
+
+    
 
     

@@ -205,7 +205,7 @@ export default function AppointmentsPage() {
                                 appointments.map((apt) => (
                                     <TableRow key={apt.id}>
                                     <TableCell className="font-medium">
-                                        <Link href={`/leads/${apt.leadId}/notes`} className="hover:underline">
+                                        <Link href={`/crm/leads/${apt.leadId}/notes`} className="hover:underline">
                                             {apt.leadName}
                                         </Link>
                                     </TableCell>
@@ -258,3 +258,5 @@ export default function AppointmentsPage() {
     </main>
   );
 }
+
+    

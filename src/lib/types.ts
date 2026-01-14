@@ -1,4 +1,5 @@
 
+
 import type { LucideIcon } from "lucide-react";
 import type { Timestamp } from "firebase/firestore";
 import { z } from 'zod';
@@ -76,9 +77,20 @@ export type Staff = {
 
 export type NavItem = {
   href: string;
-  title: string;
-  icon: LucideIcon;
-  role: Role[];
+  label: string;
+  icon: string;
+  target?: string;
+  role?: Role[];
+};
+
+export type NavItemGroup = {
+    heading?: string;
+    items?: NavItem[];
+    // For single items not under a heading
+    href?: string;
+    title?: string;
+    icon?: string;
+    role?: Role[];
 };
 
 export type KPI = {
@@ -157,3 +169,22 @@ export type ContractEvent = {
   eventType: 'Created' | 'Activated' | 'Archived';
   timestamp: Timestamp;
 };
+
+export type Candidate = {
+  id: string;
+  fullName: string;
+  whatsappNumber: string;
+  email: string;
+  city: string;
+  country: string;
+  source: string;
+  pipelineStatus: string;
+  acceptsCommission: boolean;
+  availableHours: number;
+  comfortableWithSales: boolean;
+  appliedDate: Timestamp | string;
+  lastStatusChangeDate: Timestamp | string;
+  approvedBy?: string;
+};
+
+    
