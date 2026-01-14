@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
@@ -29,6 +30,7 @@ import {
 } from '@/components/ui/command';
 import Link from 'next/link';
 import { NewTaskForNewLeadDialog } from './new-task-for-new-lead-dialog';
+import { Separator } from '@/components/ui/separator';
 
 interface TodoListProps {
   initialTodos: Todo[];
@@ -36,6 +38,50 @@ interface TodoListProps {
   userLeads: Lead[];
   allStaff: Staff[];
 }
+
+const TodoItem = ({ todo, onToggle, onDelete }: { todo: Todo; onToggle: (todo: Todo) => void; onDelete: (id: string) => void; }) => {
+    return (
+        <div key={todo.id} className={cn("flex items-center gap-4 p-2 rounded-lg transition-colors", { "hover:bg-slate-50": !todo.completed, "bg-slate-50 opacity-60": todo.completed })}>
+            <Checkbox
+            id={`todo-${todo.id}`}
+            checked={todo.completed}
+            onCheckedChange={() => onToggle(todo)}
+            />
+            <div className="flex-1">
+            <label
+                htmlFor={`todo-${todo.id}`}
+                className={cn('text-sm font-medium leading-none cursor-pointer', {
+                'line-through text-muted-foreground': todo.completed,
+                })}
+            >
+                {todo.title}
+            </label>
+            <div className="text-xs text-muted-foreground mt-1 flex items-center gap-4">
+                <span>
+                    {todo.createdAt?.toDate && isValid(todo.createdAt.toDate())
+                        ? `Added ${formatDistanceToNow(todo.createdAt.toDate(), { addSuffix: true })}`
+                        : 'Just now'
+                    }
+                </span>
+                {todo.leadId && (
+                    <Link href={`/leads/${todo.leadId}/notes`} className="text-blue-600 hover:underline">
+                        Linked to: {todo.leadName}
+                    </Link>
+                )}
+            </div>
+            </div>
+            <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+            onClick={() => onDelete(todo.id)}
+            >
+            <Trash2 size={16} />
+            </Button>
+        </div>
+    );
+};
+
 
 export function TodoList({ initialTodos, loading, userLeads, allStaff }: TodoListProps) {
   const [newTodo, setNewTodo] = useState('');
@@ -91,16 +137,28 @@ export function TodoList({ initialTodos, loading, userLeads, allStaff }: TodoLis
     });
   };
   
-  const sortedTodos = useMemo(() => {
-    return [...initialTodos].sort((a, b) => {
-        if (a.completed !== b.completed) {
-            return a.completed ? 1 : -1;
-        }
-        // Handle cases where createdAt might be null during local optimistic updates
+  const { pendingTodos, completedTodos } = useMemo(() => {
+    const pending: Todo[] = [];
+    const completed: Todo[] = [];
+
+    initialTodos.forEach(todo => {
+      if (todo.completed) {
+        completed.push(todo);
+      } else {
+        pending.push(todo);
+      }
+    });
+
+    const sortByDate = (a: Todo, b: Todo) => {
         const dateA = a.createdAt?.toDate ? (a.createdAt as any).toDate() : new Date();
         const dateB = b.createdAt?.toDate ? (b.createdAt as any).toDate() : new Date();
         return dateB.getTime() - dateA.getTime();
-    });
+    };
+
+    pending.sort(sortByDate);
+    completed.sort(sortByDate);
+
+    return { pendingTodos: pending, completedTodos: completed };
   }, [initialTodos]);
 
 
@@ -170,48 +228,28 @@ export function TodoList({ initialTodos, loading, userLeads, allStaff }: TodoLis
             <div className="space-y-4">
               {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
             </div>
-          ) : sortedTodos.length > 0 ? (
-            <div className="space-y-4">
-              {sortedTodos.map((todo) => (
-                <div key={todo.id} className={cn("flex items-center gap-4 p-2 rounded-lg transition-colors", { "hover:bg-slate-50": !todo.completed, "bg-slate-50 opacity-60": todo.completed })}>
-                  <Checkbox
-                    id={`todo-${todo.id}`}
-                    checked={todo.completed}
-                    onCheckedChange={() => handleToggleTodo(todo)}
-                  />
-                  <div className="flex-1">
-                    <label
-                      htmlFor={`todo-${todo.id}`}
-                      className={cn('text-sm font-medium leading-none cursor-pointer', {
-                        'line-through text-muted-foreground': todo.completed,
-                      })}
-                    >
-                      {todo.title}
-                    </label>
-                    <div className="text-xs text-muted-foreground mt-1 flex items-center gap-4">
-                        <span>
-                           {todo.createdAt?.toDate && isValid(todo.createdAt.toDate())
-                                ? `Added ${formatDistanceToNow(todo.createdAt.toDate(), { addSuffix: true })}`
-                                : 'Adding...'
-                            }
-                        </span>
-                        {todo.leadId && (
-                            <Link href={`/leads/${todo.leadId}/notes`} className="text-blue-600 hover:underline">
-                                Linked to: {todo.leadName}
-                            </Link>
-                        )}
+          ) : initialTodos.length > 0 ? (
+            <div className="space-y-6">
+                <div>
+                    <h3 className="font-semibold text-sm mb-2 text-slate-500">
+                        Tareas Pendientes ({pendingTodos.length})
+                    </h3>
+                    <div className="space-y-2">
+                        {pendingTodos.map(todo => <TodoItem key={todo.id} todo={todo} onToggle={handleToggleTodo} onDelete={handleDeleteTodo} />)}
                     </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={() => handleDeleteTodo(todo.id)}
-                  >
-                    <Trash2 size={16} />
-                  </Button>
                 </div>
-              ))}
+
+                {completedTodos.length > 0 && (
+                    <div>
+                        <Separator className="my-4"/>
+                        <h3 className="font-semibold text-sm mb-2 text-slate-500">
+                           Tareas Completadas ({completedTodos.length})
+                        </h3>
+                        <div className="space-y-2">
+                            {completedTodos.map(todo => <TodoItem key={todo.id} todo={todo} onToggle={handleToggleTodo} onDelete={handleDeleteTodo} />)}
+                        </div>
+                    </div>
+                )}
             </div>
           ) : (
             <div className="text-center text-muted-foreground py-16">
