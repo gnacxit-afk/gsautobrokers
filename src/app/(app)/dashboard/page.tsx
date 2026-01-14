@@ -1,262 +1,272 @@
-
 'use client';
 
 import React, { useMemo } from 'react';
 import { useFirestore, useCollection } from '@/firebase';
-import { collection, doc, query, where, orderBy } from 'firebase/firestore';
-import type { Lead, Staff, PerformanceMetric, KPI } from '@/lib/types';
+import { collection, query, where, orderBy } from 'firebase/firestore';
+import type { Lead, Staff } from '@/lib/types';
 import { useDateRange } from '@/hooks/use-date-range';
 import { useAuthContext } from '@/lib/auth';
-import { isWithinInterval, isValid, startOfToday, endOfToday } from 'date-fns';
+import { isWithinInterval, isValid } from 'date-fns';
 import { calculateBonus } from '@/lib/utils';
-import { COMMISSION_PER_VEHICLE } from '@/lib/mock-data';
+import { REVENUE_PER_VEHICLE, COMMISSION_PER_VEHICLE, MARGIN_PER_VEHICLE } from '@/lib/mock-data';
 import { DateRangePicker } from '@/components/layout/date-range-picker';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { BonusStatus } from '@/app/(app)/kpi/components/bonus-status';
-import { KpiClient } from '@/app/(app)/kpi/components/kpi-client';
-import { PerformanceDashboard } from '@/app/(app)/kpi/components/performance-dashboard';
-import { useDoc } from '@/firebase';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, LineChart, Line, CartesianGrid } from 'recharts';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { TrendingUp, TrendingDown, DollarSign, Users, Target, Percent } from 'lucide-react';
 
-const StatCard = ({ label, value, color }: { label: string, value: string | number, color: string }) => {
-  const colors: { [key: string]: string } = {
-    blue: "text-blue-600 bg-blue-50 border-blue-100",
-    green: "text-green-600 bg-green-50 border-green-100",
-    indigo: "text-indigo-600 bg-indigo-50 border-indigo-100",
-    amber: "text-amber-600 bg-amber-50 border-amber-100",
-    violet: "text-violet-600 bg-violet-50 border-violet-100",
-  };
-  return (
-    <div className={`p-5 rounded-2xl border ${colors[color] || colors.blue} shadow-sm`}>
-      <p className="text-xs font-semibold uppercase tracking-wider opacity-70 mb-1">{label}</p>
-      <p className="text-2xl font-bold">{value}</p>
-    </div>
-  );
-};
 
-const ProgressKpiCard = ({ label, value, target, progress, color }: { label: string, value: string | number, target: string, progress: number, color: string }) => {
-    const colors: { [key: string]: string } = {
-        blue: "text-blue-600",
-        green: "text-green-600",
-        indigo: "text-indigo-600",
-        amber: "text-amber-600",
-        violet: "text-violet-600",
-    };
-    return (
-        <Card className="shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="pb-2">
-                <CardTitle className="text-base font-semibold text-slate-700">{label}</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="flex justify-between items-baseline mb-2">
-                    <p className={`text-3xl font-bold ${colors[color] || 'text-primary'}`}>{value}</p>
-                    <p className="text-sm text-muted-foreground font-medium">Meta: {target}</p>
-                </div>
-                <Progress value={progress} />
-            </CardContent>
-        </Card>
-    )
-}
+const StatCard = ({ title, value, change, icon: Icon, color, loading }: { title: string, value: string, change?: string, icon: React.ElementType, color: string, loading: boolean }) => (
+    <Card className="shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-slate-500">{title}</CardTitle>
+            <Icon className={`h-5 w-5 ${color}`} />
+        </CardHeader>
+        <CardContent>
+            {loading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{value}</div>}
+            {change && !loading && <p className="text-xs text-slate-400">{change}</p>}
+        </CardContent>
+    </Card>
+);
 
-function BrokerDashboard() {
-  const { user } = useAuthContext();
-  const firestore = useFirestore();
-  const { dateRange } = useDateRange();
-  
-  const leadsQuery = useMemo(() => firestore ? collection(firestore, 'leads') : null, [firestore]);
-  const { data: allLeads, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
-
-  const kpisDocRef = useMemo(() => firestore ? doc(firestore, 'kpis', 'kpi-doc') : null, [firestore]);
-  const { data: kpisData, loading: kpisLoading } = useDoc<{list: KPI[]}>(kpisDocRef);
-  const kpis = kpisData?.list || [];
-
-  const brokerStats = useMemo(() => {
-    if (!user || user.role !== 'Broker' || !allLeads) return null;
-
-    const brokerLeads = allLeads.filter(l => {
-        const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
-        if (isNaN(leadDate.getTime())) return false;
-        return l.ownerId === user.id && isWithinInterval(leadDate, dateRange);
-    });
-      
-    const totalLeads = brokerLeads.length;
-    const closedSales = brokerLeads.filter(l => l.stage === 'Ganado').length;
-    const conversion = totalLeads > 0 ? (closedSales / totalLeads) * 100 : 0;
-    const totalCommissions = closedSales * COMMISSION_PER_VEHICLE;
-    const brokerBonus = calculateBonus(closedSales);
-
-    const todayStart = startOfToday();
-    const todayEnd = endOfToday();
-    const todayLeads = allLeads.filter(l => {
-      const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
-      return l.ownerId === user.id && isWithinInterval(leadDate, {start: todayStart, end: todayEnd});
-    });
-
-    const dailyStats: PerformanceMetric = {
-        userId: user.id,
-        userName: user.name,
-        leadsRecibidos: todayLeads.length,
-        numerosObtenidos: todayLeads.filter(l => l.phone && l.phone.trim() !== '').length,
-        citasAgendadas: todayLeads.filter(l => l.stage === 'Citado').length,
-        leadsDescartados: todayLeads.filter(l => l.stage === 'Perdido').length,
-        ventas: todayLeads.filter(l => l.stage === 'Ganado').length,
-        citasConfirmadas: 0,
+const getAvatarFallback = (name: string) => {
+    if (!name) return 'U';
+    const parts = name.split(' ');
+    if (parts.length > 1) {
+        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     }
-
-    return { totalLeads, closedSales, conversion, totalCommissions, brokerBonus, dailyStats };
-  }, [user, allLeads, dateRange]);
-
-   const kpiProgress = useMemo(() => {
-      if (!brokerStats?.dailyStats || !kpis) return {};
-      
-      const progress: { [key: string]: { value: number, target: number, progress: number } } = {};
-      const stats = brokerStats.dailyStats;
-
-      const kpiMapping: { [key: string]: number } = {
-          'leads_recibidos': stats.leadsRecibidos,
-          'numeros_obtenidos': stats.numerosObtenidos,
-          'citas_agendadas': stats.citasAgendadas,
-          'ventas': stats.ventas,
-      };
-
-      kpis.forEach(kpi => {
-          if (kpiMapping[kpi.id] !== undefined) {
-              const value = kpiMapping[kpi.id];
-              const target = parseInt(kpi.target.replace(/\D/g, '')) || 1;
-              progress[kpi.id] = { value, target, progress: target > 0 ? (value / target) * 100 : 0 };
-          }
-      });
-      
-      return progress;
-  }, [brokerStats, kpis]);
-
-  if (!brokerStats) return null;
-
-  return (
-    <main className="flex-1 space-y-8">
-      <div>
-        <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">Mis Metas</h1>
-            <p className="text-muted-foreground">Tu rendimiento para el período seleccionado.</p>
-          </div>
-          <DateRangePicker />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <StatCard label="Total Leads" value={brokerStats.totalLeads} color="blue" />
-            <StatCard label="Ventas Cerradas" value={brokerStats.closedSales} color="green" />
-            <StatCard label="Conversión" value={`${brokerStats.conversion.toFixed(1)}%`} color="indigo" />
-            <StatCard label="Comisiones" value={`$${brokerStats.totalCommissions.toLocaleString()}`} color="amber" />
-            <StatCard label="Bono" value={`$${brokerStats.brokerBonus.toLocaleString()}`} color="violet" />
-        </div>
-      </div>
-      
-       <div className="border-t pt-8">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold">Progreso Diario</h1>
-            <p className="text-muted-foreground max-w-2xl">
-              Tu avance de hoy frente a las metas diarias del equipo.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {kpis.filter(kpi => kpiProgress[kpi.id]).map(kpi => (
-                  <ProgressKpiCard 
-                      key={kpi.id}
-                      label={kpi.label}
-                      value={kpiProgress[kpi.id].value}
-                      target={`${kpiProgress[kpi.id].target}`}
-                      progress={kpiProgress[kpi.id].progress}
-                      color="blue"
-                  />
-              ))}
-          </div>
-       </div>
-
-       <div className="border-t pt-8">
-          <div className="mb-6">
-              <h1 className="text-2xl font-bold">Estado de Bonos</h1>
-              <p className="text-muted-foreground">Tu progreso de bonos por ventas en los últimos 30 días.</p>
-          </div>
-          <BonusStatus allLeads={allLeads || []} loading={leadsLoading} />
-        </div>
-    </main>
-  )
+    return name.substring(0, 2).toUpperCase();
 }
 
-function AdminSupervisorDashboard() {
-  const firestore = useFirestore();
-  const { dateRange } = useDateRange();
-  
-  const leadsQuery = useMemo(() => firestore ? query(collection(firestore, 'leads'), orderBy('createdAt', 'desc')) : null, [firestore]);
-  const staffQuery = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
-  const kpisDocRef = useMemo(() => firestore ? doc(firestore, 'kpis', 'kpi-doc') : null, [firestore]);
-  
-  const { data: leads, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
-  const { data: staff, loading: staffLoading } = useCollection<Staff>(staffQuery);
-  const { data: kpisData, loading: kpisLoading } = useDoc<{list: KPI[]}>(kpisDocRef);
-
-  const performanceLeads = useMemo(() => {
-    if (!leads) return [];
-    return leads.filter(l => {
-        if (!l.createdAt) return false;
-        const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
-        if (!isValid(leadDate)) return false;
-        return isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end });
-    });
-  }, [leads, dateRange]);
-
-  const salesGoalKPI = useMemo(() => kpisData?.list?.find(kpi => kpi.id === 'ventas'), [kpisData]);
-  const loading = leadsLoading || staffLoading || kpisLoading;
-
-  return (
-    <main className="flex-1 space-y-8">
-      <div>
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">Daily Goals</h1>
-          <p className="text-muted-foreground max-w-2xl">
-            Cada vendedor profesional genera resultados todos los días, porque entiende que el éxito no se espera, se provoca.
-          </p>
-        </div>
-        <KpiClient initialKpis={kpisData?.list || []} loading={kpisLoading} />
-      </div>
-
-      <div className="border-t pt-8">
-        <div className="mb-6">
-            <h1 className="text-2xl font-bold">Estado de Bonos</h1>
-            <p className="text-muted-foreground">
-              Progreso de bonos por ventas en los últimos 30 días.
-            </p>
-        </div>
-        <BonusStatus allLeads={leads || []} loading={loading} />
-      </div>
-
-      <div className="border-t pt-8">
-        <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
-            <div>
-                <h1 className="text-2xl font-bold">Dashboard en Tiempo Real</h1>
-                <p className="text-muted-foreground">Resumen de rendimiento para el período seleccionado.</p>
-            </div>
-            <DateRangePicker />
-        </div>
-        <PerformanceDashboard
-            allLeads={performanceLeads}
-            allStaff={staff || []}
-            loading={loading}
-            salesGoal={salesGoalKPI ? parseInt(salesGoalKPI.target, 10) : 1}
-        />
-      </div>
-    </main>
-  );
-}
 
 export default function DashboardPage() {
     const { user } = useAuthContext();
+    const firestore = useFirestore();
+    const { dateRange } = useDateRange();
     
-    if (!user) return null;
+    const leadsQuery = useMemo(() => firestore ? query(collection(firestore, 'leads'), orderBy('createdAt', 'desc')) : null, [firestore]);
+    const staffQuery = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
+    
+    const { data: leads, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
+    const { data: staff, loading: staffLoading } = useCollection<Staff>(staffQuery);
 
-    if (user.role === 'Broker') {
-        return <BrokerDashboard />;
-    }
+    const loading = leadsLoading || staffLoading;
+
+    const filteredLeads = useMemo(() => {
+        if (!leads) return [];
+        return leads.filter(l => {
+            if (!l.createdAt) return false;
+            const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
+            if (!isValid(leadDate)) return false;
+            return isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end });
+        });
+    }, [leads, dateRange]);
+
+    const salesMetrics = useMemo(() => {
+        const closedSales = filteredLeads.filter(l => l.stage === 'Ganado').length;
+        const totalLeads = filteredLeads.length;
+        const totalRevenue = closedSales * REVENUE_PER_VEHICLE;
+        const grossMargin = closedSales * MARGIN_PER_VEHICLE;
+        const totalCommissions = closedSales * COMMISSION_PER_VEHICLE;
+        
+        let totalBonuses = 0;
+        if (staff) {
+            const salesByOwner = filteredLeads
+                .filter(l => l.stage === 'Ganado')
+                .reduce((acc, lead) => {
+                    acc[lead.ownerId] = (acc[lead.ownerId] || 0) + 1;
+                    return acc;
+                }, {} as { [key: string]: number });
+            
+            totalBonuses = Object.values(salesByOwner).reduce((acc, sales) => acc + calculateBonus(sales), 0);
+        }
+
+        const totalToPay = totalCommissions + totalBonuses;
+        const conversionRate = totalLeads > 0 ? (closedSales / totalLeads) * 100 : 0;
+
+        return {
+            totalRevenue,
+            grossMargin,
+            totalToPay,
+            totalCommissions,
+            totalBonuses,
+            totalLeads,
+            closedSales,
+            conversionRate
+        }
+    }, [filteredLeads, staff]);
+
+    const salesAndLeadsTrend = useMemo(() => {
+        const trendData: { name: string; leads: number; sales: number }[] = [];
+        if (filteredLeads.length === 0) return trendData;
     
-    return <AdminSupervisorDashboard />;
+        const groupedByDay = filteredLeads.reduce((acc, lead) => {
+            const date = (lead.createdAt as any).toDate ? (lead.createdAt as any).toDate() : new Date(lead.createdAt as string);
+            const day = isValid(date) ? date.toISOString().split('T')[0] : 'Invalid Date';
+            
+            if (!acc[day]) {
+                acc[day] = { leads: 0, sales: 0 };
+            }
+            acc[day].leads++;
+            if (lead.stage === 'Ganado') {
+                acc[day].sales++;
+            }
+            return acc;
+        }, {} as Record<string, { leads: number; sales: number }>);
+    
+        return Object.entries(groupedByDay)
+            .map(([day, data]) => ({ name: new Date(day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), ...data }))
+            .sort((a,b) => new Date(a.name).getTime() - new Date(b.name).getTime());
+    
+    }, [filteredLeads]);
+
+
+    const sellerPerformance = useMemo(() => {
+        if (!staff) return [];
+        return staff
+            .filter(s => s.role === 'Broker')
+            .map(broker => {
+                const brokerLeads = filteredLeads.filter(l => l.ownerId === broker.id);
+                const sales = brokerLeads.filter(l => l.stage === 'Ganado').length;
+                return { name: broker.name.split(' ')[0], sales };
+            })
+            .sort((a, b) => b.sales - a.sales);
+    }, [filteredLeads, staff]);
+
+    const channelConversion = useMemo(() => {
+        const channels = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
+        return channels.map(channel => {
+            const channelLeads = filteredLeads.filter(l => l.channel === channel);
+            const total = channelLeads.length;
+            const sales = channelLeads.filter(l => l.stage === 'Ganado').length;
+            const conversion = total > 0 ? (sales / total) * 100 : 0;
+            return { channel, total, sales, conversion: `${conversion.toFixed(1)}%` };
+        });
+    }, [filteredLeads]);
+
+
+    return (
+        <main className="flex-1 space-y-6">
+             <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold">Sales Dashboard</h1>
+                    <p className="text-muted-foreground">An overview of your sales performance.</p>
+                </div>
+                <DateRangePicker />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <StatCard title="Total Revenue" value={`$${salesMetrics.totalRevenue.toLocaleString()}`} icon={DollarSign} color="text-green-500" loading={loading} />
+                <StatCard title="Gross Margin" value={`$${salesMetrics.grossMargin.toLocaleString()}`} icon={TrendingUp} color="text-blue-500" loading={loading} />
+                <StatCard title="Total to Pay" value={`$${salesMetrics.totalToPay.toLocaleString()}`} icon={TrendingDown} color="text-red-500" loading={loading} />
+                <StatCard title="Total Leads" value={`${salesMetrics.totalLeads}`} icon={Users} color="text-indigo-500" loading={loading} />
+                <StatCard title="Closed Sales" value={`${salesMetrics.closedSales}`} icon={Target} color="text-amber-500" loading={loading} />
+                <StatCard title="Conversion Rate" value={`${salesMetrics.conversionRate.toFixed(1)}%`} icon={Percent} color="text-violet-500" loading={loading} />
+                <StatCard title="Total Commissions" value={`$${salesMetrics.totalCommissions.toLocaleString()}`} icon={DollarSign} color="text-cyan-500" loading={loading} />
+                <StatCard title="Total Bonuses" value={`$${salesMetrics.totalBonuses.toLocaleString()}`} icon={DollarSign} color="text-pink-500" loading={loading} />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <Card className="lg:col-span-3">
+                    <CardHeader>
+                        <CardTitle>Sales & Leads Trend</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pl-2">
+                        {loading ? <Skeleton className="h-[300px] w-full" /> : (
+                            <ResponsiveContainer width="100%" height={300}>
+                                <LineChart data={salesAndLeadsTrend}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
+                                    <YAxis fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Line type="monotone" dataKey="leads" stroke="hsl(var(--primary))" strokeWidth={2} />
+                                    <Line type="monotone" dataKey="sales" stroke="hsl(var(--accent))" strokeWidth={2} />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        )}
+                    </CardContent>
+                </Card>
+                <Card className="lg:col-span-2">
+                     <CardHeader>
+                        <CardTitle>Seller Performance</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {loading ? <Skeleton className="h-[300px] w-full" /> : (
+                             <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={sellerPerformance} layout="vertical">
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis type="number" fontSize={12} allowDecimals={false} />
+                                    <YAxis type="category" dataKey="name" fontSize={12} width={60} />
+                                    <Tooltip cursor={{ fill: 'hsl(var(--muted))' }} />
+                                    <Bar dataKey="sales" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>Channel Conversion</CardTitle>
+                        <CardDescription>Performance of each lead acquisition channel.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Channel</TableHead>
+                                    <TableHead className="text-right">Leads</TableHead>
+                                    <TableHead className="text-right">Sales</TableHead>
+                                    <TableHead className="text-right">Conversion</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {loading ? [...Array(5)].map((_, i) => (
+                                    <TableRow key={i}>
+                                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-10 ml-auto" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-10 ml-auto" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
+                                    </TableRow>
+                                )) : channelConversion.map(c => (
+                                    <TableRow key={c.channel}>
+                                        <TableCell className="font-medium">{c.channel}</TableCell>
+                                        <TableCell className="text-right">{c.total}</TableCell>
+                                        <TableCell className="text-right">{c.sales}</TableCell>
+                                        <TableCell className="text-right font-semibold">{c.conversion}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Executive Summary</CardTitle>
+                        <CardDescription>Download a CSV summary of the current data.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {/* Placeholder for future functionality */}
+                        <div className="h-full flex flex-col items-center justify-center bg-slate-50 rounded-lg p-8">
+                             <p className="text-muted-foreground text-center">Executive summary download will be available soon.</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+        </main>
+    );
 }
