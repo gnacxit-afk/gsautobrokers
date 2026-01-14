@@ -82,6 +82,7 @@ const navItems: NavItemGroup[] = [
   },
   {
     heading: 'Recruiting',
+    role: ["Admin"],
     items: [
       { href: '/recruiting/dashboard', label: 'Recruiting Dashboard', icon: 'LayoutDashboard' },
       { href: '/recruiting/pipeline/new', label: 'New Applicants', icon: 'UserPlus' },
@@ -129,7 +130,7 @@ function MainNav({ items, onLinkClick }: { items: NavItemGroup[], onLinkClick?: 
     <nav className="flex-1 px-4 space-y-2">
       <Accordion type="multiple" defaultValue={['CRM', 'Recruiting']} className="w-full">
         {items.map((group) => (
-          group.heading && group.items && Array.isArray(group.items) && (
+           hasAccess(user.role, group.role) && group.heading && group.items && Array.isArray(group.items) && (
             <AccordionItem key={group.heading} value={group.heading} className="border-b-0">
               <AccordionTrigger className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-2 hover:no-underline hover:text-white data-[state=open]:text-white">
                 {group.heading}
