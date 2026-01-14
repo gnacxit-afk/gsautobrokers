@@ -39,6 +39,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const firestore = useFirestore();
   const auth = useAuth();
+  
+  const publicPages = ['/login', '/apply'];
+  const isPublicPage = publicPages.includes(pathname);
 
   const fetchAppUser = useCallback(async (fbUser: FirebaseUser): Promise<User | null> => {
     if (!firestore) throw new Error("Firestore not initialized");
@@ -116,19 +119,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return;
 
-    const publicPages = ['/login', '/apply'];
-    const isPublicPage = publicPages.includes(pathname);
-
-    // If the user is not logged in and not on a public page, redirect to login.
     if (!user && !isPublicPage) {
       router.push('/login');
     } 
-    // If the user IS logged in and trying to access the LOGIN page, redirect to leads.
-    // This allows logged-in users to visit other public pages like /apply.
     else if (user && pathname === '/login') {
        router.push('/leads');
     }
-  }, [user, loading, pathname, router]);
+  }, [user, loading, pathname, router, isPublicPage]);
 
   const login = useCallback(async (email: string, pass: string): Promise<void> => {
     if (!auth) {
@@ -175,7 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [user, loading, authError, login, logout, setUserRole, reloadUser]
   );
   
-   if (loading) {
+   if (loading && !isPublicPage) {
      return (
         <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
             <Logo />
