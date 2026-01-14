@@ -172,6 +172,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [user, loading, authError, login, logout, setUserRole, reloadUser]
   );
   
+   // While loading, if the page is not public, show a loading screen.
+   // If the page is public, render it immediately to prevent hydration errors.
    if (loading && !isPublicPage) {
      return (
         <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
