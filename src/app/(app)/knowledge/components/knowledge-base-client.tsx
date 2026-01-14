@@ -22,42 +22,38 @@ import { Input } from '@/components/ui/input';
 function MarkdownRenderer({ content }: { content: string }) {
     if (!content) return null;
 
-    // Enhanced renderer to handle more Markdown features
     const renderMarkdown = (text: string) => {
         let html = text
+            // Blockquotes
+            .replace(/^> (.*$)/gim, '<blockquote class="border-l-4 pl-4 italic">$1</blockquote>')
             // Headers
             .replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mt-4 mb-1">$1</h3>')
             .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-semibold mt-5 mb-2">$1</h2>')
             .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mt-6 mb-3">$1</h1>')
-            // Bold, Italic, Strikethrough
+            // Bold & Italic & Strikethrough
+            .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.*?)\*/g, '<em>$1</em>')
             .replace(/~~(.*?)~~/g, '<del>$1</del>')
-            // Links
+            // Links & Images
+            .replace(/!\[([^\]]+)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="max-w-full h-auto my-4 rounded-md shadow-sm" />')
             .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">$1</a>')
-            // Images
-            .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="max-w-full h-auto my-4 rounded-md shadow-sm" />')
             // HR
             .replace(/^(-{3,}|\*{3,})$/gm, '<hr class="my-6" />')
-             // Lists (simplified handling)
-            .replace(/^\s*[-*+] (.*)/gm, '<li>$1</li>')
-            .replace(/^\s*\d+\. (.*)/gm, '<li>$1</li>')
-            // Wrap list items in <ul> or <ol>
-            .replace(/<li>(.+?)<\/li>/gs, (match) => {
-                // This is a bit of a hack. A true parser would be better.
-                if (match.includes('\n<li>')) {
-                    return match; 
-                }
-                if (match.match(/^\s*\d+\./)) {
-                    return `<ol class="list-decimal list-inside space-y-2">${match}</ol>`;
-                }
-                return `<ul class="list-disc list-inside space-y-2">${match}</ul>`;
+            // Lists
+            .replace(/^\s*([*+-]) (.*)/gm, '<ul><li>$2</li></ul>')
+            .replace(/^\s*(\d+\.) (.*)/gm, '<ol><li>$2</li></ol>')
+            // Consolidate list tags
+            .replace(/<\/ul>\s*<ul>/g, '')
+            .replace(/<\/ol>\s*<ol>/g, '')
+            // Paragraphs (any line that isn't a special tag)
+            .replace(/^(?!<[h1-3|ul|ol|li|hr|blockquote|img]).*$/gm, (match) => {
+                 if (match.trim() === '') return '';
+                 return `<p class="text-slate-700 leading-relaxed">${match}</p>`;
             })
-            // Paragraphs
-            .replace(/^(?!<h[1-3]>|<hr>|<li>|<ol>|<ul>|!\[)(.*$)/gim, '<p class="text-slate-700 leading-relaxed">$1</p>')
-             // Cleanup empty paragraphs
+            // Cleanup empty paragraphs
             .replace(/<p><\/p>/g, '');
-
+        
         return { __html: html };
     };
 
