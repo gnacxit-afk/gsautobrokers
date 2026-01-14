@@ -6,7 +6,7 @@ import { useFirestore, useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FilePlus2, BookOpen, Bot, Edit, Trash2, Loader2, X } from 'lucide-react';
+import { FilePlus2, BookOpen, Bot, Edit, Trash2, Loader2, X, Search } from 'lucide-react';
 import { NewArticleForm } from './new-article-form';
 import { cn } from '@/lib/utils';
 import { format, isValid } from 'date-fns';
@@ -16,6 +16,8 @@ import { doc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { summarizeArticle } from '@/ai/flows/summarize-knowledge-base-articles';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+
 
 interface KnowledgeBaseClientProps {
   initialArticles: Article[];
@@ -47,12 +49,24 @@ export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseC
   const [isEditing, setIsEditing] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
 
+  const filteredArticles = useMemo(() => {
+    if (!searchTerm) {
+      return initialArticles;
+    }
+    const lowercasedFilter = searchTerm.toLowerCase();
+    return initialArticles.filter(article =>
+      article.title.toLowerCase().includes(lowercasedFilter) ||
+      article.content.toLowerCase().includes(lowercasedFilter)
+    );
+  }, [initialArticles, searchTerm]);
+
   const articlesByCategory = useMemo(() => {
-    return initialArticles.reduce((acc, article) => {
+    return filteredArticles.reduce((acc, article) => {
       const category = article.category || 'Uncategorized';
       if (!acc[category]) {
         acc[category] = [];
@@ -60,7 +74,7 @@ export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseC
       acc[category].push(article);
       return acc;
     }, {} as Record<string, Article[]>);
-  }, [initialArticles]);
+  }, [filteredArticles]);
 
   const handleSelectArticle = (article: Article) => {
     setSelectedArticle(article);
@@ -132,8 +146,16 @@ export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseC
   return (
     <div className="flex flex-1 h-full">
       <aside className="w-1/3 max-w-sm border-r p-4 hidden md:flex flex-col">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">Articles</h2>
+        <div className="flex justify-between items-center mb-4 gap-4">
+          <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                  placeholder="Search articles..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+              />
+          </div>
           {user?.role === 'Admin' && (
             <Button size="sm" onClick={handleNewArticleClick}>
               <FilePlus2 className="mr-2 h-4 w-4" /> New
@@ -203,11 +225,12 @@ export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseC
                             <span>Published on: <span className="font-semibold">{renderDate(selectedArticle.date)}</span></span>
                         </div>
                          <div className="flex items-center gap-2 mt-4">
-                            <Button size="sm" variant="outline" onClick={handleGenerateSummary} disabled={isSummarizing}>
-                                {isSummarizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
-                                AI Summary
-                            </Button>
-
+                            {(user?.role === 'Admin' || user?.role === 'Supervisor' || user?.role === 'Broker') && (
+                              <Button size="sm" variant="outline" onClick={handleGenerateSummary} disabled={isSummarizing}>
+                                  {isSummarizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
+                                  AI Summary
+                              </Button>
+                            )}
                             {user?.role === 'Admin' && (
                                 <>
                                     <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
