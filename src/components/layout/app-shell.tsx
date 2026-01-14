@@ -249,7 +249,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    // If there is no user and we are not in a loading state, show the login page within the main app structure.
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
         <LoginPage />
@@ -305,3 +304,5 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
   );
 }
+
+    

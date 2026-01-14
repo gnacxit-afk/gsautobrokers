@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -83,3 +84,5 @@ export function CandidateTable({ title, description, candidates, isLoading }: Ca
     </main>
   );
 }
+
+    

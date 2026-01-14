@@ -1,3 +1,4 @@
+
 import { ShoppingBag } from 'lucide-react';
 import { ApplicationForm } from '@/components/candidates/application-form';
 
@@ -21,3 +22,5 @@ export default function ApplyPage() {
     </div>
   );
 }
+
+    
