@@ -4,17 +4,6 @@
 import type { Appointment, Role, Staff, Lead } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -46,6 +35,12 @@ export function AppointmentActions({ appointment, userRole, onEdit, onDelete, on
   const assignableStaff = allStaff.filter(
     (s) => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin'
   );
+
+  const handleDeleteClick = () => {
+    if (window.confirm(`Are you sure you want to cancel the appointment for ${appointment.leadName}? This action cannot be undone.`)) {
+      onDelete();
+    }
+  };
 
   // Admin sees a dropdown with all options
   if (userRole === 'Admin') {
@@ -101,27 +96,12 @@ export function AppointmentActions({ appointment, userRole, onEdit, onDelete, on
           </DropdownMenuSub>
           
           <DropdownMenuSeparator />
-          <AlertDialog>
-             <AlertDialogTrigger asChild>
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
-                    <Trash2 className="mr-2 h-4 w-4" /> Delete Appointment
-                </DropdownMenuItem>
-             </AlertDialogTrigger>
-             <AlertDialogContent>
-                  <AlertDialogHeader>
-                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                          This action cannot be undone. This will cancel the appointment for <span className="font-bold">{appointment.leadName}</span>.
-                      </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={onDelete} className="bg-destructive hover:bg-destructive/90">
-                          Yes, cancel appointment
-                      </AlertDialogAction>
-                  </AlertDialogFooter>
-              </AlertDialogContent>
-          </AlertDialog>
+          <DropdownMenuItem 
+            onSelect={handleDeleteClick} 
+            className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+          >
+              <Trash2 className="mr-2 h-4 w-4" /> Delete Appointment
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     );
@@ -130,27 +110,9 @@ export function AppointmentActions({ appointment, userRole, onEdit, onDelete, on
   // Supervisor sees only the delete option
   if (userRole === 'Supervisor') {
     return (
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
-            <Trash2 size={16} />
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will cancel the appointment for <span className="font-bold">{appointment.leadName}</span> and change the lead's stage to "En Seguimiento".
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={onDelete} className="bg-destructive hover:bg-destructive/90">
-              Yes, cancel appointment
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={handleDeleteClick}>
+          <Trash2 size={16} />
+        </Button>
     );
   }
   

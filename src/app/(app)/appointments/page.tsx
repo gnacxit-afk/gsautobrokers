@@ -116,7 +116,9 @@ function AppointmentsContent() {
         await deleteDoc(appointmentRef);
         await updateDoc(leadRef, { stage: 'En Seguimiento' });
         
-        await addNoteEntry(firestore, user, appointment.leadId, `Appointment for ${format(appointment.startTime.toDate(), "d MMM yyyy, p")} was canceled by ${user.name}. Stage automatically changed to "En Seguimiento".`, 'System');
+        if (user) {
+          await addNoteEntry(firestore, user, appointment.leadId, `Appointment for ${format(appointment.startTime.toDate(), "d MMM yyyy, p")} was canceled by ${user.name}. Stage automatically changed to "En Seguimiento".`, 'System');
+        }
 
         toast({
             title: 'Appointment Canceled',
