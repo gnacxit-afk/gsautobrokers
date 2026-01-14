@@ -199,4 +199,3 @@ export type Application = {
   source: 'Organic';
   appliedDate: Timestamp;
 };
-

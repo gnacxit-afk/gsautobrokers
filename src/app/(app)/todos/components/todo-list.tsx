@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import type { Todo, Lead } from '@/lib/types';
-import { useFirestore, useUser } from '@/firebase';
+import type { Todo, Lead, Staff } from '@/lib/types';
+import { useFirestore, useUser, useCollection } from '@/firebase';
 import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Trash2, Plus, ChevronsUpDown } from 'lucide-react';
+import { Trash2, Plus, ChevronsUpDown, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -29,17 +28,20 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import Link from 'next/link';
+import { NewTaskForNewLeadDialog } from './new-task-for-new-lead-dialog';
 
 interface TodoListProps {
   initialTodos: Todo[];
   loading: boolean;
   userLeads: Lead[];
+  allStaff: Staff[];
 }
 
-export function TodoList({ initialTodos, loading, userLeads }: TodoListProps) {
+export function TodoList({ initialTodos, loading, userLeads, allStaff }: TodoListProps) {
   const [newTodo, setNewTodo] = useState('');
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [isNewLeadTaskOpen, setIsNewLeadTaskOpen] = useState(false);
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -88,6 +90,16 @@ export function TodoList({ initialTodos, loading, userLeads }: TodoListProps) {
         description: 'The task has been deleted.',
     });
   };
+  
+  const sortedTodos = useMemo(() => {
+    return [...initialTodos].sort((a, b) => {
+        if (a.completed !== b.completed) {
+            return a.completed ? 1 : -1;
+        }
+        return (b.createdAt?.toDate() as any) - (a.createdAt?.toDate() as any);
+    });
+  }, [initialTodos]);
+
 
   return (
     <Card className="max-w-3xl mx-auto">
@@ -96,8 +108,8 @@ export function TodoList({ initialTodos, loading, userLeads }: TodoListProps) {
         <CardDescription>Click the checkbox to mark a task as complete.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex gap-2 mb-6">
-          <div className="relative flex-grow">
+        <div className="flex gap-2 mb-6 flex-wrap">
+          <div className="relative flex-grow min-w-[200px]">
             <Input
                 placeholder={selectedLead ? `Task related to ${selectedLead.name}...` : "What needs to be done?"}
                 value={newTodo}
@@ -113,36 +125,41 @@ export function TodoList({ initialTodos, loading, userLeads }: TodoListProps) {
                 </button>
             )}
           </div>
-           <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-                <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className="shrink-0">Link Lead</Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[300px] p-0">
-                <Command>
-                    <CommandInput placeholder="Search lead..." />
-                    <CommandList>
-                    <CommandEmpty>No leads found.</CommandEmpty>
-                    <CommandGroup>
-                        {userLeads.map((lead) => (
-                        <CommandItem
-                            key={lead.id}
-                            value={lead.name}
-                            onSelect={() => {
-                                setSelectedLead(lead);
-                                setIsPopoverOpen(false);
-                            }}
-                        >
-                            {lead.name}
-                        </CommandItem>
-                        ))}
-                    </CommandGroup>
-                    </CommandList>
-                </Command>
-                </PopoverContent>
-            </Popover>
-          <Button onClick={handleAddTodo} disabled={!newTodo.trim()}>
-            <Plus className="h-4 w-4 mr-2" /> Add
-          </Button>
+          <div className="flex gap-2">
+            <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+                    <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="shrink-0">Link Lead</Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-0">
+                    <Command>
+                        <CommandInput placeholder="Search lead..." />
+                        <CommandList>
+                        <CommandEmpty>No leads found.</CommandEmpty>
+                        <CommandGroup>
+                            {userLeads.map((lead) => (
+                            <CommandItem
+                                key={lead.id}
+                                value={lead.name}
+                                onSelect={() => {
+                                    setSelectedLead(lead);
+                                    setIsPopoverOpen(false);
+                                }}
+                            >
+                                {lead.name}
+                            </CommandItem>
+                            ))}
+                        </CommandGroup>
+                        </CommandList>
+                    </Command>
+                    </PopoverContent>
+                </Popover>
+            <Button onClick={handleAddTodo} disabled={!newTodo.trim()}>
+                <Plus className="h-4 w-4 mr-2" /> Add
+            </Button>
+            <Button variant="secondary" onClick={() => setIsNewLeadTaskOpen(true)}>
+                <UserPlus className="h-4 w-4 mr-2" /> New Task for New Lead
+            </Button>
+          </div>
         </div>
 
         <ScrollArea className="h-96 pr-4">
@@ -150,10 +167,10 @@ export function TodoList({ initialTodos, loading, userLeads }: TodoListProps) {
             <div className="space-y-4">
               {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
             </div>
-          ) : initialTodos.length > 0 ? (
+          ) : sortedTodos.length > 0 ? (
             <div className="space-y-4">
-              {initialTodos.map((todo) => (
-                <div key={todo.id} className="flex items-center gap-4 p-2 rounded-lg transition-colors hover:bg-slate-50">
+              {sortedTodos.map((todo) => (
+                <div key={todo.id} className={cn("flex items-center gap-4 p-2 rounded-lg transition-colors", { "hover:bg-slate-50": !todo.completed, "bg-slate-50 opacity-60": todo.completed })}>
                   <Checkbox
                     id={`todo-${todo.id}`}
                     checked={todo.completed}
@@ -198,7 +215,11 @@ export function TodoList({ initialTodos, loading, userLeads }: TodoListProps) {
           )}
         </ScrollArea>
       </CardContent>
+       <NewTaskForNewLeadDialog
+        isOpen={isNewLeadTaskOpen}
+        onOpenChange={setIsNewLeadTaskOpen}
+        allStaff={allStaff}
+      />
     </Card>
   );
 }
-

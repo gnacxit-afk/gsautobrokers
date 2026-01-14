@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useMemo } from 'react';
 import { useFirestore, useUser, useCollection } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
-import type { Lead, Todo } from '@/lib/types';
+import type { Lead, Todo, Staff } from '@/lib/types';
 import { TodoList } from './components/todo-list';
 
 export default function TodosPage() {
@@ -28,8 +27,16 @@ export default function TodosPage() {
     );
   }, [firestore, user]);
 
+  const allStaffQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'staff'));
+  }, [firestore]);
+
   const { data: todos, loading: todosLoading } = useCollection<Todo>(todosQuery);
   const { data: userLeads, loading: leadsLoading } = useCollection<Lead>(userLeadsQuery);
+  const { data: allStaff, loading: staffLoading } = useCollection<Staff>(allStaffQuery);
+
+  const loading = todosLoading || leadsLoading || staffLoading;
 
   return (
     <main className="flex-1">
@@ -41,8 +48,9 @@ export default function TodosPage() {
       </div>
       <TodoList 
         initialTodos={todos || []} 
-        loading={todosLoading || leadsLoading}
+        loading={loading}
         userLeads={userLeads || []}
+        allStaff={allStaff || []}
       />
     </main>
   );
