@@ -232,13 +232,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   
    useEffect(() => {
+    // If loading is finished and there's no user, redirect to login.
     if (!loading && !user) {
       router.replace('/login');
     }
   }, [user, loading, router]);
 
 
-  if (loading || !user) {
+  // While verifying auth, show a global loading screen.
+  // This prevents content flashing and ensures user data is available.
+  if (loading) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
         <Logo />
@@ -246,6 +249,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <p className="text-muted-foreground">Authenticating...</p>
       </div>
     );
+  }
+
+  // If loading is complete but there is still no user, return null.
+  // The useEffect hook above will handle the redirection.
+  if (!user) {
+      return null;
   }
   
   const getPageTitle = () => {

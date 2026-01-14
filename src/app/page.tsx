@@ -7,8 +7,8 @@ import { Logo } from '@/components/icons';
 
 /**
  * This is the root page of the application.
- * Its sole purpose is to redirect the user to the main dashboard.
- * The authentication guard is handled by the layout protecting the dashboard.
+ * Its sole purpose is to redirect the user to the main protected route (/dashboard).
+ * The authentication guard is handled by the AppShell layout protecting the dashboard.
  */
 export default function RootPage() {
   const router = useRouter();
