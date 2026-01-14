@@ -184,3 +184,19 @@ export type Candidate = {
   recruiter?: string;
   [key: string]: any;
 };
+
+export type Application = {
+  id: string;
+  fullName: string;
+  whatsappNumber: string;
+  email: string;
+  city: string;
+  availableHours: string;
+  comfortableWithSales: 'yes' | 'no';
+  salesExperienceDescription?: string;
+  motivation: string;
+  pipelineStatus: 'Applied';
+  source: 'Organic';
+  appliedDate: string; // ISO String
+  lastStatusChangeDate: string; // ISO String
+};

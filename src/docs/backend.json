@@ -308,6 +308,27 @@
         "approvedBy": { "type": "string" }
       },
       "required": ["id", "fullName", "email", "pipelineStatus", "appliedDate", "lastStatusChangeDate"]
+    },
+    "Application": {
+      "title": "Application",
+      "type": "object",
+      "description": "Represents a candidate's application submitted through the public form.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the application (UUID)." },
+        "fullName": { "type": "string", "description": "Candidate's full name." },
+        "whatsappNumber": { "type": "string", "description": "Candidate's WhatsApp phone number." },
+        "email": { "type": "string", "description": "Candidate's email address.", "format": "email" },
+        "city": { "type": "string", "description": "Candidate's city of residence." },
+        "availableHours": { "type": "string", "description": "Candidate's availability." },
+        "comfortableWithSales": { "type": "string", "enum": ["yes", "no"], "description": "If the candidate is comfortable with a sales role." },
+        "salesExperienceDescription": { "type": "string", "description": "Description of sales experience, if any." },
+        "motivation": { "type": "string", "description": "Candidate's motivation for the role." },
+        "pipelineStatus": { "type": "string", "description": "Initial status of the candidate.", "default": "Applied" },
+        "source": { "type": "string", "description": "How the candidate was sourced.", "default": "Organic" },
+        "appliedDate": { "type": "string", "description": "The date of application.", "format": "date-time" },
+        "lastStatusChangeDate": { "type": "string", "description": "The timestamp of the last status change.", "format": "date-time" }
+      },
+      "required": ["id", "fullName", "whatsappNumber", "email", "city", "availableHours", "comfortableWithSales", "motivation", "pipelineStatus", "source", "appliedDate", "lastStatusChangeDate"]
     }
   },
   "auth": {
