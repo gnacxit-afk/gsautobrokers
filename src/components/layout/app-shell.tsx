@@ -43,6 +43,7 @@ import { ContractSigningBanner } from '@/components/contracts/contract-signing-b
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { ScrollArea } from "../ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import LoginPage from "@/app/(auth)/login/page";
 
 const icons: { [key: string]: LucideIcon } = {
   LayoutDashboard,
@@ -232,10 +233,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
+    // This effect is now just for potential redirections after login, not for handling the initial auth check.
+    // The main layout handles showing the login page or the app content.
   }, [user, loading, router]);
+
 
   if (loading) {
     return (
@@ -248,11 +249,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    // This can be a simple loading state or null, as the useEffect will redirect.
+    // If there is no user and we are not in a loading state, show the login page within the main app structure.
     return (
-        <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
-            <p className="text-muted-foreground">Redirecting to login...</p>
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
+        <LoginPage />
+      </div>
     );
   }
   
