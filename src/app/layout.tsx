@@ -3,9 +3,10 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
-import { Providers } from "./providers";
-import { Suspense } from "react";
+import { FirebaseClientProvider } from "@/firebase/client-provider";
 import { AuthProvider } from "@/lib/auth";
+import { Suspense } from "react";
+import { DateRangeProvider } from "@/providers/date-range-provider";
 
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -34,13 +35,15 @@ export default function RootLayout({
           inter.variable
         )}
       >
-        <Providers>
-          <AuthProvider>
-            <Suspense>
+        <Suspense>
+          <FirebaseClientProvider>
+            <AuthProvider>
+              <DateRangeProvider>
                 {children}
-            </Suspense>
-          </AuthProvider>
-        </Providers>
+              </DateRangeProvider>
+            </AuthProvider>
+          </FirebaseClientProvider>
+        </Suspense>
         <Toaster />
       </body>
     </html>

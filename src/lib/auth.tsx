@@ -41,6 +41,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchAppUser = useCallback(async (fbUser: FirebaseUser): Promise<User | null> => {
     if (!firestore) throw new Error("Firestore not initialized");
 
+    // Use a direct getDoc for performance, as it's much faster than a query.
+    // The document ID in 'staff' should match the Firebase Auth UID.
     const staffDocRef = doc(firestore, 'staff', fbUser.uid);
     const staffDocSnap = await getDoc(staffDocRef);
 
@@ -52,44 +54,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } as User;
     }
     
-    // Fallback for users who might exist under a different doc ID, like the master admin before migration.
-    const staffCollection = collection(firestore, 'staff');
-    const q = query(staffCollection, where("authUid", "==", fbUser.uid));
-    const querySnapshot = await getDocs(q);
-
-    if (!querySnapshot.empty) {
-        const userDoc = querySnapshot.docs[0];
-        return { id: userDoc.id, ...userDoc.data() } as User;
-    }
-    
+    // Fallback for Master Admin, who might have a different UID initially
+    // or whose profile needs to be created on first login.
     if (fbUser.email === MASTER_ADMIN_EMAIL) {
-        const newAdminProfile: Staff = {
-            id: fbUser.uid,
-            authUid: fbUser.uid,
-            name: "Angel Nacxit Gomez Campos",
-            email: fbUser.email!,
-            role: 'Admin',
-            createdAt: serverTimestamp(),
-            hireDate: serverTimestamp(),
-            avatarUrl: '',
-            dui: "04451625-5",
-        };
-        await setDoc(staffDocRef, newAdminProfile);
-        return newAdminProfile as User;
+        const staffCollection = collection(firestore, 'staff');
+        const q = query(staffCollection, where("email", "==", MASTER_ADMIN_EMAIL));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+            const adminDoc = querySnapshot.docs[0];
+            // If the admin doc ID doesn't match the auth UID, it's a legacy setup.
+            // We should ideally migrate this, but for now, we'll return the found profile.
+            return { id: adminDoc.id, ...adminDoc.data() } as User;
+        } else {
+            // Master admin logged in for the first time, create their profile.
+            const newAdminProfile: Omit<Staff, 'id'> = {
+                authUid: fbUser.uid,
+                name: "Angel Nacxit Gomez Campos",
+                email: fbUser.email!,
+                role: 'Admin',
+                createdAt: serverTimestamp(),
+                hireDate: serverTimestamp(),
+                avatarUrl: '',
+                dui: "04451625-5",
+            };
+            // Create the document with the Auth UID as the document ID
+            await setDoc(doc(firestore, 'staff', fbUser.uid), newAdminProfile);
+            return { id: fbUser.uid, ...newAdminProfile } as User;
+        }
     }
     
+    // If no profile is found after all checks, the user is not a valid staff member.
     console.error("User profile not found in 'staff' collection for UID:", fbUser.uid);
     return null;
   }, [firestore]);
 
  useEffect(() => {
     if (!auth || !firestore) {
-        setLoading(false);
+        // If services aren't ready, we are technically still 'loading'
+        // as we can't determine auth state yet.
+        setLoading(true); 
         return;
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setLoading(true);
+      setLoading(true); // Always start in a loading state on auth change
       if (firebaseUser) {
         try {
           const userProfile = await fetchAppUser(firebaseUser);
@@ -106,13 +115,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
           setAuthError(error.message || "An error occurred fetching your profile.");
           await signOut(auth);
-        } finally {
-          setLoading(false);
         }
       } else {
         setUser(null);
-        setLoading(false);
       }
+      setLoading(false); // Finish loading only after all operations are complete
     });
 
     return () => unsubscribe();
@@ -127,6 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthError(null);
     try {
         await signInWithEmailAndPassword(auth, email, pass);
+        // onAuthStateChanged will handle the rest, so we just wait.
     } catch (error: any) {
         let friendlyMessage = "An unexpected error occurred.";
         switch (error.code) {
@@ -141,8 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         setAuthError(friendlyMessage);
         setUser(null);
-    } finally {
-        // setLoading(false) is handled by onAuthStateChanged
+        setLoading(false); // Explicitly stop loading on a failed login attempt
     }
   }, [auth]);
 
