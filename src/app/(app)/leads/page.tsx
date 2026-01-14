@@ -53,7 +53,7 @@ function LeadsPageContent() {
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
-    const { dateRange } } from "@/hooks/use-date-range";
+    const { dateRange } = useDateRange();
     const router = useRouter();
     
     const [sorting, setSorting] = useState<SortingState>([ { id: 'lastActivity', desc: true }]);
@@ -326,6 +326,7 @@ function LeadsPageContent() {
     }, []);
 
     return (
+      <AppShell>
         <main className="flex flex-1 flex-col gap-4">
             <DataTable 
                 table={table}
@@ -338,6 +339,7 @@ function LeadsPageContent() {
                 setGlobalFilter={setGlobalFilter}
             />
         </main>
+      </AppShell>
     );
 }
 
@@ -349,3 +351,4 @@ export default function LeadsPage() {
 }
 
     
+
