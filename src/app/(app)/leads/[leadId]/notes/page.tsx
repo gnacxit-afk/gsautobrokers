@@ -34,7 +34,7 @@ import {
 import { useAuthContext } from "@/lib/auth";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { addNoteEntry as addNoteEntryUtil } from '@/lib/utils';
+import { addNoteEntry } from '@/lib/utils';
 
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
@@ -132,7 +132,7 @@ export default function LeadDetailsPage() {
       await updateDoc(leadRef, { name: draftData.name, phone: draftData.phone });
 
       const noteContent = `Lead information updated: ${changes.join('. ')}.`;
-      await addNoteEntryUtil(firestore, user, lead.id, noteContent, 'System');
+      await addNoteEntry(firestore, user, lead.id, noteContent, 'System');
 
       toast({ title: "Lead Updated", description: "The lead's information has been saved." });
       setIsEditing(false);
@@ -142,29 +142,13 @@ export default function LeadDetailsPage() {
   };
 
 
-  const addNoteEntry = useCallback(async (leadId: string, content: string, type: NoteEntry['type']) => {
-    if (!firestore || !user) return;
-    const noteHistoryRef = collection(firestore, 'leads', leadId, 'noteHistory');
-    
-    await addDoc(noteHistoryRef, {
-        content,
-        author: user.name,
-        date: serverTimestamp(),
-        type,
-    });
-    
-    const leadRef = doc(firestore, 'leads', leadId);
-    await updateDoc(leadRef, { lastActivity: serverTimestamp() });
-  }, [firestore, user]);
-
-
   const handleSaveNote = useCallback(async () => {
     if (newNote.trim() && leadId && firestore && user) {
-        await addNoteEntry(leadId, newNote, 'Manual');
+        await addNoteEntry(firestore, user, leadId, newNote, 'Manual');
         toast({ title: "Note Saved", description: "Your note has been added to the history." });
         setNewNote("");
     }
-  }, [newNote, leadId, firestore, user, addNoteEntry, toast]);
+  }, [newNote, leadId, firestore, user, toast]);
   
   const handleUpdateStage = async (newStage: Lead['stage']) => {
     if (!firestore || !user || !lead) return;
@@ -173,7 +157,7 @@ export default function LeadDetailsPage() {
     try {
         await updateDoc(leadRef, { stage: newStage });
         let noteContent = `Stage changed from '${lead.stage}' to '${newStage}' by ${user.name}.`;
-        await addNoteEntry(leadId, noteContent, 'Stage Change');
+        await addNoteEntry(firestore, user, leadId, noteContent, 'Stage Change');
         toast({ title: "Stage Updated", description: `Lead stage changed to ${newStage}.` });
     } catch (error) {
          toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
@@ -189,7 +173,7 @@ export default function LeadDetailsPage() {
       try {
         await updateDoc(leadRef, { ownerId: newOwnerId, ownerName: newOwner.name });
         const noteContent = `Owner changed from '${lead.ownerName}' to '${newOwner.name}' by ${user.name}`;
-        await addNoteEntry(leadId, noteContent, 'Owner Change');
+        await addNoteEntry(firestore, user, leadId, noteContent, 'Owner Change');
         toast({ title: "Owner Updated", description: `${lead.name} is now assigned to ${newOwner.name}.` });
       } catch (error) {
         toast({ title: "Error", description: "Could not update lead owner.", variant: "destructive"});
@@ -411,8 +395,3 @@ export default function LeadDetailsPage() {
     </main>
   );
 }
-
-    
-
-    
-

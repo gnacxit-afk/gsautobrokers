@@ -36,8 +36,7 @@ export const addNoteEntry = async (
     if (!firestore || !user) return;
     
     try {
-        const leadRef = doc(firestore, 'leads', leadId);
-        const noteHistoryRef = collection(leadRef, 'noteHistory');
+        const noteHistoryRef = collection(firestore, 'leads', leadId, 'noteHistory');
         
         await addDoc(noteHistoryRef, {
             content,
@@ -46,6 +45,7 @@ export const addNoteEntry = async (
             type,
         });
 
+        const leadRef = doc(firestore, 'leads', leadId);
         // Also update the lead's lastActivity timestamp
         await updateDoc(leadRef, {
             lastActivity: serverTimestamp()
@@ -53,5 +53,7 @@ export const addNoteEntry = async (
 
     } catch (error) {
         console.error("Error adding note entry:", error);
+        // It's better to re-throw or handle the error in the calling component
+        // than to just log it here. For now, we'll log it.
     }
 };
