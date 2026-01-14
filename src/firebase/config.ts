@@ -1,5 +1,6 @@
 import type { FirebaseOptions } from 'firebase/app';
 
+// This is a sample Firebase configuration. Replace it with your project's configuration.
 export const firebaseConfig: FirebaseOptions = {
   apiKey: "AIzaSyBE77gLf2veDaSXXuOz33Cr4ubQyoMRSOQ",
   authDomain: "gs-auto-brokers.firebaseapp.com",
