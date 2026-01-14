@@ -2,15 +2,20 @@
 
 import { useState, useMemo } from 'react';
 import type { Article } from '@/lib/types';
-import { useUser } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FilePlus2, BookOpen } from 'lucide-react';
+import { FilePlus2, BookOpen, Bot, Edit, Trash2, Loader2 } from 'lucide-react';
 import { NewArticleForm } from './new-article-form';
 import { cn } from '@/lib/utils';
 import { format, isValid } from 'date-fns';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { doc, deleteDoc } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+import { summarizeArticle } from '@/ai/flows/summarize-knowledge-base-articles';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface KnowledgeBaseClientProps {
   initialArticles: Article[];
@@ -39,7 +44,11 @@ function MarkdownRenderer({ content }: { content: string }) {
 export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseClientProps) {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [isSummarizing, setIsSummarizing] = useState(false);
   const { user } = useUser();
+  const firestore = useFirestore();
+  const { toast } = useToast();
 
   const articlesByCategory = useMemo(() => {
     return initialArticles.reduce((acc, article) => {
@@ -55,11 +64,39 @@ export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseC
   const handleSelectArticle = (article: Article) => {
     setSelectedArticle(article);
     setIsCreating(false);
+    setSummary(null); // Reset summary when changing articles
   };
 
   const handleNewArticleClick = () => {
     setSelectedArticle(null);
     setIsCreating(true);
+    setSummary(null);
+  };
+  
+  const handleGenerateSummary = async () => {
+    if (!selectedArticle) return;
+    setIsSummarizing(true);
+    setSummary(null);
+    try {
+      const result = await summarizeArticle({ articleContent: selectedArticle.content });
+      setSummary(result.summary);
+    } catch (error) {
+      toast({ title: 'Summary Failed', description: 'Could not generate AI summary.', variant: 'destructive'});
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
+  const handleDeleteArticle = async () => {
+    if (!selectedArticle || !firestore) return;
+    const articleRef = doc(firestore, 'articles', selectedArticle.id);
+    try {
+      await deleteDoc(articleRef);
+      toast({ title: 'Article Deleted', description: `"${selectedArticle.title}" has been removed.` });
+      setSelectedArticle(null);
+    } catch (error) {
+      toast({ title: 'Deletion Failed', description: 'Could not delete the article.', variant: 'destructive'});
+    }
   };
 
   const onArticleCreated = (newArticle: Article) => {
@@ -134,11 +171,61 @@ export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseC
                 <NewArticleForm onArticleCreated={onArticleCreated} />
             ) : selectedArticle ? (
                 <div>
-                    <h1 className="text-3xl font-extrabold mb-2 text-slate-900">{selectedArticle.title}</h1>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-6 pb-6 border-b">
-                        <span>Category: <span className="font-semibold text-primary">{selectedArticle.category}</span></span>
-                         <span>Published on: <span className="font-semibold">{renderDate(selectedArticle.date)}</span></span>
+                    <div className="mb-6 pb-6 border-b">
+                        <h1 className="text-3xl font-extrabold text-slate-900">{selectedArticle.title}</h1>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+                            <span>Category: <span className="font-semibold text-primary">{selectedArticle.category}</span></span>
+                            <span>Published on: <span className="font-semibold">{renderDate(selectedArticle.date)}</span></span>
+                        </div>
+                         {user?.role === 'Admin' && (
+                             <div className="flex items-center gap-2 mt-4">
+                                <Button size="sm" variant="outline" onClick={handleGenerateSummary} disabled={isSummarizing}>
+                                  {isSummarizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
+                                  AI Summary
+                                </Button>
+                                <Button size="sm" variant="outline" disabled>
+                                  <Edit className="mr-2 h-4 w-4" /> Edit
+                                </Button>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button size="sm" variant="destructive_outline">
+                                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                            <AlertDialogDescription>This will permanently delete the article "{selectedArticle.title}". This action cannot be undone.</AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleDeleteArticle} className="bg-destructive hover:bg-destructive/90">Delete Article</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </div>
+                        )}
                     </div>
+                    
+                    {(isSummarizing || summary) && (
+                      <Card className="mb-6 bg-blue-50 border-blue-200">
+                        <CardHeader>
+                           <CardTitle className="text-lg flex items-center gap-2 text-blue-800"><Bot size={18}/> Resumen por IA</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {isSummarizing ? (
+                             <div className="space-y-2">
+                               <Skeleton className="h-4 w-5/6" />
+                               <Skeleton className="h-4 w-full" />
+                               <Skeleton className="h-4 w-3/4" />
+                            </div>
+                          ) : (
+                            <p className="text-sm text-blue-900 leading-relaxed whitespace-pre-wrap">{summary}</p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+
                     <MarkdownRenderer content={selectedArticle.content} />
                 </div>
             ) : null}
