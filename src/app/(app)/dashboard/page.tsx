@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { TrendingUp, TrendingDown, DollarSign, Users, Target, Percent } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Users, Target, Percent, Star, Trophy } from 'lucide-react';
 
 
 const StatCard = ({ title, value, change, icon: Icon, color, loading }: { title: string, value: string, change?: string, icon: React.ElementType, color: string, loading: boolean }) => (
@@ -194,6 +194,37 @@ export default function DashboardPage() {
             return { channel, total, sales, conversion: `${conversion.toFixed(1)}%` };
         });
     }, [filteredLeads]);
+    
+     const executiveSummary = useMemo(() => {
+        if (!filteredLeads.length || !staff) {
+            return {
+                mostProfitableChannel: 'N/A',
+                topSeller: 'N/A',
+                laggingSeller: 'N/A',
+                stageCounts: {},
+            };
+        }
+
+        const sales = filteredLeads.filter(l => l.stage === 'Ganado');
+        const channelSales = sales.reduce((acc, lead) => {
+            acc[lead.channel] = (acc[lead.channel] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+        
+        const mostProfitableChannel = Object.entries(channelSales).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
+
+        const sellerSales = sellerPerformanceData.filter(s => staff.find(st => st.id === s.id)?.role === 'Broker');
+        const topSeller = sellerSales.length > 0 ? sellerSales[0].name : 'N/A';
+        const laggingSeller = sellerSales.length > 0 ? sellerSales[sellerSales.length - 1].name : 'N/A';
+
+        const stageCounts = filteredLeads.reduce((acc, lead) => {
+            acc[lead.stage] = (acc[lead.stage] || 0) + 1;
+            return acc;
+        }, {} as Record<Lead['stage'], number>);
+        
+        return { mostProfitableChannel, topSeller, laggingSeller, stageCounts };
+
+    }, [filteredLeads, staff, sellerPerformanceData]);
 
 
     return (
@@ -339,7 +370,63 @@ export default function DashboardPage() {
                 </Card>
             </div>
 
+            <div>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Executive Summary</CardTitle>
+                        <CardDescription>Key performance indicators for the selected period.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                         {loading ? <Skeleton className="h-[200px] w-full" /> : (
+                            <Table>
+                                <TableBody>
+                                    <TableRow>
+                                        <TableCell className="font-semibold text-slate-500">Most Profitable Channel</TableCell>
+                                        <TableCell><Badge variant="secondary">{executiveSummary.mostProfitableChannel}</Badge></TableCell>
+                                        <TableCell className="font-semibold text-slate-500">Total Nuevo</TableCell>
+                                        <TableCell className="font-bold">{executiveSummary.stageCounts.Nuevo || 0}</TableCell>
+                                    </TableRow>
+                                     <TableRow>
+                                        <TableCell className="font-semibold text-slate-500">Top Seller</TableCell>
+                                        <TableCell><Badge variant="outline" className="text-green-600 border-green-300"><Trophy size={14} className="mr-1.5"/>{executiveSummary.topSeller}</Badge></TableCell>
+                                        <TableCell className="font-semibold text-slate-500">Total Calificado</TableCell>
+                                        <TableCell className="font-bold">{executiveSummary.stageCounts.Calificado || 0}</TableCell>
+                                    </TableRow>
+                                     <TableRow>
+                                        <TableCell className="font-semibold text-slate-500">Lagging Seller</TableCell>
+                                        <TableCell><Badge variant="outline" className="text-red-600 border-red-300">{executiveSummary.laggingSeller}</Badge></TableCell>
+                                        <TableCell className="font-semibold text-slate-500">Total de Citas</TableCell>
+                                        <TableCell className="font-bold">{executiveSummary.stageCounts.Citado || 0}</TableCell>
+                                    </TableRow>
+                                     <TableRow>
+                                        <TableCell></TableCell>
+                                        <TableCell></TableCell>
+                                        <TableCell className="font-semibold text-slate-500">Total en Seguimiento</TableCell>
+                                        <TableCell className="font-bold">{executiveSummary.stageCounts['En Seguimiento'] || 0}</TableCell>
+                                    </TableRow>
+                                     <TableRow>
+                                        <TableCell></TableCell>
+                                        <TableCell></TableCell>
+                                        <TableCell className="font-semibold text-slate-500">Total de Ventas</TableCell>
+                                        <TableCell className="font-bold text-green-600">{executiveSummary.stageCounts.Ganado || 0}</TableCell>
+                                    </TableRow>
+                                     <TableRow>
+                                        <TableCell></TableCell>
+                                        <TableCell></TableCell>
+                                        <TableCell className="font-semibold text-slate-500">Total Perdido</TableCell>
+                                        <TableCell className="font-bold text-red-600">{executiveSummary.stageCounts.Perdido || 0}</TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                         )}
+                    </CardContent>
+                </Card>
+            </div>
+
         </main>
     );
+
+    
+}
 
     
