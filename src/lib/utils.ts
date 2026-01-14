@@ -1,7 +1,8 @@
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { collection, addDoc, serverTimestamp, type Firestore, doc, updateDoc } from "firebase/firestore";
-import type { User } from "./types";
+import type { User, Lead } from "./types";
 
 
 export function cn(...inputs: ClassValue[]) {
@@ -56,4 +57,23 @@ export const addNoteEntry = async (
         // It's better to re-throw or handle the error in the calling component
         // than to just log it here. For now, we'll log it.
     }
+};
+
+export const createNotification = async (
+    firestore: any,
+    userId: string,
+    lead: Lead,
+    content: string,
+    author: string,
+) => {
+    const notificationsCollection = collection(firestore, 'notifications');
+    await addDoc(notificationsCollection, {
+        userId,
+        leadId: lead.id,
+        leadName: lead.name,
+        content,
+        author,
+        createdAt: serverTimestamp(),
+        read: false,
+    });
 };

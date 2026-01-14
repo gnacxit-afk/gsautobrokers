@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useState, useMemo, useEffect, Suspense } from 'react';
+import { useState, useMemo, useEffect, Suspense, useCallback } from 'react';
 import type { Appointment, Staff, Lead } from '@/lib/types';
 import { useFirestore, useUser, useCollection } from '@/firebase';
-import { collection, query, where, orderBy, type Query, type DocumentData, deleteDoc, doc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, type Query, type DocumentData, deleteDoc, doc, updateDoc, addDoc, serverTimestamp, writeBatch, getDocs } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { format, formatDistanceToNow, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -32,6 +32,10 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { AppointmentActions } from './components/appointment-actions';
+import { addNoteEntry } from '@/lib/utils';
+import { createNotification } from '@/lib/utils';
+
+const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 
 function AppointmentsContent() {
   const { user } = useAuthContext();
@@ -107,18 +111,12 @@ function AppointmentsContent() {
     
     const appointmentRef = doc(firestore, 'appointments', appointment.id);
     const leadRef = doc(firestore, 'leads', appointment.leadId);
-    const noteHistoryRef = collection(firestore, 'leads', appointment.leadId, 'noteHistory');
-
+    
     try {
         await deleteDoc(appointmentRef);
         await updateDoc(leadRef, { stage: 'En Seguimiento' });
         
-        await addDoc(noteHistoryRef, {
-            content: `Appointment for ${format(appointment.startTime.toDate(), "d MMM yyyy, p")} was canceled by ${user.name}. Stage automatically changed to "En Seguimiento".`,
-            author: 'System',
-            date: serverTimestamp(),
-            type: 'System',
-        });
+        await addNoteEntry(firestore, user, appointment.leadId, `Appointment for ${format(appointment.startTime.toDate(), "d MMM yyyy, p")} was canceled by ${user.name}. Stage automatically changed to "En Seguimiento".`, 'System');
 
         toast({
             title: 'Appointment Canceled',
@@ -133,10 +131,95 @@ function AppointmentsContent() {
         });
     }
   }
+
+  const handleUpdateStage = useCallback(async (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage']) => {
+    if (!firestore || !user) return;
+    const leadRef = doc(firestore, 'leads', leadId);
+    const lead = allLeads?.find(l => l.id === leadId);
+
+    if (!lead) return;
+    
+    const batch = writeBatch(firestore);
+
+    try {
+        batch.update(leadRef, { stage: newStage });
+
+        const appointmentsQuery = query(collection(firestore, 'appointments'), where("leadId", "==", leadId));
+        const appointmentsSnapshot = await getDocs(appointmentsQuery);
+        appointmentsSnapshot.forEach(appointmentDoc => {
+            batch.update(appointmentDoc.ref, { stage: newStage });
+        });
+
+        await batch.commit();
+
+        let noteContent = `Stage changed from '${oldStage}' to '${newStage}' by ${user.name}.`;
+        await addNoteEntry(firestore, user, leadId, noteContent, 'Stage Change');
+        
+        if (lead.ownerId !== user.id) {
+            await createNotification(
+                firestore,
+                lead.ownerId,
+                lead,
+                `Stage for lead ${lead.name} was changed to ${newStage} by ${user.name}.`,
+                user.name
+            );
+        }
+
+        toast({ title: "Stage Updated", description: `Lead stage and appointment statuses changed to ${newStage}.` });
+        
+    } catch (error) {
+         console.error("Error updating stage:", error);
+         toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
+    }
+  }, [firestore, user, toast, allLeads]);
+
+  const handleUpdateOwner = useCallback(async (leadId: string, newOwnerId: string) => {
+    if (!firestore || !user || !staff) return;
+
+    const leadDoc = allLeads?.find(l => l.id === leadId);
+    const newOwner = staff.find(s => s.id === newOwnerId);
+    if (!leadDoc || !newOwner) {
+        toast({ title: "Error", description: "Lead or new owner not found.", variant: "destructive"});
+        return;
+    }
+    const oldOwnerName = leadDoc.ownerName;
+
+    const batch = writeBatch(firestore);
+    try {
+        const leadRef = doc(firestore, 'leads', leadId);
+        batch.update(leadRef, { ownerId: newOwnerId, ownerName: newOwner.name });
+
+        const appointmentsQuery = query(collection(firestore, 'appointments'), where('leadId', '==', leadId));
+        const appointmentsSnapshot = await getDocs(appointmentsQuery);
+        appointmentsSnapshot.forEach(appointmentDoc => {
+            batch.update(appointmentDoc.ref, { ownerId: newOwnerId });
+        });
+
+        await batch.commit();
+
+        const noteContent = `Owner changed from '${oldOwnerName}' to '${newOwner.name}' by ${user.name}`;
+        await addNoteEntry(firestore, user, leadId, noteContent, 'Owner Change');
+        
+        if (newOwnerId !== user.id) {
+            await createNotification(firestore, newOwnerId, leadDoc, `You have been assigned a new lead: ${leadDoc.name}.`, user.name);
+        }
+
+        const oldOwner = staff.find(s => s.name === oldOwnerName);
+        if (oldOwner && oldOwner.id !== user.id) {
+             await createNotification(firestore, oldOwner.id, leadDoc, `Lead ${leadDoc.name} was reassigned to ${newOwner.name}.`, user.name);
+        }
+        
+        toast({ title: "Owner Updated", description: `${leadDoc.name} and all their appointments are now assigned to ${newOwner.name}.` });
+
+    } catch (error) {
+        console.error("Error updating owner and appointments:", error);
+        toast({ title: "Error", description: "Could not update lead owner and associated appointments.", variant: "destructive"});
+    }
+}, [firestore, user, staff, toast, allLeads]);
   
   const selectableStaff = useMemo(() => {
     if (!user || !staff) return [];
-    if (user.role === 'Admin') return staff;
+    if (user.role === 'Admin') return staff.filter(s => s.role !== 'Admin'); // Admins can assign to anyone but other admins
     if (user.role === 'Supervisor') {
       return staff;
     }
@@ -167,9 +250,9 @@ function AppointmentsContent() {
                                   <SelectValue placeholder="Filter by date" />
                               </SelectTrigger>
                               <SelectContent>
+                                  <SelectItem value="all">All</SelectItem>
                                   <SelectItem value="upcoming">Upcoming</SelectItem>
                                   <SelectItem value="today">Today</SelectItem>
-                                  <SelectItem value="all">All</SelectItem>
                               </SelectContent>
                           </Select>
                           {(user?.role === 'Admin' || user?.role === 'Supervisor') && selectableStaff.length > 0 && (
@@ -227,9 +310,11 @@ function AppointmentsContent() {
                                           <AppointmentActions 
                                             appointment={apt}
                                             userRole={user!.role}
+                                            allStaff={staff || []}
                                             onEdit={() => setEditingAppointment(apt)}
                                             onDelete={() => handleDelete(apt)}
-                                            onChangeOwner={() => router.push(`/leads/${apt.leadId}/notes`)}
+                                            onUpdateStage={handleUpdateStage}
+                                            onUpdateOwner={handleUpdateOwner}
                                           />
                                       </TableCell>
                                       </TableRow>
