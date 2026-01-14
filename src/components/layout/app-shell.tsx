@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState } from "react";
@@ -40,7 +39,7 @@ import { Logo } from "../icons";
 import { Loader2 } from "lucide-react";
 import { DateRangeProvider } from "@/providers/date-range-provider";
 import { Notifications } from "./notifications";
-import { ContractSigningBanner } from '../contracts/contract-signing-banner';
+import { ContractSigningBanner } from '@/components/contracts/contract-signing-banner';
 import { Avatar, AvatarFallback } from "../ui/avatar";
 
 const icons: { [key: string]: LucideIcon } = {
@@ -63,37 +62,29 @@ const icons: { [key: string]: LucideIcon } = {
   LineChart,
 };
 
-const crmNav: NavItemGroup[] = [
-  { href: "/dashboard", title: "Dashboard", icon: "LayoutDashboard", role: ["Admin", "Supervisor"] },
-  { href: "/leads", title: "Leads / CRM", icon: "PhoneCall", role: ["Admin", "Supervisor", "Broker"] },
-  { href: "/appointments", title: "Appointments", icon: "Calendar", role: ["Admin", "Supervisor", "Broker"] },
-  { href: "/todos", title: "Daily To-Do", icon: "CheckSquare", role: ["Admin", "Supervisor", "Broker"] },
-  { href: "/kpi", title: "KPI's & Performance", icon: "TrendingUp", role: ["Admin", "Supervisor", "Broker"] },
-  { href: "/knowledge", title: "Knowledge Base", icon: "BookOpen", role: ["Admin", "Supervisor", "Broker"] },
-  { href: "/staff", title: "Staff", icon: "Users", role: ["Admin", "Supervisor"] },
-  { href: "/contracts", title: "Contracts", icon: "FileText", role: ["Admin"] },
-];
-
-const recruitingNav: NavItemGroup[] = [
+const navItems: NavItemGroup[] = [
   {
-    heading: 'Candidate Pipeline',
+    heading: 'CRM',
     items: [
+      { href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard", role: ["Admin", "Supervisor"] },
+      { href: "/leads", label: "Leads / CRM", icon: "PhoneCall", role: ["Admin", "Supervisor", "Broker"] },
+      { href: "/appointments", label: "Appointments", icon: "Calendar", role: ["Admin", "Supervisor", "Broker"] },
+      { href: "/todos", label: "Daily To-Do", icon: "CheckSquare", role: ["Admin", "Supervisor", "Broker"] },
+      { href: "/kpi", label: "KPI's & Performance", icon: "TrendingUp", role: ["Admin", "Supervisor", "Broker"] },
+      { href: "/knowledge", label: "Knowledge Base", icon: "BookOpen", role: ["Admin", "Supervisor", "Broker"] },
+      { href: "/staff", label: "Staff", icon: "Users", role: ["Admin", "Supervisor"] },
+      { href: "/contracts", label: "Contracts", icon: "FileText", role: ["Admin"] },
+    ]
+  },
+  {
+    heading: 'Recruiting',
+    items: [
+      { href: '/recruiting/dashboard', label: 'Recruiting Dashboard', icon: 'LayoutDashboard' },
       { href: '/recruiting/pipeline/new', label: 'New Applicants', icon: 'UserPlus' },
       { href: '/recruiting/pipeline/pre-filter-approved', label: 'Pre-Filter Approved', icon: 'Filter' },
       { href: '/recruiting/pipeline/5-minute-filter', label: '5-Minute Filter', icon: 'Clock5' },
-    ],
-  },
-  {
-    heading: 'Onboarding Process',
-    items: [
-      { href: '/recruiting/onboarding/approved', label: 'Approved', icon: 'UserCheck' },
+      { href: '/recruiting/onboarding/approved', label: 'Approved for Onboarding', icon: 'UserCheck' },
       { href: '/recruiting/onboarding/onboarding', label: 'Onboarding', icon: 'Rocket' },
-    ],
-  },
-  {
-    heading: 'Application',
-    items: [
-      { href: '/apply', label: 'Candidate Application', icon: 'FileText', target: '_blank' },
     ],
   },
 ];
@@ -145,25 +136,7 @@ function MainNav({ items, onLinkClick }: { items: NavItemGroup[], onLinkClick?: 
                         target={item.target}
                     />
                 )
-            }) : (
-                <>
-                {
-                    (() => {
-                        const Icon = icons[group.icon!];
-                        return hasAccess(user.role, group.role) && (
-                            <NavItem 
-                                key={group.href}
-                                href={group.href!}
-                                active={pathname === group.href || (group.href !== "/" && pathname.startsWith(group.href!))}
-                                icon={<Icon size={20} />}
-                                label={group.title!}
-                                onLinkClick={onLinkClick}
-                            />
-                        )
-                    })()
-                }
-                </>
-            )}
+            }) : null }
         </div>
       ))}
     </nav>
@@ -180,7 +153,7 @@ const getAvatarFallback = (name: string) => {
 }
 
 
-function SidebarContent({ onLinkClick, navItems }: { onLinkClick?: () => void, navItems: NavItemGroup[] }) {
+function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
     const { user, logout, MASTER_ADMIN_EMAIL } = useAuthContext();
     
     if (!user) return null;
@@ -226,10 +199,10 @@ function SidebarContent({ onLinkClick, navItems }: { onLinkClick?: () => void, n
 }
 
 
-function Sidebar({ navItems }: { navItems: NavItemGroup[] }) {
+function Sidebar() {
     return (
         <aside className="w-64 bg-slate-900 text-white flex-col shrink-0 hidden lg:flex">
-           <SidebarContent navItems={navItems} />
+           <SidebarContent />
         </aside>
     );
 }
@@ -237,32 +210,22 @@ function Sidebar({ navItems }: { navItems: NavItemGroup[] }) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-
-  const navItems = pathname.startsWith('/recruiting') ? recruitingNav : crmNav;
   
   const getPageTitle = () => {
-    for (const group of navItems) {
-        if (group.items) {
-            for (const item of group.items) {
-                if (pathname.startsWith(item.href)) {
-                    return item.label;
-                }
-            }
-        } else if (group.href && pathname.startsWith(group.href)) {
-            return group.title;
-        }
-    }
+    const allItems = navItems.flatMap(g => g.items || []);
+    const currentItem = allItems.find(item => item && item.href && pathname.startsWith(item.href));
+    
+    if (currentItem) return currentItem.label;
 
-    if (pathname.startsWith('/recruiting/')) return 'Recruiting';
-    return 'CRM';
+    return 'Dashboard';
   };
 
-  const showDateFilter = !pathname.startsWith('/recruiting') && !['/kpi', '/staff', '/knowledge', '/todos', '/appointments', '/leads', '/contracts'].some(p => pathname.startsWith(p));
+  const showDateFilter = !pathname.startsWith('/kpi') && !pathname.startsWith('/staff') && !pathname.startsWith('/knowledge') && !pathname.startsWith('/todos') && !pathname.startsWith('/appointments') && !pathname.startsWith('/leads') && !pathname.startsWith('/contracts') && !pathname.startsWith('/recruiting');
 
   return (
     <DateRangeProvider>
       <div className="flex h-screen bg-gray-50 overflow-hidden font-sans text-slate-900">
-        <Sidebar navItems={navItems} />
+        <Sidebar />
         <main className="flex-1 flex flex-col overflow-hidden">
           <header className="h-16 bg-white border-b flex items-center justify-between px-4 sm:px-8 shrink-0">
             <div className="flex items-center gap-4">
@@ -277,7 +240,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <SheetHeader className="sr-only">
                       <SheetTitle>Mobile Menu</SheetTitle>
                   </SheetHeader>
-                  <SidebarContent onLinkClick={() => setIsSheetOpen(false)} navItems={navItems} />
+                  <SidebarContent onLinkClick={() => setIsSheetOpen(false)} />
                 </SheetContent>
               </Sheet>
               <h2 className="text-xl font-semibold text-slate-800 capitalize hidden sm:block">{getPageTitle()}</h2>
@@ -296,5 +259,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </DateRangeProvider>
   );
 }
-
-    
