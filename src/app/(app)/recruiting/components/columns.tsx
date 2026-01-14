@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { ColumnDef, Row } from '@tanstack/react-table';
@@ -41,7 +40,7 @@ const statusOptions: Record<PipelineStatus, PipelineStatus[]> = {
     'Approved': ['Onboarding', 'Rejected', 'Inactive'],
     'Onboarding': ['Rejected', 'Inactive'],
     'Active': ['Inactive'],
-    'Rejected': ['Inactive'],
+    'Rejected': ['Inactive', 'New Applicant'],
     'Inactive': ['Rejected', 'New Applicant'],
 };
 
@@ -61,9 +60,9 @@ const CellActions: React.FC<{ row: Row<Candidate> }> = ({ row }) => {
         try {
             const batch = writeBatch(firestore);
 
-            // If the candidate is a 'New Applicant', it exists in 'publicApplications'
-            // We need to move it to the 'candidates' collection.
-            if (candidate.pipelineStatus === 'New Applicant') {
+            // If the candidate is a 'New Applicant' and we are moving them,
+            // it means we are processing them from the public collection for the first time.
+            if (candidate.pipelineStatus === 'New Applicant' && newStatus !== 'New Applicant') {
                 const publicAppRef = doc(firestore, 'publicApplications', candidate.id);
                 const newCandidateRef = doc(firestore, 'candidates', candidate.id);
 
