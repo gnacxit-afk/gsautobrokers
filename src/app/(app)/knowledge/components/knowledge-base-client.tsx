@@ -96,7 +96,12 @@ export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseC
              <Accordion type="multiple" defaultValue={Object.keys(articlesByCategory)} className="w-full">
               {Object.entries(articlesByCategory).map(([category, articles]) => (
                 <AccordionItem value={category} key={category}>
-                  <AccordionTrigger className="text-sm font-medium hover:no-underline">{category}</AccordionTrigger>
+                  <AccordionTrigger className="text-sm font-medium hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <span>{category}</span>
+                      <span className="text-xs text-muted-foreground">({articles.length})</span>
+                    </div>
+                  </AccordionTrigger>
                   <AccordionContent>
                     <ul className="space-y-1 pl-1">
                       {articles.map((article) => (
