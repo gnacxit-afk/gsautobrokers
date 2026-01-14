@@ -47,7 +47,7 @@ export default function LoginPage() {
             <div className="flex flex-col items-center justify-center space-y-4 h-48">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
               <p className="text-center font-semibold text-muted-foreground">
-                BIENVENIDO A UN MUNDO LLENO DE OPORTUNIDADES
+                Loading...
               </p>
             </div>
           ) : (
