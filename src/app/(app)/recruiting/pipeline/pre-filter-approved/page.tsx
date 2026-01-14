@@ -1,14 +1,31 @@
 'use client';
 
+import { useMemo } from 'react';
+import { useFirestore, useCollection } from '@/firebase';
+import { collection, query, where, orderBy } from 'firebase/firestore';
+import type { Candidate } from '@/lib/types';
+import { CandidateTable } from '../../components/candidate-table';
+
 export default function PreFilterApprovedPage() {
+  const firestore = useFirestore();
+
+  const candidatesQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(
+      collection(firestore, 'candidates'),
+      where('pipelineStatus', '==', 'Pre-Filter Approved'),
+      orderBy('appliedDate', 'desc')
+    );
+  }, [firestore]);
+
+  const { data: candidates, loading } = useCollection<Candidate>(candidatesQuery);
+
   return (
-    <main className="flex-1 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Pre-Filter Approved</h1>
-      </div>
-       <div className="border border-dashed rounded-lg p-8 text-center">
-        <p className="text-muted-foreground">Pre-filter approved candidates will be displayed here.</p>
-      </div>
-    </main>
+    <CandidateTable
+      title="Pre-Filter Approved"
+      description="Candidates who passed initial screening and are ready to be scheduled for 5-minute calls."
+      candidates={candidates || []}
+      isLoading={loading}
+    />
   );
 }
