@@ -9,8 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFirestore, useUser, useCollection, useDoc } from "@/firebase";
 
-import type { Lead, NoteEntry, Staff } from "@/lib/types";
-import { collection, orderBy, query, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import type { Lead, NoteEntry, Staff, Appointment } from "@/lib/types";
+import { collection, orderBy, query, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, getDocs, writeBatch } from "firebase/firestore";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Bot, User, Edit, ArrowLeft, MoreHorizontal, Users, ChevronsUpDown, Trash2, Edit2, Save, X, Calendar } from "lucide-react";
@@ -60,6 +60,21 @@ const getColorForType = (type: NoteEntry['type']) => {
         default: return "bg-slate-100 text-slate-800";
     }
 }
+
+const mapLeadStageToAppointmentStatus = (stage: Lead['stage']): Appointment['status'] => {
+    switch (stage) {
+        case 'Ganado':
+        case 'Calificado':
+        case 'Citado':
+            return 'Hot';
+        case 'En Seguimiento':
+            return 'Warm';
+        case 'Nuevo':
+            return 'Cold';
+        default:
+            return 'Unknown';
+    }
+};
 
 export default function LeadDetailsPage() {
   const [newNote, setNewNote] = useState("");
@@ -113,11 +128,20 @@ export default function LeadDetailsPage() {
   const handleSaveChanges = async () => {
     if (!firestore || !user || !lead) return;
 
+    const batch = writeBatch(firestore);
+    const leadRef = doc(firestore, 'leads', lead.id);
+
+    const updates: Partial<Lead> = {};
     const changes: string[] = [];
+    let shouldUpdateAppointments = false;
+
     if (lead.name !== draftData.name) {
+      updates.name = draftData.name;
       changes.push(`Name changed from '${lead.name}' to '${draftData.name}'`);
+      shouldUpdateAppointments = true;
     }
     if ((lead.phone || '') !== draftData.phone) {
+      updates.phone = draftData.phone;
       changes.push(`Phone changed from '${lead.phone || 'N/A'}' to '${draftData.phone}'`);
     }
 
@@ -126,15 +150,24 @@ export default function LeadDetailsPage() {
       setIsEditing(false);
       return;
     }
-    
-    const leadRef = doc(firestore, 'leads', lead.id);
-    try {
-      await updateDoc(leadRef, { name: draftData.name, phone: draftData.phone });
 
-      const noteContent = `Lead information updated: ${changes.join('. ')}.`;
+    batch.update(leadRef, updates);
+
+    try {
+      if (shouldUpdateAppointments) {
+        const appointmentsQuery = query(collection(firestore, 'appointments'), where("leadId", "==", lead.id));
+        const appointmentsSnapshot = await getDocs(appointmentsQuery);
+        appointmentsSnapshot.forEach(appointmentDoc => {
+          batch.update(appointmentDoc.ref, { leadName: draftData.name });
+        });
+      }
+
+      await batch.commit();
+
+      const noteContent = `Lead information updated by ${user.name}: ${changes.join('. ')}.`;
       await addNoteEntry(firestore, user, lead.id, noteContent, 'System');
 
-      toast({ title: "Lead Updated", description: "The lead's information has been saved." });
+      toast({ title: "Lead Updated", description: "The lead's information and related appointments have been saved." });
       setIsEditing(false);
     } catch (error) {
       toast({ title: "Update Failed", description: "Could not save changes.", variant: "destructive" });
@@ -152,13 +185,26 @@ export default function LeadDetailsPage() {
   
   const handleUpdateStage = async (newStage: Lead['stage']) => {
     if (!firestore || !user || !lead) return;
+
+    const batch = writeBatch(firestore);
     const leadRef = doc(firestore, 'leads', leadId);
-    
+
     try {
-        await updateDoc(leadRef, { stage: newStage });
+        batch.update(leadRef, { stage: newStage });
+
+        const newAppointmentStatus = mapLeadStageToAppointmentStatus(newStage);
+        const appointmentsQuery = query(collection(firestore, 'appointments'), where("leadId", "==", lead.id));
+        const appointmentsSnapshot = await getDocs(appointmentsQuery);
+        appointmentsSnapshot.forEach(appointmentDoc => {
+            batch.update(appointmentDoc.ref, { status: newAppointmentStatus });
+        });
+        
+        await batch.commit();
+        
         let noteContent = `Stage changed from '${lead.stage}' to '${newStage}' by ${user.name}.`;
         await addNoteEntry(firestore, user, leadId, noteContent, 'Stage Change');
-        toast({ title: "Stage Updated", description: `Lead stage changed to ${newStage}.` });
+        toast({ title: "Stage Updated", description: `Lead stage and appointment statuses changed to ${newStage}.` });
+
     } catch (error) {
          toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
     }
@@ -169,12 +215,23 @@ export default function LeadDetailsPage() {
       const newOwner = staff.find(s => s.id === newOwnerId);
       if (!newOwner) return;
 
+      const batch = writeBatch(firestore);
       const leadRef = doc(firestore, 'leads', leadId);
+
       try {
-        await updateDoc(leadRef, { ownerId: newOwnerId, ownerName: newOwner.name });
+        batch.update(leadRef, { ownerId: newOwnerId, ownerName: newOwner.name });
+        
+        const appointmentsQuery = query(collection(firestore, 'appointments'), where("leadId", "==", lead.id));
+        const appointmentsSnapshot = await getDocs(appointmentsQuery);
+        appointmentsSnapshot.forEach(appointmentDoc => {
+            batch.update(appointmentDoc.ref, { ownerId: newOwnerId });
+        });
+
+        await batch.commit();
+
         const noteContent = `Owner changed from '${lead.ownerName}' to '${newOwner.name}' by ${user.name}`;
         await addNoteEntry(firestore, user, leadId, noteContent, 'Owner Change');
-        toast({ title: "Owner Updated", description: `${lead.name} is now assigned to ${newOwner.name}.` });
+        toast({ title: "Owner Updated", description: `${lead.name} and all related appointments are now assigned to ${newOwner.name}.` });
       } catch (error) {
         toast({ title: "Error", description: "Could not update lead owner.", variant: "destructive"});
       }

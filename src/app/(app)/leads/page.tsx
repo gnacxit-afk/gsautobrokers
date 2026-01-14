@@ -5,7 +5,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { getColumns } from "./components/columns";
 import { DataTable } from "@/app/(app)/leads/components/data-table";
-import type { Lead, Staff, Notification } from "@/lib/types";
+import type { Lead, Staff, Notification, Appointment } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
 import { useFirestore, useUser, useCollection } from '@/firebase';
 import { useRouter } from "next/navigation";
@@ -46,6 +46,21 @@ const createNotification = async (
         createdAt: serverTimestamp(),
         read: false,
     });
+};
+
+const mapLeadStageToAppointmentStatus = (stage: Lead['stage']): Appointment['status'] => {
+    switch (stage) {
+        case 'Ganado':
+        case 'Calificado':
+        case 'Citado':
+            return 'Hot';
+        case 'En Seguimiento':
+            return 'Warm';
+        case 'Nuevo':
+            return 'Cold';
+        default:
+            return 'Unknown';
+    }
 };
 
 
@@ -184,9 +199,20 @@ function LeadsPageContent() {
 
         if (!lead) return;
         
+        const batch = writeBatch(firestore);
+
         try {
-            await updateDoc(leadRef, { stage: newStage });
-            
+            batch.update(leadRef, { stage: newStage });
+
+            const newAppointmentStatus = mapLeadStageToAppointmentStatus(newStage);
+            const appointmentsQuery = query(collection(firestore, 'appointments'), where("leadId", "==", leadId));
+            const appointmentsSnapshot = await getDocs(appointmentsQuery);
+            appointmentsSnapshot.forEach(appointmentDoc => {
+                batch.update(appointmentDoc.ref, { status: newAppointmentStatus });
+            });
+
+            await batch.commit();
+
             let noteContent = `Stage changed from '${oldStage}' to '${newStage}' by ${user.name}.`;
             await addNoteEntry(leadId, noteContent, 'Stage Change');
             
@@ -200,7 +226,7 @@ function LeadsPageContent() {
                 );
             }
 
-            toast({ title: "Stage Updated", description: `Lead stage changed to ${newStage}.` });
+            toast({ title: "Stage Updated", description: `Lead stage and appointment statuses changed to ${newStage}.` });
             
         } catch (error) {
              console.error("Error updating stage:", error);
@@ -271,18 +297,16 @@ function LeadsPageContent() {
             return;
         }
     
+        const batch = writeBatch(firestore);
         try {
-            const batch = writeBatch(firestore);
-    
             // 1. Update the lead owner
             const leadRef = doc(firestore, 'leads', id);
             batch.update(leadRef, { ownerId: newOwnerId, ownerName: newOwnerName });
     
-            // 2. Find and update all future appointments for this lead
+            // 2. Find and update all appointments for this lead
             const appointmentsQuery = query(
                 collection(firestore, 'appointments'),
-                where('leadId', '==', id),
-                where('startTime', '>=', new Date())
+                where('leadId', '==', id)
             );
             const appointmentsSnapshot = await getDocs(appointmentsQuery);
             appointmentsSnapshot.forEach(appointmentDoc => {
@@ -290,9 +314,10 @@ function LeadsPageContent() {
                 batch.update(appointmentRef, { ownerId: newOwnerId });
             });
     
+            // 3. Commit all batched writes
             await batch.commit();
     
-            // 3. Create notifications and notes after batch commit
+            // 4. Create notifications and notes after batch commit
             const noteContent = `Owner changed from '${oldOwnerName}' to '${newOwnerName}' by ${user.name}`;
             await addNoteEntry(id, noteContent, 'Owner Change');
             
@@ -317,7 +342,7 @@ function LeadsPageContent() {
                 );
             }
             
-            toast({ title: "Owner Updated", description: `${leadDoc.name} and their future appointments are now assigned to ${newOwnerName}.` });
+            toast({ title: "Owner Updated", description: `${leadDoc.name} and all their appointments are now assigned to ${newOwnerName}.` });
     
         } catch (error) {
             console.error("Error updating owner and appointments:", error);
@@ -346,8 +371,10 @@ function LeadsPageContent() {
         sorting,
         pagination,
         expanded,
+        globalFilter,
       },
       getRowCanExpand: () => false,
+      onGlobalFilterChange: setGlobalFilter,
     });
 
     const clearAllFilters = useCallback(() => {
@@ -376,5 +403,3 @@ export default function LeadsPage() {
         <LeadsPageContent />
     )
 }
-
-    
