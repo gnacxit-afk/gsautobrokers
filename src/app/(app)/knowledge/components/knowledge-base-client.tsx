@@ -199,6 +199,7 @@ export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseC
                         <h1 className="text-3xl font-extrabold text-slate-900">{selectedArticle.title}</h1>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
                             <span>Category: <span className="font-semibold text-primary">{selectedArticle.category}</span></span>
+                             <span>By: <span className="font-semibold">{selectedArticle.author}</span></span>
                             <span>Published on: <span className="font-semibold">{renderDate(selectedArticle.date)}</span></span>
                         </div>
                          {user?.role === 'Admin' && (
