@@ -54,7 +54,7 @@ function LeadsPageContent() {
     const firestore = useFirestore();
     const { toast } = useToast();
     const { dateRange } = useDateRange();
-    router = useRouter();
+    const router = useRouter();
     
     const [sorting, setSorting] = useState<SortingState>([ { id: 'lastActivity', desc: true }]);
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 100 });
