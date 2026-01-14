@@ -109,6 +109,11 @@ function AppointmentsContent() {
   const handleDelete = async (appointment: Appointment) => {
     if (!firestore || !user) return;
     
+    // Use native browser confirmation
+    if (!window.confirm(`Are you sure you want to cancel the appointment for ${appointment.leadName}?`)) {
+        return;
+    }
+    
     const appointmentRef = doc(firestore, 'appointments', appointment.id);
     const leadRef = doc(firestore, 'leads', appointment.leadId);
     

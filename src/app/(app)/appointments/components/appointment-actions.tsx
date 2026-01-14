@@ -36,12 +36,6 @@ export function AppointmentActions({ appointment, userRole, onEdit, onDelete, on
     (s) => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin'
   );
 
-  const handleDeleteClick = () => {
-    if (window.confirm(`Are you sure you want to cancel the appointment for ${appointment.leadName}? This action cannot be undone.`)) {
-      onDelete();
-    }
-  };
-
   // Admin sees a dropdown with all options
   if (userRole === 'Admin') {
     return (
@@ -97,7 +91,7 @@ export function AppointmentActions({ appointment, userRole, onEdit, onDelete, on
           
           <DropdownMenuSeparator />
           <DropdownMenuItem 
-            onSelect={handleDeleteClick} 
+            onSelect={onDelete} 
             className="text-destructive focus:bg-destructive/10 focus:text-destructive"
           >
               <Trash2 className="mr-2 h-4 w-4" /> Delete Appointment
@@ -110,7 +104,7 @@ export function AppointmentActions({ appointment, userRole, onEdit, onDelete, on
   // Supervisor sees only the delete option
   if (userRole === 'Supervisor') {
     return (
-        <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={handleDeleteClick}>
+        <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={onDelete}>
           <Trash2 size={16} />
         </Button>
     );
