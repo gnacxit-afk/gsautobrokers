@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo } from 'react';
@@ -6,7 +7,7 @@ import { collection, query, where, orderBy } from 'firebase/firestore';
 import type { Lead, Staff } from '@/lib/types';
 import { useDateRange } from '@/hooks/use-date-range';
 import { useAuthContext } from '@/lib/auth';
-import { isWithinInterval, isValid } from 'date-fns';
+import { isWithinInterval, isValid, differenceInDays, format, getISOWeek, getMonth, getYear } from 'date-fns';
 import { calculateBonus } from '@/lib/utils';
 import { REVENUE_PER_VEHICLE, COMMISSION_PER_VEHICLE, MARGIN_PER_VEHICLE } from '@/lib/mock-data';
 import { DateRangePicker } from '@/components/layout/date-range-picker';
@@ -107,28 +108,48 @@ export default function DashboardPage() {
     }, [filteredLeads, staff]);
 
     const salesAndLeadsTrend = useMemo(() => {
-        const trendData: { name: string; leads: number; sales: number }[] = [];
-        if (filteredLeads.length === 0) return trendData;
+        if (filteredLeads.length === 0) return [];
     
-        const groupedByDay = filteredLeads.reduce((acc, lead) => {
+        const duration = differenceInDays(dateRange.end, dateRange.start);
+        let groupingFormat: (date: Date) => string;
+        let labelFormat: (date: Date) => string;
+    
+        if (duration <= 31) { // Group by day
+            groupingFormat = (date) => format(date, 'yyyy-MM-dd');
+            labelFormat = (date) => format(date, 'd MMM');
+        } else if (duration <= 180) { // Group by week
+            groupingFormat = (date) => `${getYear(date)}-${getISOWeek(date)}`;
+            labelFormat = (date) => `W${getISOWeek(date)}`;
+        } else { // Group by month
+            groupingFormat = (date) => format(date, 'yyyy-MM');
+            labelFormat = (date) => format(date, 'MMM yyyy');
+        }
+    
+        const groupedData = filteredLeads.reduce((acc, lead) => {
             const date = (lead.createdAt as any).toDate ? (lead.createdAt as any).toDate() : new Date(lead.createdAt as string);
-            const day = isValid(date) ? date.toISOString().split('T')[0] : 'Invalid Date';
-            
-            if (!acc[day]) {
-                acc[day] = { leads: 0, sales: 0 };
+            if (!isValid(date)) return acc;
+    
+            const key = groupingFormat(date);
+            if (!acc[key]) {
+                acc[key] = { name: date, leads: 0, sales: 0 };
             }
-            acc[day].leads++;
+            acc[key].leads++;
             if (lead.stage === 'Ganado') {
-                acc[day].sales++;
+                acc[key].sales++;
             }
             return acc;
-        }, {} as Record<string, { leads: number; sales: number }>);
+        }, {} as Record<string, { name: Date; leads: number; sales: number }>);
     
-        return Object.entries(groupedByDay)
-            .map(([day, data]) => ({ name: new Date(day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), ...data }))
-            .sort((a,b) => new Date(a.name).getTime() - new Date(b.name).getTime());
+        return Object.values(groupedData)
+            .map(data => ({
+                ...data,
+                name: labelFormat(data.name),
+                // Add a sortable key to keep chronological order
+                sortKey: data.name.getTime(),
+            }))
+            .sort((a, b) => a.sortKey - b.sortKey);
     
-    }, [filteredLeads]);
+    }, [filteredLeads, dateRange]);
 
 
     const sellerPerformance = useMemo(() => {
@@ -187,7 +208,7 @@ export default function DashboardPage() {
                                 <LineChart data={salesAndLeadsTrend}>
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
-                                    <YAxis fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                                    <YAxis fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} tickLine={false} axisLine={false} />
                                     <Tooltip />
                                     <Legend />
                                     <Line type="monotone" dataKey="leads" stroke="hsl(var(--primary))" strokeWidth={2} />
@@ -270,3 +291,5 @@ export default function DashboardPage() {
         </main>
     );
 }
+
+    
