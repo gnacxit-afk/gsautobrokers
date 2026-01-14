@@ -30,6 +30,59 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// This component handles the redirection logic for protected routes
+function AuthHandler({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuthContext();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Handle redirection based on auth state
+  useEffect(() => {
+    // Wait until loading is false to make a decision
+    if (loading) {
+      return;
+    }
+
+    const isAuthPage = pathname === '/login';
+
+    // If user is not logged in, redirect to login page
+    if (!user && !isAuthPage) {
+      router.push('/login');
+    }
+
+    // If user is logged in and tries to access login page, redirect to leads
+    if (user && isAuthPage) {
+      router.push('/leads');
+    }
+  }, [user, loading, router, pathname]);
+  
+  // While loading, show a full-screen loader to prevent content flash
+  if (loading) {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
+        <Logo />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Loading Application...</p>
+      </div>
+    );
+  }
+
+  // If we have a user, or if we are on the login page, render the children
+  if (user || pathname === '/login') {
+      return <>{children}</>;
+  }
+  
+  // Otherwise, show the loader while redirecting
+  return (
+      <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
+        <Logo />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Redirecting...</p>
+      </div>
+  );
+}
+
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -157,7 +210,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   return (
     <AuthContext.Provider value={value}>
-      {children}
+        <AuthHandler>
+            {children}
+        </AuthHandler>
     </AuthContext.Provider>
   );
 }
