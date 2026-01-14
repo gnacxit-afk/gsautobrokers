@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import type { ColumnDef, Row } from "@tanstack/react-table";
@@ -94,7 +93,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
                 <span>Details / Notes</span>
             </DropdownMenuItem>
 
-             <DropdownMenuItem onSelect={() => router.push(`/appointments`)}>
+             <DropdownMenuItem onSelect={() => router.push(`/appointments?leadId=${lead.id}`)}>
                 <Calendar className="mr-2 h-4 w-4" />
                 <span>Schedule Appointment</span>
             </DropdownMenuItem>
@@ -258,5 +257,3 @@ export const getColumns = (
     },
   },
 ];
-
-    
