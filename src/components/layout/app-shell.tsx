@@ -43,7 +43,6 @@ import { ContractSigningBanner } from '@/components/contracts/contract-signing-b
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { ScrollArea } from "../ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import LoginPage from "@/app/(auth)/login/page";
 
 const icons: { [key: string]: LucideIcon } = {
   LayoutDashboard,
@@ -249,8 +248,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // If not loading and still no user, the redirect is in flight.
+  // Rendering nothing prevents a flash of the app shell.
   if (!user) {
-    // While redirecting, show a loading state or nothing to prevent flicker
     return null;
   }
   
@@ -268,7 +268,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     
     if (currentItem) return currentItem.label;
 
-    // Handle special dynamic routes
     if (pathname.startsWith('/leads/')) return 'Lead Details';
     if (pathname.startsWith('/staff/')) return 'Staff Profile';
 

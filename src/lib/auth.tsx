@@ -1,17 +1,18 @@
 
-"use client";
+'use client';
 
 import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import type { Role, Staff, User } from "./types";
 import { useFirestore, useAuth } from "@/firebase";
-import { doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs, addDoc } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { 
   signInWithEmailAndPassword,
   signOut, 
   onAuthStateChanged,
   type User as FirebaseUser
 } from "firebase/auth";
+import { LoginPage } from "@/app/(auth)/login/page";
 
 export const MASTER_ADMIN_EMAIL = "gnacxit@gmail.com";
 
@@ -32,7 +33,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Start as true
 
   const firestore = useFirestore();
   const auth = useAuth();
@@ -46,19 +47,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (!querySnapshot.empty) {
         const staffDocSnap = querySnapshot.docs[0];
-        const staffData = staffDocSnap.data() as Staff;
+        const staffData = staffDocSnap.data() as Omit<Staff, 'id'>;
         return {
             id: staffDocSnap.id,
-            authUid: staffData.authUid,
-            name: staffData.name,
-            email: staffData.email,
-            avatarUrl: staffData.avatarUrl,
-            role: staffData.role,
-            dui: staffData.dui
-        };
+            ...staffData
+        } as User;
     } else if (fbUser.email === MASTER_ADMIN_EMAIL) {
-        // Special case for Master Admin on first login in a new environment
-        const newUserProfile: Omit<Staff, 'id'> = {
+        // Special case for Master Admin on first login
+        const newAdminProfile: Omit<Staff, 'id'> = {
             authUid: fbUser.uid,
             name: "Angel Nacxit Gomez Campos",
             email: fbUser.email!,
@@ -68,63 +64,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             avatarUrl: '',
             dui: "04451625-5",
         };
-        const docRef = await addDoc(staffCollection, newUserProfile);
+        const docRef = await addDoc(staffCollection, newAdminProfile);
         return {
             id: docRef.id,
-            ...newUserProfile
+            ...newAdminProfile
         } as User;
     }
     
-    console.error("User profile not found in database for UID:", fbUser.uid);
+    console.error("User profile not found for UID:", fbUser.uid);
     return null;
   }, [firestore]);
 
  useEffect(() => {
-    if (!auth) {
-        setLoading(false);
-        return;
+    if (!auth || !firestore) {
+      // If services aren't ready, we can't determine auth state.
+      // Depending on requirements, you might want to set loading to false here
+      // or wait. For now, we wait.
+      return;
     }
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      try {
-        if (firebaseUser) {
+      setLoading(true);
+      if (firebaseUser) {
+        try {
           const userProfile = await fetchAppUser(firebaseUser);
           setUser(userProfile);
-        } else {
+          setAuthError(null);
+        } catch (error: any) {
+          console.error("Failed to fetch app user profile:", error);
+          setAuthError(error.message);
           setUser(null);
+          // Consider logging out the firebase user if profile is critical
+          await signOut(auth);
         }
-      } catch (error: any) {
-        console.error("Auth state change error:", error);
-        setAuthError(error.message);
+      } else {
         setUser(null);
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     });
+
     return () => unsubscribe();
-  }, [auth, fetchAppUser]);
+  }, [auth, firestore, fetchAppUser]);
 
   const login = useCallback(async (email: string, pass: string): Promise<void> => {
     if (!auth) {
-        setAuthError("Authentication service is not available.");
+        setAuthError("Authentication service not available.");
         return;
     }
     setLoading(true);
     setAuthError(null);
     try {
         await signInWithEmailAndPassword(auth, email, pass);
-        // The onAuthStateChanged listener will handle setting the user and final loading state.
+        // onAuthStateChanged will handle the rest
     } catch (error: any) {
-        console.error("Firebase Sign-In Error Code:", error.code); // For your debugging
-        let friendlyMessage = "An unexpected error occurred. Please try again.";
+        let friendlyMessage = "An unexpected error occurred.";
         switch (error.code) {
             case 'auth/user-not-found':
-                friendlyMessage = "No account found with this email address.";
-                break;
             case 'auth/wrong-password':
-                friendlyMessage = "Incorrect password. Please try again.";
-                break;
             case 'auth/invalid-credential':
-                friendlyMessage = "Invalid credentials. Please check your email and password.";
+                friendlyMessage = "Invalid email or password.";
                 break;
             case 'auth/invalid-email':
                 friendlyMessage = "The email address is not valid.";
@@ -132,15 +130,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         setAuthError(friendlyMessage);
         setUser(null);
-        setLoading(false); // Set loading to false on login failure.
+        setLoading(false);
     }
   }, [auth]);
 
   const logout = useCallback(async () => {
     if (!auth) return;
-    setUser(null); // Immediately clear the user to update the UI
+    setLoading(true);
+    setUser(null);
     await signOut(auth);
-    // The onAuthStateChanged listener will confirm the user is null and loading is false.
+    setLoading(false);
   }, [auth]);
 
   const setUserRole = useCallback((role: Role) => {

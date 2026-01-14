@@ -7,6 +7,8 @@ export default function AppLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // AuthProvider is already in the root layout.
+  // This layout's primary job is to establish the AppShell for protected routes.
   return (
       <AppShell>
         {children}
