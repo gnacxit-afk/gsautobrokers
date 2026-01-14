@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { Lead } from '@/lib/types';
 import { useFirestore, useUser, useCollection } from '@/firebase';
 import { collection, addDoc, serverTimestamp, query, orderBy, where, doc, updateDoc } from 'firebase/firestore';
@@ -26,9 +26,10 @@ import { es } from 'date-fns/locale';
 
 interface NewAppointmentFormProps {
   onAppointmentAdded: () => void;
+  preselectedLead?: Lead | null;
 }
 
-export function NewAppointmentForm({ onAppointmentAdded }: NewAppointmentFormProps) {
+export function NewAppointmentForm({ onAppointmentAdded, preselectedLead }: NewAppointmentFormProps) {
   const { user } = useAuthContext();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -37,6 +38,12 @@ export function NewAppointmentForm({ onAppointmentAdded }: NewAppointmentFormPro
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [time, setTime] = useState('09:00');
   const [open, setOpen] = useState(false);
+  
+  useEffect(() => {
+    if (preselectedLead) {
+        setSelectedLead(preselectedLead);
+    }
+  }, [preselectedLead]);
 
   const leadsQuery = useMemo(() => {
     if (!firestore || !user) return null;
@@ -59,9 +66,6 @@ export function NewAppointmentForm({ onAppointmentAdded }: NewAppointmentFormPro
     }
 
     const [hours, minutes] = time.split(':').map(Number);
-    // CRITICAL FIX: Replace dashes with slashes to force local time zone interpretation
-    // new Date('2024-07-20') might be interpreted as UTC, leading to the previous day in some timezones.
-    // new Date('2024/07/20') is consistently interpreted as local time.
     const appointmentTime = new Date(date.replace(/-/g, '/'));
     appointmentTime.setHours(hours, minutes, 0, 0);
 
@@ -72,16 +76,14 @@ export function NewAppointmentForm({ onAppointmentAdded }: NewAppointmentFormPro
         leadName: selectedLead.name,
         startTime: appointmentTime,
         endTime: addMinutes(appointmentTime, 30),
-        ownerId: selectedLead.ownerId, // The appointment owner is the lead's owner
+        ownerId: selectedLead.ownerId, 
         status: 'Warm',
       });
 
-      // Automatically update lead stage to "Citado" if it isn't already
       if (selectedLead.stage !== 'Citado') {
           const leadRef = doc(firestore, 'leads', selectedLead.id);
           await updateDoc(leadRef, { stage: 'Citado' });
 
-          // Add a note to the lead's history for the stage change
           const noteHistoryRef = collection(firestore, 'leads', selectedLead.id, 'noteHistory');
           await addDoc(noteHistoryRef, {
               content: `Stage automatically changed to "Citado" upon scheduling an appointment.`,
@@ -91,7 +93,6 @@ export function NewAppointmentForm({ onAppointmentAdded }: NewAppointmentFormPro
           });
       }
       
-      // Also add a note for the appointment itself
       const noteHistoryRef = collection(firestore, 'leads', selectedLead.id, 'noteHistory');
       await addDoc(noteHistoryRef, {
           content: `Appointment scheduled by ${user.name} for ${format(appointmentTime, "eeee, d 'de' MMMM 'at' p", { locale: es })}.`,
@@ -136,7 +137,7 @@ export function NewAppointmentForm({ onAppointmentAdded }: NewAppointmentFormPro
                 role="combobox"
                 aria-expanded={open}
                 className="w-full justify-between"
-                disabled={leadsLoading}
+                disabled={leadsLoading || !!preselectedLead}
               >
                 {selectedLead
                   ? selectedLead.name

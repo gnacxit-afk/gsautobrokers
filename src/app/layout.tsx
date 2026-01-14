@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
 import { Providers } from "./providers";
+import { Suspense } from "react";
 
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -33,7 +34,9 @@ export default function RootLayout({
         )}
       >
         <Providers>
-          {children}
+            <Suspense>
+                {children}
+            </Suspense>
         </Providers>
         <Toaster />
       </body>

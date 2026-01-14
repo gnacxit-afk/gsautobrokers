@@ -1,8 +1,9 @@
 
+
 'use client';
 
-import { useState, useMemo } from 'react';
-import type { Appointment, Staff } from '@/lib/types';
+import { useState, useMemo, useEffect, Suspense } from 'react';
+import type { Appointment, Staff, Lead } from '@/lib/types';
 import { useFirestore, useUser, useCollection } from '@/firebase';
 import { collection, query, where, orderBy, type Query, type DocumentData, deleteDoc, doc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -41,23 +42,22 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
-export default function AppointmentsPage() {
+function AppointmentsContent() {
   const { user } = useAuthContext();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
 
-  // Default to showing upcoming appointments to avoid timezone issues with 'today'
   const [dateFilter, setDateFilter] = useState('upcoming');
   const [ownerFilter, setOwnerFilter] = useState('all');
+  
+  const preselectedLeadId = searchParams.get('leadId');
 
   const appointmentsQuery = useMemo(() => {
-    // FIX: Wait for both firestore and user to be loaded.
     if (!firestore || !user) return null;
-
     const constraints = [];
-    
-    // Date filtering
     const now = new Date();
     if (dateFilter === 'today') {
       const start = startOfDay(now);
@@ -67,21 +67,14 @@ export default function AppointmentsPage() {
     } else if (dateFilter === 'upcoming') {
        constraints.push(where('startTime', '>=', now));
     }
-
-    // Owner filtering based on role
     if (ownerFilter !== 'all') {
         constraints.push(where('ownerId', '==', ownerFilter));
     } else {
          if (user.role === 'Broker') {
             constraints.push(where('ownerId', '==', user.id));
-         } else if (user.role === 'Supervisor') {
-            // In a real app, this would require fetching the supervisor's team, which adds complexity.
-            // For now, supervisors see all, or can filter to a specific user.
          }
     }
-    
     constraints.push(orderBy('startTime', 'asc'));
-
     return query(collection(firestore, 'appointments'), ...constraints);
   }, [firestore, dateFilter, ownerFilter, user]);
 
@@ -89,14 +82,24 @@ export default function AppointmentsPage() {
     if (!firestore) return null;
     return query(collection(firestore, 'staff'), orderBy('name', 'asc'));
   }, [firestore]);
-
+  
+  const allLeadsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'leads');
+  }, [firestore]);
 
   const { data: appointments, loading } = useCollection<Appointment>(appointmentsQuery as Query<DocumentData> | null);
   const { data: staff, loading: staffLoading } = useCollection<Staff>(staffQuery);
+  const { data: allLeads, loading: leadsLoading } = useCollection<Lead>(allLeadsQuery);
+
+  const preselectedLead = useMemo(() => {
+    if (!preselectedLeadId || !allLeads) return null;
+    return allLeads.find(lead => lead.id === preselectedLeadId) || null;
+  }, [preselectedLeadId, allLeads]);
+
 
   const handleAppointmentAdded = () => {
     // The useCollection hook will automatically update the list.
-    // This function can be used for any additional logic after creation.
   };
 
   const handleDelete = async (appointment: Appointment) => {
@@ -135,7 +138,6 @@ export default function AppointmentsPage() {
     if (!user || !staff) return [];
     if (user.role === 'Admin') return staff;
     if (user.role === 'Supervisor') {
-      // In a real app, you'd filter this list to just the supervisor's team.
       return staff;
     }
     return [];
@@ -149,7 +151,10 @@ export default function AppointmentsPage() {
 
       <div className="space-y-8">
         <div>
-          <NewAppointmentForm onAppointmentAdded={handleAppointmentAdded} />
+          <NewAppointmentForm 
+            onAppointmentAdded={handleAppointmentAdded} 
+            preselectedLead={preselectedLead}
+          />
         </div>
         <div>
             <Card className="shadow-sm">
@@ -257,4 +262,12 @@ export default function AppointmentsPage() {
       </div>
     </main>
   );
+}
+
+export default function AppointmentsPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <AppointmentsContent />
+        </Suspense>
+    )
 }
