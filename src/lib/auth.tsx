@@ -86,21 +86,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
     }
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-        try {
-            if (firebaseUser) {
-                const userProfile = await fetchAppUser(firebaseUser);
-                setUser(userProfile);
-            } else {
-                setUser(null);
-            }
-        } catch (error: any) {
-            console.error("Auth state change error:", error);
-            setAuthError(error.message);
-            setUser(null);
-        } finally {
-            // This is the crucial change: setLoading(false) is now guaranteed to run.
-            setLoading(false);
+      try {
+        if (firebaseUser) {
+          const userProfile = await fetchAppUser(firebaseUser);
+          setUser(userProfile);
+        } else {
+          setUser(null);
         }
+      } catch (error: any) {
+        console.error("Auth state change error:", error);
+        setAuthError(error.message);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
     });
     return () => unsubscribe();
   }, [auth, fetchAppUser]);
@@ -116,7 +115,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await signInWithEmailAndPassword(auth, email, pass);
         // The onAuthStateChanged listener will handle setting the user and final loading state.
     } catch (error: any) {
-        setAuthError(error.message);
+        console.error("Firebase Sign-In Error Code:", error.code); // For your debugging
+        let friendlyMessage = "An unexpected error occurred. Please try again.";
+        switch (error.code) {
+            case 'auth/user-not-found':
+                friendlyMessage = "No account found with this email address.";
+                break;
+            case 'auth/wrong-password':
+                friendlyMessage = "Incorrect password. Please try again.";
+                break;
+            case 'auth/invalid-credential':
+                friendlyMessage = "Invalid credentials. Please check your email and password.";
+                break;
+            case 'auth/invalid-email':
+                friendlyMessage = "The email address is not valid.";
+                break;
+        }
+        setAuthError(friendlyMessage);
         setLoading(false); // Set loading to false on login failure.
     }
   }, [auth]);
