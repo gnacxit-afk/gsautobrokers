@@ -12,9 +12,9 @@ import { calculateBonus, COMMISSION_PER_VEHICLE } from '@/lib/utils';
 import { DateRangePicker } from '@/components/layout/date-range-picker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { BonusStatus } from '@/app/(app)/kpi/components/bonus-status';
-import { KpiClient } from '@/app/(app)/kpi/components/kpi-client';
-import { PerformanceDashboard } from '@/app/(app)/kpi/components/performance-dashboard';
+import { BonusStatus } from '../kpi/components/bonus-status';
+import { KpiClient } from '../kpi/components/kpi-client';
+import { PerformanceDashboard } from '../kpi/components/performance-dashboard';
 import { useDoc } from '@/firebase';
 
 const StatCard = ({ label, value, color }: { label: string, value: string | number, color: string }) => {
@@ -259,5 +259,3 @@ export default function DashboardPage() {
     
     return <AdminSupervisorDashboard />;
 }
-
-    
