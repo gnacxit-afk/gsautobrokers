@@ -196,7 +196,7 @@ export function ApplicationForm() {
               name="comfortableWithSales"
               render={({ field }) => (
                 <FormItem className="space-y-3">
-                  <FormLabel>¿Te sientes cómodo en un rol de ventas 100% basado en comisiones?</FormLabel>
+                  <FormLabel>¿Te sientes cómodo en un rol 100% basado en comisiones?</FormLabel>
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
