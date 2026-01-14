@@ -12,7 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Trash2, Plus, ChevronsUpDown, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
 import {
   Popover,
@@ -96,7 +96,10 @@ export function TodoList({ initialTodos, loading, userLeads, allStaff }: TodoLis
         if (a.completed !== b.completed) {
             return a.completed ? 1 : -1;
         }
-        return (b.createdAt?.toDate() as any) - (a.createdAt?.toDate() as any);
+        // Handle cases where createdAt might be null during local optimistic updates
+        const dateA = a.createdAt?.toDate ? (a.createdAt as any).toDate() : new Date();
+        const dateB = b.createdAt?.toDate ? (b.createdAt as any).toDate() : new Date();
+        return dateB.getTime() - dateA.getTime();
     });
   }, [initialTodos]);
 
@@ -187,7 +190,10 @@ export function TodoList({ initialTodos, loading, userLeads, allStaff }: TodoLis
                     </label>
                     <div className="text-xs text-muted-foreground mt-1 flex items-center gap-4">
                         <span>
-                            Added {formatDistanceToNow(todo.createdAt.toDate(), { addSuffix: true })}
+                           {todo.createdAt?.toDate && isValid(todo.createdAt.toDate())
+                                ? `Added ${formatDistanceToNow(todo.createdAt.toDate(), { addSuffix: true })}`
+                                : 'Adding...'
+                            }
                         </span>
                         {todo.leadId && (
                             <Link href={`/leads/${todo.leadId}/notes`} className="text-blue-600 hover:underline">
