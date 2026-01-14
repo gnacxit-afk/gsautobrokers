@@ -179,8 +179,11 @@ export function ApplicationForm() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="full-time">Tiempo Completo (40+ horas/semana)</SelectItem>
-                      <SelectItem value="part-time">Tiempo Parcial (20-30 horas/semana)</SelectItem>
+                      <SelectItem value="1">1 hora</SelectItem>
+                      <SelectItem value="2">2 horas</SelectItem>
+                      <SelectItem value="3">3 horas</SelectItem>
+                      <SelectItem value="4">4 horas</SelectItem>
+                      <SelectItem value="5+">+5 horas</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
