@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser } from '@/firebase';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import type { Staff, Role } from '@/lib/types';
 import { Eye, EyeOff } from 'lucide-react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -61,9 +61,11 @@ export function NewStaffDialog({ children }: { children: React.ReactNode }) {
     }
     
     try {
+      // 1. Create the Firebase Auth user
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const authUser = userCredential.user;
 
+      // 2. Create the staff profile in Firestore using the Auth UID as the document ID
       const newStaffMember: Omit<Staff, 'id'> = {
         authUid: authUser.uid,
         name: data.name,
@@ -74,8 +76,9 @@ export function NewStaffDialog({ children }: { children: React.ReactNode }) {
         hireDate: serverTimestamp(),
         avatarUrl: '', // Default avatar
       };
-
-      await addDoc(collection(firestore, 'staff'), newStaffMember);
+      
+      const staffDocRef = doc(firestore, 'staff', authUser.uid);
+      await setDoc(staffDocRef, newStaffMember);
 
       toast({
         title: 'Employee Registered',
