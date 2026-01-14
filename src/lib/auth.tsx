@@ -12,7 +12,6 @@ import {
   onAuthStateChanged,
   type User as FirebaseUser
 } from "firebase/auth";
-import { LoginPage } from "@/app/(auth)/login/page";
 
 export const MASTER_ADMIN_EMAIL = "gnacxit@gmail.com";
 
@@ -33,10 +32,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true); // Start as true
+  const [loading, setLoading] = useState(true);
 
   const firestore = useFirestore();
   const auth = useAuth();
+  const router = useRouter();
   
   const fetchAppUser = useCallback(async (fbUser: FirebaseUser): Promise<User | null> => {
     if (!firestore) throw new Error("Firestore not initialized");
@@ -77,9 +77,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
  useEffect(() => {
     if (!auth || !firestore) {
-      // If services aren't ready, we can't determine auth state.
-      // Depending on requirements, you might want to set loading to false here
-      // or wait. For now, we wait.
       return;
     }
 
@@ -94,7 +91,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error("Failed to fetch app user profile:", error);
           setAuthError(error.message);
           setUser(null);
-          // Consider logging out the firebase user if profile is critical
           await signOut(auth);
         }
       } else {
@@ -111,11 +107,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAuthError("Authentication service not available.");
         return;
     }
-    setLoading(true);
+    // We don't set loading to true here because onAuthStateChanged will handle it.
     setAuthError(null);
     try {
         await signInWithEmailAndPassword(auth, email, pass);
-        // onAuthStateChanged will handle the rest
+        // onAuthStateChanged will trigger, fetch the user, and then set loading to false.
     } catch (error: any) {
         let friendlyMessage = "An unexpected error occurred.";
         switch (error.code) {
@@ -130,17 +126,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         setAuthError(friendlyMessage);
         setUser(null);
-        setLoading(false);
     }
   }, [auth]);
 
   const logout = useCallback(async () => {
     if (!auth) return;
-    setLoading(true);
-    setUser(null);
     await signOut(auth);
-    setLoading(false);
-  }, [auth]);
+    setUser(null);
+    router.push('/login');
+  }, [auth, router]);
 
   const setUserRole = useCallback((role: Role) => {
     if (user && user.email === MASTER_ADMIN_EMAIL) {
