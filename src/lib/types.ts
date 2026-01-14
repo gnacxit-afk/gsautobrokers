@@ -177,8 +177,8 @@ export type Candidate = {
   fullName: string;
   email: string;
   pipelineStatus: PipelineStatus;
-  appliedDate: Timestamp | string;
-  lastStatusChangeDate: Timestamp | string;
+  appliedDate: Timestamp | string | Date;
+  lastStatusChangeDate: Timestamp | string | Date;
   approvedBy?: string; // Recruiter's name or ID
   avatarUrl?: string;
   source?: string;

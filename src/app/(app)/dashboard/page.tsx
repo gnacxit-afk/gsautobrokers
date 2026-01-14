@@ -44,8 +44,8 @@ export default function RecruitingDashboard() {
         const approvedOrBetter = candidates.filter(c => ['Approved', 'Onboarding', 'Active'].includes(c.pipelineStatus));
         const activeCandidates = candidates.filter(c => c.pipelineStatus === 'Active');
 
-        const approvalPercentage = (approvedOrBetter.length / totalCandidates) * 100;
-        const activationPercentage = (activeCandidates.length / totalCandidates) * 100;
+        const approvalPercentage = totalCandidates > 0 ? (approvedOrBetter.length / totalCandidates) * 100 : 0;
+        const activationPercentage = totalCandidates > 0 ? (activeCandidates.length / totalCandidates) * 100 : 0;
 
         const activationTimes = activeCandidates
             .map(c => {
@@ -62,7 +62,7 @@ export default function RecruitingDashboard() {
             ? activationTimes.reduce((a, b) => a + b, 0) / activationTimes.length
             : 0;
 
-        const pipelineStatusOrder = ['New Applicant', 'Pre-Filter', '5-Minute Filter', 'Approved', 'Onboarding', 'Active', 'Rejected'];
+        const pipelineStatusOrder = ['New Applicant', 'Pre-Filter Approved', '5-Minute Filter', 'Approved', 'Onboarding', 'Active', 'Rejected'];
         const pipelineCounts = candidates.reduce((acc, c) => {
             acc[c.pipelineStatus] = (acc[c.pipelineStatus] || 0) + 1;
             return acc;
@@ -88,9 +88,11 @@ export default function RecruitingDashboard() {
 
         let topRecruiter = { name: 'N/A', conversionRate: 0 };
         Object.entries(recruiters).forEach(([name, data]) => {
-            const conversionRate = (data.active / data.total) * 100;
-            if (conversionRate > topRecruiter.conversionRate) {
-                topRecruiter = { name, conversionRate };
+            if (data.total > 0) {
+                const conversionRate = (data.active / data.total) * 100;
+                if (conversionRate > topRecruiter.conversionRate) {
+                    topRecruiter = { name, conversionRate };
+                }
             }
         });
 
