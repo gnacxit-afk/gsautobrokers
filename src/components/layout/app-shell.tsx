@@ -1,9 +1,9 @@
 
 'use client';
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
@@ -25,6 +25,7 @@ import {
   Target,
   Building,
   LineChart,
+  Loader2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -219,7 +220,34 @@ function Sidebar() {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, loading } = useAuthContext();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
+        <Logo />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Loading Application...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    // This can be a simple loading state or null, as the useEffect will redirect.
+    return (
+        <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
+            <p className="text-muted-foreground">Redirecting to login...</p>
+        </div>
+    );
+  }
   
   const getPageTitle = () => {
     const allItems = navItems.flatMap(g => g.items || []);
