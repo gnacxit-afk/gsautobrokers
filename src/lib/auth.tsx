@@ -119,9 +119,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const publicPages = ['/login', '/apply'];
     const isPublicPage = publicPages.includes(pathname);
 
+    // If the user is not logged in and not on a public page, redirect to login.
     if (!user && !isPublicPage) {
       router.push('/login');
-    } else if (user && isPublicPage) {
+    } 
+    // If the user IS logged in and trying to access the LOGIN page, redirect to leads.
+    // This allows logged-in users to visit other public pages like /apply.
+    else if (user && pathname === '/login') {
        router.push('/leads');
     }
   }, [user, loading, pathname, router]);
