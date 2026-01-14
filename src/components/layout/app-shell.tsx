@@ -70,7 +70,7 @@ const navItems: NavItemGroup[] = [
   {
     heading: 'CRM',
     items: [
-      { href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard", role: ["Admin", "Supervisor"] },
+      { href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard", role: ["Admin"] },
       { href: "/leads", label: "Leads / CRM", icon: "PhoneCall", role: ["Admin", "Supervisor", "Broker"] },
       { href: "/appointments", label: "Appointments", icon: "Calendar", role: ["Admin", "Supervisor", "Broker"] },
       { href: "/todos", label: "Daily To-Do", icon: "CheckSquare", role: ["Admin", "Supervisor", "Broker"] },
