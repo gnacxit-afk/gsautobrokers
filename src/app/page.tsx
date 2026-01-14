@@ -1,11 +1,10 @@
 
-
 'use client';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
-// This is a temporary component to redirect users from the root to the /crm/dashboard
+// This component redirects users from the root path to the default CRM dashboard.
 export default function RootPage() {
   const router = useRouter();
 
@@ -19,6 +18,3 @@ export default function RootPage() {
     </div>
   );
 }
-
-
-    
