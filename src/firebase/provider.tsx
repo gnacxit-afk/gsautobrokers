@@ -5,7 +5,6 @@ import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
-import { app, auth, firestore } from '@/firebase';
 
 export interface FirebaseContextState {
   firebaseApp: FirebaseApp;
@@ -15,15 +14,23 @@ export interface FirebaseContextState {
 
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
-export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({
-  children,
+interface FirebaseProviderProps {
+  children: ReactNode;
+  firebaseApp: FirebaseApp;
+  firestore: Firestore;
+  auth: Auth;
+}
+
+export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ 
+  children, 
+  firebaseApp, 
+  firestore, 
+  auth 
 }) => {
-  // The services are now initialized directly in the index file and imported.
-  // This ensures they are singletons and available synchronously.
   const contextValue = {
-    firebaseApp: app,
-    firestore: firestore,
-    auth: auth,
+    firebaseApp,
+    firestore,
+    auth,
   };
 
   return (
