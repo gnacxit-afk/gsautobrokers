@@ -1,7 +1,6 @@
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { collection, addDoc, serverTimestamp, type Firestore } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, type Firestore, doc } from "firebase/firestore";
 import type { User } from "./types";
 
 
@@ -35,12 +34,24 @@ export const addNoteEntry = async (
     type: 'Manual' | 'Stage Change' | 'Owner Change' | 'System' | 'AI Analysis'
 ) => {
     if (!firestore || !user) return;
-    const noteHistoryRef = collection(firestore, 'leads', leadId, 'noteHistory');
     
-    await addDoc(noteHistoryRef, {
-        content,
-        author: user.name,
-        date: serverTimestamp(),
-        type,
-    });
+    try {
+        const noteHistoryRef = collection(firestore, 'leads', leadId, 'noteHistory');
+        await addDoc(noteHistoryRef, {
+            content,
+            author: user.name,
+            date: serverTimestamp(),
+            type,
+        });
+
+        const leadRef = doc(firestore, 'leads', leadId);
+        await addDoc(collection(leadRef, 'noteHistory'), {
+          content,
+          author: user.name,
+          date: serverTimestamp(),
+          type,
+        });
+    } catch (error) {
+        console.error("Error adding note entry:", error);
+    }
 };

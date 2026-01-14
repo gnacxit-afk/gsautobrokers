@@ -7,27 +7,56 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 
 function MarkdownRenderer({ content }: { content: string }) {
-  const renderLine = (line: string, index: number) => {
-    if (line.startsWith('# ')) return <h1 key={index} className="text-3xl font-bold mt-6 mb-3">{line.substring(2)}</h1>;
-    if (line.startsWith('## ')) return <h2 key={index} className="text-2xl font-semibold mt-5 mb-2">{line.substring(3)}</h2>;
-    if (line.startsWith('### ')) return <h3 key={index} className="text-xl font-semibold mt-4 mb-1">{line.substring(4)}</h3>;
-    if (line.trim() === '---') return <hr key={index} className="my-6" />;
-    if (line.startsWith('- ')) return <li key={index} className="ml-5 list-disc">{line.substring(2)}</li>;
-    return <p key={index}>{line}</p>;
-  };
+    if (!content) return null;
 
-  return (
-    <div className="prose prose-slate max-w-none whitespace-pre-wrap space-y-3">
-      {content.split('\n').map(renderLine)}
-    </div>
-  );
+    const renderMarkdown = (text: string) => {
+        let html = text
+            .replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mt-4 mb-1">$1</h3>')
+            .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-semibold mt-5 mb-2">$1</h2>')
+            .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mt-6 mb-3">$1</h1>')
+            .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/~~(.*?)~~/g, '<del>$1</del>')
+            .replace(/!\[([^\]]+)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="max-w-full h-auto my-4 rounded-md shadow-sm" />')
+            .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">$1</a>')
+            .replace(/^(-{3,}|\*{3,})$/gm, '<hr class="my-6" />');
+
+        html = html.replace(/^( *[-*+] .*\n?)+/gm, (match) => {
+            const items = match.split('\n').filter(Boolean).map(item =>
+                `<li>${item.replace(/ *[-*+] /, '')}</li>`
+            ).join('');
+            return `<ul class="list-disc pl-5 space-y-1">${items}</ul>`;
+        });
+
+        html = html.replace(/^( *\d+\. .*\n?)+/gm, (match) => {
+            const items = match.split('\n').filter(Boolean).map(item =>
+                `<li>${item.replace(/ *\d+\. /, '')}</li>`
+            ).join('');
+            return `<ol class="list-decimal pl-5 space-y-1">${items}</ol>`;
+        });
+
+        html = html.replace(/^(?!<[h1-3|ul|ol|li|hr|img|a]).*$/gm, (match) => {
+             if (match.trim() === '') return '';
+             return `<p class="text-slate-700 leading-relaxed">${match}</p>`;
+        })
+        .replace(/<p><\/p>/g, '');
+
+        return { __html: html };
+    };
+
+    return (
+        <div
+            className="prose prose-slate max-w-none space-y-4"
+            dangerouslySetInnerHTML={renderMarkdown(content)}
+        />
+    );
 }
 
 interface ContractSigningModalProps {
@@ -51,14 +80,12 @@ export function ContractSigningModal({ isOpen, onClose, contract }: ContractSign
     
     setIsSigning(true);
     try {
-        // Fetch the user's IP address from our API endpoint
         const ipResponse = await fetch('/api/ip');
         if (!ipResponse.ok) {
           throw new Error('Could not verify your location.');
         }
         const { ip } = await ipResponse.json();
 
-        // Create a new signature document directly on the client
         const signaturesCollection = collection(firestore, "signatures");
         const signatureData = {
           userId: user.id,

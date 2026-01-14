@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { useFirestore, useUser } from '@/firebase';
 import { doc, updateDoc, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { addNoteEntry } from '@/lib/utils';
 import { createContractEvent } from './utils';
 
 interface ContractsClientProps {
@@ -35,7 +34,6 @@ export function ContractsClient({
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isActivating, setIsActivating] = useState(false);
-  const [isArchiving, setIsArchiving] = useState(false);
 
   const signedStaff = useMemo(() => {
     return signatures.map(sig => {
