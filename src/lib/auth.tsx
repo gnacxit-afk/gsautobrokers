@@ -39,58 +39,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchAppUser = useCallback(async (fbUser: FirebaseUser): Promise<User | null> => {
     if (!firestore) throw new Error("Firestore not initialized");
 
-    try {
-        const staffCollection = collection(firestore, 'staff');
-        let q = query(staffCollection, where("authUid", "==", fbUser.uid));
-        
-        const querySnapshot = await getDocs(q);
+    const staffCollection = collection(firestore, 'staff');
+    let q = query(staffCollection, where("authUid", "==", fbUser.uid));
+    
+    const querySnapshot = await getDocs(q);
 
-        if (!querySnapshot.empty) {
-            const staffDoc = querySnapshot.docs[0];
-            const staffData = staffDoc.data() as Staff;
-            
-            if (staffData.email === MASTER_ADMIN_EMAIL) {
-                if (staffData.authUid !== fbUser.uid) {
-                    await setDoc(doc(firestore, "staff", staffDoc.id), { authUid: fbUser.uid }, { merge: true });
-                }
-            }
-            
-            return {
-                id: staffDoc.id,
-                authUid: staffData.authUid,
-                name: staffData.name,
-                email: staffData.email,
-                avatarUrl: staffData.avatarUrl,
-                role: staffData.role,
-                dui: staffData.dui
-            };
-        } else {
-             if (fbUser.email === MASTER_ADMIN_EMAIL) {
-                 const newUserProfile: Omit<Staff, 'id'> = {
-                     authUid: fbUser.uid,
-                     name: "Angel Nacxit Gomez Campos",
-                     email: fbUser.email!,
-                     role: 'Admin',
-                     createdAt: serverTimestamp(),
-                     hireDate: serverTimestamp(),
-                     avatarUrl: '',
-                     dui: "04451625-5",
-                 };
-                 const docRef = await addDoc(staffCollection, newUserProfile);
-                 return { id: docRef.id, ...newUserProfile } as User;
-             }
-             // Do not throw here, just return null and let the caller handle it.
-             setAuthError("User profile not found in database.");
-             if (auth) await signOut(auth); // Sign out if profile is missing
-             return null;
+    if (!querySnapshot.empty) {
+        const staffDoc = querySnapshot.docs[0];
+        const staffData = staffDoc.data() as Staff;
+        
+        if (staffData.email === MASTER_ADMIN_EMAIL && staffData.authUid !== fbUser.uid) {
+            await setDoc(doc(firestore, "staff", staffDoc.id), { authUid: fbUser.uid }, { merge: true });
         }
-    } catch (error: any) {
-        console.error("Error fetching or validating user document:", error);
-        setAuthError(error.message);
-        if(auth) await signOut(auth);
-        return null;
+        
+        return {
+            id: staffDoc.id,
+            authUid: staffData.authUid,
+            name: staffData.name,
+            email: staffData.email,
+            avatarUrl: staffData.avatarUrl,
+            role: staffData.role,
+            dui: staffData.dui
+        };
+    } else {
+         if (fbUser.email === MASTER_ADMIN_EMAIL) {
+             const newUserProfile: Omit<Staff, 'id'> = {
+                 authUid: fbUser.uid,
+                 name: "Angel Nacxit Gomez Campos",
+                 email: fbUser.email!,
+                 role: 'Admin',
+                 createdAt: serverTimestamp(),
+                 hireDate: serverTimestamp(),
+                 avatarUrl: '',
+                 dui: "04451625-5",
+             };
+             const docRef = await addDoc(staffCollection, newUserProfile);
+             return { id: docRef.id, ...newUserProfile } as User;
+         }
+         throw new Error("User profile not found in database.");
     }
-  }, [firestore, auth]);
+  }, [firestore]);
 
  useEffect(() => {
     if (!auth) {
@@ -107,8 +95,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         } catch (error: any) {
             console.error("Auth state change error:", error);
-            setUser(null);
             setAuthError(error.message);
+            setUser(null);
         } finally {
             // This is the crucial change: setLoading(false) is now guaranteed to run.
             setLoading(false);
