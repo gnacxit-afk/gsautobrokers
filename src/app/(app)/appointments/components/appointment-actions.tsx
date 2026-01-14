@@ -90,23 +90,46 @@ export function AppointmentActions({ appointment, userRole, onEdit, onDelete, on
           </DropdownMenuSub>
           
           <DropdownMenuSeparator />
-          <DropdownMenuItem 
-            onSelect={onDelete} 
-            className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-          >
-              <Trash2 className="mr-2 h-4 w-4" /> Delete Appointment
-          </DropdownMenuItem>
+
+           <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="text-destructive focus:text-destructive">
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete Appointment
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                    <DropdownMenuLabel>Are you sure?</DropdownMenuLabel>
+                    <DropdownMenuItem onSelect={onDelete} className="text-destructive focus:text-destructive">
+                        Confirm Deletion
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                        Cancel
+                    </DropdownMenuItem>
+                </DropdownMenuSubContent>
+            </DropdownMenuSub>
         </DropdownMenuContent>
       </DropdownMenu>
     );
   }
 
-  // Supervisor sees only the delete option
+  // Supervisor sees only the delete option, now as a nested menu
   if (userRole === 'Supervisor') {
     return (
-        <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={onDelete}>
-          <Trash2 size={16} />
-        </Button>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
+                    <Trash2 size={16} />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+                <DropdownMenuLabel>Delete Appointment?</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                 <DropdownMenuItem onSelect={onDelete} className="text-destructive focus:text-destructive">
+                    Confirm Deletion
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                    Cancel
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
   }
   
