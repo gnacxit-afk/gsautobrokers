@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import type { Lead } from '@/lib/types';
+import type { Lead, Appointment } from '@/lib/types';
 import { useFirestore, useUser, useCollection } from '@/firebase';
 import { collection, addDoc, serverTimestamp, query, orderBy, where, doc, updateDoc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,6 +29,21 @@ interface NewAppointmentFormProps {
   onAppointmentAdded: () => void;
   preselectedLead?: Lead | null;
 }
+
+const mapLeadStageToAppointmentStatus = (stage: Lead['stage']): Appointment['status'] => {
+    switch (stage) {
+        case 'Ganado':
+        case 'Calificado':
+        case 'Citado':
+            return 'Hot';
+        case 'En Seguimiento':
+            return 'Warm';
+        case 'Nuevo':
+            return 'Cold';
+        default:
+            return 'Unknown';
+    }
+};
 
 export function NewAppointmentForm({ onAppointmentAdded, preselectedLead }: NewAppointmentFormProps) {
   const { user } = useAuthContext();
@@ -70,6 +85,8 @@ export function NewAppointmentForm({ onAppointmentAdded, preselectedLead }: NewA
     const appointmentTime = new Date(date.replace(/-/g, '/'));
     appointmentTime.setHours(hours, minutes, 0, 0);
 
+    const appointmentStatus = mapLeadStageToAppointmentStatus(selectedLead.stage);
+
     try {
       const appointmentsCollection = collection(firestore, 'appointments');
       await addDoc(appointmentsCollection, {
@@ -78,7 +95,7 @@ export function NewAppointmentForm({ onAppointmentAdded, preselectedLead }: NewA
         startTime: appointmentTime,
         endTime: addMinutes(appointmentTime, 30),
         ownerId: selectedLead.ownerId, 
-        status: 'Warm',
+        status: appointmentStatus,
       });
 
       if (selectedLead.stage !== 'Citado') {
