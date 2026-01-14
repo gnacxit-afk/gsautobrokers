@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useMemo, useState, useCallback } from 'react';
@@ -14,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuthContext } from '@/lib/auth';
 import { SendNotificationDialog } from './components/send-notification-dialog';
 import { getColumns } from './components/columns';
-import { StaffDataTable } from './components/data-table';
+import { StaffDataTable } from './components/staff-data-table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 

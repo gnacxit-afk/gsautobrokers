@@ -4,7 +4,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { getColumns } from "./components/columns";
-import { DataTable } from "./components/data-table";
+import { DataTable } from "@/app/(app)/leads/components/data-table";
 import type { Lead, Staff, Notification } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
 import { useFirestore, useUser, useCollection } from '@/firebase';
@@ -326,7 +326,6 @@ function LeadsPageContent() {
     }, []);
 
     return (
-      <AppShell>
         <main className="flex flex-1 flex-col gap-4">
             <DataTable 
                 table={table}
@@ -339,7 +338,6 @@ function LeadsPageContent() {
                 setGlobalFilter={setGlobalFilter}
             />
         </main>
-      </AppShell>
     );
 }
 
@@ -349,6 +347,3 @@ export default function LeadsPage() {
         <LeadsPageContent />
     )
 }
-
-    
-
