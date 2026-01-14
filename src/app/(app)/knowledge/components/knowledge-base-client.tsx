@@ -202,34 +202,37 @@ export function KnowledgeBaseClient({ initialArticles, loading }: KnowledgeBaseC
                              <span>By: <span className="font-semibold">{selectedArticle.author}</span></span>
                             <span>Published on: <span className="font-semibold">{renderDate(selectedArticle.date)}</span></span>
                         </div>
-                         {user?.role === 'Admin' && (
-                             <div className="flex items-center gap-2 mt-4">
-                                <Button size="sm" variant="outline" onClick={handleGenerateSummary} disabled={isSummarizing}>
-                                  {isSummarizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
-                                  AI Summary
-                                </Button>
-                                <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
-                                  <Edit className="mr-2 h-4 w-4" /> Edit
-                                </Button>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button size="sm" variant="destructive_outline">
-                                          <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                            <AlertDialogDescription>This will permanently delete the article "{selectedArticle.title}". This action cannot be undone.</AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={handleDeleteArticle} className="bg-destructive hover:bg-destructive/90">Delete Article</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </div>
-                        )}
+                         <div className="flex items-center gap-2 mt-4">
+                            <Button size="sm" variant="outline" onClick={handleGenerateSummary} disabled={isSummarizing}>
+                                {isSummarizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
+                                AI Summary
+                            </Button>
+
+                            {user?.role === 'Admin' && (
+                                <>
+                                    <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+                                    <Edit className="mr-2 h-4 w-4" /> Edit
+                                    </Button>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button size="sm" variant="destructive">
+                                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                <AlertDialogDescription>This will permanently delete the article "{selectedArticle.title}". This action cannot be undone.</AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction onClick={handleDeleteArticle} className="bg-destructive hover:bg-destructive/90">Delete Article</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </>
+                            )}
+                        </div>
                     </div>
                     
                     {(isSummarizing || summary) && (
