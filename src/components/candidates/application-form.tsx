@@ -33,19 +33,19 @@ import { useToast } from '@/hooks/use-toast';
 import type { Application } from '@/lib/types';
 
 const formSchema = z.object({
-  fullName: z.string().min(2, { message: 'Full name must be at least 2 characters.' }),
-  whatsappNumber: z.string().min(8, { message: 'Please enter a valid WhatsApp number.' }),
-  email: z.string().email({ message: 'Please enter a valid email address.' }),
-  city: z.string().min(2, { message: 'Please enter your city.' }),
+  fullName: z.string().min(2, { message: 'El nombre completo debe tener al menos 2 caracteres.' }),
+  whatsappNumber: z.string().min(8, { message: 'Por favor, introduce un número de WhatsApp válido.' }),
+  email: z.string().email({ message: 'Por favor, introduce una dirección de correo electrónico válida.' }),
+  city: z.string().min(2, { message: 'Por favor, introduce tu ciudad.' }),
   acceptsCommission: z.boolean().refine(val => val === true, {
-    message: 'You must accept the commission-based model to apply.',
+    message: 'Debes aceptar el modelo basado en comisiones para postularte.',
   }),
-  availableHours: z.string({ required_error: 'Please select your availability.' }),
+  availableHours: z.string({ required_error: 'Por favor, selecciona tu disponibilidad.' }),
   comfortableWithSales: z.enum(['yes', 'no'], {
-    required_error: 'You must select an option.',
+    required_error: 'Debes seleccionar una opción.',
   }),
   salesExperienceDescription: z.string().optional(),
-  motivation: z.string().min(10, { message: 'Motivation must be at least 10 characters.' }),
+  motivation: z.string().min(10, { message: 'La motivación debe tener al menos 10 caracteres.' }),
 });
 
 export function ApplicationForm() {
@@ -69,7 +69,7 @@ export function ApplicationForm() {
     if (!firestore) {
       toast({
         title: 'Error',
-        description: 'Database connection is not available.',
+        description: 'La conexión con la base de datos no está disponible.',
         variant: 'destructive',
       });
       return;
@@ -88,15 +88,15 @@ export function ApplicationForm() {
       await addDoc(collection(firestore, 'publicApplications'), publicApplicationData);
 
       toast({
-        title: 'Application Submitted!',
-        description: 'Thank you for applying. We will be in touch shortly.',
+        title: '¡Postulación Enviada!',
+        description: 'Gracias por postularte. Nos pondremos en contacto contigo en breve.',
       });
       form.reset();
     } catch (error) {
       console.error('Error submitting application:', error);
       toast({
-        title: 'Submission Failed',
-        description: 'An error occurred while submitting your application. Please try again.',
+        title: 'Error al Enviar',
+        description: 'Ocurrió un error al enviar tu postulación. Por favor, inténtalo de nuevo.',
         variant: 'destructive',
       });
     }
@@ -105,8 +105,8 @@ export function ApplicationForm() {
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Candidate Application</CardTitle>
-        <CardDescription>Fill out the form below to apply for the broker position.</CardDescription>
+        <CardTitle>Postulación de Candidato</CardTitle>
+        <CardDescription>Completa el siguiente formulario para postularte al puesto de broker.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -117,9 +117,9 @@ export function ApplicationForm() {
                 name="fullName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name</FormLabel>
+                    <FormLabel>Nombre Completo</FormLabel>
                     <FormControl>
-                      <Input placeholder="John Doe" {...field} />
+                      <Input placeholder="Juan Pérez" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -130,9 +130,9 @@ export function ApplicationForm() {
                 name="whatsappNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>WhatsApp Number</FormLabel>
+                    <FormLabel>Número de WhatsApp</FormLabel>
                     <FormControl>
-                      <Input placeholder="+1 (555) 123-4567" {...field} />
+                      <Input placeholder="+503 1234 5678" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -143,9 +143,9 @@ export function ApplicationForm() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Correo Electrónico</FormLabel>
                     <FormControl>
-                      <Input placeholder="john.doe@example.com" {...field} />
+                      <Input placeholder="juan.perez@example.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -156,9 +156,9 @@ export function ApplicationForm() {
                 name="city"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>City and Country</FormLabel>
+                    <FormLabel>Ciudad y País</FormLabel>
                     <FormControl>
-                      <Input placeholder="Miami, USA" {...field} />
+                      <Input placeholder="San Salvador, El Salvador" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -171,16 +171,16 @@ export function ApplicationForm() {
               name="availableHours"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Time Availability</FormLabel>
+                  <FormLabel>Disponibilidad de Tiempo</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select your availability" />
+                        <SelectValue placeholder="Selecciona tu disponibilidad" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="full-time">Full-Time (40+ hours/week)</SelectItem>
-                      <SelectItem value="part-time">Part-Time (20-30 hours/week)</SelectItem>
+                      <SelectItem value="full-time">Tiempo Completo (40+ horas/semana)</SelectItem>
+                      <SelectItem value="part-time">Tiempo Parcial (20-30 horas/semana)</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -193,7 +193,7 @@ export function ApplicationForm() {
               name="comfortableWithSales"
               render={({ field }) => (
                 <FormItem className="space-y-3">
-                  <FormLabel>Are you comfortable in a 100% commission-based sales role?</FormLabel>
+                  <FormLabel>¿Te sientes cómodo en un rol de ventas 100% basado en comisiones?</FormLabel>
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
@@ -204,7 +204,7 @@ export function ApplicationForm() {
                         <FormControl>
                           <RadioGroupItem value="yes" />
                         </FormControl>
-                        <FormLabel className="font-normal">Yes</FormLabel>
+                        <FormLabel className="font-normal">Sí</FormLabel>
                       </FormItem>
                       <FormItem className="flex items-center space-x-3 space-y-0">
                         <FormControl>
@@ -225,10 +225,10 @@ export function ApplicationForm() {
                 name="salesExperienceDescription"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Briefly describe your sales experience (if any)</FormLabel>
+                    <FormLabel>Describe brevemente tu experiencia en ventas (si la tienes)</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="e.g., sold cars for 2 years, worked in retail, etc."
+                        placeholder="Ej: vendí autos durante 2 años, trabajé en retail, etc."
                         {...field}
                       />
                     </FormControl>
@@ -243,10 +243,10 @@ export function ApplicationForm() {
               name="motivation"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Why do you want to be a car broker with GS AUTOBROKERS?</FormLabel>
+                  <FormLabel>¿Por qué quieres ser un broker de autos con GS AUTOBROKERS?</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Tell us about your motivation..."
+                      placeholder="Cuéntanos tu motivación..."
                       {...field}
                     />
                   </FormControl>
@@ -268,10 +268,10 @@ export function ApplicationForm() {
                   </FormControl>
                   <div className="space-y-1 leading-none">
                     <FormLabel>
-                     I understand and accept that this is a 100% commission-based role.
+                     Entiendo y acepto que este es un rol 100% basado en comisiones.
                     </FormLabel>
                      <FormDescription>
-                        Your earnings are directly tied to your performance.
+                        Tus ganancias están directamente ligadas a tu rendimiento.
                     </FormDescription>
                     <FormMessage />
                   </div>
@@ -279,7 +279,7 @@ export function ApplicationForm() {
               )}
             />
             <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? 'Submitting...' : 'Submit Application'}
+              {form.formState.isSubmitting ? 'Enviando...' : 'Enviar Postulación'}
             </Button>
           </form>
         </Form>
