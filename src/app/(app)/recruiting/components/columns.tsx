@@ -41,8 +41,8 @@ const statusOptions: Record<PipelineStatus, PipelineStatus[]> = {
     'Approved': ['Onboarding', 'Rejected', 'Inactive'],
     'Onboarding': ['Rejected', 'Inactive'],
     'Active': ['Inactive'],
-    'Rejected': [],
-    'Inactive': ['New Applicant'], // Can be reactivated
+    'Rejected': ['Inactive'],
+    'Inactive': ['Rejected', 'New Applicant'],
 };
 
 const CellActions: React.FC<{ row: Row<Candidate> }> = ({ row }) => {
