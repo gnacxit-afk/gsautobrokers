@@ -19,27 +19,54 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
 
-interface KnowledgeBaseClientProps {
-  initialArticles: Article[];
-  loading: boolean;
-}
-
 function MarkdownRenderer({ content }: { content: string }) {
-  if (!content) return null;
-  const renderLine = (line: string, index: number) => {
-    if (line.startsWith('# ')) return <h1 key={index} className="text-3xl font-bold mt-6 mb-3">{line.substring(2)}</h1>;
-    if (line.startsWith('## ')) return <h2 key={index} className="text-2xl font-semibold mt-5 mb-2">{line.substring(3)}</h2>;
-    if (line.startsWith('### ')) return <h3 key={index} className="text-xl font-semibold mt-4 mb-1">{line.substring(4)}</h3>;
-    if (line.trim() === '---') return <hr key={index} className="my-6" />;
-    if (line.startsWith('- ')) return <li key={index} className="ml-5 list-disc">{line.substring(2)}</li>;
-    return <p key={index} className="text-slate-700 leading-relaxed">{line}</p>;
-  };
+    if (!content) return null;
 
-  return (
-    <div className="prose prose-slate max-w-none whitespace-pre-wrap space-y-4">
-      {content.split('\n').map(renderLine)}
-    </div>
-  );
+    // Enhanced renderer to handle more Markdown features
+    const renderMarkdown = (text: string) => {
+        let html = text
+            // Headers
+            .replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mt-4 mb-1">$1</h3>')
+            .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-semibold mt-5 mb-2">$1</h2>')
+            .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mt-6 mb-3">$1</h1>')
+            // Bold, Italic, Strikethrough
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/~~(.*?)~~/g, '<del>$1</del>')
+            // Links
+            .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">$1</a>')
+            // Images
+            .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="max-w-full h-auto my-4 rounded-md shadow-sm" />')
+            // HR
+            .replace(/^(-{3,}|\*{3,})$/gm, '<hr class="my-6" />')
+             // Lists (simplified handling)
+            .replace(/^\s*[-*+] (.*)/gm, '<li>$1</li>')
+            .replace(/^\s*\d+\. (.*)/gm, '<li>$1</li>')
+            // Wrap list items in <ul> or <ol>
+            .replace(/<li>(.+?)<\/li>/gs, (match) => {
+                // This is a bit of a hack. A true parser would be better.
+                if (match.includes('\n<li>')) {
+                    return match; 
+                }
+                if (match.match(/^\s*\d+\./)) {
+                    return `<ol class="list-decimal list-inside space-y-2">${match}</ol>`;
+                }
+                return `<ul class="list-disc list-inside space-y-2">${match}</ul>`;
+            })
+            // Paragraphs
+            .replace(/^(?!<h[1-3]>|<hr>|<li>|<ol>|<ul>|!\[)(.*$)/gim, '<p class="text-slate-700 leading-relaxed">$1</p>')
+             // Cleanup empty paragraphs
+            .replace(/<p><\/p>/g, '');
+
+        return { __html: html };
+    };
+
+    return (
+        <div 
+            className="prose prose-slate max-w-none space-y-4"
+            dangerouslySetInnerHTML={renderMarkdown(content)}
+        />
+    );
 }
 
 
