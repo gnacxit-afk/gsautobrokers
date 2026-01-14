@@ -54,6 +54,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
+                autoComplete="username"
               />
             </div>
             <div className="space-y-2">
@@ -67,6 +68,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
                   className="pr-10"
+                  autoComplete="current-password"
                 />
                 <Button
                   type="button"
