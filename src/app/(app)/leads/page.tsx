@@ -240,7 +240,7 @@ function LeadsPageContent() {
             const createdLead: Lead = {
                 id: newDocRef.id,
                 ...finalLeadData,
-                createdAt: new Date(),
+                createdAt: new Date(), // Use current date as a placeholder
             };
             if(callback) callback(createdLead);
 

@@ -86,7 +86,6 @@ export function AddLeadDialog({ isOpen, onOpenChange, onAddLead, staff, defaultO
         // This callback will be executed after the lead is successfully created.
         onOpenChange(false);
         reset();
-        router.push(`/leads/${createdLead.id}/notes`);
     });
   };
 
@@ -173,7 +172,7 @@ export function AddLeadDialog({ isOpen, onOpenChange, onAddLead, staff, defaultO
 
           <DialogFooter>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Save and Open Lead'}
+              {isSubmitting ? 'Saving...' : 'Save Lead'}
             </Button>
           </DialogFooter>
         </form>
