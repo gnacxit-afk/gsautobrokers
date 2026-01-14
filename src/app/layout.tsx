@@ -4,8 +4,6 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
 import { Providers } from "./providers";
-import { headers } from 'next/headers';
-import PublicLayout from "./public-layout";
 
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -20,10 +18,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const headersList = headers();
-  const pathname = headersList.get('x-next-pathname') || '';
-
-  const isPublicPage = pathname === '/apply';
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -38,17 +32,10 @@ export default function RootLayout({
           inter.variable
         )}
       >
-        {isPublicPage ? (
-          <PublicLayout>
-            {children}
-            <Toaster />
-          </PublicLayout>
-        ) : (
-          <Providers>
-            {children}
-            <Toaster />
-          </Providers>
-        )}
+        <Providers>
+          {children}
+          <Toaster />
+        </Providers>
       </body>
     </html>
   );

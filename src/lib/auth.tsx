@@ -39,22 +39,24 @@ function AuthHandler({ children }: { children: React.ReactNode }) {
     if (loading) {
       return;
     }
-
-    const isAuthPage = pathname === '/login';
     
-    // If not logged in, redirect to login page (but not from public pages)
-    if (!user && !isAuthPage) {
-      router.push('/login');
-    }
+    // Define public paths that don't require authentication
+    const isPublicPage = pathname === '/apply' || pathname === '/login';
 
-    // If logged in and on the login page, redirect to the main app page
-    if (user && isAuthPage) {
-      router.push('/leads');
+    // If we are on a public page, do nothing.
+    if (isPublicPage) {
+      return;
+    }
+    
+    // If not logged in and not on a public page, redirect to login
+    if (!user) {
+      router.push('/login');
     }
 
   }, [user, loading, router, pathname]);
   
-  if (loading) {
+  // Show loading screen only for protected pages
+  if (loading && !(pathname === '/apply' || pathname === '/login')) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
         <Logo />
@@ -64,19 +66,7 @@ function AuthHandler({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Render children if user exists or if it's a public page being accessed
-  if (user || pathname === '/login') {
-      return <>{children}</>;
-  }
-  
-  // Show loader while redirecting
-  return (
-      <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
-        <Logo />
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground">Redirecting...</p>
-      </div>
-  );
+  return <>{children}</>;
 }
 
 
@@ -96,15 +86,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const staffCollection = collection(firestore, 'staff');
         let q = query(staffCollection, where("authUid", "==", fbUser.uid));
         
-        if (fbUser.email === MASTER_ADMIN_EMAIL) {
-            q = query(staffCollection, where("email", "==", MASTER_ADMIN_EMAIL));
-        }
-        
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
             const staffDoc = querySnapshot.docs[0];
             const staffData = staffDoc.data() as Staff;
+            
+            // Special handling for master admin to ensure their data is correct.
+            if (staffData.email === MASTER_ADMIN_EMAIL) {
+                if (staffData.authUid !== fbUser.uid) {
+                    // Update authUid if it's incorrect in Firestore
+                    await setDoc(doc(firestore, "staff", staffDoc.id), { authUid: fbUser.uid }, { merge: true });
+                }
+            }
             
             return {
                 id: staffDoc.id,
@@ -116,22 +110,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 dui: staffData.dui
             };
         } else {
-             const isMasterAdmin = fbUser.email === MASTER_ADMIN_EMAIL;
-             const newUserProfile: Omit<Staff, 'id'> = {
-                 authUid: fbUser.uid,
-                 name: isMasterAdmin ? "Angel Nacxit Gomez Campos" : (fbUser.displayName || 'New User'),
-                 email: fbUser.email!,
-                 role: isMasterAdmin ? 'Admin' : 'Broker',
-                 createdAt: serverTimestamp(),
-                 hireDate: serverTimestamp(),
-                 avatarUrl: '',
-                 dui: isMasterAdmin ? "04451625-5" : undefined,
-             };
-             const docRef = await addDoc(staffCollection, newUserProfile);
-             return {
-                 id: docRef.id,
-                 ...newUserProfile
-             } as User;
+             // If no user doc, check if it's the master admin logging in for the first time.
+             if (fbUser.email === MASTER_ADMIN_EMAIL) {
+                 const newUserProfile: Omit<Staff, 'id'> = {
+                     authUid: fbUser.uid,
+                     name: "Angel Nacxit Gomez Campos",
+                     email: fbUser.email!,
+                     role: 'Admin',
+                     createdAt: serverTimestamp(),
+                     hireDate: serverTimestamp(),
+                     avatarUrl: '',
+                     dui: "04451625-5",
+                 };
+                 const docRef = await addDoc(staffCollection, newUserProfile);
+                 return { id: docRef.id, ...newUserProfile } as User;
+             }
+             // For any other user, they should not be able to create a profile this way.
+             throw new Error("User profile not found. Please contact an administrator.");
         }
     } catch (error: any) {
         console.error("Error fetching or validating user document:", error);
@@ -206,20 +201,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [user, loading, authError, login, logout, setUserRole, reloadUser]
   );
   
-  // If it's a public page, don't wrap with AuthHandler
-  if (pathname === '/apply') {
-    return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
-    );
-  }
-
   return (
     <AuthContext.Provider value={value}>
-        <AuthHandler>
-            {children}
-        </AuthHandler>
+      <AuthHandler>
+          {children}
+      </AuthHandler>
     </AuthContext.Provider>
   );
 }
