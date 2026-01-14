@@ -2,15 +2,6 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
-  async redirects() {
-    return [
-      {
-        source: '/',
-        destination: '/login',
-        permanent: true,
-      },
-    ]
-  },
   images: {
     remotePatterns: [
       {
@@ -44,6 +35,19 @@ const nextConfig: NextConfig = {
   },
   typescript: {
     ignoreBuildErrors: true,
+  },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'x-next-pathname',
+            value: ':path*',
+          },
+        ],
+      },
+    ];
   },
 };
 

@@ -30,33 +30,30 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// This component handles the redirection logic for protected routes
 function AuthHandler({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthContext();
   const router = useRouter();
   const pathname = usePathname();
 
-  // Handle redirection based on auth state
   useEffect(() => {
-    // Wait until loading is false to make a decision
     if (loading) {
       return;
     }
 
     const isAuthPage = pathname === '/login';
-
-    // If user is not logged in, redirect to login page
+    
+    // If not logged in, redirect to login page (but not from public pages)
     if (!user && !isAuthPage) {
       router.push('/login');
     }
 
-    // If user is logged in and tries to access login page, redirect to leads
+    // If logged in and on the login page, redirect to the main app page
     if (user && isAuthPage) {
       router.push('/leads');
     }
+
   }, [user, loading, router, pathname]);
   
-  // While loading, show a full-screen loader to prevent content flash
   if (loading) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
@@ -67,12 +64,12 @@ function AuthHandler({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If we have a user, or if we are on the login page, render the children
+  // Render children if user exists or if it's a public page being accessed
   if (user || pathname === '/login') {
       return <>{children}</>;
   }
   
-  // Otherwise, show the loader while redirecting
+  // Show loader while redirecting
   return (
       <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
         <Logo />
@@ -87,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
 
   const firestore = useFirestore();
   const auth = useAuth();
@@ -208,6 +206,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [user, loading, authError, login, logout, setUserRole, reloadUser]
   );
   
+  // If it's a public page, don't wrap with AuthHandler
+  if (pathname === '/apply') {
+    return (
+        <AuthContext.Provider value={value}>
+            {children}
+        </AuthContext.Provider>
+    );
+  }
+
   return (
     <AuthContext.Provider value={value}>
         <AuthHandler>
