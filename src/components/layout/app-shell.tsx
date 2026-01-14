@@ -231,27 +231,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthContext();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   
-   useEffect(() => {
+  useEffect(() => {
     // If loading is finished and there's no user, redirect to login.
     if (!loading && !user) {
       router.replace('/login');
     }
   }, [user, loading, router]);
 
-
-  // While verifying auth, show a global loading screen.
-  // This prevents content flashing and ensures user data is available.
+  // 🔒 While Firebase responds, show a global loading screen.
   if (loading) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
         <Logo />
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground">Authenticating...</p>
+        <p className="text-muted-foreground">Verificando sesión...</p>
       </div>
     );
   }
 
-  // If loading is complete but there is still no user, return null.
+  // 🔒 If loading is complete but there is still no user, return null.
   // The useEffect hook above will handle the redirection.
   if (!user) {
       return null;
@@ -277,7 +275,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return 'Dashboard';
   };
 
-
+  // ✅ User is authenticated, render the full app shell.
   return (
       <div className="flex h-screen bg-gray-50 overflow-hidden font-sans text-slate-900">
         <Sidebar />
