@@ -3,7 +3,7 @@
 import React, { createContext, useContext, ReactNode, useMemo } from 'react';
 import { FirebaseApp, initializeApp, getApps, getApp } from 'firebase/app';
 import { Auth, getAuth } from 'firebase/auth';
-import { Firestore, initializeFirestore } from 'firebase/firestore';
+import { Firestore, getFirestore } from 'firebase/firestore';
 import { firebaseConfig } from './config';
 import { FirebaseProvider } from './provider';
 
@@ -17,9 +17,7 @@ interface FirebaseClientContextState {
 function initializeFirebaseClientServices(): FirebaseClientContextState {
   const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
   const auth = getAuth(app);
-  const firestore = initializeFirestore(app, {
-    experimentalForceLongPolling: true,
-  });
+  const firestore = getFirestore(app);
   return { app, auth, firestore };
 }
 

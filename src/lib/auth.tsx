@@ -23,6 +23,7 @@ interface AuthContextType {
   logout: () => void;
   setUserRole: (role: Role) => void;
   reloadUser: () => void;
+  auth: any;
   MASTER_ADMIN_EMAIL: string;
 }
 
@@ -45,7 +46,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const q = query(staffCollection, where("authUid", "==", fbUser.uid));
     const querySnapshot = await getDocs(q);
 
-    let staffDocRef;
     let staffDocId: string | null = null;
     
     if (!querySnapshot.empty) {
@@ -64,13 +64,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
         const docRef = await addDoc(staffCollection, newUserProfile);
         staffDocId = docRef.id;
-    } else {
-        throw new Error("User profile not found in database.");
     }
     
-    if (!staffDocId) throw new Error("Could not retrieve user profile.");
+    if (!staffDocId) {
+        console.error("User profile not found in database for UID:", fbUser.uid);
+        return null; // Return null if user profile is not found
+    }
     
-    staffDocRef = doc(firestore, 'staff', staffDocId);
+    const staffDocRef = doc(firestore, 'staff', staffDocId);
     const staffDocSnap = await getDoc(staffDocRef);
 
     if (staffDocSnap.exists()) {
@@ -141,6 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 break;
         }
         setAuthError(friendlyMessage);
+        setUser(null);
         setLoading(false); // Set loading to false on login failure.
     }
   }, [auth]);
@@ -171,8 +173,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [auth, fetchAppUser]);
 
   const value = useMemo(
-    () => ({ user, loading, authError, login, logout, setUserRole, reloadUser, MASTER_ADMIN_EMAIL }),
-    [user, loading, authError, login, logout, setUserRole, reloadUser]
+    () => ({ user, loading, authError, login, logout, setUserRole, reloadUser, auth, MASTER_ADMIN_EMAIL }),
+    [user, loading, authError, login, logout, setUserRole, reloadUser, auth]
   );
   
   return (

@@ -7,6 +7,6 @@ import { useAuthContext } from '@/lib/auth';
  * @returns An object containing the user, loading state, and any auth error.
  */
 export const useUser = () => {
-  const { user, loading, authError } = useAuthContext();
-  return { user, loading, error: authError };
+  const { user, loading, authError, MASTER_ADMIN_EMAIL } = useAuthContext();
+  return { user, loading, error: authError, MASTER_ADMIN_EMAIL };
 };
