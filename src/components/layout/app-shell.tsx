@@ -77,7 +77,7 @@ const navItems: NavItemGroup[] = [
       { href: "/todos", label: "Daily To-Do", icon: "CheckSquare", role: ["Admin", "Supervisor", "Broker"] },
       { href: "/kpi", label: "KPI's & Performance", icon: "TrendingUp", role: ["Admin", "Supervisor", "Broker"] },
       { href: "/knowledge", label: "Knowledge Base", icon: "BookOpen", role: ["Admin", "Supervisor", "Broker"] },
-      { href: "/staff", label: "Staff", icon: "Users", role: ["Admin"] },
+      { href: "/staff", label: "Staff", icon: "Users", role: ["Admin", "Supervisor"] },
       { href: "/contracts", label: "Contracts", icon: "FileText", role: ["Admin"] },
     ]
   },
@@ -129,7 +129,7 @@ function MainNav({ items, onLinkClick }: { items: NavItemGroup[], onLinkClick?: 
   
   return (
     <nav className="flex-1 px-4 space-y-2">
-      <Accordion type="multiple" defaultValue={['CRM', 'Recruiting']} className="w-full">
+      <Accordion type="multiple" defaultValue={[]} className="w-full">
         {items.map((group) => (
            hasAccess(user.role, group.role) && group.heading && group.items && Array.isArray(group.items) && (
             <AccordionItem key={group.heading} value={group.heading} className="border-b-0">
@@ -232,10 +232,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthContext();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   
-  useEffect(() => {
-    // This effect is now just for potential redirections after login, not for handling the initial auth check.
-    // The main layout handles showing the login page or the app content.
-  }, [user, loading, router]);
+   useEffect(() => {
+    if (!loading && user?.role === 'Admin' && pathname === '/leads') {
+      router.replace('/dashboard');
+    }
+  }, [user, loading, router, pathname]);
 
 
   if (loading) {
@@ -258,12 +259,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   
   const getPageTitle = () => {
     const allItems = navItems.flatMap(g => g.items || []);
-    const currentItem = allItems.find(item => item && item.href && pathname.startsWith(item.href));
+    
+    let currentItem = allItems.find(item => item && item.href === pathname);
+    
+    if (!currentItem) {
+       currentItem = allItems
+         .filter(item => item && item.href && item.href !== '/')
+         .sort((a, b) => b.href.length - a.href.length)
+         .find(item => item && item.href && pathname.startsWith(item.href));
+    }
     
     if (currentItem) return currentItem.label;
 
-    // Handle nested lead pages
+    // Handle special dynamic routes
     if (pathname.startsWith('/leads/')) return 'Lead Details';
+    if (pathname.startsWith('/staff/')) return 'Staff Profile';
 
     return 'Dashboard';
   };
@@ -304,5 +314,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
   );
 }
-
-    

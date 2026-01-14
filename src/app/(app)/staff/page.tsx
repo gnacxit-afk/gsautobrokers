@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useMemo, useState, useCallback } from 'react';
@@ -75,9 +74,12 @@ export default function StaffPage() {
 
   const { myTeam, otherStaff } = useMemo(() => {
     if (!user || !staff) return { myTeam: [], otherStaff: [] };
-    const myTeam = staff.filter(s => s.supervisorId === user.id);
-    const otherStaff = staff.filter(s => s.supervisorId !== user.id);
-    return { myTeam, otherStaff };
+    if (user.role === 'Admin') {
+       return { myTeam: staff, otherStaff: [] };
+    }
+    const team = staff.filter(s => s.supervisorId === user.id);
+    const others = staff.filter(s => s.supervisorId !== user.id);
+    return { myTeam: team, otherStaff: others };
   }, [user, staff]);
   
   const tableData = useMemo(() => staff || [], [staff]);
@@ -110,7 +112,7 @@ export default function StaffPage() {
   });
 
 
-  if (user?.role !== 'Admin' && user?.role !== 'Supervisor') {
+  if (!user || (user.role !== 'Admin' && user.role !== 'Supervisor')) {
     return <AccessDenied />;
   }
 
