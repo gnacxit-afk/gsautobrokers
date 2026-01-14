@@ -42,6 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchAppUser = useCallback(async (fbUser: FirebaseUser): Promise<User | null> => {
     if (!firestore) throw new Error("Firestore not initialized");
 
+    // 1. Primary, most efficient fetch: by direct document ID (UID)
     const staffDocRef = doc(firestore, 'staff', fbUser.uid);
     const staffDocSnap = await getDoc(staffDocRef);
 
@@ -53,6 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } as User;
     }
 
+    // 2. Secondary fetch: query by `authUid` field for legacy data
     const staffCollection = collection(firestore, 'staff');
     const q = query(staffCollection, where("authUid", "==", fbUser.uid));
     const querySnapshot = await getDocs(q);
@@ -62,7 +64,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { id: userDoc.id, ...userDoc.data() } as User;
     }
     
+    // 3. Special case: Create Master Admin profile if it doesn't exist
     if (fbUser.email === MASTER_ADMIN_EMAIL) {
+        console.log("Master Admin profile not found, creating it...");
         const newAdminProfile: Omit<Staff, 'id'> = {
             authUid: fbUser.uid,
             name: "Angel Nacxit Gomez Campos",
@@ -73,10 +77,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             avatarUrl: '',
             dui: "04451625-5",
         };
+        // Use the UID as the document ID for consistency
         await setDoc(doc(firestore, 'staff', fbUser.uid), newAdminProfile);
         return { id: fbUser.uid, ...newAdminProfile } as User;
     }
     
+    // If no profile is found after all checks, the user is not a valid staff member.
     console.error("User profile not found in 'staff' collection for UID:", fbUser.uid);
     return null;
   }, [firestore]);
@@ -95,8 +101,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (userProfile) {
             setUser(userProfile);
             setAuthError(null);
+            
             if (pathname === '/login') {
-                router.replace('/dashboard');
+                if (userProfile.role === 'Admin') {
+                    router.replace('/dashboard');
+                } else {
+                    router.replace('/kpi');
+                }
             }
           } else {
             setUser(null);
