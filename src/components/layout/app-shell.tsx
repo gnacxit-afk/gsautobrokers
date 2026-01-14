@@ -64,14 +64,14 @@ const icons: { [key: string]: LucideIcon } = {
 };
 
 const crmNav: NavItemGroup[] = [
-  { href: "/crm/dashboard", title: "Dashboard", icon: "LayoutDashboard", role: ["Admin", "Supervisor"] },
-  { href: "/crm/leads", title: "Leads / CRM", icon: "PhoneCall", role: ["Admin", "Supervisor", "Broker"] },
-  { href: "/crm/appointments", title: "Appointments", icon: "Calendar", role: ["Admin", "Supervisor", "Broker"] },
-  { href: "/crm/todos", title: "Daily To-Do", icon: "CheckSquare", role: ["Admin", "Supervisor", "Broker"] },
-  { href: "/crm/kpi", title: "KPI's & Performance", icon: "TrendingUp", role: ["Admin", "Supervisor", "Broker"] },
-  { href: "/crm/knowledge", title: "Knowledge Base", icon: "BookOpen", role: ["Admin", "Supervisor", "Broker"] },
-  { href: "/crm/staff", title: "Staff", icon: "Users", role: ["Admin", "Supervisor"] },
-  { href: "/crm/contracts", title: "Contracts", icon: "FileText", role: ["Admin"] },
+  { href: "/dashboard", title: "Dashboard", icon: "LayoutDashboard", role: ["Admin", "Supervisor"] },
+  { href: "/leads", title: "Leads / CRM", icon: "PhoneCall", role: ["Admin", "Supervisor", "Broker"] },
+  { href: "/appointments", title: "Appointments", icon: "Calendar", role: ["Admin", "Supervisor", "Broker"] },
+  { href: "/todos", title: "Daily To-Do", icon: "CheckSquare", role: ["Admin", "Supervisor", "Broker"] },
+  { href: "/kpi", title: "KPI's & Performance", icon: "TrendingUp", role: ["Admin", "Supervisor", "Broker"] },
+  { href: "/knowledge", title: "Knowledge Base", icon: "BookOpen", role: ["Admin", "Supervisor", "Broker"] },
+  { href: "/staff", title: "Staff", icon: "Users", role: ["Admin", "Supervisor"] },
+  { href: "/contracts", title: "Contracts", icon: "FileText", role: ["Admin"] },
 ];
 
 const recruitingNav: NavItemGroup[] = [
@@ -235,35 +235,11 @@ function Sidebar({ navItems }: { navItems: NavItemGroup[] }) {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuthContext();
   const pathname = usePathname();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const navItems = pathname.startsWith('/recruiting') ? recruitingNav : crmNav;
   
-  if (loading) {
-    return (
-        <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
-            <Logo />
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">Loading Application...</p>
-        </div>
-    );
-  }
-
-  if (pathname === '/login' || pathname === '/apply') {
-    return <>{children}</>;
-  }
-
-  // The AuthProvider handles redirection, but this prevents flashing content.
-  if (!user) {
-    return null;
-  }
-
-  const pagesToExcludeFilter = ['/crm/kpi', '/crm/staff', '/crm/knowledge', '/crm/todos', '/crm/appointments', '/crm/leads', '/crm/contracts'];
-  const showDateFilter = (user.role === 'Admin' || user.role === 'Supervisor') && !pagesToExcludeFilter.some(p => pathname.startsWith(p));
-
-
   const getPageTitle = () => {
     for (const group of navItems) {
         if (group.items) {
@@ -277,11 +253,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         }
     }
 
-    if (pathname.startsWith('/crm/')) return 'CRM';
     if (pathname.startsWith('/recruiting/')) return 'Recruiting';
-
-    return 'Dashboard';
+    return 'CRM';
   };
+
+  const showDateFilter = !pathname.startsWith('/recruiting') && !['/kpi', '/staff', '/knowledge', '/todos', '/appointments', '/leads', '/contracts'].some(p => pathname.startsWith(p));
 
   return (
     <DateRangeProvider>

@@ -52,7 +52,7 @@ export function SignatureList({ signedStaff, loading }: SignatureListProps) {
                                 <TableRow key={sig.id}>
                                     <TableCell className="font-medium">
                                         {sig.staff ? (
-                                            <Link href={`/crm/staff/${sig.staff.id}`} className="hover:underline text-primary">
+                                            <Link href={`/staff/${sig.staff.id}`} className="hover:underline text-primary">
                                                 {sig.userName}
                                             </Link>
                                         ) : (

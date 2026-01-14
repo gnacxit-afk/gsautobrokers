@@ -35,7 +35,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -94,39 +93,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [firestore, auth]);
 
-  useEffect(() => {
-    if (!auth || !firestore) {
-      setLoading(false);
-      return;
-    };
+ useEffect(() => {
+    if (!auth) {
+        setLoading(false);
+        return;
+    }
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const userProfile = await fetchAppUser(firebaseUser);
-        setUser(userProfile);
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-      setIsLoggingIn(false);
+        if (firebaseUser) {
+            try {
+                const userProfile = await fetchAppUser(firebaseUser);
+                setUser(userProfile);
+            } catch (error) {
+                // Error fetching profile, user remains null
+                setUser(null);
+            }
+        } else {
+            setUser(null);
+        }
+        // This is the crucial part: setLoading to false AFTER the async operations.
+        setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [auth, firestore, fetchAppUser]);
+  }, [auth, fetchAppUser]);
+
 
   useEffect(() => {
+    // Don't run redirection logic until auth state is resolved
     if (loading) return;
 
     const publicRoutes = ["/login", "/apply"];
-    const isPublicPage = publicRoutes.includes(pathname);
+    const isPublicPage = publicRoutes.some(path => pathname.startsWith(path));
 
     if (!user && !isPublicPage) {
       router.push("/login");
-    } else if (user && pathname === "/login") {
+    } else if (user && isPublicPage) {
       if (user.role === 'Broker') {
-          router.push('/crm/leads');
+          router.push('/leads');
       } else {
-          router.push('/crm/dashboard');
+          router.push('/dashboard');
       }
     }
   }, [user, loading, pathname, router]);
@@ -136,13 +142,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAuthError("Authentication service is not available.");
         return;
     }
-    setIsLoggingIn(true);
+    setLoading(true); // Set loading to true on login attempt
     setAuthError(null);
     try {
         await signInWithEmailAndPassword(auth, email, pass);
+        // onAuthStateChanged will handle setting the user and setting loading to false
     } catch (error: any) {
         setAuthError(error.message);
-        setIsLoggingIn(false);
+        setLoading(false); // Set loading to false on login failure
     }
   }, [auth]);
 
@@ -151,9 +158,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     await signOut(auth);
     setUser(null);
-    router.push('/login');
+    // No need to push to login, the useEffect will handle it.
+    // Ensure loading is false after sign out is complete.
     setLoading(false);
-  }, [auth, router]);
+  }, [auth]);
 
   const setUserRole = useCallback((role: Role) => {
     if (user && user.email === MASTER_ADMIN_EMAIL) {
@@ -174,11 +182,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [auth, fetchAppUser]);
 
   const value = useMemo(
-    () => ({ user, loading: loading || isLoggingIn, authError, login, logout, setUserRole, reloadUser, MASTER_ADMIN_EMAIL }),
-    [user, loading, isLoggingIn, authError, login, logout, setUserRole, reloadUser]
+    () => ({ user, loading, authError, login, logout, setUserRole, reloadUser, MASTER_ADMIN_EMAIL }),
+    [user, loading, authError, login, logout, setUserRole, reloadUser]
   );
   
-   if ((loading || isLoggingIn) && pathname !== '/apply') {
+   if (loading && !user) {
+     const publicRoutes = ["/login", "/apply"];
+     const isPublicPage = publicRoutes.some(path => pathname.startsWith(path));
+     if(isPublicPage) return <>{children}</>
+
      return (
         <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
             <Logo />
@@ -202,5 +214,3 @@ export function useAuthContext() {
   }
   return context;
 }
-
-    
