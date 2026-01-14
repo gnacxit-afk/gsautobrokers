@@ -17,64 +17,8 @@ import { useToast } from '@/hooks/use-toast';
 import { summarizeArticle } from '@/ai/flows/summarize-knowledge-base-articles';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { MarkdownRenderer } from '@/components/markdown-renderer';
 
-
-function MarkdownRenderer({ content }: { content: string }) {
-    if (!content) return null;
-
-    const renderMarkdown = (text: string) => {
-        let html = text
-            // Blockquotes
-            .replace(/^> (.*$)/gim, '<blockquote class="border-l-4 pl-4 italic">$1</blockquote>')
-            // Headers
-            .replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mt-4 mb-1">$1</h3>')
-            .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-semibold mt-5 mb-2">$1</h2>')
-            .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mt-6 mb-3">$1</h1>')
-            // Bold & Italic & Strikethrough
-            .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.*?)\*/g, '<em>$1</em>')
-            .replace(/~~(.*?)~~/g, '<del>$1</del>')
-            // Links & Images
-            .replace(/!\[([^\]]+)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="max-w-full h-auto my-4 rounded-md shadow-sm" />')
-            .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">$1</a>')
-            // HR
-            .replace(/^(-{3,}|\*{3,})$/gm, '<hr class="my-6" />');
-
-        // Unordered Lists
-        html = html.replace(/^( *[-*+] .*\n?)+/gm, (match) => {
-            const items = match.split('\n').filter(Boolean).map(item =>
-                `<li>${item.replace(/ *[-*+] /, '')}</li>`
-            ).join('');
-            return `<ul class="list-disc pl-5 space-y-1">${items}</ul>`;
-        });
-
-        // Ordered Lists
-        html = html.replace(/^( *\d+\. .*\n?)+/gm, (match) => {
-            const items = match.split('\n').filter(Boolean).map(item =>
-                `<li>${item.replace(/ *\d+\. /, '')}</li>`
-            ).join('');
-            return `<ol class="list-decimal pl-5 space-y-1">${items}</ol>`;
-        });
-
-        // Paragraphs (any line that isn't a special tag)
-        html = html.replace(/^(?!<[h1-3|ul|ol|li|hr|blockquote|img|a]).*$/gm, (match) => {
-             if (match.trim() === '') return '';
-             return `<p class="text-slate-700 leading-relaxed">${match}</p>`;
-        })
-        // Cleanup empty paragraphs
-        .replace(/<p><\/p>/g, '');
-
-        return { __html: html };
-    };
-
-    return (
-        <div
-            className="prose prose-slate max-w-none space-y-4"
-            dangerouslySetInnerHTML={renderMarkdown(content)}
-        />
-    );
-}
 
 
 export function KnowledgeBaseClient({ initialArticles, loading }: { initialArticles: Article[]; loading: boolean }) {
