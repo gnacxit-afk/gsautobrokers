@@ -53,7 +53,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             ...staffData
         } as User;
     } else if (fbUser.email === MASTER_ADMIN_EMAIL) {
-        // Special case for Master Admin on first login
         const newAdminProfile: Omit<Staff, 'id'> = {
             authUid: fbUser.uid,
             name: "Angel Nacxit Gomez Campos",
@@ -76,11 +75,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [firestore]);
 
  useEffect(() => {
-    if (!auth || !firestore) {
-      return;
-    }
+    if (!auth || !firestore) return;
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      // Always start loading when auth state might change
       setLoading(true);
       if (firebaseUser) {
         try {
@@ -91,11 +89,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error("Failed to fetch app user profile:", error);
           setAuthError(error.message);
           setUser(null);
-          await signOut(auth);
+          // Don't sign out here, as it might cause loops. Let the AppShell handle redirection.
         }
       } else {
         setUser(null);
       }
+      // Only stop loading after all async operations are complete
       setLoading(false);
     });
 
@@ -107,11 +106,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAuthError("Authentication service not available.");
         return;
     }
-    // We don't set loading to true here because onAuthStateChanged will handle it.
+    setLoading(true); // Set loading to true immediately on login attempt
     setAuthError(null);
     try {
         await signInWithEmailAndPassword(auth, email, pass);
-        // onAuthStateChanged will trigger, fetch the user, and then set loading to false.
+        // onAuthStateChanged will handle fetching the user and setting the final loading state
     } catch (error: any) {
         let friendlyMessage = "An unexpected error occurred.";
         switch (error.code) {
@@ -126,6 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         setAuthError(friendlyMessage);
         setUser(null);
+        setLoading(false); // Stop loading if login fails
     }
   }, [auth]);
 
