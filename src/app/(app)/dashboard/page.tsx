@@ -152,16 +152,36 @@ export default function DashboardPage() {
     }, [filteredLeads, dateRange]);
 
 
-    const sellerPerformance = useMemo(() => {
+    const sellerPerformanceData = useMemo(() => {
         if (!staff) return [];
-        return staff
-            .filter(s => s.role === 'Broker')
-            .map(broker => {
-                const brokerLeads = filteredLeads.filter(l => l.ownerId === broker.id);
-                const sales = brokerLeads.filter(l => l.stage === 'Ganado').length;
-                return { name: broker.name.split(' ')[0], sales };
-            })
-            .sort((a, b) => b.sales - a.sales);
+        const brokers = staff.filter(s => s.role === 'Broker');
+
+        return brokers.map(broker => {
+            const brokerLeads = filteredLeads.filter(l => l.ownerId === broker.id);
+            const totalLeads = brokerLeads.length;
+            const sales = brokerLeads.filter(l => l.stage === 'Ganado').length;
+            const conversion = totalLeads > 0 ? (sales / totalLeads) * 100 : 0;
+            const commissions = sales * COMMISSION_PER_VEHICLE;
+            const bonus = calculateBonus(sales);
+            const totalToPay = commissions + bonus;
+
+            const leadsByStage = brokerLeads.reduce((acc, lead) => {
+                acc[lead.stage] = (acc[lead.stage] || 0) + 1;
+                return acc;
+            }, {} as Record<Lead['stage'], number>);
+
+            return {
+                id: broker.id,
+                name: broker.name,
+                leads: totalLeads,
+                sales,
+                conversion,
+                commissions,
+                bonus,
+                totalToPay,
+                ...leadsByStage,
+            };
+        }).sort((a, b) => b.sales - a.sales);
     }, [filteredLeads, staff]);
 
     const channelConversion = useMemo(() => {
@@ -197,8 +217,8 @@ export default function DashboardPage() {
                 <StatCard title="Total Bonuses" value={`$${salesMetrics.totalBonuses.toLocaleString()}`} icon={DollarSign} color="text-pink-500" loading={loading} />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                <Card className="lg:col-span-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
                     <CardHeader>
                         <CardTitle>Sales & Leads Trend</CardTitle>
                     </CardHeader>
@@ -208,7 +228,7 @@ export default function DashboardPage() {
                                 <LineChart data={salesAndLeadsTrend}>
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
-                                    <YAxis fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} tickLine={false} axisLine={false} />
+                                    <YAxis fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
                                     <Tooltip />
                                     <Legend />
                                     <Line type="monotone" dataKey="leads" stroke="hsl(var(--primary))" strokeWidth={2} />
@@ -218,29 +238,8 @@ export default function DashboardPage() {
                         )}
                     </CardContent>
                 </Card>
-                <Card className="lg:col-span-2">
+                <Card>
                      <CardHeader>
-                        <CardTitle>Seller Performance</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {loading ? <Skeleton className="h-[300px] w-full" /> : (
-                             <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={sellerPerformance} layout="vertical">
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis type="number" fontSize={12} allowDecimals={false} />
-                                    <YAxis type="category" dataKey="name" fontSize={12} width={60} />
-                                    <Tooltip cursor={{ fill: 'hsl(var(--muted))' }} />
-                                    <Bar dataKey="sales" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                 <Card>
-                    <CardHeader>
                         <CardTitle>Channel Conversion</CardTitle>
                         <CardDescription>Performance of each lead acquisition channel.</CardDescription>
                     </CardHeader>
@@ -274,22 +273,73 @@ export default function DashboardPage() {
                         </Table>
                     </CardContent>
                 </Card>
+            </div>
+            
+             <div>
                 <Card>
                     <CardHeader>
-                        <CardTitle>Executive Summary</CardTitle>
-                        <CardDescription>Download a CSV summary of the current data.</CardDescription>
+                        <CardTitle>Seller Performance</CardTitle>
+                        <CardDescription>Lead distribution and financial performance by broker for the selected period.</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        {/* Placeholder for future functionality */}
-                        <div className="h-full flex flex-col items-center justify-center bg-slate-50 rounded-lg p-8">
-                             <p className="text-muted-foreground text-center">Executive summary download will be available soon.</p>
-                        </div>
+                    <CardContent className="space-y-8">
+                        {loading ? <Skeleton className="h-[300px] w-full" /> : (
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={sellerPerformanceData} layout="vertical" stackOffset="expand">
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis type="number" hide={true} />
+                                    <YAxis type="category" dataKey="name" fontSize={12} width={80} />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Bar dataKey="Nuevo" stackId="a" fill="#94a3b8" name="Nuevo" />
+                                    <Bar dataKey="En Seguimiento" stackId="a" fill="#f97316" name="En Seguimiento" />
+                                    <Bar dataKey="Citado" stackId="a" fill="#facc15" name="Citado" />
+                                    <Bar dataKey="Ganado" stackId="a" fill="#22c55e" name="Ganado" />
+                                    <Bar dataKey="Perdido" stackId="a" fill="#ef4444" name="Perdido" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
+
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Broker</TableHead>
+                                    <TableHead className="text-right">Leads</TableHead>
+                                    <TableHead className="text-right">Sales</TableHead>
+                                    <TableHead className="text-right">Conversion</TableHead>
+                                    <TableHead className="text-right">Commissions</TableHead>
+                                    <TableHead className="text-right">Bonus</TableHead>
+                                    <TableHead className="text-right font-bold">Total to Pay</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {loading ? [...Array(3)].map((_, i) => (
+                                     <TableRow key={i}>
+                                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-10 ml-auto" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-10 ml-auto" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-24 ml-auto" /></TableCell>
+                                    </TableRow>
+                                )) : sellerPerformanceData.map(broker => (
+                                    <TableRow key={broker.id}>
+                                        <TableCell className="font-medium">{broker.name}</TableCell>
+                                        <TableCell className="text-right">{broker.leads}</TableCell>
+                                        <TableCell className="text-right font-semibold">{broker.sales}</TableCell>
+                                        <TableCell className="text-right">{broker.conversion.toFixed(1)}%</TableCell>
+                                        <TableCell className="text-right">${broker.commissions.toLocaleString()}</TableCell>
+                                        <TableCell className="text-right">${broker.bonus.toLocaleString()}</TableCell>
+                                        <TableCell className="text-right font-bold text-primary">${broker.totalToPay.toLocaleString()}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
                     </CardContent>
                 </Card>
             </div>
 
         </main>
     );
-}
 
     
