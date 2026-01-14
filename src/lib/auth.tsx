@@ -2,7 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { Role, Staff, User } from "./types";
 import { useFirestore, useAuth } from "@/firebase";
 import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp, setDoc } from "firebase/firestore";
@@ -37,11 +37,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const auth = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   
   const fetchAppUser = useCallback(async (fbUser: FirebaseUser): Promise<User | null> => {
     if (!firestore) throw new Error("Firestore not initialized");
 
-    // 1. Primary, efficient method: Direct lookup by UID. This should work for all correctly created users.
     const staffDocRef = doc(firestore, 'staff', fbUser.uid);
     const staffDocSnap = await getDoc(staffDocRef);
 
@@ -53,7 +53,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } as User;
     }
 
-    // 2. Secondary, fallback method: Query for the authUid. This is a failsafe for legacy or incorrectly created users.
     const staffCollection = collection(firestore, 'staff');
     const q = query(staffCollection, where("authUid", "==", fbUser.uid));
     const querySnapshot = await getDocs(q);
@@ -63,9 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { id: userDoc.id, ...userDoc.data() } as User;
     }
     
-    // 3. Special handling for Master Admin on first login.
     if (fbUser.email === MASTER_ADMIN_EMAIL) {
-        // Master admin logged in for the first time, create their profile.
         const newAdminProfile: Omit<Staff, 'id'> = {
             authUid: fbUser.uid,
             name: "Angel Nacxit Gomez Campos",
@@ -76,32 +73,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             avatarUrl: '',
             dui: "04451625-5",
         };
-        // Create the document with the Auth UID as the document ID
         await setDoc(doc(firestore, 'staff', fbUser.uid), newAdminProfile);
         return { id: fbUser.uid, ...newAdminProfile } as User;
     }
     
-    // If no profile is found after all checks, the user is not a valid staff member.
     console.error("User profile not found in 'staff' collection for UID:", fbUser.uid);
     return null;
   }, [firestore]);
 
  useEffect(() => {
     if (!auth || !firestore) {
-        // If services aren't ready, we are technically still 'loading'
-        // as we can't determine auth state yet.
         setLoading(true); 
         return;
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setLoading(true); // Always start in a loading state on auth change
+      setLoading(true);
       if (firebaseUser) {
         try {
           const userProfile = await fetchAppUser(firebaseUser);
           if (userProfile) {
             setUser(userProfile);
             setAuthError(null);
+            if (pathname === '/login') {
+                router.replace('/dashboard');
+            }
           } else {
             setUser(null);
             setAuthError("Your user profile could not be found.");
@@ -116,11 +112,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setUser(null);
       }
-      setLoading(false); // Finish loading only after all operations are complete
+      setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [auth, firestore, fetchAppUser]);
+  }, [auth, firestore, fetchAppUser, router, pathname]);
 
   const login = useCallback(async (email: string, pass: string): Promise<void> => {
     if (!auth) {
@@ -131,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthError(null);
     try {
         await signInWithEmailAndPassword(auth, email, pass);
-        // onAuthStateChanged will handle the rest, so we just wait.
+        // onAuthStateChanged will handle the rest, including redirection.
     } catch (error: any) {
         let friendlyMessage = "An unexpected error occurred.";
         switch (error.code) {
@@ -146,7 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         setAuthError(friendlyMessage);
         setUser(null);
-        setLoading(false); // Explicitly stop loading on a failed login attempt
+        setLoading(false);
     }
   }, [auth]);
 
