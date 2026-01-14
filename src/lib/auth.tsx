@@ -41,15 +41,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!firestore) throw new Error("Firestore not initialized");
 
     const staffCollection = collection(firestore, 'staff');
-    
-    // Find staff document ID by auth UID.
     const q = query(staffCollection, where("authUid", "==", fbUser.uid));
     const querySnapshot = await getDocs(q);
 
-    let staffDocId: string | null = null;
-    
     if (!querySnapshot.empty) {
-        staffDocId = querySnapshot.docs[0].id;
+        const staffDocSnap = querySnapshot.docs[0];
+        const staffData = staffDocSnap.data() as Staff;
+        return {
+            id: staffDocSnap.id,
+            authUid: staffData.authUid,
+            name: staffData.name,
+            email: staffData.email,
+            avatarUrl: staffData.avatarUrl,
+            role: staffData.role,
+            dui: staffData.dui
+        };
     } else if (fbUser.email === MASTER_ADMIN_EMAIL) {
         // Special case for Master Admin on first login in a new environment
         const newUserProfile: Omit<Staff, 'id'> = {
@@ -63,30 +69,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             dui: "04451625-5",
         };
         const docRef = await addDoc(staffCollection, newUserProfile);
-        staffDocId = docRef.id;
-    }
-    
-    if (!staffDocId) {
-        console.error("User profile not found in database for UID:", fbUser.uid);
-        return null; // Return null if user profile is not found
-    }
-    
-    const staffDocRef = doc(firestore, 'staff', staffDocId);
-    const staffDocSnap = await getDoc(staffDocRef);
-
-    if (staffDocSnap.exists()) {
-        const staffData = staffDocSnap.data() as Staff;
         return {
-            id: staffDocSnap.id,
-            authUid: staffData.authUid,
-            name: staffData.name,
-            email: staffData.email,
-            avatarUrl: staffData.avatarUrl,
-            role: staffData.role,
-            dui: staffData.dui
-        };
+            id: docRef.id,
+            ...newUserProfile
+        } as User;
     }
-
+    
+    console.error("User profile not found in database for UID:", fbUser.uid);
     return null;
   }, [firestore]);
 

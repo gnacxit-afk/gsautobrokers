@@ -129,7 +129,7 @@ function MainNav({ items, onLinkClick }: { items: NavItemGroup[], onLinkClick?: 
   
   return (
     <nav className="flex-1 px-4 space-y-2">
-      <Accordion type="multiple" defaultValue={[]} className="w-full">
+      <Accordion type="multiple" defaultValue={['CRM', 'Recruiting']} className="w-full">
         {items.map((group) => (
            hasAccess(user.role, group.role) && group.heading && group.items && Array.isArray(group.items) && (
             <AccordionItem key={group.heading} value={group.heading} className="border-b-0">
@@ -233,10 +233,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   
    useEffect(() => {
-    if (!loading && user?.role === 'Admin' && pathname === '/leads') {
-      router.replace('/dashboard');
+    if (!loading && !user) {
+      router.replace('/login');
     }
-  }, [user, loading, router, pathname]);
+  }, [user, loading, router]);
 
 
   if (loading) {
@@ -250,11 +250,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
-        <LoginPage />
-      </div>
-    );
+    // While redirecting, show a loading state or nothing to prevent flicker
+    return null;
   }
   
   const getPageTitle = () => {

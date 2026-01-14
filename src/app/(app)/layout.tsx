@@ -8,10 +8,8 @@ export default function AppLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <AuthProvider>
       <AppShell>
         {children}
       </AppShell>
-    </AuthProvider>
   );
 }

@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
 import { Providers } from "./providers";
 import { Suspense } from "react";
+import { AuthProvider } from "@/lib/auth";
 
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -34,9 +35,11 @@ export default function RootLayout({
         )}
       >
         <Providers>
+          <AuthProvider>
             <Suspense>
                 {children}
             </Suspense>
+          </AuthProvider>
         </Providers>
         <Toaster />
       </body>

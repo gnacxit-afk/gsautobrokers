@@ -1,16 +1,13 @@
-import { AuthProvider } from "@/lib/auth";
-
-// This layout is now simplified because the AppShell handles showing the login page.
-// We keep AuthProvider here to ensure authentication context is available if needed,
-// but the visual structure is handled by AppShell.
+// This layout provides a clean slate for authentication pages like login.
+// It ensures that the main app shell (sidebars, headers) is not rendered.
 export default function AuthLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <AuthProvider>
+    <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
       {children}
-    </AuthProvider>
+    </div>
   );
 }
