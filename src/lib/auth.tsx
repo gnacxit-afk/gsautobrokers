@@ -30,19 +30,46 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function AuthHandler({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuthContext();
+  const router = useRouter();
+  const pathname = usePathname();
+  
+  const publicPages = ['/login', '/apply'];
+  const isPublicPage = publicPages.includes(pathname);
+
+  useEffect(() => {
+    if (loading) return;
+
+    if (!user && !isPublicPage) {
+      router.push('/login');
+    } else if (user && pathname === '/login') {
+      router.push('/leads');
+    }
+  }, [user, loading, pathname, router, isPublicPage]);
+
+  if (loading && !isPublicPage) {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
+        <Logo />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Loading Application...</p>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
+
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const router = useRouter();
-  const pathname = usePathname();
   const firestore = useFirestore();
   const auth = useAuth();
   
-  const publicPages = ['/login', '/apply'];
-  const isPublicPage = publicPages.includes(pathname);
-
   const fetchAppUser = useCallback(async (fbUser: FirebaseUser): Promise<User | null> => {
     if (!firestore) throw new Error("Firestore not initialized");
 
@@ -102,7 +129,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-        setLoading(true);
         if (firebaseUser) {
             const userProfile = await fetchAppUser(firebaseUser);
             setUser(userProfile);
@@ -114,18 +140,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => unsubscribe();
   }, [auth, fetchAppUser]);
-
-
-  useEffect(() => {
-    if (loading) return;
-
-    if (!user && !isPublicPage) {
-      router.push('/login');
-    } 
-    else if (user && pathname === '/login') {
-       router.push('/leads');
-    }
-  }, [user, loading, pathname, router, isPublicPage]);
 
   const login = useCallback(async (email: string, pass: string): Promise<void> => {
     if (!auth) {
@@ -144,10 +158,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     if (!auth) return;
+    setLoading(true);
     await signOut(auth);
     setUser(null);
-    router.push('/login');
-  }, [auth, router]);
+    setLoading(false);
+  }, [auth]);
 
   const setUserRole = useCallback((role: Role) => {
     if (user && user.email === MASTER_ADMIN_EMAIL) {
@@ -172,21 +187,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [user, loading, authError, login, logout, setUserRole, reloadUser]
   );
   
-   // While loading, if the page is not public, show a loading screen.
-   // If the page is public, render it immediately to prevent hydration errors.
-   if (loading && !isPublicPage) {
-     return (
-        <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
-            <Logo />
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">Loading Application...</p>
-        </div>
-    );
-  }
-
   return (
     <AuthContext.Provider value={value}>
-        {children}
+        <AuthHandler>
+            {children}
+        </AuthHandler>
     </AuthContext.Provider>
   );
 }
