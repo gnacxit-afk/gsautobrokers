@@ -30,21 +30,6 @@ interface NewAppointmentFormProps {
   preselectedLead?: Lead | null;
 }
 
-const mapLeadStageToAppointmentStatus = (stage: Lead['stage']): Appointment['status'] => {
-    switch (stage) {
-        case 'Ganado':
-        case 'Calificado':
-        case 'Citado':
-            return 'Hot';
-        case 'En Seguimiento':
-            return 'Warm';
-        case 'Nuevo':
-            return 'Cold';
-        default:
-            return 'Unknown';
-    }
-};
-
 export function NewAppointmentForm({ onAppointmentAdded, preselectedLead }: NewAppointmentFormProps) {
   const { user } = useAuthContext();
   const firestore = useFirestore();
@@ -85,8 +70,6 @@ export function NewAppointmentForm({ onAppointmentAdded, preselectedLead }: NewA
     const appointmentTime = new Date(date.replace(/-/g, '/'));
     appointmentTime.setHours(hours, minutes, 0, 0);
 
-    const appointmentStatus = mapLeadStageToAppointmentStatus(selectedLead.stage);
-
     try {
       const appointmentsCollection = collection(firestore, 'appointments');
       await addDoc(appointmentsCollection, {
@@ -95,7 +78,7 @@ export function NewAppointmentForm({ onAppointmentAdded, preselectedLead }: NewA
         startTime: appointmentTime,
         endTime: addMinutes(appointmentTime, 30),
         ownerId: selectedLead.ownerId, 
-        status: appointmentStatus,
+        stage: selectedLead.stage,
       });
 
       if (selectedLead.stage !== 'Citado') {

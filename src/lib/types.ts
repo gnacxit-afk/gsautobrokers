@@ -47,7 +47,7 @@ export type Appointment = {
   startTime: Timestamp;
   endTime: Timestamp;
   ownerId: string;
-  status: "Hot" | "Warm" | "Cold" | "Unknown";
+  stage: "Nuevo" | "Calificado" | "Citado" | "En Seguimiento" | "Ganado" | "Perdido";
 };
 
 export type Article = {

@@ -48,22 +48,6 @@ const createNotification = async (
     });
 };
 
-const mapLeadStageToAppointmentStatus = (stage: Lead['stage']): Appointment['status'] => {
-    switch (stage) {
-        case 'Ganado':
-        case 'Calificado':
-        case 'Citado':
-            return 'Hot';
-        case 'En Seguimiento':
-            return 'Warm';
-        case 'Nuevo':
-            return 'Cold';
-        default:
-            return 'Unknown';
-    }
-};
-
-
 function LeadsPageContent() {
     const { user } = useUser();
     const firestore = useFirestore();
@@ -204,11 +188,10 @@ function LeadsPageContent() {
         try {
             batch.update(leadRef, { stage: newStage });
 
-            const newAppointmentStatus = mapLeadStageToAppointmentStatus(newStage);
             const appointmentsQuery = query(collection(firestore, 'appointments'), where("leadId", "==", leadId));
             const appointmentsSnapshot = await getDocs(appointmentsQuery);
             appointmentsSnapshot.forEach(appointmentDoc => {
-                batch.update(appointmentDoc.ref, { status: newAppointmentStatus });
+                batch.update(appointmentDoc.ref, { stage: newStage });
             });
 
             await batch.commit();

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, Suspense } from 'react';
@@ -191,7 +192,7 @@ function AppointmentsContent() {
                               <TableHead>Lead</TableHead>
                               <TableHead>Time</TableHead>
                               <TableHead>Owner</TableHead>
-                              <TableHead>Status</TableHead>
+                              <TableHead>Stage</TableHead>
                               <TableHead className="text-right">Actions</TableHead>
                               </TableRow>
                           </TableHeader>
@@ -221,7 +222,7 @@ function AppointmentsContent() {
                                           </div>
                                       </TableCell>
                                        <TableCell>{staff?.find(s => s.id === apt.ownerId)?.name || 'Unknown'}</TableCell>
-                                      <TableCell className="capitalize">{apt.status}</TableCell>
+                                      <TableCell className="capitalize">{apt.stage}</TableCell>
                                       <TableCell className="text-right">
                                           <AppointmentActions 
                                             appointment={apt}

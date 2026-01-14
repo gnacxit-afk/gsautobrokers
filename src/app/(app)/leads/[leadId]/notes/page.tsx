@@ -61,21 +61,6 @@ const getColorForType = (type: NoteEntry['type']) => {
     }
 }
 
-const mapLeadStageToAppointmentStatus = (stage: Lead['stage']): Appointment['status'] => {
-    switch (stage) {
-        case 'Ganado':
-        case 'Calificado':
-        case 'Citado':
-            return 'Hot';
-        case 'En Seguimiento':
-            return 'Warm';
-        case 'Nuevo':
-            return 'Cold';
-        default:
-            return 'Unknown';
-    }
-};
-
 export default function LeadDetailsPage() {
   const [newNote, setNewNote] = useState("");
   const params = useParams();
@@ -192,11 +177,10 @@ export default function LeadDetailsPage() {
     try {
         batch.update(leadRef, { stage: newStage });
 
-        const newAppointmentStatus = mapLeadStageToAppointmentStatus(newStage);
         const appointmentsQuery = query(collection(firestore, 'appointments'), where("leadId", "==", lead.id));
         const appointmentsSnapshot = await getDocs(appointmentsQuery);
         appointmentsSnapshot.forEach(appointmentDoc => {
-            batch.update(appointmentDoc.ref, { status: newAppointmentStatus });
+            batch.update(appointmentDoc.ref, { stage: newStage });
         });
         
         await batch.commit();

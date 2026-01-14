@@ -242,9 +242,13 @@
         "startTime": { "type": "string", "description": "The start time of the appointment.", "format": "date-time" },
         "endTime": { "type": "string", "description": "The end time of the appointment.", "format": "date-time" },
         "ownerId": { "type": "string", "description": "The ID of the staff member who owns this appointment." },
-        "status": { "type": "string", "description": "The status of the lead at the time of booking.", "enum": ["Hot", "Warm", "Cold", "Unknown"] }
+        "stage": {
+            "type": "string",
+            "description": "The stage of the lead at the time of booking, synced with the lead's stage.",
+            "enum": ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"]
+        }
       },
-      "required": ["leadId", "leadName", "startTime", "endTime", "ownerId", "status"]
+      "required": ["leadId", "leadName", "startTime", "endTime", "ownerId", "stage"]
     },
     "EmploymentContract": {
       "$schema": "http://json-schema.org/draft-07/schema#",
