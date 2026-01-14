@@ -1,32 +1,14 @@
 
-/**
- * # Firestore Security Rules
- *
- * ## Core Philosophy
- * This ruleset enforces a security model that combines strict user ownership for private data with a role-based/ownership model for shared application data. The primary goal is to create highly secure, performant rules by relying on denormalized data for authorization decisions, thus avoiding slow and costly cross-document lookups wherever possible.
- *
- * ## Data Structure
- * All application data is organized under a root `artifacts/{appId}` collection, allowing for multiple application instances (e.g., dev, staging, prod) within the same Firestore project.
- * - Private user data (e.g., profiles) is stored in a segregated path: `/artifacts/{appId}/users/{userId}/...`
- * - Shared and public data (e.g., leads, staff) is stored under: `/artifacts/{appId}/public/data/...`
- *
- * ## Key Security Decisions
- * - **Default Deny**: Access is implicitly denied unless explicitly granted by a rule.
- * - **User Profile Security**: User profiles are strictly private and can only be accessed or modified by the user they belong to.
- * - **Lead Ownership**: Leads contain a denormalized `ownerId` field. Any signed-in user can view leads, but only the owner can modify or delete them. This supports collaboration while maintaining clear data ownership.
- * - **Admin-Only Access**: Management of the `/staff` collection is restricted to users with an 'Admin' role. This is enforced by checking the user's role in their profile document, a necessary trade-off for security given the current data structure.
- * - **Public Read-Only Data**: The knowledge base is publicly readable by anyone but cannot be modified through the client SDKs, as there is no defined ownership model for articles.
- *
- * ## Denormalization for Authorization
- * - **Leads**: The `Lead` document contains a denormalized `ownerId`. This allows a simple, fast rule (`resource.data.ownerId == request.auth.uid`) to control write access without needing a separate `get()` call to another collection.
- * - **Roles**: Admin access is determined by a `role` field on the `UserProfile` document. While this requires a `get()` call in the rules for `/staff` access, it centralizes role management. For future performance improvements, these roles could be mirrored in Firebase Auth Custom Claims.
- *
- * ## Structural Segregation
- * - The separation of `/users/{userId}` (private) and `/public/data` (shared) provides a clear and secure boundary. This allows for safe `list` operations on public collections without exposing private user data.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Allow public, unauthenticated writes to the applications collection.
+    // This rule MUST come before any general authenticated-only rules.
+    match /publicApplications/{applicationId} {
+      allow create: if true;
+      allow read, update, delete: if false; // No one can read/modify after creation
+    }
 
     // ----------------------------------------------------------------------
     // Helper Functions
@@ -90,12 +72,11 @@ service cloud.firestore {
 
 
     // ----------------------------------------------------------------------
-    // Application Rules
+    // Application Rules (Authenticated Routes)
     // ----------------------------------------------------------------------
       
     /**
       * @description Controls access to the single KPI document.
-      * @path /kpis/kpi-doc
       */
     match /kpis/{docId} {
       allow get: if isSignedIn();
@@ -106,7 +87,6 @@ service cloud.firestore {
         allow get, list: if isSignedIn();
         allow create, update, delete: if isAdmin();
     }
-
 
     /**
       * @description Controls access to sales leads.
