@@ -41,8 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchAppUser = useCallback(async (fbUser: FirebaseUser): Promise<User | null> => {
     if (!firestore) throw new Error("Firestore not initialized");
 
-    // Use a direct getDoc for performance, as it's much faster than a query.
-    // The document ID in 'staff' should match the Firebase Auth UID.
+    // 1. Primary, efficient method: Direct lookup by UID. This should work for all correctly created users.
     const staffDocRef = doc(firestore, 'staff', fbUser.uid);
     const staffDocSnap = await getDoc(staffDocRef);
 
@@ -53,35 +52,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             ...staffData
         } as User;
     }
-    
-    // Fallback for Master Admin, who might have a different UID initially
-    // or whose profile needs to be created on first login.
-    if (fbUser.email === MASTER_ADMIN_EMAIL) {
-        const staffCollection = collection(firestore, 'staff');
-        const q = query(staffCollection, where("email", "==", MASTER_ADMIN_EMAIL));
-        const querySnapshot = await getDocs(q);
 
-        if (!querySnapshot.empty) {
-            const adminDoc = querySnapshot.docs[0];
-            // If the admin doc ID doesn't match the auth UID, it's a legacy setup.
-            // We should ideally migrate this, but for now, we'll return the found profile.
-            return { id: adminDoc.id, ...adminDoc.data() } as User;
-        } else {
-            // Master admin logged in for the first time, create their profile.
-            const newAdminProfile: Omit<Staff, 'id'> = {
-                authUid: fbUser.uid,
-                name: "Angel Nacxit Gomez Campos",
-                email: fbUser.email!,
-                role: 'Admin',
-                createdAt: serverTimestamp(),
-                hireDate: serverTimestamp(),
-                avatarUrl: '',
-                dui: "04451625-5",
-            };
-            // Create the document with the Auth UID as the document ID
-            await setDoc(doc(firestore, 'staff', fbUser.uid), newAdminProfile);
-            return { id: fbUser.uid, ...newAdminProfile } as User;
-        }
+    // 2. Secondary, fallback method: Query for the authUid. This is a failsafe for legacy or incorrectly created users.
+    const staffCollection = collection(firestore, 'staff');
+    const q = query(staffCollection, where("authUid", "==", fbUser.uid));
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+        const userDoc = querySnapshot.docs[0];
+        return { id: userDoc.id, ...userDoc.data() } as User;
+    }
+    
+    // 3. Special handling for Master Admin on first login.
+    if (fbUser.email === MASTER_ADMIN_EMAIL) {
+        // Master admin logged in for the first time, create their profile.
+        const newAdminProfile: Omit<Staff, 'id'> = {
+            authUid: fbUser.uid,
+            name: "Angel Nacxit Gomez Campos",
+            email: fbUser.email!,
+            role: 'Admin',
+            createdAt: serverTimestamp(),
+            hireDate: serverTimestamp(),
+            avatarUrl: '',
+            dui: "04451625-5",
+        };
+        // Create the document with the Auth UID as the document ID
+        await setDoc(doc(firestore, 'staff', fbUser.uid), newAdminProfile);
+        return { id: fbUser.uid, ...newAdminProfile } as User;
     }
     
     // If no profile is found after all checks, the user is not a valid staff member.
