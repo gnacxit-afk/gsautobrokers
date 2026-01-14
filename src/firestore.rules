@@ -3,15 +3,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Allow public, unauthenticated writes to the applications collection
+    // Allow public, unauthenticated writes to the applications collection.
+    // This rule MUST come before any general authenticated-only rules.
     match /publicApplications/{applicationId} {
       allow create: if true;
-      allow read, update, delete: if false; // No one can read/write after creation
-    }
-
-    // Default deny all other collections unless authenticated
-    match /{path=**}/documents {
-      allow read, write: if request.auth != null;
+      allow read, update, delete: if false; // No one can read/modify after creation
     }
 
     // ----------------------------------------------------------------------
@@ -170,5 +166,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

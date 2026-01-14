@@ -30,7 +30,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import type { Application } from '@/lib/types';
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: 'El nombre completo debe tener al menos 2 caracteres.' }),
@@ -76,15 +75,12 @@ export function ApplicationForm() {
     }
 
     try {
-      const now = new Date();
-      // Data to be saved in the public-facing collection
       const publicApplicationData = {
         ...values,
         source: 'Organic',
         appliedDate: serverTimestamp(),
       };
 
-      // Use the new public collection for submissions
       await addDoc(collection(firestore, 'publicApplications'), publicApplicationData);
 
       toast({
@@ -290,5 +286,3 @@ export function ApplicationForm() {
     </Card>
   );
 }
-
-    
