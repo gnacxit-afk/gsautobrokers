@@ -110,11 +110,14 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
                   <DropdownMenuRadioGroup value={lead.stage} onValueChange={(stage) => handleStageUpdate(stage as Lead['stage'])}>
-                      {leadStages.map((stage) => (
-                          <DropdownMenuRadioItem key={stage} value={stage}>
-                              {stage}
-                          </DropdownMenuRadioItem>
-                      ))}
+                      {leadStages.map((stage) => {
+                          const isBrokerRestricted = user?.role === 'Broker' && (stage === 'Ganado' || stage === 'Perdido');
+                          return (
+                            <DropdownMenuRadioItem key={stage} value={stage} disabled={isBrokerRestricted}>
+                                {stage}
+                            </DropdownMenuRadioItem>
+                          );
+                      })}
                   </DropdownMenuRadioGroup>
               </DropdownMenuSubContent>
             </DropdownMenuSub>
