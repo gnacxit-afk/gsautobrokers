@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { ColumnDef, Row } from '@tanstack/react-table';
@@ -40,8 +41,8 @@ const statusOptions: Record<PipelineStatus, PipelineStatus[]> = {
     'Approved': ['Onboarding', 'Rejected', 'Inactive'],
     'Onboarding': ['Rejected', 'Inactive'],
     'Active': ['Inactive'],
-    'Rejected': ['Inactive', 'New Applicant'],
-    'Inactive': ['Rejected', 'New Applicant'],
+    'Rejected': ['New Applicant', 'Inactive'],
+    'Inactive': ['New Applicant', 'Rejected'],
 };
 
 const CellActions: React.FC<{ row: Row<Candidate> }> = ({ row }) => {
@@ -60,9 +61,31 @@ const CellActions: React.FC<{ row: Row<Candidate> }> = ({ row }) => {
         try {
             const batch = writeBatch(firestore);
 
-            // If the candidate is a 'New Applicant' and we are moving them,
-            // it means we are processing them from the public collection for the first time.
-            if (candidate.pipelineStatus === 'New Applicant' && newStatus !== 'New Applicant') {
+            // Logic to move a candidate back to the "New Applicant" pool
+            if (newStatus === 'New Applicant') {
+                const publicAppRef = doc(firestore, 'publicApplications', candidate.id);
+                const oldCandidateRef = doc(firestore, 'candidates', candidate.id);
+                
+                // We create a new application record from the candidate data.
+                // We must ensure the object conforms to the Application type.
+                const newApplicationData = {
+                    fullName: candidate.fullName,
+                    whatsappNumber: candidate.whatsappNumber || '',
+                    email: candidate.email,
+                    city: candidate.city || '',
+                    availableHours: candidate.availableHours || '',
+                    comfortableWithSales: candidate.comfortableWithSales || 'no',
+                    salesExperienceDescription: candidate.salesExperienceDescription || '',
+                    motivation: candidate.motivation || '',
+                    source: candidate.source || 'Organic',
+                    appliedDate: serverTimestamp(), // Reset the application date
+                };
+
+                batch.set(publicAppRef, newApplicationData);
+                batch.delete(oldCandidateRef);
+
+            } else if (candidate.pipelineStatus === 'New Applicant') {
+                // Logic for processing a new applicant for the first time
                 const publicAppRef = doc(firestore, 'publicApplications', candidate.id);
                 const newCandidateRef = doc(firestore, 'candidates', candidate.id);
 
@@ -76,7 +99,7 @@ const CellActions: React.FC<{ row: Row<Candidate> }> = ({ row }) => {
                 batch.delete(publicAppRef);
 
             } else {
-                // If the candidate is already in the main pipeline, just update it.
+                // Standard status update for candidates already in the pipeline
                 const candidateRef = doc(firestore, 'candidates', candidate.id);
                 batch.update(candidateRef, {
                     pipelineStatus: newStatus,
@@ -92,6 +115,7 @@ const CellActions: React.FC<{ row: Row<Candidate> }> = ({ row }) => {
             toast({ title: 'Update Failed', description: 'Could not update candidate status.', variant: 'destructive' });
         }
     };
+
 
     const availableOptions = statusOptions[candidate.pipelineStatus] || [];
 
@@ -196,3 +220,5 @@ export const getColumns = (): ColumnDef<Candidate>[] => [
     cell: ({ row }) => <CellActions row={row} />,
   },
 ];
+
+    
