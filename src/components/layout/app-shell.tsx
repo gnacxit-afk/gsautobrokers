@@ -41,6 +41,7 @@ import { DateRangeProvider } from "@/providers/date-range-provider";
 import { Notifications } from "./notifications";
 import { ContractSigningBanner } from '@/components/contracts/contract-signing-banner';
 import { Avatar, AvatarFallback } from "../ui/avatar";
+import { ScrollArea } from "../ui/scroll-area";
 
 const icons: { [key: string]: LucideIcon } = {
   LayoutDashboard,
@@ -119,7 +120,7 @@ function MainNav({ items, onLinkClick }: { items: NavItemGroup[], onLinkClick?: 
   if (!user) return null;
   
   return (
-    <nav className="flex-1 p-4 space-y-2">
+    <nav className="flex-1 px-4 space-y-2">
       {items.map((group, index) => (
         <div key={index}>
             {group.heading && <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 mt-4 mb-2">{group.heading}</h3>}
@@ -160,11 +161,11 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
 
     return (
         <>
-            <div className="p-6 border-b border-slate-800 h-16 flex items-center">
+            <div className="p-6 border-b border-slate-800 h-16 flex items-center shrink-0">
                 <Logo className="text-white text-lg" />
             </div>
 
-            <div className="p-4 border-b border-slate-800">
+            <div className="p-4 border-b border-slate-800 shrink-0">
                 <div className="flex items-center gap-3">
                      <Avatar className="h-9 w-9">
                         <AvatarFallback className="bg-slate-700 text-slate-300 text-sm font-bold">
@@ -178,9 +179,11 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
                 </div>
             </div>
             
-            <MainNav items={navItems} onLinkClick={onLinkClick} />
+            <ScrollArea className="flex-1">
+                 <MainNav items={navItems} onLinkClick={onLinkClick} />
+            </ScrollArea>
 
-            <div className="p-4 border-t border-slate-800 mt-auto">
+            <div className="p-4 border-t border-slate-800 mt-auto shrink-0">
                 <Notifications />
                 {user.email === MASTER_ADMIN_EMAIL && <RoleSwitcher />}
                  <Button 
