@@ -34,21 +34,17 @@ function AuthHandler({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthContext();
   const router = useRouter();
   const pathname = usePathname();
-  
-  const publicPages = ['/login', '/apply'];
-  const isPublicPage = publicPages.includes(pathname);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading) return; // Wait for auth state to be resolved
 
-    if (!user && !isPublicPage) {
+    // Since this handler is only for private pages, we just check for the user
+    if (!user) {
       router.push('/login');
-    } else if (user && pathname === '/login') {
-      router.push('/leads');
     }
-  }, [user, loading, pathname, router, isPublicPage]);
+  }, [user, loading, pathname, router]);
 
-  if (loading && !isPublicPage) {
+  if (loading) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
         <Logo />
@@ -66,6 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
 
   const firestore = useFirestore();
   const auth = useAuth();
@@ -187,11 +184,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [user, loading, authError, login, logout, setUserRole, reloadUser]
   );
   
+  const publicPages = ['/login', '/apply'];
+  const isPublicPage = publicPages.includes(pathname);
+  
   return (
     <AuthContext.Provider value={value}>
-        <AuthHandler>
-            {children}
-        </AuthHandler>
+        {isPublicPage ? children : <AuthHandler>{children}</AuthHandler>}
     </AuthContext.Provider>
   );
 }
