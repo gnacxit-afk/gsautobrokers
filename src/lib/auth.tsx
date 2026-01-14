@@ -12,8 +12,6 @@ import {
   onAuthStateChanged,
   type User as FirebaseUser
 } from "firebase/auth";
-import { Loader2 } from "lucide-react";
-import { Logo } from "@/components/icons";
 
 export const MASTER_ADMIN_EMAIL = "gnacxit@gmail.com";
 
@@ -81,7 +79,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                  const docRef = await addDoc(staffCollection, newUserProfile);
                  return { id: docRef.id, ...newUserProfile } as User;
              }
-             throw new Error("User profile not found. Please contact an administrator.");
+             // Do not throw here, just return null and let the caller handle it.
+             setAuthError("User profile not found in database.");
+             if (auth) await signOut(auth); // Sign out if profile is missing
+             return null;
         }
     } catch (error: any) {
         console.error("Error fetching or validating user document:", error);
@@ -97,13 +98,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
     }
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-        if (firebaseUser) {
-            const userProfile = await fetchAppUser(firebaseUser);
-            setUser(userProfile);
-        } else {
+        try {
+            if (firebaseUser) {
+                const userProfile = await fetchAppUser(firebaseUser);
+                setUser(userProfile);
+            } else {
+                setUser(null);
+            }
+        } catch (error: any) {
+            console.error("Auth state change error:", error);
             setUser(null);
+            setAuthError(error.message);
+        } finally {
+            // This is the crucial change: setLoading(false) is now guaranteed to run.
+            setLoading(false);
         }
-        setLoading(false);
     });
     return () => unsubscribe();
   }, [auth, fetchAppUser]);
@@ -117,19 +126,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthError(null);
     try {
         await signInWithEmailAndPassword(auth, email, pass);
+        // The onAuthStateChanged listener will handle setting the user and final loading state.
     } catch (error: any) {
         setAuthError(error.message);
-    } finally {
-        // We don't set loading to false here immediately.
-        // The onAuthStateChanged listener will handle setting user and loading state.
+        setLoading(false); // Set loading to false on login failure.
     }
   }, [auth]);
 
   const logout = useCallback(async () => {
     if (!auth) return;
-    setLoading(true);
+    setUser(null); // Immediately clear the user to update the UI
     await signOut(auth);
-    // onAuthStateChanged will handle setting user to null and loading to false.
+    // The onAuthStateChanged listener will confirm the user is null and loading is false.
   }, [auth]);
 
   const setUserRole = useCallback((role: Role) => {
