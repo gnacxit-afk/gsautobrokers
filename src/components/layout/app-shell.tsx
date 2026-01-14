@@ -76,7 +76,7 @@ const navItems: NavItemGroup[] = [
       { href: "/todos", label: "Daily To-Do", icon: "CheckSquare", role: ["Admin", "Supervisor", "Broker"] },
       { href: "/kpi", label: "KPI's & Performance", icon: "TrendingUp", role: ["Admin", "Supervisor", "Broker"] },
       { href: "/knowledge", label: "Knowledge Base", icon: "BookOpen", role: ["Admin", "Supervisor", "Broker"] },
-      { href: "/staff", label: "Staff", icon: "Users", role: ["Admin", "Supervisor"] },
+      { href: "/staff", label: "Staff", icon: "Users", role: ["Admin"] },
       { href: "/contracts", label: "Contracts", icon: "FileText", role: ["Admin"] },
     ]
   },
