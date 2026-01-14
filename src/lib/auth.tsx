@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from "react";
@@ -100,18 +99,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        setLoading(true);
         if (firebaseUser) {
-            try {
-                const userProfile = await fetchAppUser(firebaseUser);
-                setUser(userProfile);
-            } catch (error) {
-                // Error fetching profile, user remains null
-                setUser(null);
-            }
+            const userProfile = await fetchAppUser(firebaseUser);
+            setUser(userProfile);
         } else {
             setUser(null);
         }
-        // This is the crucial part: setLoading to false AFTER the async operations.
         setLoading(false);
     });
 
@@ -120,20 +114,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 
   useEffect(() => {
-    // Don't run redirection logic until auth state is resolved
     if (loading) return;
 
-    const publicRoutes = ["/login", "/apply"];
-    const isPublicPage = publicRoutes.some(path => pathname.startsWith(path));
+    const isAuthPage = pathname === '/login';
 
-    if (!user && !isPublicPage) {
-      router.push("/login");
-    } else if (user && isPublicPage) {
-      if (user.role === 'Broker') {
-          router.push('/leads');
-      } else {
-          router.push('/dashboard');
-      }
+    if (!user && !isAuthPage) {
+      router.push('/login');
+    } else if (user && isAuthPage) {
+       router.push('/leads');
     }
   }, [user, loading, pathname, router]);
 
@@ -142,26 +130,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAuthError("Authentication service is not available.");
         return;
     }
-    setLoading(true); // Set loading to true on login attempt
+    setLoading(true);
     setAuthError(null);
     try {
         await signInWithEmailAndPassword(auth, email, pass);
-        // onAuthStateChanged will handle setting the user and setting loading to false
     } catch (error: any) {
         setAuthError(error.message);
-        setLoading(false); // Set loading to false on login failure
+        setLoading(false);
     }
   }, [auth]);
 
   const logout = useCallback(async () => {
     if (!auth) return;
-    setLoading(true);
     await signOut(auth);
     setUser(null);
-    // No need to push to login, the useEffect will handle it.
-    // Ensure loading is false after sign out is complete.
-    setLoading(false);
-  }, [auth]);
+    router.push('/login');
+  }, [auth, router]);
 
   const setUserRole = useCallback((role: Role) => {
     if (user && user.email === MASTER_ADMIN_EMAIL) {
@@ -186,11 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [user, loading, authError, login, logout, setUserRole, reloadUser]
   );
   
-   if (loading && !user) {
-     const publicRoutes = ["/login", "/apply"];
-     const isPublicPage = publicRoutes.some(path => pathname.startsWith(path));
-     if(isPublicPage) return <>{children}</>
-
+   if (loading) {
      return (
         <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
             <Logo />
