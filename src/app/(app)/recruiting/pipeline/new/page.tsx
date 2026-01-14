@@ -1,14 +1,31 @@
 'use client';
 
+import { useMemo } from 'react';
+import { useFirestore, useCollection } from '@/firebase';
+import { collection, query, where, orderBy } from 'firebase/firestore';
+import type { Candidate } from '@/lib/types';
+import { CandidateTable } from '../../components/candidate-table';
+
 export default function NewApplicantsPage() {
+  const firestore = useFirestore();
+
+  const candidatesQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(
+      collection(firestore, 'candidates'),
+      where('pipelineStatus', 'in', ['New Applicant', 'Applied']),
+      orderBy('appliedDate', 'desc')
+    );
+  }, [firestore]);
+
+  const { data: candidates, loading } = useCollection<Candidate>(candidatesQuery);
+
   return (
-    <main className="flex-1 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">New Applicants</h1>
-      </div>
-       <div className="border border-dashed rounded-lg p-8 text-center">
-        <p className="text-muted-foreground">New applicants pipeline content will be displayed here.</p>
-      </div>
-    </main>
+    <CandidateTable
+      title="New Applicants"
+      description="Review and process newly applied candidates."
+      candidates={candidates || []}
+      isLoading={loading}
+    />
   );
 }

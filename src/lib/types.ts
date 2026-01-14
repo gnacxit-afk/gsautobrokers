@@ -175,9 +175,12 @@ export type Candidate = {
   id: string;
   fullName: string;
   email: string;
-  pipelineStatus: 'New Applicant' | 'Pre-Filter' | '5-Minute Filter' | 'Approved' | 'Onboarding' | 'Active' | 'Rejected';
+  pipelineStatus: 'New Applicant' | 'Applied' | 'Pre-Filter' | '5-Minute Filter' | 'Approved' | 'Onboarding' | 'Active' | 'Rejected';
   appliedDate: Timestamp | string;
   lastStatusChangeDate: Timestamp | string;
   approvedBy?: string; // Recruiter's name or ID
+  avatarUrl?: string;
+  source?: string;
+  recruiter?: string;
   [key: string]: any;
 };

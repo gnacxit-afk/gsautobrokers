@@ -180,5 +180,9 @@ service cloud.firestore {
       allow create: if isAdmin();
       allow update, delete: if false;
     }
+
+    match /candidates/{candidateId} {
+      allow read, write: if isSignedIn();
+    }
   }
 }
