@@ -239,9 +239,14 @@ export default function LeadDetailsPage() {
                       </DropdownMenuSubTrigger>
                       <DropdownMenuSubContent>
                           <DropdownMenuRadioGroup value={lead.stage} onValueChange={(stage) => handleUpdateStage(stage as Lead['stage'])}>
-                              {leadStages.map((stage) => (
-                                  <DropdownMenuRadioItem key={stage} value={stage}>{stage}</DropdownMenuRadioItem>
-                              ))}
+                              {leadStages.map((stage) => {
+                                  const isBrokerRestricted = authUser?.role === 'Broker' && (stage === 'Ganado' || stage === 'Perdido');
+                                  return (
+                                    <DropdownMenuRadioItem key={stage} value={stage} disabled={isBrokerRestricted}>
+                                        {stage}
+                                    </DropdownMenuRadioItem>
+                                  );
+                              })}
                           </DropdownMenuRadioGroup>
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
