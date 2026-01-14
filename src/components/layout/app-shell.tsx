@@ -238,20 +238,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [user, loading, router]);
 
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
         <Logo />
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground">Loading Application...</p>
+        <p className="text-muted-foreground">Authenticating...</p>
       </div>
     );
-  }
-
-  // If not loading and still no user, the redirect is in flight.
-  // Rendering nothing prevents a flash of the app shell.
-  if (!user) {
-    return null;
   }
   
   const getPageTitle = () => {
