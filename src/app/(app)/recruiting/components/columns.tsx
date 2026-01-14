@@ -39,7 +39,7 @@ const statusOptions: Record<PipelineStatus, PipelineStatus[]> = {
     'Pre-Filter Approved': ['5-Minute Filter', 'Approved', 'Onboarding', 'Rejected', 'Inactive'],
     '5-Minute Filter': ['Approved', 'Onboarding', 'Rejected', 'Inactive'],
     'Approved': ['Onboarding', 'Rejected', 'Inactive'],
-    'Onboarding': ['Active', 'Inactive'],
+    'Onboarding': ['Rejected', 'Inactive'],
     'Active': ['Inactive'],
     'Rejected': [],
     'Inactive': ['New Applicant'], // Can be reactivated
