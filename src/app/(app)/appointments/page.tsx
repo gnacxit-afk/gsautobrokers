@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, Suspense } from 'react';
@@ -28,21 +27,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from '@/components/ui/skeleton';
-import { Trash2, Edit } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { AppointmentActions } from './components/appointment-actions';
+import { ChangeAppointmentOwnerDialog } from './components/change-owner-dialog';
 
 function AppointmentsContent() {
   const { user } = useAuthContext();
@@ -53,6 +42,7 @@ function AppointmentsContent() {
   const [dateFilter, setDateFilter] = useState('upcoming');
   const [ownerFilter, setOwnerFilter] = useState('all');
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const [changingOwnerAppointment, setChangingOwnerAppointment] = useState<Appointment | null>(null);
   
   const preselectedLeadId = searchParams.get('leadId');
 
@@ -94,6 +84,9 @@ function AppointmentsContent() {
   const { data: appointments, loading } = useCollection<Appointment>(appointmentsQuery as Query<DocumentData> | null);
   const { data: staff, loading: staffLoading } = useCollection<Staff>(staffQuery);
   const { data: allLeads, loading: leadsLoading } = useCollection<Lead>(allLeadsQuery);
+  
+  const brokers = useMemo(() => staff?.filter(s => s.role === 'Broker') || [], [staff]);
+
 
   const preselectedLead = useMemo(() => {
     if (!preselectedLeadId || !allLeads) return null;
@@ -108,6 +101,10 @@ function AppointmentsContent() {
   const handleAppointmentUpdated = () => {
     setEditingAppointment(null);
   }
+  
+  const handleOwnerChanged = () => {
+    setChangingOwnerAppointment(null);
+  }
 
   const handleDelete = async (appointment: Appointment) => {
     if (!firestore || !user) return;
@@ -121,7 +118,7 @@ function AppointmentsContent() {
         await updateDoc(leadRef, { stage: 'En Seguimiento' });
         
         await addDoc(noteHistoryRef, {
-            content: `Appointment for ${format(appointment.startTime.toDate(), "d MMM yyyy, p")} was canceled. Stage automatically changed to "En Seguimiento".`,
+            content: `Appointment for ${format(appointment.startTime.toDate(), "d MMM yyyy, p")} was canceled by ${user.name}. Stage automatically changed to "En Seguimiento".`,
             author: 'System',
             date: serverTimestamp(),
             type: 'System',
@@ -211,7 +208,7 @@ function AppointmentsContent() {
                                           <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                                           <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                                           <TableCell><Skeleton className="h-5 w-12" /></TableCell>
-                                          <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                                          <TableCell><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                                       </TableRow>
                                   ))
                               ) : appointments && appointments.length > 0 ? (
@@ -231,33 +228,13 @@ function AppointmentsContent() {
                                        <TableCell>{staff?.find(s => s.id === apt.ownerId)?.name || 'Unknown'}</TableCell>
                                       <TableCell className="capitalize">{apt.status}</TableCell>
                                       <TableCell className="text-right">
-                                          {user?.role === 'Broker' ? (
-                                              <Button variant="outline" size="sm" onClick={() => setEditingAppointment(apt)}>
-                                                  <Edit size={16} className="mr-2 h-4 w-4"/> Edit
-                                              </Button>
-                                          ) : (
-                                              <AlertDialog>
-                                                  <AlertDialogTrigger asChild>
-                                                      <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
-                                                          <Trash2 size={16}/>
-                                                      </Button>
-                                                  </AlertDialogTrigger>
-                                                  <AlertDialogContent>
-                                                      <AlertDialogHeader>
-                                                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                          <AlertDialogDescription>
-                                                              This action cannot be undone. This will cancel the appointment for <span className="font-bold">{apt.leadName}</span> and change the lead's stage to "En Seguimiento".
-                                                          </AlertDialogDescription>
-                                                      </AlertDialogHeader>
-                                                      <AlertDialogFooter>
-                                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                          <AlertDialogAction onClick={() => handleDelete(apt)} className="bg-destructive hover:bg-destructive/90">
-                                                              Yes, cancel appointment
-                                                          </AlertDialogAction>
-                                                      </AlertDialogFooter>
-                                                  </AlertDialogContent>
-                                              </AlertDialog>
-                                          )}
+                                          <AppointmentActions 
+                                            appointment={apt}
+                                            userRole={user!.role}
+                                            onEdit={() => setEditingAppointment(apt)}
+                                            onDelete={() => handleDelete(apt)}
+                                            onChangeOwner={() => setChangingOwnerAppointment(apt)}
+                                          />
                                       </TableCell>
                                       </TableRow>
                                   ))
@@ -281,6 +258,15 @@ function AppointmentsContent() {
             open={!!editingAppointment}
             onOpenChange={(isOpen) => !isOpen && setEditingAppointment(null)}
             onAppointmentUpdated={handleAppointmentUpdated}
+        />
+      )}
+      {changingOwnerAppointment && (
+        <ChangeAppointmentOwnerDialog
+          appointment={changingOwnerAppointment}
+          open={!!changingOwnerAppointment}
+          onOpenChange={(isOpen) => !isOpen && setChangingOwnerAppointment(null)}
+          onAppointmentUpdated={handleOwnerChanged}
+          brokers={brokers}
         />
       )}
     </>
