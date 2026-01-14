@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from "react";
@@ -30,82 +29,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function AuthHandler({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuthContext();
-  const router = useRouter();
-  const pathname = usePathname();
-
-  useEffect(() => {
-    if (loading) {
-      return;
-    }
-    
-    // Define public paths that don't require authentication
-    const isPublicPage = pathname === '/apply';
-
-    // If the user is on a public page, do nothing.
-    if (isPublicPage) {
-        // If the user is logged in and tries to go to login, redirect to leads.
-        if (user && pathname === '/login') {
-            router.push('/leads');
-        }
-      return;
-    }
-    
-    // If not logged in and not on a public page, redirect to login
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-    
-    // If logged in and on the login page, redirect to the main app page
-    if (user && pathname === '/login') {
-      router.push('/leads');
-    }
-
-  }, [user, loading, router, pathname]);
-  
-  // Show loading screen only for protected pages
-  if (loading && !(pathname === '/apply' || pathname === '/login')) {
-    return (
-      <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
-        <Logo />
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground">Loading Application...</p>
-      </div>
-    );
-  }
-  
-  // If it's a public page, render it immediately without waiting for auth state.
-  if (pathname === '/apply' || pathname === '/login') {
-      return <>{children}</>;
-  }
-
-  // If we are on a protected route and still loading, show loading screen.
-  if (loading) {
-    return (
-        <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-gray-100">
-            <Logo />
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">Loading Application...</p>
-        </div>
-    );
-  }
-
-  // If on a protected route and not logged in, this will be blank briefly before redirect.
-  if (!user) {
-      return null;
-  }
-  
-  return <>{children}</>;
-}
-
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const pathname = usePathname();
 
   const firestore = useFirestore();
   const auth = useAuth();
@@ -123,10 +50,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const staffDoc = querySnapshot.docs[0];
             const staffData = staffDoc.data() as Staff;
             
-            // Special handling for master admin to ensure their data is correct.
             if (staffData.email === MASTER_ADMIN_EMAIL) {
                 if (staffData.authUid !== fbUser.uid) {
-                    // Update authUid if it's incorrect in Firestore
                     await setDoc(doc(firestore, "staff", staffDoc.id), { authUid: fbUser.uid }, { merge: true });
                 }
             }
@@ -141,7 +66,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 dui: staffData.dui
             };
         } else {
-             // If no user doc, check if it's the master admin logging in for the first time.
              if (fbUser.email === MASTER_ADMIN_EMAIL) {
                  const newUserProfile: Omit<Staff, 'id'> = {
                      authUid: fbUser.uid,
@@ -156,7 +80,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                  const docRef = await addDoc(staffCollection, newUserProfile);
                  return { id: docRef.id, ...newUserProfile } as User;
              }
-             // For any other user, they should not be able to create a profile this way.
              throw new Error("User profile not found. Please contact an administrator.");
         }
     } catch (error: any) {
@@ -172,7 +95,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
         return;
     }
-
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
             const userProfile = await fetchAppUser(firebaseUser);
@@ -182,7 +104,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         setLoading(false);
     });
-
     return () => unsubscribe();
   }, [auth, fetchAppUser]);
 
@@ -232,12 +153,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [user, loading, authError, login, logout, setUserRole, reloadUser]
   );
   
-  // Conditionally wrap children in AuthHandler ONLY if it's not a public page
-  const isPublicPage = pathname === '/apply';
-
   return (
     <AuthContext.Provider value={value}>
-      {isPublicPage ? children : <AuthHandler>{children}</AuthHandler>}
+        {children}
     </AuthContext.Provider>
   );
 }
