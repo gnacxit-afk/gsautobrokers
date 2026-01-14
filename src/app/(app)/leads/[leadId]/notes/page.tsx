@@ -80,7 +80,7 @@ export default function LeadDetailsPage() {
   const {data: lead, loading: leadLoading} = useDoc<Lead>(leadDocRef);
   
   const staffQuery = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
-  const { data: staff, loading: staffLoading } } from useCollection<Staff>(staffQuery);
+  const { data: staff, loading: staffLoading } = useCollection<Staff>(staffQuery);
 
   const notesQuery = useMemo(() => {
     if (!firestore || !leadId) return null;
@@ -415,3 +415,4 @@ export default function LeadDetailsPage() {
     
 
     
+
