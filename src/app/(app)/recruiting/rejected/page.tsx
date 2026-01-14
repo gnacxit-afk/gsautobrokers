@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import type { Candidate } from '@/lib/types';
-import { CandidateTable } from '../../components/candidate-table';
+import { CandidateTable } from '../components/candidate-table';
 
 export default function RejectedCandidatesPage() {
   const firestore = useFirestore();
