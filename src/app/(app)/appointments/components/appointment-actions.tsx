@@ -36,6 +36,10 @@ export function AppointmentActions({ appointment, userRole, onEdit, onDelete, on
     (s) => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin'
   );
 
+  const handleDeleteClick = () => {
+      onDelete();
+  };
+
   // Admin sees a dropdown with all options
   if (userRole === 'Admin') {
     return (
@@ -97,7 +101,7 @@ export function AppointmentActions({ appointment, userRole, onEdit, onDelete, on
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
                     <DropdownMenuLabel>Are you sure?</DropdownMenuLabel>
-                    <DropdownMenuItem onSelect={onDelete} className="text-destructive focus:text-destructive">
+                    <DropdownMenuItem onSelect={handleDeleteClick} className="text-destructive focus:text-destructive">
                         Confirm Deletion
                     </DropdownMenuItem>
                     <DropdownMenuItem>
@@ -113,23 +117,23 @@ export function AppointmentActions({ appointment, userRole, onEdit, onDelete, on
   // Supervisor sees only the delete option, now as a nested menu
   if (userRole === 'Supervisor') {
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
-                    <Trash2 size={16} />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-                <DropdownMenuLabel>Delete Appointment?</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                 <DropdownMenuItem onSelect={onDelete} className="text-destructive focus:text-destructive">
-                    Confirm Deletion
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                    Cancel
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+      <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
+                  <Trash2 size={16} />
+              </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+              <DropdownMenuLabel>Delete Appointment?</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={handleDeleteClick} className="text-destructive focus:text-destructive">
+                  Confirm Deletion
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                  Cancel
+              </DropdownMenuItem>
+          </DropdownMenuContent>
+      </DropdownMenu>
     );
   }
   

@@ -116,4 +116,3 @@ export function KpiClient({ initialKpis, loading }: KpiClientProps) {
     </div>
   );
 }
-
