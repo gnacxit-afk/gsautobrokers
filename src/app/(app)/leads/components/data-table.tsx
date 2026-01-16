@@ -15,15 +15,22 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Search, X, Filter, Users } from 'lucide-react';
+import { PlusCircle, Search, X, Filter, Users, Tag, Share2 } from 'lucide-react';
 import type { Lead, Staff } from '@/lib/types';
 import { AddLeadDialog } from './add-lead-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DateRangePicker } from '@/components/layout/date-range-picker';
 import { useUser } from '@/firebase';
-import { parseSearch } from '../page';
 import { Badge } from '@/components/ui/badge';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuLabel, 
+  DropdownMenuRadioGroup, 
+  DropdownMenuRadioItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const leadChannels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
@@ -33,10 +40,11 @@ interface DataTableProps<TData, TValue> {
   table: Table<TData>;
   onAddLead: (leadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'> & { initialNotes?: string }, callback?: (lead: Lead) => void) => void;
   staff: Staff[];
-  clearAllFilters: () => void;
   loading: boolean;
-  globalFilter: string;
-  setGlobalFilter: (value: string) => void;
+  searchTerm: string;
+  setSearchTerm: (value: string) => void;
+  activeFilters: {key: string; value: string}[];
+  setActiveFilters: React.Dispatch<React.SetStateAction<{key: string; value: string}[]>>;
 }
 
 export function DataTable<TData, TValue>({
@@ -44,12 +52,14 @@ export function DataTable<TData, TValue>({
   table,
   onAddLead,
   staff,
-  clearAllFilters,
   loading,
-  globalFilter,
-  setGlobalFilter,
+  searchTerm,
+  setSearchTerm,
+  activeFilters,
+  setActiveFilters
 }: DataTableProps<TData, TValue>) {
   const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
   const { user } = useUser();
 
   const handleOpenAddLeadDialog = useCallback(() => {
@@ -58,17 +68,10 @@ export function DataTable<TData, TValue>({
 
   const assignableStaff = useMemo(() => {
     if (!user || !staff) return [];
-    if (user.role === 'Admin') {
-      return staff.filter(s => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin');
+    if (user.role === 'Admin' || user.role === 'Supervisor') {
+      return staff.filter(s => ['Admin', 'Supervisor', 'Broker'].includes(s.role));
     }
-    if (user.role === 'Supervisor') {
-      const teamIds = staff.filter(s => s.supervisorId === user.id).map(s => s.id);
-      return staff.filter(s => teamIds.includes(s.id) || s.id === user.id);
-    }
-    if (user.role === 'Broker') {
-      return staff.filter(s => s.id === user.id);
-    }
-    return [];
+    return staff.filter(s => s.id === user.id);
   }, [user, staff]);
   
   const defaultOwnerId = useMemo(() => {
@@ -76,55 +79,70 @@ export function DataTable<TData, TValue>({
       return assignableStaff.length > 0 ? assignableStaff[0].id : '';
   }, [user, assignableStaff]);
 
-  const { keywords: activeFilters, text: freeText } = parseSearch(globalFilter);
-
-  const handleSetFilter = (key: string, value: string) => {
-    const newKeywords = { ...activeFilters, [key]: value };
-    const newFilterString = Object.entries(newKeywords)
-      .map(([k, v]) => `${k}:${v}`)
-      .join(' ') + ' ' + freeText.join(' ');
-    setGlobalFilter(newFilterString.trim());
+  const addFilter = (key: string, value: string) => {
+    if (!activeFilters.find(f => f.key === key && f.value === value)) {
+      setActiveFilters([...activeFilters, { key, value }]);
+    }
+    setSearchTerm('');
+    setShowAutocomplete(false);
   };
 
-  const handleRemoveFilter = (keyToRemove: string) => {
-    const newKeywords = { ...activeFilters };
-    delete newKeywords[keyToRemove];
-    const newFilterString = Object.entries(newKeywords)
-      .map(([k, v]) => `${k}:${v}`)
-      .join(' ') + ' ' + freeText.join(' ');
-    setGlobalFilter(newFilterString.trim());
+  const removeFilter = (key: string, value: string) => {
+    setActiveFilters(activeFilters.filter(f => !(f.key === key && f.value === value)));
   };
-  
-  const handleFreeTextChange = (newText: string) => {
-    const keywordString = Object.entries(activeFilters)
-        .map(([k,v]) => `${k}:${v}`)
-        .join(' ');
-    setGlobalFilter((keywordString + ' ' + newText).trim());
-  }
 
   const getOwnerNameById = (ownerId: string) => {
     return staff.find(s => s.id === ownerId)?.name || ownerId;
   }
 
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setActiveFilters([]);
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row justify-between items-start gap-4">
-        <div className="w-full md:max-w-md space-y-2">
+        <div className="w-full md:max-w-md space-y-2 relative">
             <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                     placeholder="Search by name, phone, email..."
-                    value={freeText.join(' ')}
-                    onChange={event => handleFreeTextChange(event.target.value)}
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setShowAutocomplete(true);
+                    }}
+                    onFocus={() => setShowAutocomplete(true)}
+                    onBlur={() => setTimeout(() => setShowAutocomplete(false), 150)}
                     className="pl-10"
                 />
             </div>
-            {Object.keys(activeFilters).length > 0 && (
-                <div className="flex items-center gap-2 flex-wrap">
-                    {Object.entries(activeFilters).map(([key, value]) => (
-                        <Badge key={key} variant="secondary" className="capitalize text-xs">
-                            <span className="font-semibold mr-1">{key}:</span> {key === 'ownerid' ? getOwnerNameById(value) : value}
-                            <button onClick={() => handleRemoveFilter(key)} className="ml-2 rounded-full hover:bg-black/10 p-0.5">
+             {showAutocomplete && searchTerm.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden animate-in slide-in-from-top-1">
+                <div className="p-2 bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Añadir filtro de base de datos</div>
+                <button 
+                  onClick={() => addFilter('stage', searchTerm)}
+                  className="w-full flex items-center gap-3 p-3 hover:bg-blue-50 transition text-left text-sm group"
+                >
+                  <Tag size={16} className="text-blue-500"/>
+                  <p>Filtrar por Etapa: <span className="font-semibold">{searchTerm}</span></p>
+                </button>
+                <button 
+                  onClick={() => addFilter('channel', searchTerm)}
+                  className="w-full flex items-center gap-3 p-3 hover:bg-emerald-50 transition text-left text-sm group"
+                >
+                  <Share2 size={16} className="text-emerald-500"/>
+                  <p>Filtrar por Canal: <span className="font-semibold">{searchTerm}</span></p>
+                </button>
+              </div>
+            )}
+            {activeFilters.length > 0 && (
+                <div className="flex items-center gap-2 flex-wrap pt-1">
+                    {activeFilters.map((f, i) => (
+                        <Badge key={`${f.key}-${i}`} variant="secondary" className="capitalize text-xs">
+                            <span className="font-semibold mr-1">{f.key === 'ownerId' ? 'owner' : f.key}:</span> {f.key === 'ownerId' ? getOwnerNameById(f.value) : f.value}
+                            <button onClick={() => removeFilter(f.key, f.value)} className="ml-2 rounded-full hover:bg-black/10 p-0.5">
                                 <X size={12} />
                             </button>
                         </Badge>
@@ -143,23 +161,9 @@ export function DataTable<TData, TValue>({
               <DropdownMenuContent>
                 <DropdownMenuLabel>Filter by Stage</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuRadioGroup value={activeFilters.stage} onValueChange={(v) => handleSetFilter('stage', v)}>
+                <DropdownMenuRadioGroup value={activeFilters.find(f => f.key === 'stage')?.value} onValueChange={(v) => addFilter('stage', v)}>
                   {leadStages.map(stage => (
                     <DropdownMenuRadioItem key={stage} value={stage}>{stage}</DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm"><Filter className="mr-2 h-4 w-4" /> Channel</Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuLabel>Filter by Channel</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuRadioGroup value={activeFilters.channel} onValueChange={(v) => handleSetFilter('channel', v)}>
-                  {leadChannels.map(c => (
-                    <DropdownMenuRadioItem key={c} value={c}>{c}</DropdownMenuRadioItem>
                   ))}
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
@@ -171,7 +175,7 @@ export function DataTable<TData, TValue>({
               <DropdownMenuContent>
                 <DropdownMenuLabel>Filter by Owner</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuRadioGroup value={activeFilters.ownerid} onValueChange={(v) => handleSetFilter('ownerid', v)}>
+                <DropdownMenuRadioGroup value={activeFilters.find(f => f.key === 'ownerId')?.value} onValueChange={(v) => addFilter('ownerId', v)}>
                   {staff.map(s => (
                     <DropdownMenuRadioItem key={s.id} value={s.id}>{s.name}</DropdownMenuRadioItem>
                   ))}

@@ -5,7 +5,7 @@ import type { ColumnDef, Row } from "@tanstack/react-table";
 import { MoreHorizontal, Trash2, Users, ChevronsUpDown, FileText, Bot, Calendar } from "lucide-react";
 import { format, formatDistanceToNow, isValid } from "date-fns";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React from "react";
 import Link from 'next/link';
 
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ import {
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import type { Lead, NoteEntry, Staff } from "@/lib/types";
+import type { Lead, Staff } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthContext } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -40,8 +40,6 @@ const stageColors: Record<Lead['stage'], string> = {
   "Perdido": "bg-red-100 text-red-800 border-red-200",
 };
 
-
-// Props for the CellActions component
 interface CellActionsProps {
   row: Row<Lead>;
   onUpdateStage: (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage']) => void;
@@ -64,7 +62,6 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
     const newOwner = staff.find(s => s.id === newOwnerId);
     if (newOwner) {
       onUpdateOwner(lead.id, lead.ownerName, newOwnerId, newOwner.name);
-      toast({ title: "Owner Updated", description: `${lead.name} is now assigned to ${newOwner.name}.` });
     }
   };
 
@@ -73,88 +70,84 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
   );
   
   return (
-    <>
-      <div className="flex items-center gap-2 justify-end">
-        <Button variant="outline" size="sm" onClick={() => router.push(`/leads/${lead.id}/notes`)}>
-          Details
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            
-            <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/notes`)}>
-                <FileText className="mr-2 h-4 w-4" />
-                <span>Details / Notes</span>
-            </DropdownMenuItem>
+    <div className="flex items-center gap-2 justify-end">
+      <Button variant="outline" size="sm" onClick={() => router.push(`/leads/${lead.id}/notes`)}>
+        Details
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="h-8 w-8 p-0">
+            <span className="sr-only">Open menu</span>
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+          
+          <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/notes`)}>
+              <FileText className="mr-2 h-4 w-4" />
+              <span>Details / Notes</span>
+          </DropdownMenuItem>
 
-             <DropdownMenuItem onSelect={() => router.push(`/appointments?leadId=${lead.id}`)}>
-                <Calendar className="mr-2 h-4 w-4" />
-                <span>Schedule Appointment</span>
-            </DropdownMenuItem>
+           <DropdownMenuItem onSelect={() => router.push(`/appointments?leadId=${lead.id}`)}>
+              <Calendar className="mr-2 h-4 w-4" />
+              <span>Schedule Appointment</span>
+          </DropdownMenuItem>
 
-            <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/analysis`)}>
-                <Bot className="mr-2 h-4 w-4" />
-                <span>AI Lead Analysis</span>
-            </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/analysis`)}>
+              <Bot className="mr-2 h-4 w-4" />
+              <span>AI Lead Analysis</span>
+          </DropdownMenuItem>
 
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <ChevronsUpDown className="mr-2 h-4 w-4" />
-                <span>Update Stage</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                  <DropdownMenuRadioGroup value={lead.stage} onValueChange={(stage) => handleStageUpdate(stage as Lead['stage'])}>
-                      {leadStages.map((stage) => {
-                          const isBrokerRestricted = user?.role === 'Broker' && (stage === 'Ganado' || stage === 'Perdido');
-                          return (
-                            <DropdownMenuRadioItem key={stage} value={stage} disabled={isBrokerRestricted}>
-                                {stage}
-                            </DropdownMenuRadioItem>
-                          );
-                      })}
-                  </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <ChevronsUpDown className="mr-2 h-4 w-4" />
+              <span>Update Stage</span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+                <DropdownMenuRadioGroup value={lead.stage} onValueChange={(stage) => handleStageUpdate(stage as Lead['stage'])}>
+                    {leadStages.map((stage) => {
+                        const isBrokerRestricted = user?.role === 'Broker' && (stage === 'Ganado' || stage === 'Perdido');
+                        return (
+                          <DropdownMenuRadioItem key={stage} value={stage} disabled={isBrokerRestricted}>
+                              {stage}
+                          </DropdownMenuRadioItem>
+                        );
+                    })}
+                </DropdownMenuRadioGroup>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
 
-            {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <Users className="mr-2 h-4 w-4" />
-                    <span>Change Owner</span>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                      <DropdownMenuRadioGroup value={lead.ownerId} onValueChange={handleOwnerUpdate}>
-                          {assignableStaff.map((staffMember) => (
-                              <DropdownMenuRadioItem key={staffMember.id} value={staffMember.id}>
-                                  {staffMember.name}
-                              </DropdownMenuRadioItem>
-                          ))}
-                      </DropdownMenuRadioGroup>
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-            )}
+          {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Users className="mr-2 h-4 w-4" />
+                  <span>Change Owner</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                    <DropdownMenuRadioGroup value={lead.ownerId} onValueChange={handleOwnerUpdate}>
+                        {assignableStaff.map((staffMember) => (
+                            <DropdownMenuRadioItem key={staffMember.id} value={staffMember.id}>{staffMember.name}</DropdownMenuRadioItem>
+                        ))}
+                    </DropdownMenuRadioGroup>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+          )}
 
-            {user?.role === 'Admin' && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                    className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                    onSelect={() => onDelete(lead.id)}
-                >
-                    <Trash2 className="mr-2 h-4 w-4" /> Delete Lead
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </>
+          {user?.role === 'Admin' && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                  className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                  onSelect={() => onDelete(lead.id)}
+              >
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete Lead
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 };
 
@@ -249,7 +242,6 @@ export const getColumns = (
   {
     id: "actions",
     cell: ({ row }) => {
-      // Pass all required props to the stable CellActions component
       return <CellActions 
         row={row} 
         onUpdateStage={onUpdateStage}

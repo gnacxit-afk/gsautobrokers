@@ -48,6 +48,7 @@
     "firebase": "^11.9.1",
     "genkit": "^1.20.0",
     "lucide-react": "^0.475.0",
+    "match-sorter": "^6.3.4",
     "next": "15.5.9",
     "patch-package": "^8.0.0",
     "react": "^19.2.1",

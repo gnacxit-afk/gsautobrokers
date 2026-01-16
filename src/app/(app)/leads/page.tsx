@@ -28,35 +28,13 @@ import {
   where,
   getDocs,
   writeBatch,
-  type QueryConstraint,
   limit,
+  type QueryConstraint,
 } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { isWithinInterval, isValid } from "date-fns";
 import { addNoteEntry, createNotification } from "@/lib/utils";
-
-/* -------------------------------- helpers -------------------------------- */
-
-export function parseSearch(search: string) {
-  const terms = search.split(/\s+/).filter(Boolean);
-  const keywords: Record<string, string> = {};
-  const text: string[] = [];
-
-  for (const term of terms) {
-    if (term.includes(":")) {
-      const [key, ...valueParts] = term.split(":");
-      const value = valueParts.join(":").trim();
-      if (value) {
-        keywords[key.toLowerCase()] = value; 
-      }
-    } else {
-      text.push(term);
-    }
-  }
-  return { keywords, text };
-}
-
-/* ------------------------------- component -------------------------------- */
+import { matchSorter } from 'match-sorter';
 
 function LeadsPageContent() {
   const { user } = useUser();
@@ -65,14 +43,16 @@ function LeadsPageContent() {
   const { dateRange } = useDateRange();
 
   const [sorting, setSorting] = useState<SortingState>([
-    { id: "lastActivity", desc: true },
+    { id: "createdAt", desc: true },
   ]);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 100 });
-  const [globalFilter, setGlobalFilter] = useState("");
   const [expanded, setExpanded] = useState({});
+  
+  // Structured filter state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeFilters, setActiveFilters] = useState<{key: string; value: string}[]>([]);
 
   /* ------------------------------ staff data ------------------------------ */
-
   const staffQuery = useMemo(
     () => (firestore ? query(collection(firestore, "staff")) : null),
     [firestore]
@@ -81,12 +61,12 @@ function LeadsPageContent() {
   const staffData = useMemo(() => staffSnapshot || [], [staffSnapshot]);
 
   /* ---------------------- SERVER-SIDE ROLE-BASED QUERY ---------------------- */
-
   const leadsQuery = useMemo(() => {
     if (!firestore || !user || !staffData.length) return null;
 
-    const constraints: QueryConstraint[] = [orderBy("createdAt", "desc"), limit(250)]; // Fetch a larger base set
+    const constraints: QueryConstraint[] = [orderBy("createdAt", "desc"), limit(250)];
 
+    // Role-based pre-filtering
     if (user.role === "Broker") {
       constraints.push(where("ownerId", "==", user.id));
     } else if (user.role === 'Supervisor') {
@@ -97,56 +77,40 @@ function LeadsPageContent() {
             constraints.push(where("ownerId", "==", user.id));
         }
     }
+    
+    // Server-side filtering from active chips
+    activeFilters.forEach(f => {
+      constraints.push(where(f.key, '==', f.value));
+    });
 
     return query(collection(firestore, "leads"), ...constraints);
-  }, [firestore, user, staffData]);
+  }, [firestore, user, staffData, activeFilters]);
 
   const { data: leadsSnapshot, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
 
   /* --------------------------- CLIENT-SIDE FILTERING --------------------------- */
-
   const filteredData = useMemo(() => {
     if (!leadsSnapshot) return [];
     
-    const { keywords, text } = parseSearch(globalFilter);
-    const searchText = text.join(' ').toLowerCase();
+    let data = leadsSnapshot;
 
-    return leadsSnapshot.filter(lead => {
-      // 1. Date Range Filter
-      if (dateRange?.start && dateRange?.end) {
+    // 1. Date Range Filter
+    if (dateRange?.start && dateRange?.end) {
+      data = data.filter(lead => {
         const date = (lead.createdAt as any)?.toDate?.() ?? new Date(lead.createdAt as any);
-        if (isValid(date) && !isWithinInterval(date, { start: dateRange.start, end: dateRange.end }))
-          return false;
-      }
+        return isValid(date) && isWithinInterval(date, { start: dateRange.start, end: dateRange.end });
+      });
+    }
 
-      // 2. Keyword Filters (Stage, Channel, Owner)
-      if (keywords.stage && lead.stage !== keywords.stage) {
-        return false;
-      }
-      if (keywords.channel && lead.channel !== keywords.channel) {
-        return false;
-      }
-      if (keywords.ownerid && lead.ownerId !== keywords.ownerid) {
-        return false;
-      }
-
-      // 3. Free Text Search (Name, Email, Phone)
-      if (searchText) {
-        const searchPhone = searchText.replace(/\D/g, '');
-        const leadPhone = (lead.phone || '').replace(/\D/g, '');
-
-        const nameMatch = lead.name.toLowerCase().includes(searchText);
-        const emailMatch = (lead.email || '').toLowerCase().includes(searchText);
-        const phoneMatch = searchPhone.length > 0 && leadPhone.includes(searchPhone);
-
-        if (!nameMatch && !emailMatch && !phoneMatch) {
-            return false;
-        }
-      }
+    // 2. Free Text "Fuzzy" Search
+    if (searchTerm) {
+       data = matchSorter(data, searchTerm, {
+        keys: ['name', 'phone', 'email'],
+      });
+    }
       
-      return true;
-    });
-  }, [leadsSnapshot, globalFilter, dateRange]);
+    return data;
+  }, [leadsSnapshot, searchTerm, dateRange]);
 
   /* -------------------------------- ACTIONS ------------------------------- */
 
@@ -159,7 +123,7 @@ function LeadsPageContent() {
     
     const batch = writeBatch(firestore);
     try {
-        batch.update(leadRef, { stage: newStage });
+        batch.update(leadRef, { stage: newStage, lastActivity: serverTimestamp() });
 
         const appointmentsQuery = query(collection(firestore, 'appointments'), where("leadId", "==", leadId));
         const appointmentsSnapshot = await getDocs(appointmentsQuery);
@@ -249,7 +213,7 @@ function LeadsPageContent() {
     const batch = writeBatch(firestore);
     try {
         const leadRef = doc(firestore, 'leads', id);
-        batch.update(leadRef, { ownerId: newOwnerId, ownerName: newOwnerName });
+        batch.update(leadRef, { ownerId: newOwnerId, ownerName: newOwnerName, lastActivity: serverTimestamp() });
 
         const appointmentsQuery = query(collection(firestore, 'appointments'), where('leadId', '==', id));
         const appointmentsSnapshot = await getDocs(appointmentsQuery);
@@ -286,11 +250,10 @@ function LeadsPageContent() {
   const table = useReactTable({
     data: filteredData,
     columns,
-    state: { sorting, pagination, expanded, globalFilter },
+    state: { sorting, pagination, expanded },
     onSortingChange: setSorting,
     onPaginationChange: setPagination,
     onExpandedChange: setExpanded,
-    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -306,9 +269,10 @@ function LeadsPageContent() {
         onAddLead={handleAddLead}
         staff={staffData}
         loading={leadsLoading || staffLoading}
-        globalFilter={globalFilter}
-        setGlobalFilter={setGlobalFilter}
-        clearAllFilters={() => setGlobalFilter("")}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        activeFilters={activeFilters}
+        setActiveFilters={setActiveFilters}
       />
     </main>
   );
