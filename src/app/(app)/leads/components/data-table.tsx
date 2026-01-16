@@ -80,9 +80,9 @@ export function DataTable<TData, TValue>({
   }, [user, assignableStaff]);
 
   const addFilter = (key: string, value: string) => {
-    if (!activeFilters.find(f => f.key === key && f.value === value)) {
-      setActiveFilters([...activeFilters, { key, value }]);
-    }
+    // Remove existing filter of the same key before adding new one
+    const otherFilters = activeFilters.filter(f => f.key !== key);
+    setActiveFilters([...otherFilters, { key, value }]);
     setSearchTerm('');
     setShowAutocomplete(false);
   };
@@ -111,33 +111,14 @@ export function DataTable<TData, TValue>({
                     value={searchTerm}
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
-                      setShowAutocomplete(true);
+                      setShowAutocomplete(e.target.value.length > 0);
                     }}
-                    onFocus={() => setShowAutocomplete(true)}
+                    onFocus={() => setShowAutocomplete(searchTerm.length > 0)}
                     onBlur={() => setTimeout(() => setShowAutocomplete(false), 150)}
                     className="pl-10"
                 />
             </div>
-             {showAutocomplete && searchTerm.length > 0 && (
-              <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden animate-in slide-in-from-top-1">
-                <div className="p-2 bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Añadir filtro de base de datos</div>
-                <button 
-                  onClick={() => addFilter('stage', searchTerm)}
-                  className="w-full flex items-center gap-3 p-3 hover:bg-blue-50 transition text-left text-sm group"
-                >
-                  <Tag size={16} className="text-blue-500"/>
-                  <p>Filtrar por Etapa: <span className="font-semibold">{searchTerm}</span></p>
-                </button>
-                <button 
-                  onClick={() => addFilter('channel', searchTerm)}
-                  className="w-full flex items-center gap-3 p-3 hover:bg-emerald-50 transition text-left text-sm group"
-                >
-                  <Share2 size={16} className="text-emerald-500"/>
-                  <p>Filtrar por Canal: <span className="font-semibold">{searchTerm}</span></p>
-                </button>
-              </div>
-            )}
-            {activeFilters.length > 0 && (
+             {activeFilters.length > 0 && (
                 <div className="flex items-center gap-2 flex-wrap pt-1">
                     {activeFilters.map((f, i) => (
                         <Badge key={`${f.key}-${i}`} variant="secondary" className="capitalize text-xs">
@@ -178,6 +159,20 @@ export function DataTable<TData, TValue>({
                 <DropdownMenuRadioGroup value={activeFilters.find(f => f.key === 'ownerId')?.value} onValueChange={(v) => addFilter('ownerId', v)}>
                   {staff.map(s => (
                     <DropdownMenuRadioItem key={s.id} value={s.id}>{s.name}</DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+             <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm"><Share2 className="mr-2 h-4 w-4" /> Channel</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>Filter by Channel</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup value={activeFilters.find(f => f.key === 'channel')?.value} onValueChange={(v) => addFilter('channel', v)}>
+                  {leadChannels.map(channel => (
+                    <DropdownMenuRadioItem key={channel} value={channel}>{channel}</DropdownMenuRadioItem>
                   ))}
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
