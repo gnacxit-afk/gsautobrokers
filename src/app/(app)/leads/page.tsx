@@ -35,7 +35,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { isWithinInterval, isValid } from "date-fns";
 import { addNoteEntry, createNotification } from "@/lib/utils";
-import { matchSorter } from '@tanstack/match-sorter-utils';
+import { matchSorter } from 'match-sorter';
 
 /* -------------------------------- helpers -------------------------------- */
 
