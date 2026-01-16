@@ -137,23 +137,26 @@ const ScoreBadge = ({ score }: { score?: number }) => {
 };
 
 
-export const getColumns = (): ColumnDef<Candidate>[] => [
+export const getColumns = (onViewDetails: (candidate: Candidate) => void): ColumnDef<Candidate>[] => [
   {
     accessorKey: 'fullName',
     header: 'Candidate',
     cell: ({ row }) => {
       const candidate = row.original;
       return (
-        <div className="flex items-center gap-3">
+        <button
+          onClick={() => onViewDetails(candidate)}
+          className="flex w-full items-center gap-3 rounded-md p-2 text-left transition-colors hover:bg-slate-50 -m-2"
+        >
           <Avatar>
             {candidate.avatarUrl && <AvatarImage src={candidate.avatarUrl} alt={candidate.fullName} />}
             <AvatarFallback>{getAvatarFallback(candidate.fullName)}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
-            <span className="font-medium">{candidate.fullName}</span>
+            <span className="font-medium text-primary hover:underline">{candidate.fullName}</span>
             <span className="text-xs text-muted-foreground">{candidate.email}</span>
           </div>
-        </div>
+        </button>
       );
     },
   },
@@ -206,5 +209,3 @@ export const getColumns = (): ColumnDef<Candidate>[] => [
     cell: ({ row }) => <CellActions row={row} />,
   },
 ];
-
-    

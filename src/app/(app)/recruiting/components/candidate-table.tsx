@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { getColumns } from './columns';
 import { useReactTable, getCoreRowModel, getPaginationRowModel } from '@tanstack/react-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { flexRender } from '@tanstack/react-table';
 import type { Candidate } from '@/lib/types';
+import { CandidateDetailsDialog } from './candidate-details-dialog';
 
 interface CandidateTableProps {
   title: string;
@@ -18,7 +19,13 @@ interface CandidateTableProps {
 }
 
 export function CandidateTable({ title, description, candidates, isLoading }: CandidateTableProps) {
-  const columns = useMemo(() => getColumns(), []);
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+
+  const handleViewDetails = (candidate: Candidate) => {
+    setSelectedCandidate(candidate);
+  };
+
+  const columns = useMemo(() => getColumns(handleViewDetails), []);
 
   const table = useReactTable({
     data: candidates,
@@ -28,61 +35,70 @@ export function CandidateTable({ title, description, candidates, isLoading }: Ca
   });
 
   return (
-    <main className="flex-1 space-y-6">
-       <Card>
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  [...Array(10)].map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell colSpan={columns.length}>
-                        <Skeleton className="h-8 w-full" />
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
+    <>
+      <main className="flex-1 space-y-6">
+         <Card>
+          <CardHeader>
+            <CardTitle>{title}</CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <TableHead key={header.id}>
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(header.column.columnDef.header, header.getContext())}
+                        </TableHead>
                       ))}
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={columns.length} className="h-24 text-center">
-                      No candidates found.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-    </main>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    [...Array(10)].map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell colSpan={columns.length}>
+                          <Skeleton className="h-8 w-full" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : table.getRowModel().rows?.length ? (
+                    table.getRowModel().rows.map((row) => (
+                      <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="h-24 text-center">
+                        No candidates found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+      <CandidateDetailsDialog
+        candidate={selectedCandidate}
+        open={!!selectedCandidate}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setSelectedCandidate(null);
+          }
+        }}
+      />
+    </>
   );
 }
-
-    
