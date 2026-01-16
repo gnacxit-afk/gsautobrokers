@@ -30,6 +30,7 @@ import {
   getDocs,
   writeBatch,
   type QueryConstraint,
+  limit,
 } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { isWithinInterval, isValid } from "date-fns";
@@ -87,7 +88,7 @@ function LeadsPageContent() {
     if (!firestore || !user || !staffData.length) return null;
 
     const { keywords } = parseSearch(globalFilter);
-    const constraints: QueryConstraint[] = [orderBy("createdAt", "desc")];
+    const constraints: QueryConstraint[] = [orderBy("createdAt", "desc"), limit(50)];
 
     // Role-based pre-filter
     if (user.role === "Broker") {
@@ -230,7 +231,7 @@ function LeadsPageContent() {
             }
             toast({ title: "Lead Added", description: "New lead created successfully." });
             
-            const createdLead: Lead = { id: newDocRef.id, ...finalLeadData, createdAt: new Date() };
+            const createdLead: Lead = { id: newDocRef.id, ...finalLeadData, createdAt: new Date() } as Lead;
             if(callback) callback(createdLead);
 
         } catch (error) {

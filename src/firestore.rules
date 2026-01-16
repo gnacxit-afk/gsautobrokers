@@ -1,15 +1,16 @@
 
 rules_version = '2';
+
 service cloud.firestore {
+
+  // Allow public, unauthenticated writes to the applications collection.
+  // This rule is separate and evaluated before the authenticated-only rules.
+  match /publicApplications/{applicationId} {
+    allow create: if true;
+    allow read, update, delete: if false; // No one can read/modify after creation
+  }
+
   match /databases/{database}/documents {
-
-    // Allow public, unauthenticated writes to the applications collection.
-    // This rule MUST come before any general authenticated-only rules.
-    match /publicApplications/{applicationId} {
-      allow create: if true;
-      allow read, update, delete: if false; // No one can read/modify after creation
-    }
-
     // ----------------------------------------------------------------------
     // Helper Functions
     // ----------------------------------------------------------------------
@@ -94,7 +95,7 @@ service cloud.firestore {
     match /leads/{leadId} {
       allow get: if isSignedIn();
       allow list: if isSignedIn();
-      allow create: if isOwner(request.resource.data.ownerId);
+      allow create: if isOwner(request.resource.data.ownerId) || isAdmin();
       allow update: if isOwner(resource.data.ownerId) || isAdmin();
       allow delete: if isOwner(resource.data.ownerId) || isAdmin();
 
@@ -125,7 +126,7 @@ service cloud.firestore {
       allow get, update, delete: if isOwner(resource.data.userId);
       allow create: if isSignedIn();
       // Allow a user to list only their own notifications
-      allow list: if isSignedIn() && request.query.where.size() == 1 && request.query.where[0][0] == 'userId' && request.query.where[0][1] == '==' && request.query.where[0][2] == request.auth.uid;
+      allow list: if isSignedIn() && request.query.where.size() <= 1 && (!request.query.where.size() == 1 || (request.query.where[0][0] == 'userId' && request.query.where[0][1] == '==' && request.query.where[0][2] == request.auth.uid));
     }
 
     match /todos/{todoId} {

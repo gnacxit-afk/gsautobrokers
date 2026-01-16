@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
+const leadChannels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -93,6 +94,13 @@ export function DataTable<TData, TValue>({
       .join(' ') + ' ' + freeText.join(' ');
     setGlobalFilter(newFilterString.trim());
   };
+  
+  const handleFreeTextChange = (newText: string) => {
+    const keywordString = Object.entries(activeFilters)
+        .map(([k,v]) => `${k}:${v}`)
+        .join(' ');
+    setGlobalFilter((keywordString + ' ' + newText).trim());
+  }
 
   return (
     <div className="space-y-4">
@@ -103,13 +111,7 @@ export function DataTable<TData, TValue>({
                 <Input
                     placeholder="Search by name, phone, email..."
                     value={freeText.join(' ')}
-                    onChange={event => {
-                        const newText = event.target.value;
-                        const newFilterString = Object.entries(activeFilters)
-                            .map(([k,v]) => `${k}:${v}`)
-                            .join(' ') + ' ' + newText;
-                        setGlobalFilter(newFilterString.trim());
-                    }}
+                    onChange={event => handleFreeTextChange(event.target.value)}
                     className="pl-10"
                 />
             </div>
@@ -140,6 +142,20 @@ export function DataTable<TData, TValue>({
                 <DropdownMenuRadioGroup value={activeFilters.stage} onValueChange={(v) => handleSetFilter('stage', v)}>
                   {leadStages.map(stage => (
                     <DropdownMenuRadioItem key={stage} value={stage}>{stage}</DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+             <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm"><Filter className="mr-2 h-4 w-4" /> Channel</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>Filter by Channel</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup value={activeFilters.channel} onValueChange={(v) => handleSetFilter('channel', v)}>
+                  {leadChannels.map(c => (
+                    <DropdownMenuRadioItem key={c} value={c}>{c}</DropdownMenuRadioItem>
                   ))}
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
