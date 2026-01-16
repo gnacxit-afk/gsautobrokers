@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -12,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,8 +22,9 @@ import { useFirestore } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import type { Staff, Role, Candidate } from '@/lib/types';
 import { Eye, EyeOff } from 'lucide-react';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { useAuthContext } from '@/lib/auth';
+import { initializeApp, deleteApp } from 'firebase/app';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { firebaseConfig } from '@/firebase/config';
 
 const roles: Role[] = ["Admin", "Supervisor", "Broker"];
 
@@ -42,14 +43,13 @@ interface NewStaffDialogProps {
   onOpenChange: (isOpen: boolean) => void;
   candidate?: Candidate | null;
   onStaffCreated?: (candidateId: string) => void;
-  children?: React.ReactNode; // Keep for the original use case
+  children?: React.ReactNode;
 }
 
 export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated, children }: NewStaffDialogProps) {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
-  const { auth } = useAuthContext();
   
   const {
     register,
@@ -76,14 +76,20 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
   }, [isOpen, candidate, reset]);
 
   const onSubmit = async (data: StaffFormValues) => {
-    if (!firestore || !auth) {
-      toast({ title: "Error", description: "Services not available.", variant: "destructive" });
+    if (!firestore) {
+      toast({ title: "Error", description: "Database service not available.", variant: "destructive" });
       return;
     }
+
+    // Create a temporary, isolated Firebase app instance for user creation
+    // to avoid logging out the current admin user.
+    const tempAppName = `user-creation-${Date.now()}`;
+    const tempApp = initializeApp(firebaseConfig, tempAppName);
+    const tempAuth = getAuth(tempApp);
     
     try {
-      // 1. Create the Firebase Auth user
-      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      // 1. Create the Firebase Auth user using the temporary auth instance
+      const userCredential = await createUserWithEmailAndPassword(tempAuth, data.email, data.password);
       const authUser = userCredential.user;
 
       // 2. Create the staff profile in Firestore using the Auth UID as the document ID
@@ -121,6 +127,9 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
             : error.message,
         variant: 'destructive',
       });
+    } finally {
+        // 4. Clean up the temporary app instance
+        await deleteApp(tempApp);
     }
   };
   
@@ -129,8 +138,6 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
     return (
        <Dialog onOpenChange={onOpenChange}>
           <DialogTrigger asChild>{children}</DialogTrigger>
-          {/* Rest of the content */}
-          {/* This part needs to be duplicated or refactored into a sub-component */}
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
             <DialogTitle>{candidate ? `Convert Candidate: ${candidate.fullName}` : 'Register New Employee'}</DialogTitle>
