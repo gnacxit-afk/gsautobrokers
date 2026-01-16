@@ -39,15 +39,17 @@ import { addNoteEntry, createNotification } from "@/lib/utils";
 /* -------------------------------- helpers -------------------------------- */
 
 export function parseSearch(search: string) {
-  const terms = search.toLowerCase().split(/\s+/).filter(Boolean);
+  const terms = search.split(/\s+/).filter(Boolean);
   const keywords: Record<string, string> = {};
   const text: string[] = [];
 
   for (const term of terms) {
     if (term.includes(":")) {
-      const [k, ...v] = term.split(":");
-      const value = v.join(":").trim();
-      if (value) keywords[k] = value;
+      const [key, ...valueParts] = term.split(":");
+      const value = valueParts.join(":").trim();
+      if (value) {
+        keywords[key.toLowerCase()] = value; // Lowercase only the key
+      }
     } else {
       text.push(term);
     }
@@ -108,13 +110,8 @@ function LeadsPageContent() {
     if (keywords.channel) {
       constraints.push(where("channel", "==", keywords.channel));
     }
-    if (keywords.owner) {
-      const owner = staffData.find((s) =>
-        s.name.toLowerCase().includes(keywords.owner)
-      );
-      if (owner) {
-        constraints.push(where("ownerId", "==", owner.id));
-      }
+    if (keywords.ownerid) {
+      constraints.push(where("ownerId", "==", keywords.ownerid));
     }
 
     return query(collection(firestore, "leads"), ...constraints);

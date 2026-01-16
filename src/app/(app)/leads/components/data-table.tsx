@@ -102,6 +102,10 @@ export function DataTable<TData, TValue>({
     setGlobalFilter((keywordString + ' ' + newText).trim());
   }
 
+  const getOwnerNameById = (ownerId: string) => {
+    return staff.find(s => s.id === ownerId)?.name || ownerId;
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row justify-between items-start gap-4">
@@ -119,7 +123,7 @@ export function DataTable<TData, TValue>({
                 <div className="flex items-center gap-2 flex-wrap">
                     {Object.entries(activeFilters).map(([key, value]) => (
                         <Badge key={key} variant="secondary" className="capitalize text-xs">
-                            <span className="font-semibold mr-1">{key}:</span> {value}
+                            <span className="font-semibold mr-1">{key}:</span> {key === 'ownerid' ? getOwnerNameById(value) : value}
                             <button onClick={() => handleRemoveFilter(key)} className="ml-2 rounded-full hover:bg-black/10 p-0.5">
                                 <X size={12} />
                             </button>
@@ -167,9 +171,9 @@ export function DataTable<TData, TValue>({
               <DropdownMenuContent>
                 <DropdownMenuLabel>Filter by Owner</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuRadioGroup value={activeFilters.owner} onValueChange={(v) => handleSetFilter('owner', v)}>
+                <DropdownMenuRadioGroup value={activeFilters.ownerid} onValueChange={(v) => handleSetFilter('ownerId', v)}>
                   {staff.map(s => (
-                    <DropdownMenuRadioItem key={s.id} value={s.name.toLowerCase()}>{s.name}</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem key={s.id} value={s.id}>{s.name}</DropdownMenuRadioItem>
                   ))}
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
