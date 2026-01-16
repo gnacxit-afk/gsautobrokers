@@ -1,0 +1,168 @@
+rules_version = '2';
+
+service cloud.firestore {
+
+  // Allow public, unauthenticated writes to the applications collection.
+  // This rule is separate and evaluated before the authenticated-only rules.
+  match /publicApplications/{applicationId} {
+    allow create: if true;
+    allow read, update, delete: if false; // No one can read/modify after creation
+  }
+
+  match /databases/{database}/documents {
+    // ----------------------------------------------------------------------
+    // Helper Functions
+    // ----------------------------------------------------------------------
+
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the requesting user's UID matches the provided userId.
+     * Used to enforce ownership of a document or data path.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function isLeadOwner(leadId) {
+      let leadData = get(/databases/$(database)/documents/leads/$(leadId)).data;
+      return isOwner(leadData.ownerId);
+    }
+
+    /**
+     * Checks for ownership on an existing document.
+     * CRITICAL: Prevents updates/deletes on non-existent documents.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * Checks if the requesting user has the 'Admin' role by looking up
+     * their UserProfile document.
+     * Note: This performs a 'get' operation, which has cost and performance
+     * implications. Use judiciously.
+     */
+    function getStaffDocByAuthUid(authUid) {
+      // This is not performant, but required for role checking without custom claims.
+      // It queries the staff collection to find the document matching the auth UID.
+      let staffDocs = firestore.collection('staff').where('authUid', '==', authUid).get();
+      if (staffDocs.size() > 0) {
+        return staffDocs.docs[0];
+      }
+      return null;
+    }
+
+    function getUserRole() {
+      let staffDoc = getStaffDocByAuthUid(request.auth.uid);
+      if (staffDoc != null) {
+        return staffDoc.data.role;
+      }
+      return null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && getUserRole() == 'Admin';
+    }
+
+
+    // ----------------------------------------------------------------------
+    // Application Rules (Authenticated Routes)
+    // ----------------------------------------------------------------------
+      
+    /**
+      * @description Controls access to the single KPI document.
+      */
+    match /kpis/{docId} {
+      allow get: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    
+    match /articles/{articleId} {
+        allow get, list: if isSignedIn();
+        allow create, update, delete: if isAdmin();
+    }
+
+    /**
+      * @description Controls access to sales leads.
+      */
+    match /leads/{leadId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isOwner(request.resource.data.ownerId);
+      allow update: if isOwner(resource.data.ownerId) || isAdmin();
+      allow delete: if isOwner(resource.data.ownerId) || isAdmin();
+
+        /**
+        * @description Controls access to a lead's note history.
+        */
+        match /noteHistory/{noteId} {
+          allow list: if isSignedIn();
+          allow get: if isSignedIn();
+          allow create: if isOwner(get(/databases/$(database)/documents/leads/$(leadId)).data.ownerId) || isAdmin();
+          allow update: if false;
+          allow delete: if false;
+        }
+    }
+
+    /**
+      * @description Controls access to staff member data.
+      */
+    match /staff/{staffId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow get, update, delete: if isOwner(resource.data.userId);
+      allow create: if isSignedIn();
+      // Allow a user to list only their own notifications
+      allow list: if isSignedIn() && request.query.where.size() == 1 && request.query.where[0][0] == 'userId' && request.query.where[0][1] == '==' && request.query.where[0][2] == request.auth.uid;
+    }
+
+    match /todos/{todoId} {
+      allow get, update, delete: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId);
+      // Allow a user to list only their own todos
+      allow list: if isSignedIn() && request.query.where.size() == 1 && request.query.where[0][0] == 'userId' && request.query.where[0][1] == '==' && request.query.where[0][2] == request.auth.uid;
+    }
+    
+    match /appointments/{appointmentId} {
+      allow get, list: if isSignedIn();
+      allow create: if isOwner(request.resource.data.ownerId);
+      allow update, delete: if isOwner(resource.data.ownerId) || isAdmin();
+    }
+
+    match /contracts/{contractId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /signatures/{signatureId} {
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+      // Users can only create signatures for themselves.
+      allow create: if isOwner(request.resource.data.userId);
+      // Signatures are immutable.
+      allow update, delete: if false;
+    }
+
+    match /contract_events/{eventId} {
+      allow get, list: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /candidates/{candidateId} {
+      allow read, write: if isSignedIn();
+    }
+  }
+}

@@ -1,0 +1,560 @@
+
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user profile within the AutoSales AI application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The user's DUI (Documento Unico de Identidad). Unique identifier for the user profile."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role within the system (e.g., Admin, Supervisor, Broker)."
+        },
+        "authUid": {
+          "type": "string",
+          "description": "The Firebase Authentication UID for the user."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "role",
+        "authUid"
+      ]
+    },
+    "Lead": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Lead",
+      "type": "object",
+      "description": "Represents a sales lead within the AutoSales AI application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the lead."
+        },
+        "name": {
+          "type": "string",
+          "description": "The lead's name."
+        },
+        "phone": {
+          "type": "string",
+          "description": "The lead's phone number."
+        },
+        "email": {
+          "type": "string",
+          "description": "The lead's email address.",
+          "format": "email"
+        },
+        "channel": {
+          "type": "string",
+          "description": "The channel through which the lead was acquired (e.g., Facebook, WhatsApp)."
+        },
+        "company": {
+          "type": "string",
+          "description": "The lead's company name."
+        },
+        "stage": {
+          "type": "string",
+          "description": "The current stage of the lead (e.g., active, closed)."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time the lead was created.",
+          "format": "date-time"
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Reference to Staff. The document ID of the user who owns the lead. (Relationship: Staff 1:N Lead)"
+        },
+        "ownerName": {
+          "type": "string",
+          "description": "The name of the user who owns the lead."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "phone",
+        "channel",
+        "stage",
+        "createdAt",
+        "ownerId",
+        "ownerName"
+      ]
+    },
+    "NoteEntry": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "NoteEntry",
+      "type": "object",
+      "description": "Represents a single entry in a lead's notes history.",
+      "properties": {
+        "content": {
+          "type": "string",
+          "description": "The content of the note."
+        },
+        "author": {
+          "type": "string",
+          "description": "The name of the user or system that created the note."
+        },
+        "date": {
+          "type": "string",
+          "description": "The timestamp of when the note was created.",
+          "format": "date-time"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of note entry.",
+          "enum": ["Manual", "AI Analysis", "System", "Stage Change", "Owner Change"]
+        }
+      },
+      "required": ["content", "author", "date", "type"]
+    },
+    "KnowledgeBaseArticle": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "KnowledgeBaseArticle",
+      "type": "object",
+      "description": "Represents an article in the knowledge base.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the knowledge base article."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the knowledge base article."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the knowledge base article (e.g., Sales, Product)."
+        },
+        "content": {
+          "type": "string",
+          "description": "The content of the knowledge base article."
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "category",
+        "content"
+      ]
+    },
+    "Staff": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Staff",
+      "type": "object",
+      "description": "Represents a staff member within the AutoSales AI application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The staff member's unique Firestore document ID."
+        },
+        "name": {
+          "type": "string",
+          "description": "The staff member's full name."
+        },
+        "authUid": {
+          "type": "string",
+          "description": "The Firebase Authentication UID associated with the staff member."
+        },
+        "role": {
+          "type": "string",
+          "description": "The staff member's role within the system (e.g., Admin, Supervisor, Broker)."
+        },
+        "supervisorId": {
+          "type": "string",
+          "description": "Reference to Staff. The document ID of the staff member's supervisor. (Relationship: Staff 1:N Staff)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time the staff member was created.",
+          "format": "date-time"
+        },
+        "dui": {
+          "type": "string",
+          "description": "The staff member's DUI (Documento Unico de Identidad)."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "authUid",
+        "role",
+        "createdAt"
+      ]
+    },
+     "Notification": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Notification",
+      "type": "object",
+      "description": "Represents a notification for a user about an event in the system.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the notification." },
+        "userId": { "type": "string", "description": "The ID of the staff member this notification is for." },
+        "content": { "type": "string", "description": "The notification message." },
+        "author": { "type": "string", "description": "The name of the user who sent the notification." },
+        "leadId": { "type": "string", "description": "Optional. The ID of the lead related to this notification." },
+        "leadName": { "type": "string", "description": "Optional. The name of the lead related to this notification." },
+        "createdAt": { "type": "string", "description": "The timestamp of when the notification was created.", "format": "date-time" },
+        "read": { "type": "boolean", "description": "Whether the user has read the notification." }
+      },
+      "required": ["userId", "content", "author", "createdAt", "read"]
+    },
+    "Todo": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Todo",
+        "type": "object",
+        "description": "Represents a single to-do item for a user.",
+        "properties": {
+            "id": { "type": "string", "description": "Unique identifier for the to-do item." },
+            "title": { "type": "string", "description": "The content of the to-do item." },
+            "completed": { "type": "boolean", "description": "Whether the to-do item is completed." },
+            "createdAt": { "type": "string", "description": "The timestamp of when the to-do was created.", "format": "date-time" },
+            "userId": { "type": "string", "description": "The ID of the user who owns this to-do item." },
+            "leadId": { "type": "string", "description": "Optional. The ID of the lead related to this to-do." },
+            "leadName": { "type": "string", "description": "Optional. The name of the lead related to this to-do." }
+        },
+        "required": ["id", "title", "completed", "createdAt", "userId"]
+    },
+    "Appointment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Appointment",
+      "type": "object",
+      "description": "Represents a scheduled appointment with a lead.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the appointment." },
+        "leadId": { "type": "string", "description": "The ID of the lead for this appointment." },
+        "leadName": { "type": "string", "description": "The name of the lead." },
+        "startTime": { "type": "string", "description": "The start time of the appointment.", "format": "date-time" },
+        "endTime": { "type": "string", "description": "The end time of the appointment.", "format": "date-time" },
+        "ownerId": { "type": "string", "description": "The ID of the staff member who owns this appointment." },
+        "stage": {
+            "type": "string",
+            "description": "The stage of the lead at the time of booking, synced with the lead's stage.",
+            "enum": ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"]
+        }
+      },
+      "required": ["leadId", "leadName", "startTime", "endTime", "ownerId", "stage"]
+    },
+    "EmploymentContract": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "EmploymentContract",
+      "type": "object",
+      "description": "Represents a template for an employment contract.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the contract." },
+        "title": { "type": "string", "description": "The title of the contract (e.g., 'Broker Services Agreement')." },
+        "version": { "type": "string", "description": "The version of the contract (e.g., '1.0')." },
+        "content": { "type": "string", "description": "The full text of the contract, likely in Markdown." },
+        "isActive": { "type": "boolean", "description": "Whether this contract is the current active version to be signed." },
+        "createdAt": { "type": "string", "description": "The timestamp of when the contract was created.", "format": "date-time" }
+      },
+      "required": ["id", "title", "version", "content", "isActive", "createdAt"]
+    },
+    "ContractSignature": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ContractSignature",
+      "type": "object",
+      "description": "Represents a record of a user signing a specific contract.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the signature record." },
+        "userId": { "type": "string", "description": "The ID of the staff member who signed." },
+        "userName": { "type": "string", "description": "The name of the staff member who signed." },
+        "contractId": { "type": "string", "description": "The ID of the employment contract that was signed." },
+        "contractVersion": { "type": "string", "description": "The version of the contract at the time of signing." },
+        "signedAt": { "type": "string", "description": "The timestamp of when the signature was recorded.", "format": "date-time" },
+        "ipAddress": { "type": "string", "description": "The IP address from which the contract was signed." }
+      },
+      "required": ["id", "userId", "userName", "contractId", "contractVersion", "signedAt", "ipAddress"]
+    },
+    "ContractEvent": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ContractEvent",
+      "type": "object",
+      "description": "Represents an audit log entry for a contract.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the event." },
+        "contractId": { "type": "string", "description": "The ID of the contract related to this event." },
+        "contractTitle": { "type": "string", "description": "The title of the contract at the time of the event." },
+        "contractVersion": { "type": "string", "description": "The version of the contract at the time of the event." },
+        "userEmail": { "type": "string", "description": "The email of the user who triggered the event." },
+        "userName": { "type": "string", "description": "The name of the user who triggered the event." },
+        "eventType": { "type": "string", "description": "The type of event.", "enum": ["Created", "Activated", "Archived"] },
+        "timestamp": { "type": "string", "description": "The timestamp of when the event occurred.", "format": "date-time" }
+      },
+      "required": ["contractId", "contractTitle", "contractVersion", "userEmail", "userName", "eventType", "timestamp"]
+    },
+    "Candidate": {
+      "title": "Candidate",
+      "type": "object",
+      "description": "Represents a candidate in the talent acquisition pipeline.",
+      "properties": {
+        "id": { "type": "string" },
+        "fullName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "pipelineStatus": { "type": "string" },
+        "appliedDate": { "type": "string", "format": "date-time" },
+        "lastStatusChangeDate": { "type": "string", "format": "date-time" },
+        "approvedBy": { "type": "string" }
+      },
+      "required": ["id", "fullName", "email", "pipelineStatus", "appliedDate", "lastStatusChangeDate"]
+    },
+    "Application": {
+      "title": "Application",
+      "type": "object",
+      "description": "Represents a candidate's application submitted through the public form.",
+      "properties": {
+        "fullName": { "type": "string", "description": "Candidate's full name." },
+        "whatsappNumber": { "type": "string", "description": "Candidate's WhatsApp phone number." },
+        "email": { "type": "string", "description": "Candidate's email address.", "format": "email" },
+        "city": { "type": "string", "description": "Candidate's city of residence." },
+        "availableHours": { "type": "string", "description": "Candidate's availability." },
+        "comfortableWithSales": { "type": "string", "enum": ["yes", "no"], "description": "If the candidate is comfortable with a sales role." },
+        "salesExperienceDescription": { "type": "string", "description": "Description of sales experience, if any." },
+        "motivation": { "type": "string", "description": "Candidate's motivation for the role." },
+        "source": { "type": "string", "description": "How the candidate was sourced.", "default": "Organic" },
+        "appliedDate": { "type": "string", "description": "The date of application.", "format": "date-time" }
+      },
+      "required": ["fullName", "whatsappNumber", "email", "city", "availableHours", "comfortableWithSales", "motivation", "source", "appliedDate"]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "publicApplications/{applicationId}",
+        "definition": {
+          "entityName": "Application",
+          "schema": { "$ref": "#/backend/entities/Application" },
+          "description": "Stores raw, incoming candidate applications from the public form. This collection is write-only for the public and should be processed by a backend function.",
+          "params": [
+            { "name": "applicationId", "description": "The unique application ID." }
+          ]
+        }
+      },
+      {
+        "path": "artifacts/{appId}/users/{userId}/profile/data",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile data. Accessible only by the user (and potentially admins).",
+          "params": [
+            {
+              "name": "appId",
+              "description": "The application ID."
+            },
+            {
+              "name": "userId",
+              "description": "The unique user ID. Matches the user's document ID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "artifacts/{appId}/public/data/leads/{leadId}",
+        "definition": {
+          "entityName": "Lead",
+          "schema": {
+            "$ref": "#/backend/entities/Lead"
+          },
+          "description": "Stores lead data. Includes denormalized 'ownerId' (document ID) and 'ownerName' for authorization independence.",
+          "params": [
+            {
+              "name": "appId",
+              "description": "The application ID."
+            },
+            {
+              "name": "leadId",
+              "description": "The unique lead ID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "artifacts/{appId}/public/data/leads/{leadId}/noteHistory/{noteId}",
+        "definition": {
+          "entityName": "NoteEntry",
+          "schema": {
+            "$ref": "#/backend/entities/NoteEntry"
+          },
+          "description": "Stores the history of notes and actions for a single lead.",
+           "params": [
+            {
+              "name": "appId",
+              "description": "The application ID."
+            },
+            {
+              "name": "leadId",
+              "description": "The unique lead ID."
+            },
+            {
+                "name": "noteId",
+                "description": "The unique note ID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "artifacts/{appId}/public/data/knowledge_base/{articleId}",
+        "definition": {
+          "entityName": "KnowledgeBaseArticle",
+          "schema": {
+            "$ref": "#/backend/entities/KnowledgeBaseArticle"
+          },
+          "description": "Stores knowledge base articles.",
+          "params": [
+            {
+              "name": "appId",
+              "description": "The application ID."
+            },
+            {
+              "name": "articleId",
+              "description": "The unique article ID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "artifacts/{appId}/public/data/staff/{staffId}",
+        "definition": {
+          "entityName": "Staff",
+          "schema": {
+            "$ref": "#/backend/entities/Staff"
+          },
+          "description": "Stores staff member data, where the document ID is auto-generated by Firestore. Accessible by administrators.",
+          "params": [
+            {
+              "name": "appId",
+              "description": "The application ID."
+            },
+            {
+              "name": "staffId",
+              "description": "The unique staff member ID (auto-generated)."
+            }
+          ]
+        }
+      },
+      {
+        "path": "notifications/{notificationId}",
+        "definition": {
+            "entityName": "Notification",
+            "schema": {
+                "$ref": "#/backend/entities/Notification"
+            },
+            "description": "Stores notifications for users. Each document is a notification for a specific user.",
+             "params": [
+                {
+                    "name": "notificationId",
+                    "description": "The unique notification ID."
+                }
+            ]
+        }
+      },
+       {
+        "path": "todos/{todoId}",
+        "definition": {
+            "entityName": "Todo",
+            "schema": {
+                "$ref": "#/backend/entities/Todo"
+            },
+            "description": "Stores to-do items for users. Each document is a task for a specific user.",
+             "params": [
+                {
+                    "name": "todoId",
+                    "description": "The unique to-do ID."
+                }
+            ]
+        }
+      },
+      {
+        "path": "appointments/{appointmentId}",
+        "definition": {
+          "entityName": "Appointment",
+          "schema": {
+            "$ref": "#/backend/entities/Appointment"
+          },
+          "description": "Stores appointment data for leads.",
+          "params": [
+            {
+              "name": "appointmentId",
+              "description": "The unique appointment ID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "contracts/{contractId}",
+        "definition": {
+          "entityName": "EmploymentContract",
+          "schema": { "$ref": "#/backend/entities/EmploymentContract" },
+          "description": "Stores employment contract templates. Managed by Admins.",
+          "params": [
+            { "name": "contractId", "description": "The unique contract ID." }
+          ]
+        }
+      },
+      {
+        "path": "signatures/{signatureId}",
+        "definition": {
+          "entityName": "ContractSignature",
+          "schema": { "$ref": "#/backend/entities/ContractSignature" },
+          "description": "Stores records of contract signatures by users.",
+          "params": [
+            { "name": "signatureId", "description": "The unique signature ID." }
+          ]
+        }
+      },
+      {
+        "path": "contract_events/{eventId}",
+        "definition": {
+          "entityName": "ContractEvent",
+          "schema": { "$ref": "#/backend/entities/ContractEvent" },
+          "description": "Stores audit log events related to contract management.",
+          "params": [
+            { "name": "eventId", "description": "The unique event ID." }
+          ]
+        }
+      },
+      {
+        "path": "candidates/{candidateId}",
+        "definition": {
+          "entityName": "Candidate",
+          "schema": {
+            "$ref": "#/backend/entities/Candidate"
+          },
+          "description": "Stores information about candidates in the recruiting pipeline.",
+          "params": [
+            {
+              "name": "candidateId",
+              "description": "The unique candidate ID."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This Firestore structure is designed to support the AutoSales AI application, prioritizing authorization independence, clarity, and scalability. It leverages structural segregation and denormalization to simplify security rules and ensure efficient data access. The root of the database is segmented by `artifacts/{appId}`, where `appId` allows the application to be instantiated in multiple environments without conflicting documents.\\n\\n**Authorization Independence (CRITICAL):**\\n\\n*   Leads: The `leads` collection, located at `artifacts/{appId}/public/data/leads`, includes the `ownerId` (auto-generated staff document ID) and `ownerName` of the user who owns the lead. This denormalization allows security rules to validate ownership without needing to perform expensive `get()` operations to retrieve user data. This ensures that lead access can be controlled based solely on the data within the lead document itself, combined with the authenticated user's ID.\\n*   Staff: The `staff` collection uses an auto-generated document ID. It includes the `supervisorId` (also an auto-generated ID) for reporting relationships. While the UI only allows Admins to manage staff, we can add roles if needed.\\n\\n**Structural Segregation (Homogeneous Security Posture):**\\n\\n*   User Data: User profiles are stored within the `staff` collection. The mapping between a Firebase Auth UID and the staff document ID happens at login.\\n*   Public Data: The `knowledge_base` and `leads` collections are within the `/public/data/` section of the database. While the security rules may differentiate access within those collections, this design communicates the intent that they are generally readable.\\n\\n**QAPs (Rules are not Filters):**\\n\\n*   List Operations: The segregation of user data and public data allows for secure `list` operations. For example, listing leads requires checking if the user has the correct role (Broker, Supervisor, Admin) and filtering based on `ownerId`.\\n\\n**Global Roles (DBAC):**\\n\\n*   Role-Based Access: User roles are stored in the `staff` document. The system can be expanded to utilize a dedicated `/roles_{role}/{uid}` collection to manage administrative or elevated rights. The UI only uses role to gate access to Staff management features, so this functionality isn't required for compliance."
+  }
+}
+
+    
