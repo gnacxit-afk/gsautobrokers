@@ -171,7 +171,7 @@ export function DataTable<TData, TValue>({
               <DropdownMenuContent>
                 <DropdownMenuLabel>Filter by Owner</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuRadioGroup value={activeFilters.ownerid} onValueChange={(v) => handleSetFilter('ownerId', v)}>
+                <DropdownMenuRadioGroup value={activeFilters.ownerid} onValueChange={(v) => handleSetFilter('ownerid', v)}>
                   {staff.map(s => (
                     <DropdownMenuRadioItem key={s.id} value={s.id}>{s.name}</DropdownMenuRadioItem>
                   ))}

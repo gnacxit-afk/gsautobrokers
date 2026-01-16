@@ -136,16 +136,33 @@ function LeadsPageContent() {
         return true;
     });
 
-    // 2. Then apply text search
+    // 2. Then apply text search if there is any
     if (text.length === 0) {
         return dateFilteredLeads;
     }
     
-    const lowercasedText = text.join(' ').toLowerCase();
+    const searchText = text.join(' ').toLowerCase();
 
     return dateFilteredLeads.filter(lead => {
-        const searchableBlob = `${lead.name} ${lead.phone || ''} ${lead.email || ''}`.toLowerCase();
-        return lowercasedText.split(' ').every(term => searchableBlob.includes(term));
+        const leadName = lead.name.toLowerCase();
+        const leadEmail = (lead.email || '').toLowerCase();
+        // Normalize phone number for searching by removing non-digit characters
+        const leadPhone = (lead.phone || '').replace(/\D/g, ''); 
+        
+        // Normalize search text for phone search
+        const searchPhone = searchText.replace(/\D/g, '');
+
+        // Standard text search for name and email
+        if (leadName.includes(searchText) || leadEmail.includes(searchText)) {
+            return true;
+        }
+
+        // Specialized search for phone numbers
+        if (searchPhone.length > 0 && leadPhone.includes(searchPhone)) {
+            return true;
+        }
+        
+        return false;
     });
 
   }, [leadsSnapshot, globalFilter, dateRange]);
