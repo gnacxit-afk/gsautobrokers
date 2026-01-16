@@ -20,9 +20,9 @@ export const ScoreApplicationInputSchema = z.object({
 export type ScoreApplicationInput = z.infer<typeof ScoreApplicationInputSchema>;
 
 export const ScoreApplicationOutputSchema = z.object({
-  score: z.number().describe('The final calculated score from 0 to 100.'),
-  status: z.enum(['Premium', 'Apto', 'Descartado']).describe('The final status classification of the candidate.'),
-  reasoning: z.string().describe('A brief explanation of how the score was calculated, mentioning key factors.'),
-  semanticAnalysis: z.string().describe('The analysis of the open-ended question about why the candidate fits the model.'),
+  score: z.number().describe('La puntuación final calculada de 0 a 100.'),
+  status: z.enum(['Premium', 'Apto', 'Descartado']).describe('La clasificación de estado final del candidato.'),
+  reasoning: z.string().describe('Una breve explicación de cómo se calculó la puntuación, mencionando los factores clave.'),
+  semanticAnalysis: z.string().describe('El análisis de la pregunta abierta sobre por qué el candidato encaja en el modelo.'),
 });
 export type ScoreApplicationOutput = z.infer<typeof ScoreApplicationOutputSchema>;

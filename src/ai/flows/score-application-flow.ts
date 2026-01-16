@@ -22,7 +22,9 @@ const prompt = ai.definePrompt({
   name: 'scoreApplicationPrompt',
   input: { schema: ScoreApplicationInputSchema },
   output: { schema: ScoreApplicationOutputSchema },
-  prompt: `You are an expert HR AI responsible for scoring candidates for a fully independent, commission-based sales role. Your task is to analyze the candidate's answers and provide a score from 0-100.
+  prompt: `You are an expert HR AI responsible for scoring candidates for a fully independent, commission-based sales role. Your entire response, including the reasoning and semantic analysis, MUST be in Spanish.
+
+Your task is to analyze the candidate's answers and provide a score from 0-100.
 
 First, check for IMMEDIATE DISQUALIFICATION criteria. If any of the following are true, you MUST assign a score below 60 and set the status to "Descartado":
 - 'motivation' is "Busco un empleo tradicional".
@@ -54,7 +56,7 @@ Finally, calculate the total score and determine the final status:
 - 60-79: "Apto"
 - 0-59: "Descartado"
 
-Provide a brief 'reasoning' for the final score, mentioning the key factors.
+Proporciona un 'reasoning' (razonamiento) breve para la puntuación final, mencionando los factores clave.
 
 Candidate's Answers:
 - Payment Model: {{{paymentModel}}}
@@ -64,7 +66,7 @@ Candidate's Answers:
 - Sales Experience: {{{salesExperience}}}
 - Closing Comfort: {{{closingComfort}}}
 - Tools: smartphone: {{{tools.smartphone}}}, internet: {{{tools.internet}}}, whatsapp: {{{tools.whatsapp}}}, facebook: {{{tools.facebook}}}
-- CRM Experience: {{{crmExperience}}}
+- crmExperience: {{{crmExperience}}}
 - Income Model Agreement: {{{incomeModelAgreement}}}
 - Fit Reason: "{{{fitReason}}}"
 `,
