@@ -79,6 +79,29 @@ export function ContractsClient({
     }
   };
 
+  const handleDeactivate = async (contractToDeactivate: EmploymentContract) => {
+    if (!firestore || !user || !contractToDeactivate.isActive) return;
+    setIsActivating(true);
+
+    const batch = writeBatch(firestore);
+
+    const contractRef = doc(firestore, 'contracts', contractToDeactivate.id);
+    batch.update(contractRef, { isActive: false });
+    await createContractEvent(batch, firestore, user, contractToDeactivate, "Archived");
+
+    try {
+      await batch.commit();
+      toast({
+        title: 'Contract Deactivated',
+        description: `Version ${contractToDeactivate.version} is no longer active.`,
+      });
+    } catch (error) {
+      toast({ title: 'Deactivation Failed', variant: 'destructive' });
+    } finally {
+      setIsActivating(false);
+    }
+  };
+
   return (
     <Tabs defaultValue="overview">
       <div className="flex items-center justify-between mb-4">
@@ -143,7 +166,14 @@ export function ContractsClient({
                     <p className="text-sm text-muted-foreground">Version {c.version} - Created on {c.createdAt.toDate().toLocaleDateString()}</p>
                   </div>
                   {c.isActive ? (
-                    <span className="text-sm font-semibold text-green-600">Active</span>
+                    <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => handleDeactivate(c)}
+                        disabled={isActivating}
+                    >
+                        {isActivating ? 'Deactivating...' : 'Deactivate'}
+                    </Button>
                   ) : (
                     <Button 
                         variant="outline" 
