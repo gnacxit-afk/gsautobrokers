@@ -32,7 +32,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { scoreApplication, type ScoreApplicationInput } from '@/ai/flows/score-application-flow';
+import { scoreApplication } from '@/ai/flows/score-application-flow';
+import type { ScoreApplicationInput } from '@/ai/flows/score-application-types';
 import type { Candidate } from '@/lib/types';
 import { Loader2, PartyPopper } from 'lucide-react';
 
