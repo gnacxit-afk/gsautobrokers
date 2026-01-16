@@ -35,7 +35,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { isWithinInterval, isValid } from "date-fns";
 import { addNoteEntry, createNotification } from "@/lib/utils";
-import { matchSorter } from 'match-sorter';
 
 /* -------------------------------- helpers -------------------------------- */
 
@@ -140,13 +139,16 @@ function LeadsPageContent() {
         return true;
     });
 
-    // 2. Then apply fuzzy search on the remaining text
+    // 2. Then apply text search
     if (text.length === 0) {
         return dateFilteredLeads;
     }
     
-    return matchSorter(dateFilteredLeads, text.join(' '), {
-        keys: ['name', 'phone', 'email'],
+    const lowercasedText = text.join(' ').toLowerCase();
+
+    return dateFilteredLeads.filter(lead => {
+        const searchableBlob = `${lead.name} ${lead.phone || ''} ${lead.email || ''}`.toLowerCase();
+        return lowercasedText.split(' ').every(term => searchableBlob.includes(term));
     });
 
   }, [leadsSnapshot, globalFilter, dateRange]);
