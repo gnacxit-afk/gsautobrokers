@@ -43,7 +43,7 @@ function LeadsPageContent() {
   const { dateRange } = useDateRange();
 
   const [sorting, setSorting] = useState<SortingState>([
-    { id: "createdAt", desc: true },
+    { id: "lastActivity", desc: true },
   ]);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 100 });
   const [expanded, setExpanded] = useState({});
