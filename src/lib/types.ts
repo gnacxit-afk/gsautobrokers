@@ -172,30 +172,41 @@ export type ContractEvent = {
 
 export type PipelineStatus = 'New Applicant' | 'Pre-Filter Approved' | '5-Minute Filter' | 'Approved' | 'Onboarding' | 'Active' | 'Rejected' | 'Inactive';
 
-export type Candidate = {
-  id: string;
-  fullName: string;
-  email: string;
-  pipelineStatus: PipelineStatus;
-  appliedDate: Timestamp | string | Date;
-  lastStatusChangeDate: Timestamp | string | Date;
-  approvedBy?: string; // Recruiter's name or ID
-  avatarUrl?: string;
-  source?: string;
-  recruiter?: string;
-  [key: string]: any;
-};
-
+// Represents the data submitted by the application form.
 export type Application = {
   id: string;
   fullName: string;
-  whatsappNumber: string;
   email: string;
+  whatsappNumber: string;
+  country: string;
   city: string;
-  availableHours: string;
-  comfortableWithSales: 'yes' | 'no';
-  salesExperienceDescription?: string;
-  motivation: string;
-  source: 'Organic';
-  appliedDate: Timestamp;
+  paymentModel: 'Resultados' | 'Sueldo Fijo';
+  motivation: 'Ingresos Adicionales' | 'Desarrollo en Ventas' | 'Empleo Tradicional';
+  timeDedication: 'Menos de 1 hora' | '1-2 horas' | '2-4 horas' | 'Más de 4 horas';
+  timeManagement: 'Horarios fijos' | 'Horarios flexibles' | 'Soy freelancer / independiente' | 'No tengo estructura clara';
+  salesExperience: 'Sí' | 'No, pero estoy dispuesto a aprender' | 'No y no me interesa vender';
+  closingComfort: 'Muy cómodo' | 'Cómodo' | 'Poco cómodo' | 'Nada cómodo';
+  tools: {
+    smartphone: boolean;
+    internet: boolean;
+    whatsapp: boolean;
+    facebook: boolean;
+  };
+  crmExperience: 'Sí' | 'No, pero puedo aprender' | 'No y no me interesa';
+  incomeModelAgreement: 'Sí, lo entiendo y estoy de acuerdo' | 'No, prefiero algo seguro';
+  fitReason: string;
+  appliedDate: Timestamp | string | Date;
+  source: string;
+};
+
+// Represents a processed candidate in the recruiting pipeline.
+export type Candidate = Application & {
+  pipelineStatus: PipelineStatus;
+  lastStatusChangeDate: Timestamp | string | Date;
+  approvedBy?: string;
+  recruiter?: string;
+  score?: number;
+  aiAnalysis?: string;
+  statusReason?: string;
+  avatarUrl?: string;
 };

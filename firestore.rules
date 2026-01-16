@@ -1,14 +1,8 @@
 
+
 rules_version = '2';
 
 service cloud.firestore {
-
-  // Allow public, unauthenticated writes to the applications collection.
-  // This rule is separate and evaluated before the authenticated-only rules.
-  match /publicApplications/{applicationId} {
-    allow create: if true;
-    allow read, update, delete: if false; // No one can read/modify after creation
-  }
 
   match /databases/{database}/documents {
     // ----------------------------------------------------------------------
@@ -152,8 +146,11 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Public can create an application, but not read/update/delete.
+    // Admins can manage candidates.
     match /candidates/{candidateId} {
-      allow read, write: if isSignedIn();
+      allow create: if true; // Public can create
+      allow read, write: if isAdmin(); // Admins can manage
     }
   }
 }

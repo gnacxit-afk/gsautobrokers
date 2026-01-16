@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import type { ColumnDef, Row } from '@tanstack/react-table';
@@ -6,7 +7,7 @@ import type { Candidate, Application, PipelineStatus } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, ChevronsUpDown, Copy } from 'lucide-react';
+import { MoreHorizontal, ChevronsUpDown, Copy, Star } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow, isValid } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -39,7 +40,7 @@ const statusOptions: Record<PipelineStatus, PipelineStatus[]> = {
     'Pre-Filter Approved': ['5-Minute Filter', 'Approved', 'Onboarding', 'Rejected', 'Inactive'],
     '5-Minute Filter': ['Approved', 'Onboarding', 'Rejected', 'Inactive'],
     'Approved': ['Onboarding', 'Rejected', 'Inactive'],
-    'Onboarding': ['Rejected', 'Inactive'],
+    'Onboarding': ['Active', 'Rejected', 'Inactive'],
     'Active': ['Inactive'],
     'Rejected': ['New Applicant', 'Inactive'],
     'Inactive': ['New Applicant', 'Rejected'],
@@ -59,56 +60,12 @@ const CellActions: React.FC<{ row: Row<Candidate> }> = ({ row }) => {
         if (!firestore) return;
 
         try {
-            const batch = writeBatch(firestore);
-
-            // Logic to move a candidate back to the "New Applicant" pool
-            if (newStatus === 'New Applicant') {
-                const publicAppRef = doc(firestore, 'publicApplications', candidate.id);
-                const oldCandidateRef = doc(firestore, 'candidates', candidate.id);
-                
-                // We create a new application record from the candidate data.
-                // We must ensure the object conforms to the Application type.
-                const newApplicationData = {
-                    fullName: candidate.fullName,
-                    whatsappNumber: candidate.whatsappNumber || '',
-                    email: candidate.email,
-                    city: candidate.city || '',
-                    availableHours: candidate.availableHours || '',
-                    comfortableWithSales: candidate.comfortableWithSales || 'no',
-                    salesExperienceDescription: candidate.salesExperienceDescription || '',
-                    motivation: candidate.motivation || '',
-                    source: candidate.source || 'Organic',
-                    appliedDate: serverTimestamp(), // Reset the application date
-                };
-
-                batch.set(publicAppRef, newApplicationData);
-                batch.delete(oldCandidateRef);
-
-            } else if (candidate.pipelineStatus === 'New Applicant') {
-                // Logic for processing a new applicant for the first time
-                const publicAppRef = doc(firestore, 'publicApplications', candidate.id);
-                const newCandidateRef = doc(firestore, 'candidates', candidate.id);
-
-                const newCandidateData = {
-                    ...candidate,
-                    pipelineStatus: newStatus,
-                    lastStatusChangeDate: serverTimestamp(),
-                };
-                
-                batch.set(newCandidateRef, newCandidateData);
-                batch.delete(publicAppRef);
-
-            } else {
-                // Standard status update for candidates already in the pipeline
-                const candidateRef = doc(firestore, 'candidates', candidate.id);
-                batch.update(candidateRef, {
-                    pipelineStatus: newStatus,
-                    lastStatusChangeDate: serverTimestamp(),
-                });
-            }
+            const candidateRef = doc(firestore, 'candidates', candidate.id);
+            await updateDoc(candidateRef, {
+                pipelineStatus: newStatus,
+                lastStatusChangeDate: serverTimestamp(),
+            });
             
-            await batch.commit();
-
             toast({ title: 'Status Updated', description: `${candidate.fullName}'s status changed to ${newStatus}.` });
         } catch (error) {
             console.error("Error updating status:", error);
@@ -159,6 +116,27 @@ const CellActions: React.FC<{ row: Row<Candidate> }> = ({ row }) => {
       );
 }
 
+const ScoreBadge = ({ score }: { score?: number }) => {
+    if (score === undefined || score === null) return null;
+    
+    let colorClass = 'bg-slate-100 text-slate-700';
+    if (score >= 80) {
+        colorClass = 'bg-green-100 text-green-800';
+    } else if (score >= 60) {
+        colorClass = 'bg-blue-100 text-blue-800';
+    } else {
+        colorClass = 'bg-red-100 text-red-700';
+    }
+
+    return (
+        <Badge className={cn('flex items-center gap-1', colorClass)}>
+            <Star size={12} />
+            <span className="font-bold">{score}</span>
+        </Badge>
+    );
+};
+
+
 export const getColumns = (): ColumnDef<Candidate>[] => [
   {
     accessorKey: 'fullName',
@@ -178,6 +156,14 @@ export const getColumns = (): ColumnDef<Candidate>[] => [
         </div>
       );
     },
+  },
+  {
+    accessorKey: 'score',
+    header: 'Score',
+    cell: ({ row }) => {
+        const score = row.original.score;
+        return <ScoreBadge score={score} />;
+    }
   },
   {
     accessorKey: 'pipelineStatus',

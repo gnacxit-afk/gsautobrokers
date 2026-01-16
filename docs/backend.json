@@ -1,4 +1,5 @@
 
+
 {
   "entities": {
     "UserProfile": {
@@ -242,9 +243,13 @@
         "startTime": { "type": "string", "description": "The start time of the appointment.", "format": "date-time" },
         "endTime": { "type": "string", "description": "The end time of the appointment.", "format": "date-time" },
         "ownerId": { "type": "string", "description": "The ID of the staff member who owns this appointment." },
-        "status": { "type": "string", "description": "The status of the lead at the time of booking.", "enum": ["Hot", "Warm", "Cold", "Unknown"] }
+        "stage": {
+            "type": "string",
+            "description": "The stage of the lead at the time of booking, synced with the lead's stage.",
+            "enum": ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"]
+        }
       },
-      "required": ["leadId", "leadName", "startTime", "endTime", "ownerId", "status"]
+      "required": ["leadId", "leadName", "startTime", "endTime", "ownerId", "stage"]
     },
     "EmploymentContract": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -293,6 +298,54 @@
         "timestamp": { "type": "string", "description": "The timestamp of when the event occurred.", "format": "date-time" }
       },
       "required": ["contractId", "contractTitle", "contractVersion", "userEmail", "userName", "eventType", "timestamp"]
+    },
+    "Application": {
+      "title": "Application",
+      "type": "object",
+      "description": "Represents the data submitted by a candidate through the public application form.",
+      "properties": {
+        "fullName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "whatsappNumber": { "type": "string" },
+        "country": { "type": "string" },
+        "city": { "type": "string" },
+        "paymentModel": { "type": "string" },
+        "motivation": { "type": "string" },
+        "timeDedication": { "type": "string" },
+        "timeManagement": { "type": "string" },
+        "salesExperience": { "type": "string" },
+        "closingComfort": { "type": "string" },
+        "tools": { 
+          "type": "object",
+          "properties": {
+            "smartphone": { "type": "boolean" },
+            "internet": { "type": "boolean" },
+            "whatsapp": { "type": "boolean" },
+            "facebook": { "type": "boolean" }
+          }
+        },
+        "crmExperience": { "type": "string" },
+        "incomeModelAgreement": { "type": "string" },
+        "fitReason": { "type": "string" },
+        "appliedDate": { "type": "string", "format": "date-time" },
+        "source": { "type": "string" }
+      },
+      "required": ["fullName", "email", "whatsappNumber", "country", "city", "paymentModel", "motivation", "timeDedication", "timeManagement", "salesExperience", "closingComfort", "tools", "crmExperience", "incomeModelAgreement", "fitReason", "appliedDate"]
+    },
+    "Candidate": {
+      "title": "Candidate",
+      "type": "object",
+      "description": "Represents a candidate in the talent acquisition pipeline, including their application data and scoring.",
+      "allOf": [{ "$ref": "#/backend/entities/Application" }],
+      "properties": {
+        "id": { "type": "string" },
+        "pipelineStatus": { "type": "string" },
+        "lastStatusChangeDate": { "type": "string", "format": "date-time" },
+        "score": { "type": "number", "description": "The AI-generated score from 0-100." },
+        "aiAnalysis": { "type": "string", "description": "The AI's reasoning for the score." },
+        "statusReason": { "type": "string", "description": "The classified status (e.g., Premium, Apto, Descartado)." }
+      },
+      "required": ["id", "pipelineStatus", "lastStatusChangeDate"]
     }
   },
   "auth": {
@@ -487,8 +540,26 @@
             { "name": "eventId", "description": "The unique event ID." }
           ]
         }
+      },
+      {
+        "path": "candidates/{candidateId}",
+        "definition": {
+          "entityName": "Candidate",
+          "schema": {
+            "$ref": "#/backend/entities/Candidate"
+          },
+          "description": "Stores information about candidates in the recruiting pipeline.",
+          "params": [
+            {
+              "name": "candidateId",
+              "description": "The unique candidate ID."
+            }
+          ]
+        }
       }
     ],
     "reasoning": "This Firestore structure is designed to support the AutoSales AI application, prioritizing authorization independence, clarity, and scalability. It leverages structural segregation and denormalization to simplify security rules and ensure efficient data access. The root of the database is segmented by `artifacts/{appId}`, where `appId` allows the application to be instantiated in multiple environments without conflicting documents.\\n\\n**Authorization Independence (CRITICAL):**\\n\\n*   Leads: The `leads` collection, located at `artifacts/{appId}/public/data/leads`, includes the `ownerId` (auto-generated staff document ID) and `ownerName` of the user who owns the lead. This denormalization allows security rules to validate ownership without needing to perform expensive `get()` operations to retrieve user data. This ensures that lead access can be controlled based solely on the data within the lead document itself, combined with the authenticated user's ID.\\n*   Staff: The `staff` collection uses an auto-generated document ID. It includes the `supervisorId` (also an auto-generated ID) for reporting relationships. While the UI only allows Admins to manage staff, we can add roles if needed.\\n\\n**Structural Segregation (Homogeneous Security Posture):**\\n\\n*   User Data: User profiles are stored within the `staff` collection. The mapping between a Firebase Auth UID and the staff document ID happens at login.\\n*   Public Data: The `knowledge_base` and `leads` collections are within the `/public/data/` section of the database. While the security rules may differentiate access within those collections, this design communicates the intent that they are generally readable.\\n\\n**QAPs (Rules are not Filters):**\\n\\n*   List Operations: The segregation of user data and public data allows for secure `list` operations. For example, listing leads requires checking if the user has the correct role (Broker, Supervisor, Admin) and filtering based on `ownerId`.\\n\\n**Global Roles (DBAC):**\\n\\n*   Role-Based Access: User roles are stored in the `staff` document. The system can be expanded to utilize a dedicated `/roles_{role}/{uid}` collection to manage administrative or elevated rights. The UI only uses role to gate access to Staff management features, so this functionality isn't required for compliance."
   }
 }
+
+    
