@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,16 +12,15 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import type { Staff, Role } from '@/lib/types';
+import type { Staff, Role, Candidate } from '@/lib/types';
 import { Eye, EyeOff } from 'lucide-react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { useAuthContext } from '@/lib/auth';
@@ -38,12 +37,20 @@ const staffSchema = z.object({
 
 type StaffFormValues = z.infer<typeof staffSchema>;
 
-export function NewStaffDialog({ children }: { children: React.ReactNode }) {
-  const [isOpen, setIsOpen] = useState(false);
+interface NewStaffDialogProps {
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+  candidate?: Candidate | null;
+  onStaffCreated?: (candidateId: string) => void;
+  children?: React.ReactNode; // Keep for the original use case
+}
+
+export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated, children }: NewStaffDialogProps) {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
   const { auth } = useAuthContext();
+  
   const {
     register,
     handleSubmit,
@@ -53,6 +60,20 @@ export function NewStaffDialog({ children }: { children: React.ReactNode }) {
   } = useForm<StaffFormValues>({
     resolver: zodResolver(staffSchema),
   });
+
+  useEffect(() => {
+    if (isOpen && candidate) {
+      reset({
+        name: candidate.fullName,
+        email: candidate.email,
+        password: '',
+        role: 'Broker', // Default role for new candidates
+        dui: '',
+      });
+    } else if (!isOpen) {
+      reset({ name: '', email: '', password: '', role: undefined, dui: '' });
+    }
+  }, [isOpen, candidate, reset]);
 
   const onSubmit = async (data: StaffFormValues) => {
     if (!firestore || !auth) {
@@ -80,12 +101,17 @@ export function NewStaffDialog({ children }: { children: React.ReactNode }) {
       const staffDocRef = doc(firestore, 'staff', authUser.uid);
       await setDoc(staffDocRef, newStaffMember);
 
+      // 3. If this was from a candidate, run the callback to update their status
+      if (candidate && onStaffCreated) {
+        await onStaffCreated(candidate.id);
+      }
+
       toast({
         title: 'Employee Registered',
         description: `${data.name} has been added to the staff.`,
       });
-      reset();
-      setIsOpen(false);
+
+      onOpenChange(false); // Close dialog on success
     } catch (error: any) {
       console.error("Error creating staff:", error);
       toast({
@@ -97,79 +123,159 @@ export function NewStaffDialog({ children }: { children: React.ReactNode }) {
       });
     }
   };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Register New Employee</DialogTitle>
-          <DialogDescription>
-            Enter the details for the new staff member. An account will be created for them.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="name">Full Name</Label>
-            <Input id="name" {...register('name')} />
-            {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="email">Email Address</Label>
-            <Input id="email" type="email" {...register('email')} />
-            {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
-          </div>
-          
-           <div className="grid gap-2">
-            <Label htmlFor="password">Password</Label>
-            <div className="relative">
-                <Input id="password" type={showPassword ? "text" : "password"} {...register('password')} />
-                <Button 
-                    type="button"
-                    variant="ghost" 
-                    size="icon" 
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
-                    onClick={() => setShowPassword(p => !p)}
-                >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </Button>
-            </div>
-            {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+  
+  // If children are provided, it's the original trigger-based usage
+  if (children) {
+    return (
+       <Dialog onOpenChange={onOpenChange}>
+          <DialogTrigger asChild>{children}</DialogTrigger>
+          {/* Rest of the content */}
+          {/* This part needs to be duplicated or refactored into a sub-component */}
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+            <DialogTitle>{candidate ? `Convert Candidate: ${candidate.fullName}` : 'Register New Employee'}</DialogTitle>
+            <DialogDescription>
+                {candidate ? "Complete the profile to create a staff account for this candidate." : "Enter the details for the new staff member. An account will be created for them."}
+            </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="role">Role</Label>
-              <Controller
-                control={control}
-                name="role"
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger id="role">
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.role && <p className="text-xs text-red-500">{errors.role.message}</p>}
+                <Label htmlFor="name">Full Name</Label>
+                <Input id="name" {...register('name')} />
+                {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
             </div>
-             <div className="grid gap-2">
-                <Label htmlFor="dui">DUI (Optional)</Label>
-                <Input id="dui" {...register('dui')} />
-            </div>
-          </div>
 
-          <DialogFooter>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Registering...' : 'Register Employee'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
+            <div className="grid gap-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input id="email" type="email" {...register('email')} disabled={!!candidate} />
+                {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+            </div>
+            
+            <div className="grid gap-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                    <Input id="password" type={showPassword ? "text" : "password"} {...register('password')} />
+                    <Button 
+                        type="button"
+                        variant="ghost" 
+                        size="icon" 
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                        onClick={() => setShowPassword(p => !p)}
+                    >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </Button>
+                </div>
+                {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                <Label htmlFor="role">Role</Label>
+                <Controller
+                    control={control}
+                    name="role"
+                    render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                        <SelectTrigger id="role">
+                        <SelectValue placeholder="Select role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                        {roles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    )}
+                />
+                {errors.role && <p className="text-xs text-red-500">{errors.role.message}</p>}
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="dui">DUI (Optional)</Label>
+                    <Input id="dui" {...register('dui')} />
+                </div>
+            </div>
+
+            <DialogFooter>
+                <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Registering...' : 'Register Employee'}
+                </Button>
+            </DialogFooter>
+            </form>
+          </DialogContent>
+       </Dialog>
+    )
+  }
+
+  // Controlled component usage (for converting candidates)
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+            <DialogTitle>{candidate ? `Convert Candidate: ${candidate.fullName}` : 'Register New Employee'}</DialogTitle>
+            <DialogDescription>
+                {candidate ? "Complete the profile to create a staff account for this candidate." : "Enter the details for the new staff member. An account will be created for them."}
+            </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 py-4">
+            <div className="grid gap-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input id="name" {...register('name')} />
+                {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
+            </div>
+
+            <div className="grid gap-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input id="email" type="email" {...register('email')} disabled={!!candidate} />
+                {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+            </div>
+            
+            <div className="grid gap-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                    <Input id="password" type={showPassword ? "text" : "password"} {...register('password')} />
+                    <Button 
+                        type="button"
+                        variant="ghost" 
+                        size="icon" 
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                        onClick={() => setShowPassword(p => !p)}
+                    >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </Button>
+                </div>
+                {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                <Label htmlFor="role">Role</Label>
+                <Controller
+                    control={control}
+                    name="role"
+                    render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                        <SelectTrigger id="role">
+                        <SelectValue placeholder="Select role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                        {roles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    )}
+                />
+                {errors.role && <p className="text-xs text-red-500">{errors.role.message}</p>}
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="dui">DUI (Optional)</Label>
+                    <Input id="dui" {...register('dui')} />
+                </div>
+            </div>
+
+            <DialogFooter>
+                <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Registering...' : 'Register Employee'}
+                </Button>
+            </DialogFooter>
+            </form>
+        </DialogContent>
     </Dialog>
   );
 }

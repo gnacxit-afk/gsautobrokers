@@ -7,8 +7,8 @@ import type { Candidate, Application, PipelineStatus } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, ChevronsUpDown, Copy, Star } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
+import { MoreHorizontal, ChevronsUpDown, Copy, Star, Briefcase } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow, isValid } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
@@ -46,7 +46,7 @@ const statusOptions: Record<PipelineStatus, PipelineStatus[]> = {
     'Inactive': ['New Applicant', 'Rejected'],
 };
 
-const CellActions: React.FC<{ row: Row<Candidate> }> = ({ row }) => {
+const CellActions: React.FC<{ row: Row<Candidate>; onCreateStaff: (candidate: Candidate) => void; }> = ({ row, onCreateStaff }) => {
     const candidate = row.original;
     const { toast } = useToast();
     const firestore = useFirestore();
@@ -75,6 +75,7 @@ const CellActions: React.FC<{ row: Row<Candidate> }> = ({ row }) => {
 
 
     const availableOptions = statusOptions[candidate.pipelineStatus] || [];
+    const canCreateProfile = candidate.pipelineStatus === 'Approved' || candidate.pipelineStatus === 'Onboarding';
 
     return (
         <DropdownMenu>
@@ -111,6 +112,15 @@ const CellActions: React.FC<{ row: Row<Candidate> }> = ({ row }) => {
                     </DropdownMenuSubContent>
                 </DropdownMenuSub>
             )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+                onSelect={() => onCreateStaff(candidate)}
+                disabled={!canCreateProfile}
+                className={cn({ "focus:bg-blue-50 focus:text-blue-700": canCreateProfile })}
+            >
+                <Briefcase className="mr-2 h-4 w-4" />
+                Create Staff Profile
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
@@ -137,7 +147,7 @@ const ScoreBadge = ({ score }: { score?: number }) => {
 };
 
 
-export const getColumns = (onViewDetails: (candidate: Candidate) => void): ColumnDef<Candidate>[] => [
+export const getColumns = (onViewDetails: (candidate: Candidate) => void, onCreateStaff: (candidate: Candidate) => void): ColumnDef<Candidate>[] => [
   {
     accessorKey: 'fullName',
     header: 'Candidate',
@@ -206,6 +216,6 @@ export const getColumns = (onViewDetails: (candidate: Candidate) => void): Colum
   },
   {
     id: 'actions',
-    cell: ({ row }) => <CellActions row={row} />,
+    cell: ({ row }) => <CellActions row={row} onCreateStaff={onCreateStaff} />,
   },
 ];

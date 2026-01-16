@@ -10,6 +10,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { flexRender } from '@tanstack/react-table';
 import type { Candidate } from '@/lib/types';
 import { CandidateDetailsDialog } from './candidate-details-dialog';
+import { NewStaffDialog } from '@/app/(app)/staff/components/new-staff-dialog';
+import { useFirestore } from '@/firebase';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 interface CandidateTableProps {
   title: string;
@@ -20,12 +24,34 @@ interface CandidateTableProps {
 
 export function CandidateTable({ title, description, candidates, isLoading }: CandidateTableProps) {
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [candidateToConvert, setCandidateToConvert] = useState<Candidate | null>(null);
+  const firestore = useFirestore();
+  const { toast } = useToast();
 
   const handleViewDetails = (candidate: Candidate) => {
     setSelectedCandidate(candidate);
   };
+  
+  const handleCreateStaff = (candidate: Candidate) => {
+    setCandidateToConvert(candidate);
+  };
 
-  const columns = useMemo(() => getColumns(handleViewDetails), []);
+  const onStaffCreated = async (candidateId: string) => {
+    if (!firestore) return;
+    try {
+        const candidateRef = doc(firestore, 'candidates', candidateId);
+        await updateDoc(candidateRef, {
+            pipelineStatus: 'Active',
+            lastStatusChangeDate: serverTimestamp(),
+        });
+        toast({ title: "Candidate Activated", description: "The candidate is now an active staff member."});
+    } catch (error) {
+        console.error("Error activating candidate:", error);
+        toast({ title: "Activation Failed", description: "Could not update the candidate's status to Active.", variant: 'destructive'});
+    }
+  };
+
+  const columns = useMemo(() => getColumns(handleViewDetails, handleCreateStaff), []);
 
   const table = useReactTable({
     data: candidates,
@@ -98,6 +124,12 @@ export function CandidateTable({ title, description, candidates, isLoading }: Ca
             setSelectedCandidate(null);
           }
         }}
+      />
+      <NewStaffDialog 
+        isOpen={!!candidateToConvert}
+        onOpenChange={(isOpen) => !isOpen && setCandidateToConvert(null)}
+        candidate={candidateToConvert}
+        onStaffCreated={onStaffCreated}
       />
     </>
   );
