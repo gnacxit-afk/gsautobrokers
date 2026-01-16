@@ -3,9 +3,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import type { Table, ColumnDef } from '@tanstack/react-table';
-import {
-  flexRender,
-} from '@tanstack/react-table';
+import { flexRender } from '@tanstack/react-table';
 
 import {
   Table as ShadcnTable,
@@ -17,12 +15,17 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Search, X } from 'lucide-react';
+import { PlusCircle, Search, X, Filter, Users } from 'lucide-react';
 import type { Lead, Staff } from '@/lib/types';
 import { AddLeadDialog } from './add-lead-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DateRangePicker } from '@/components/layout/date-range-picker';
 import { useUser } from '@/firebase';
+import { parseSearch } from '../page'; // Import from parent
+import { Badge } from '@/components/ui/badge';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+
+const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -58,8 +61,8 @@ export function DataTable<TData, TValue>({
       return staff.filter(s => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin');
     }
     if (user.role === 'Supervisor') {
-        const teamIds = staff.filter(s => s.supervisorId === user.id).map(s => s.id);
-        return staff.filter(s => teamIds.includes(s.id) || s.id === user.id);
+      const teamIds = staff.filter(s => s.supervisorId === user.id).map(s => s.id);
+      return staff.filter(s => teamIds.includes(s.id) || s.id === user.id);
     }
     if (user.role === 'Broker') {
       return staff.filter(s => s.id === user.id);
@@ -72,35 +75,95 @@ export function DataTable<TData, TValue>({
       return assignableStaff.length > 0 ? assignableStaff[0].id : '';
   }, [user, assignableStaff]);
 
+  const { keywords: activeFilters, text: freeText } = parseSearch(globalFilter);
+
+  const handleSetFilter = (key: string, value: string) => {
+    const newKeywords = { ...activeFilters, [key]: value };
+    const newFilterString = Object.entries(newKeywords)
+      .map(([k, v]) => `${k}:${v}`)
+      .join(' ') + ' ' + freeText.join(' ');
+    setGlobalFilter(newFilterString.trim());
+  };
+
+  const handleRemoveFilter = (keyToRemove: string) => {
+    const newKeywords = { ...activeFilters };
+    delete newKeywords[keyToRemove];
+    const newFilterString = Object.entries(newKeywords)
+      .map(([k, v]) => `${k}:${v}`)
+      .join(' ') + ' ' + freeText.join(' ');
+    setGlobalFilter(newFilterString.trim());
+  };
+
   return (
     <div className="space-y-4">
-       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="relative w-full md:max-w-md">
+      <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+        <div className="w-full md:max-w-md space-y-2">
+            <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                    placeholder="Search leads (e.g., John Doe, owner:Jane, stage:Nuevo)"
-                    value={globalFilter ?? ''}
-                    onChange={event => setGlobalFilter(event.target.value)}
+                    placeholder="Search by name, phone, email..."
+                    value={freeText.join(' ')}
+                    onChange={event => {
+                        const newText = event.target.value;
+                        const newFilterString = Object.entries(activeFilters)
+                            .map(([k,v]) => `${k}:${v}`)
+                            .join(' ') + ' ' + newText;
+                        setGlobalFilter(newFilterString.trim());
+                    }}
                     className="pl-10"
                 />
-                 {globalFilter && (
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6"
-                        onClick={clearAllFilters}
-                    >
-                        <X size={14} />
+            </div>
+            {Object.keys(activeFilters).length > 0 && (
+                <div className="flex items-center gap-2 flex-wrap">
+                    {Object.entries(activeFilters).map(([key, value]) => (
+                        <Badge key={key} variant="secondary" className="capitalize text-xs">
+                            <span className="font-semibold mr-1">{key}:</span> {value}
+                            <button onClick={() => handleRemoveFilter(key)} className="ml-2 rounded-full hover:bg-black/10 p-0.5">
+                                <X size={12} />
+                            </button>
+                        </Badge>
+                    ))}
+                    <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-xs h-auto py-1">
+                        Clear All
                     </Button>
-                )}
-            </div>
-            <div className="flex items-center gap-2 w-full md:w-auto">
-                <DateRangePicker />
-                <Button onClick={handleOpenAddLeadDialog} className="w-full md:w-auto">
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Lead
-                </Button>
-            </div>
+                </div>
+            )}
         </div>
+        <div className="flex items-center gap-2 w-full md:w-auto flex-wrap justify-start">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm"><Filter className="mr-2 h-4 w-4" /> Stage</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>Filter by Stage</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup value={activeFilters.stage} onValueChange={(v) => handleSetFilter('stage', v)}>
+                  {leadStages.map(stage => (
+                    <DropdownMenuRadioItem key={stage} value={stage}>{stage}</DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm"><Users className="mr-2 h-4 w-4" /> Owner</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>Filter by Owner</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup value={activeFilters.owner} onValueChange={(v) => handleSetFilter('owner', v)}>
+                  {staff.map(s => (
+                    <DropdownMenuRadioItem key={s.id} value={s.name.toLowerCase()}>{s.name}</DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DateRangePicker />
+            <Button onClick={handleOpenAddLeadDialog} className="w-full sm:w-auto">
+                <PlusCircle className="mr-2 h-4 w-4" /> Add Lead
+            </Button>
+        </div>
+      </div>
 
       <div className="rounded-md border bg-white">
         <ShadcnTable>

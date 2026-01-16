@@ -1,13 +1,12 @@
 
-
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { getColumns } from "./components/columns";
 import { DataTable } from "@/app/(app)/leads/components/data-table";
-import type { Lead, Staff, Notification, Appointment } from "@/lib/types";
+import type { Lead, Staff } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
-import { useFirestore, useUser, useCollection } from '@/firebase';
+import { useFirestore, useUser, useCollection } from "@/firebase";
 import { useRouter } from "next/navigation";
 import {
   useReactTable,
@@ -17,174 +16,150 @@ import {
   getFilteredRowModel,
   getExpandedRowModel,
   type SortingState,
-  type ColumnFiltersState,
-  type FilterFn,
-} from '@tanstack/react-table';
-import { collection, query, orderBy, updateDoc, doc, deleteDoc, addDoc, serverTimestamp, where, getDocs, writeBatch } from 'firebase/firestore';
+} from "@tanstack/react-table";
+import {
+  collection,
+  query,
+  orderBy,
+  updateDoc,
+  doc,
+  deleteDoc,
+  addDoc,
+  serverTimestamp,
+  where,
+  getDocs,
+  writeBatch,
+  type QueryConstraint,
+} from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { isWithinInterval, isValid } from "date-fns";
+import { addNoteEntry, createNotification } from "@/lib/utils";
+import { matchSorter } from 'match-sorter';
 
+/* -------------------------------- helpers -------------------------------- */
 
-const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
-const channels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
+export function parseSearch(search: string) {
+  const terms = search.toLowerCase().split(/\s+/).filter(Boolean);
+  const keywords: Record<string, string> = {};
+  const text: string[] = [];
 
+  for (const term of terms) {
+    if (term.includes(":")) {
+      const [k, ...v] = term.split(":");
+      const value = v.join(":").trim();
+      if (value) keywords[k] = value;
+    } else {
+      text.push(term);
+    }
+  }
+  return { keywords, text };
+}
 
-const createNotification = async (
-    firestore: any,
-    userId: string,
-    lead: Lead,
-    content: string,
-    author: string,
-) => {
-    const notificationsCollection = collection(firestore, 'notifications');
-    await addDoc(notificationsCollection, {
-        userId,
-        leadId: lead.id,
-        leadName: lead.name,
-        content,
-        author,
-        createdAt: serverTimestamp(),
-        read: false,
-    });
-};
+/* ------------------------------- component -------------------------------- */
 
 function LeadsPageContent() {
-    const { user } = useUser();
-    const firestore = useFirestore();
-    const { toast } = useToast();
-    const { dateRange } = useDateRange();
-    const router = useRouter();
-    
-    const [sorting, setSorting] = useState<SortingState>([ { id: 'lastActivity', desc: true }]);
-    const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 100 });
-    const [globalFilter, setGlobalFilter] = useState('');
-    const [expanded, setExpanded] = useState({});
-    
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const { dateRange } = useDateRange();
+  const router = useRouter();
 
-    const staffQuery = useMemo(() => 
-        firestore ? query(collection(firestore, 'staff')) : null,
-    [firestore]);
-    
-    const { data: staffSnapshot, loading: staffLoading } = useCollection<Staff>(staffQuery);
-    const staffData = useMemo(() => staffSnapshot || [], [staffSnapshot]);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "lastActivity", desc: true },
+  ]);
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 100 });
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [expanded, setExpanded] = useState({});
 
-    // This query will now be conditional based on the user's role
-    const leadsQuery = useMemo(() => {
-        if (!firestore || !user) return null;
-        
-        const q = collection(firestore, 'leads');
-        const constraints = [orderBy('createdAt', 'desc')];
-        
-        if (user.role === 'Broker') {
-            constraints.unshift(where('ownerId', '==', user.id));
+  /* ------------------------------ staff data ------------------------------ */
+
+  const staffQuery = useMemo(
+    () => (firestore ? query(collection(firestore, "staff")) : null),
+    [firestore]
+  );
+
+  const { data: staffSnapshot, loading: staffLoading } = useCollection<Staff>(staffQuery);
+  const staffData = useMemo(() => staffSnapshot || [], [staffSnapshot]);
+
+  /* ----------------------------- FIRESTORE QUERY ---------------------------- */
+
+  const leadsQuery = useMemo(() => {
+    if (!firestore || !user || !staffData.length) return null;
+
+    const { keywords } = parseSearch(globalFilter);
+    const constraints: QueryConstraint[] = [orderBy("createdAt", "desc")];
+
+    // Role-based pre-filter
+    if (user.role === "Broker") {
+      constraints.push(where("ownerId", "==", user.id));
+    } else if (user.role === 'Supervisor') {
+        const teamIds = staffData.filter(s => s.supervisorId === user.id).map(s => s.id);
+        if (teamIds.length > 0) {
+            constraints.push(where("ownerId", "in", [...teamIds, user.id]));
+        } else {
+            constraints.push(where("ownerId", "==", user.id));
         }
-        
-        return query(q, ...constraints);
+    }
 
-    }, [firestore, user]);
+    // Structured keyword filters for Firestore
+    if (keywords.stage) {
+      constraints.push(where("stage", "==", keywords.stage));
+    }
+    if (keywords.channel) {
+      constraints.push(where("channel", "==", keywords.channel));
+    }
+    if (keywords.owner) {
+      const owner = staffData.find((s) =>
+        s.name.toLowerCase().includes(keywords.owner)
+      );
+      if (owner) {
+        constraints.push(where("ownerId", "==", owner.id));
+      }
+    }
 
-    const { data: leadsSnapshot, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
-    const [data, setData] = useState<Lead[]>([]);
+    return query(collection(firestore, "leads"), ...constraints);
+  }, [firestore, user, globalFilter, staffData]);
 
-    useEffect(() => {
-        if (!leadsSnapshot) return;
-        const nextData = leadsSnapshot.map(doc => ({
-            id: doc.id,
-            ...(doc as Omit<Lead, "id">),
-        }));
-        setData(prev => JSON.stringify(prev) === JSON.stringify(nextData) ? prev : nextData);
-    }, [leadsSnapshot]);
+  const { data: leadsSnapshot, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
 
-    const filteredData = useMemo(() => {
-        if (!user) return [];
+  /* --------------------------- CLIENT-SIDE FILTER --------------------------- */
 
-        const search = globalFilter.toLowerCase();
-        const searchTerms = search.split(/\s+/).filter(Boolean);
-        
-        const keywordFilters: Record<string, string> = {};
-        const textTerms: string[] = [];
+  const filteredData = useMemo(() => {
+    if (!leadsSnapshot) return [];
 
-        searchTerms.forEach(term => {
-            if (term.includes(':')) {
-                const [key, ...valueParts] = term.split(':');
-                const value = valueParts.join(':').toLowerCase();
-                if (value) {
-                    keywordFilters[key] = value;
-                }
-            } else {
-                textTerms.push(term);
-            }
-        });
-        
-        return data.filter(lead => {
-            let isVisible = false;
-            // The main role-based visibility is now handled by the Firestore query for Brokers.
-            // We keep the logic for Admin and Supervisor, which fetch broader sets of data.
-            if (user.role === 'Admin') {
-                isVisible = true;
-            } else if (user.role === 'Supervisor') {
-                const teamIds = staffData.filter(s => s.supervisorId === user.id).map(s => s.id);
-                isVisible = teamIds.includes(lead.ownerId) || lead.ownerId === user.id;
-            } else if (user.role === 'Broker') {
-                // This is redundant if the query is correct, but safe to keep.
-                isVisible = lead.ownerId === user.id;
-            }
-            if (!isVisible) return false;
+    const { text } = parseSearch(globalFilter);
 
-            // 2. Date Range Filter
-            if (dateRange && dateRange.start && dateRange.end) {
-                const leadDate = (lead.createdAt as any)?.toDate ? (lead.createdAt as any).toDate() : new Date(lead.createdAt as string);
-                if (isValid(leadDate)) {
-                    if (!isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end })) {
-                        return false;
-                    }
-                }
-            }
-            
-            // 3. Keyword Filter
-            const matchesKeywords = Object.entries(keywordFilters).every(([key, value]) => {
-                const leadValue = (lead as any)[key]?.toString().toLowerCase();
-                return leadValue?.includes(value);
-            });
-            if (!matchesKeywords) return false;
-            
-            // 4. Free Text Search
-            if (textTerms.length > 0) {
-                 const fullText = `${lead.name} ${lead.phone} ${lead.email}`.toLowerCase();
-                 const matchesText = textTerms.every(term => fullText.includes(term));
-                 if (!matchesText) return false;
-            }
-            
-            return true;
-        });
+    // 1. Filter by date range first
+    const dateFilteredLeads = leadsSnapshot.filter((lead) => {
+        if (dateRange?.start && dateRange?.end) {
+            const date = (lead.createdAt as any)?.toDate?.() ?? new Date(lead.createdAt as any);
+            if (isValid(date) && !isWithinInterval(date, { start: dateRange.start, end: dateRange.end }))
+              return false;
+        }
+        return true;
+    });
 
-    }, [data, globalFilter, user, staffData, dateRange]);
+    // 2. Then apply fuzzy search on the remaining text
+    if (text.length === 0) {
+        return dateFilteredLeads;
+    }
     
-    const addNoteEntry = useCallback(async (leadId: string, content: string, type: 'Manual' | 'Stage Change' | 'Owner Change' | 'System') => {
-        if (!firestore || !user) return;
-        const noteHistoryRef = collection(firestore, 'leads', leadId, 'noteHistory');
-        
-        await addDoc(noteHistoryRef, {
-            content,
-            author: user.name,
-            date: serverTimestamp(),
-            type,
-        });
-        
-        const leadRef = doc(firestore, 'leads', leadId);
-        await updateDoc(leadRef, { lastActivity: serverTimestamp() });
+    return matchSorter(dateFilteredLeads, text.join(' '), {
+        keys: ['name', 'phone', 'email'],
+    });
 
-    }, [firestore, user]);
+  }, [leadsSnapshot, globalFilter, dateRange]);
+
+  /* -------------------------------- ACTIONS ------------------------------- */
 
     const handleUpdateStage = useCallback(async (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage']) => {
         if (!firestore || !user) return;
         const leadRef = doc(firestore, 'leads', leadId);
-        const lead = data.find(l => l.id === leadId);
+        const lead = leadsSnapshot?.find(l => l.id === leadId);
 
         if (!lead) return;
         
         const batch = writeBatch(firestore);
-
         try {
             batch.update(leadRef, { stage: newStage });
 
@@ -197,7 +172,7 @@ function LeadsPageContent() {
             await batch.commit();
 
             let noteContent = `Stage changed from '${oldStage}' to '${newStage}' by ${user.name}.`;
-            await addNoteEntry(leadId, noteContent, 'Stage Change');
+            await addNoteEntry(firestore, user, leadId, noteContent, 'Stage Change');
             
             if (lead.ownerId !== user.id) {
                 await createNotification(
@@ -208,14 +183,12 @@ function LeadsPageContent() {
                     user.name
                 );
             }
-
             toast({ title: "Stage Updated", description: `Lead stage and appointment statuses changed to ${newStage}.` });
-            
         } catch (error) {
              console.error("Error updating stage:", error);
              toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
         }
-    }, [firestore, user, toast, addNoteEntry, data]);
+    }, [firestore, user, toast, leadsSnapshot]);
 
     const handleDelete = useCallback(async (id: string) => {
         if (window.confirm('Are you sure you want to delete this lead?') && firestore) {
@@ -250,31 +223,26 @@ function LeadsPageContent() {
         try {
             const newDocRef = await addDoc(leadsCollection, finalLeadData);
             
-            await addNoteEntry(newDocRef.id, "Lead created.", "System");
+            await addNoteEntry(firestore, user, newDocRef.id, "Lead created.", "System");
 
             if (initialNotes && initialNotes.trim() !== '') {
-                await addNoteEntry(newDocRef.id, initialNotes, 'Manual');
+                await addNoteEntry(firestore, user, newDocRef.id, initialNotes, 'Manual');
             }
-
             toast({ title: "Lead Added", description: "New lead created successfully." });
             
-            const createdLead: Lead = {
-                id: newDocRef.id,
-                ...finalLeadData,
-                createdAt: new Date(), // Use current date as a placeholder
-            };
+            const createdLead: Lead = { id: newDocRef.id, ...finalLeadData, createdAt: new Date() };
             if(callback) callback(createdLead);
 
         } catch (error) {
              console.error("Error creating lead:", error);
              toast({ title: "Error creating lead", description: "Could not save the new lead.", variant: "destructive" });
         }
-    }, [firestore, staffData, user, toast, addNoteEntry]);
+    }, [firestore, staffData, user, toast]);
 
     const handleUpdateOwner = useCallback(async (id: string, oldOwnerName: string, newOwnerId: string, newOwnerName: string) => {
-        if (!firestore || !user || !staffData) return;
+        if (!firestore || !user || !staffData || !leadsSnapshot) return;
     
-        const leadDoc = data.find(l => l.id === id);
+        const leadDoc = leadsSnapshot.find(l => l.id === id);
         if (!leadDoc) {
             toast({ title: "Error", description: "Lead not found.", variant: "destructive"});
             return;
@@ -282,107 +250,72 @@ function LeadsPageContent() {
     
         const batch = writeBatch(firestore);
         try {
-            // 1. Update the lead owner
             const leadRef = doc(firestore, 'leads', id);
             batch.update(leadRef, { ownerId: newOwnerId, ownerName: newOwnerName });
     
-            // 2. Find and update all appointments for this lead
-            const appointmentsQuery = query(
-                collection(firestore, 'appointments'),
-                where('leadId', '==', id)
-            );
+            const appointmentsQuery = query(collection(firestore, 'appointments'), where('leadId', '==', id));
             const appointmentsSnapshot = await getDocs(appointmentsQuery);
             appointmentsSnapshot.forEach(appointmentDoc => {
-                const appointmentRef = doc(firestore, 'appointments', appointmentDoc.id);
-                batch.update(appointmentRef, { ownerId: newOwnerId });
+                batch.update(doc(firestore, 'appointments', appointmentDoc.id), { ownerId: newOwnerId });
             });
-    
-            // 3. Commit all batched writes
             await batch.commit();
-    
-            // 4. Create notifications and notes after batch commit
+
             const noteContent = `Owner changed from '${oldOwnerName}' to '${newOwnerName}' by ${user.name}`;
-            await addNoteEntry(id, noteContent, 'Owner Change');
+            await addNoteEntry(firestore, user, id, noteContent, 'Owner Change');
             
             if (newOwnerId !== user.id) {
-                await createNotification(
-                    firestore,
-                    newOwnerId,
-                    leadDoc,
-                    `You have been assigned a new lead: ${leadDoc.name}.`,
-                    user.name
-                );
+                await createNotification(firestore, newOwnerId, leadDoc, `You have been assigned a new lead: ${leadDoc.name}.`, user.name);
             }
     
             const oldOwner = staffData.find(s => s.name === oldOwnerName);
             if (oldOwner && oldOwner.id !== user.id) {
-                 await createNotification(
-                    firestore,
-                    oldOwner.id,
-                    leadDoc,
-                    `Lead ${leadDoc.name} was reassigned to ${newOwnerName}.`,
-                    user.name
-                );
+                 await createNotification(firestore, oldOwner.id, leadDoc, `Lead ${leadDoc.name} was reassigned to ${newOwnerName}.`, user.name);
             }
-            
             toast({ title: "Owner Updated", description: `${leadDoc.name} and all their appointments are now assigned to ${newOwnerName}.` });
-    
         } catch (error) {
             console.error("Error updating owner and appointments:", error);
             toast({ title: "Error", description: "Could not update lead owner and associated appointments.", variant: "destructive"});
         }
-    }, [firestore, user, staffData, toast, addNoteEntry, data]);
+    }, [firestore, user, staffData, toast, leadsSnapshot]);
 
+  /* ------------------------------- table setup -------------------------------- */
+  
+  const columns = useMemo(
+    () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, staffData),
+    [handleUpdateStage, handleDelete, handleUpdateOwner, staffData]
+  );
 
-    const columns = useMemo(
-        () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, staffData), 
-        [handleUpdateStage, handleDelete, handleUpdateOwner, staffData]
-    );
-    
-    const table = useReactTable({
-      data: filteredData, 
-      columns,
-      getCoreRowModel: getCoreRowModel(),
-      getPaginationRowModel: getPaginationRowModel(),
-      onSortingChange: setSorting,
-      onPaginationChange: setPagination,
-      getSortedRowModel: getSortedRowModel(),
-      getFilteredRowModel: getFilteredRowModel(),
-      getExpandedRowModel: getExpandedRowModel(),
-      onExpandedChange: setExpanded,
-      state: {
-        sorting,
-        pagination,
-        expanded,
-        globalFilter,
-      },
-      getRowCanExpand: () => false,
-      onGlobalFilterChange: setGlobalFilter,
-    });
+  const table = useReactTable({
+    data: filteredData,
+    columns,
+    state: { sorting, pagination, expanded, globalFilter },
+    onSortingChange: setSorting,
+    onPaginationChange: setPagination,
+    onExpandedChange: setExpanded,
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
+  });
 
-    const clearAllFilters = useCallback(() => {
-        setGlobalFilter('');
-    }, []);
-
-    return (
-        <main className="flex flex-1 flex-col gap-4">
-            <DataTable 
-                table={table}
-                columns={columns}
-                onAddLead={handleAddLead}
-                staff={staffData || []}
-                clearAllFilters={clearAllFilters}
-                loading={leadsLoading || staffLoading}
-                globalFilter={globalFilter}
-                setGlobalFilter={setGlobalFilter}
-            />
-        </main>
-    );
+  return (
+    <main className="flex flex-1 flex-col gap-4">
+      <DataTable
+        table={table}
+        columns={columns}
+        onAddLead={handleAddLead}
+        staff={staffData}
+        loading={leadsLoading || staffLoading}
+        globalFilter={globalFilter}
+        setGlobalFilter={setGlobalFilter}
+        clearAllFilters={() => setGlobalFilter("")}
+      />
+    </main>
+  );
 }
 
-
 export default function LeadsPage() {
-    return (
-        <LeadsPageContent />
-    )
+  return <LeadsPageContent />;
 }
