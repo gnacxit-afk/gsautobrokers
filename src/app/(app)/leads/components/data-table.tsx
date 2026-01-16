@@ -21,7 +21,7 @@ import { AddLeadDialog } from './add-lead-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DateRangePicker } from '@/components/layout/date-range-picker';
 import { useUser } from '@/firebase';
-import { parseSearch } from '../page'; // Import from parent
+import { parseSearch } from '../page';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
@@ -224,7 +224,7 @@ export function DataTable<TData, TValue>({
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No results.
+                  No results found for the current filters.
                 </TableCell>
               </TableRow>
             )}

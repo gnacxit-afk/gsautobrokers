@@ -7,7 +7,6 @@ import { DataTable } from "@/app/(app)/leads/components/data-table";
 import type { Lead, Staff } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
 import { useFirestore, useUser, useCollection } from "@/firebase";
-import { useRouter } from "next/navigation";
 import {
   useReactTable,
   getCoreRowModel,
@@ -48,7 +47,7 @@ export function parseSearch(search: string) {
       const [key, ...valueParts] = term.split(":");
       const value = valueParts.join(":").trim();
       if (value) {
-        keywords[key.toLowerCase()] = value; // Lowercase only the key
+        keywords[key.toLowerCase()] = value; 
       }
     } else {
       text.push(term);
@@ -64,7 +63,6 @@ function LeadsPageContent() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const { dateRange } = useDateRange();
-  const router = useRouter();
 
   const [sorting, setSorting] = useState<SortingState>([
     { id: "lastActivity", desc: true },
@@ -79,19 +77,16 @@ function LeadsPageContent() {
     () => (firestore ? query(collection(firestore, "staff")) : null),
     [firestore]
   );
-
   const { data: staffSnapshot, loading: staffLoading } = useCollection<Staff>(staffQuery);
   const staffData = useMemo(() => staffSnapshot || [], [staffSnapshot]);
 
-  /* ----------------------------- FIRESTORE QUERY ---------------------------- */
+  /* ---------------------- SERVER-SIDE ROLE-BASED QUERY ---------------------- */
 
   const leadsQuery = useMemo(() => {
     if (!firestore || !user || !staffData.length) return null;
 
-    const { keywords } = parseSearch(globalFilter);
-    const constraints: QueryConstraint[] = [orderBy("createdAt", "desc"), limit(50)];
+    const constraints: QueryConstraint[] = [orderBy("createdAt", "desc"), limit(250)]; // Fetch a larger base set
 
-    // Role-based pre-filter
     if (user.role === "Broker") {
       constraints.push(where("ownerId", "==", user.id));
     } else if (user.role === 'Supervisor') {
@@ -103,197 +98,183 @@ function LeadsPageContent() {
         }
     }
 
-    // Structured keyword filters for Firestore
-    if (keywords.stage) {
-      constraints.push(where("stage", "==", keywords.stage));
-    }
-    if (keywords.channel) {
-      constraints.push(where("channel", "==", keywords.channel));
-    }
-    if (keywords.ownerid) {
-      constraints.push(where("ownerId", "==", keywords.ownerid));
-    }
-
     return query(collection(firestore, "leads"), ...constraints);
-  }, [firestore, user, globalFilter, staffData]);
+  }, [firestore, user, staffData]);
 
   const { data: leadsSnapshot, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
 
-  /* --------------------------- CLIENT-SIDE FILTER --------------------------- */
+  /* --------------------------- CLIENT-SIDE FILTERING --------------------------- */
 
   const filteredData = useMemo(() => {
     if (!leadsSnapshot) return [];
-
-    const { text } = parseSearch(globalFilter);
-
-    // 1. Filter by date range first
-    const dateFilteredLeads = leadsSnapshot.filter((lead) => {
-        if (dateRange?.start && dateRange?.end) {
-            const date = (lead.createdAt as any)?.toDate?.() ?? new Date(lead.createdAt as any);
-            if (isValid(date) && !isWithinInterval(date, { start: dateRange.start, end: dateRange.end }))
-              return false;
-        }
-        return true;
-    });
-
-    // 2. Then apply text search if there is any
-    if (text.length === 0) {
-        return dateFilteredLeads;
-    }
     
+    const { keywords, text } = parseSearch(globalFilter);
     const searchText = text.join(' ').toLowerCase();
 
-    return dateFilteredLeads.filter(lead => {
-        const leadName = lead.name.toLowerCase();
-        const leadEmail = (lead.email || '').toLowerCase();
-        // Normalize phone number for searching by removing non-digit characters
-        const leadPhone = (lead.phone || '').replace(/\D/g, ''); 
-        
-        // Normalize search text for phone search
-        const searchPhone = searchText.replace(/\D/g, '');
+    return leadsSnapshot.filter(lead => {
+      // 1. Date Range Filter
+      if (dateRange?.start && dateRange?.end) {
+        const date = (lead.createdAt as any)?.toDate?.() ?? new Date(lead.createdAt as any);
+        if (isValid(date) && !isWithinInterval(date, { start: dateRange.start, end: dateRange.end }))
+          return false;
+      }
 
-        // Standard text search for name and email
-        if (leadName.includes(searchText) || leadEmail.includes(searchText)) {
-            return true;
-        }
-
-        // Specialized search for phone numbers
-        if (searchPhone.length > 0 && leadPhone.includes(searchPhone)) {
-            return true;
-        }
-        
+      // 2. Keyword Filters (Stage, Channel, Owner)
+      if (keywords.stage && lead.stage !== keywords.stage) {
         return false;
-    });
+      }
+      if (keywords.channel && lead.channel !== keywords.channel) {
+        return false;
+      }
+      if (keywords.ownerid && lead.ownerId !== keywords.ownerid) {
+        return false;
+      }
 
+      // 3. Free Text Search (Name, Email, Phone)
+      if (searchText) {
+        const searchPhone = searchText.replace(/\D/g, '');
+        const leadPhone = (lead.phone || '').replace(/\D/g, '');
+
+        const nameMatch = lead.name.toLowerCase().includes(searchText);
+        const emailMatch = (lead.email || '').toLowerCase().includes(searchText);
+        const phoneMatch = searchPhone.length > 0 && leadPhone.includes(searchPhone);
+
+        if (!nameMatch && !emailMatch && !phoneMatch) {
+            return false;
+        }
+      }
+      
+      return true;
+    });
   }, [leadsSnapshot, globalFilter, dateRange]);
 
   /* -------------------------------- ACTIONS ------------------------------- */
 
-    const handleUpdateStage = useCallback(async (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage']) => {
-        if (!firestore || !user) return;
-        const leadRef = doc(firestore, 'leads', leadId);
-        const lead = leadsSnapshot?.find(l => l.id === leadId);
+  const handleUpdateStage = useCallback(async (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage']) => {
+    if (!firestore || !user) return;
+    const leadRef = doc(firestore, 'leads', leadId);
+    const lead = leadsSnapshot?.find(l => l.id === leadId);
 
-        if (!lead) return;
+    if (!lead) return;
+    
+    const batch = writeBatch(firestore);
+    try {
+        batch.update(leadRef, { stage: newStage });
+
+        const appointmentsQuery = query(collection(firestore, 'appointments'), where("leadId", "==", leadId));
+        const appointmentsSnapshot = await getDocs(appointmentsQuery);
+        appointmentsSnapshot.forEach(appointmentDoc => {
+            batch.update(appointmentDoc.ref, { stage: newStage });
+        });
+
+        await batch.commit();
+
+        let noteContent = `Stage changed from '${oldStage}' to '${newStage}' by ${user.name}.`;
+        await addNoteEntry(firestore, user, leadId, noteContent, 'Stage Change');
         
-        const batch = writeBatch(firestore);
+        if (lead.ownerId !== user.id) {
+            await createNotification(
+                firestore,
+                lead.ownerId,
+                lead,
+                `Stage for lead ${lead.name} was changed to ${newStage} by ${user.name}.`,
+                user.name
+            );
+        }
+        toast({ title: "Stage Updated", description: `Lead stage and appointment statuses changed to ${newStage}.` });
+    } catch (error) {
+         console.error("Error updating stage:", error);
+         toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
+    }
+  }, [firestore, user, toast, leadsSnapshot]);
+
+  const handleDelete = useCallback(async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this lead?') && firestore) {
+        const leadRef = doc(firestore, 'leads', id);
         try {
-            batch.update(leadRef, { stage: newStage });
-
-            const appointmentsQuery = query(collection(firestore, 'appointments'), where("leadId", "==", leadId));
-            const appointmentsSnapshot = await getDocs(appointmentsQuery);
-            appointmentsSnapshot.forEach(appointmentDoc => {
-                batch.update(appointmentDoc.ref, { stage: newStage });
-            });
-
-            await batch.commit();
-
-            let noteContent = `Stage changed from '${oldStage}' to '${newStage}' by ${user.name}.`;
-            await addNoteEntry(firestore, user, leadId, noteContent, 'Stage Change');
-            
-            if (lead.ownerId !== user.id) {
-                await createNotification(
-                    firestore,
-                    lead.ownerId,
-                    lead,
-                    `Stage for lead ${lead.name} was changed to ${newStage} by ${user.name}.`,
-                    user.name
-                );
-            }
-            toast({ title: "Stage Updated", description: `Lead stage and appointment statuses changed to ${newStage}.` });
+            await deleteDoc(leadRef);
+            toast({ title: "Lead Deleted", description: "The lead has been removed." });
         } catch (error) {
-             console.error("Error updating stage:", error);
-             toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
+             toast({ title: "Error Deleting Lead", description: "Could not remove the lead.", variant: "destructive" });
         }
-    }, [firestore, user, toast, leadsSnapshot]);
+    }
+  }, [firestore, toast]);
 
-    const handleDelete = useCallback(async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this lead?') && firestore) {
-            const leadRef = doc(firestore, 'leads', id);
-            try {
-                await deleteDoc(leadRef);
-                toast({ title: "Lead Deleted", description: "The lead has been removed." });
-            } catch (error) {
-                 toast({ title: "Error Deleting Lead", description: "Could not remove the lead.", variant: "destructive" });
-            }
-        }
-    }, [firestore, toast]);
+  const handleAddLead = useCallback(async (newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'> & { initialNotes?: string }, callback?: (lead: Lead) => void) => {
+    if (!firestore || !user || !staffData) return;
+    const owner = staffData.find(s => s.id === newLeadData.ownerId);
+    if (!owner) {
+         toast({ title: "Error", description: "Could not find lead owner.", variant: "destructive" });
+         return;
+    };
 
-    const handleAddLead = useCallback(async (newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'> & { initialNotes?: string }, callback?: (lead: Lead) => void) => {
-        if (!firestore || !user || !staffData) return;
-        const owner = staffData.find(s => s.id === newLeadData.ownerId);
-        if (!owner) {
-             toast({ title: "Error", description: "Could not find lead owner.", variant: "destructive" });
-             return;
-        };
+    const leadsCollection = collection(firestore, 'leads');
+    const { initialNotes, ...leadData } = newLeadData;
+    
+    const finalLeadData = {
+        ...leadData,
+        createdAt: serverTimestamp(),
+        lastActivity: serverTimestamp(),
+        ownerName: owner.name,
+    };
 
-        const leadsCollection = collection(firestore, 'leads');
-        const { initialNotes, ...leadData } = newLeadData;
+    try {
+        const newDocRef = await addDoc(leadsCollection, finalLeadData);
         
-        const finalLeadData = {
-            ...leadData,
-            createdAt: serverTimestamp(),
-            lastActivity: serverTimestamp(),
-            ownerName: owner.name,
-        };
+        await addNoteEntry(firestore, user, newDocRef.id, "Lead created.", "System");
 
-        try {
-            const newDocRef = await addDoc(leadsCollection, finalLeadData);
-            
-            await addNoteEntry(firestore, user, newDocRef.id, "Lead created.", "System");
-
-            if (initialNotes && initialNotes.trim() !== '') {
-                await addNoteEntry(firestore, user, newDocRef.id, initialNotes, 'Manual');
-            }
-            toast({ title: "Lead Added", description: "New lead created successfully." });
-            
-            const createdLead: Lead = { id: newDocRef.id, ...finalLeadData, createdAt: new Date() } as Lead;
-            if(callback) callback(createdLead);
-
-        } catch (error) {
-             console.error("Error creating lead:", error);
-             toast({ title: "Error creating lead", description: "Could not save the new lead.", variant: "destructive" });
+        if (initialNotes && initialNotes.trim() !== '') {
+            await addNoteEntry(firestore, user, newDocRef.id, initialNotes, 'Manual');
         }
-    }, [firestore, staffData, user, toast]);
+        toast({ title: "Lead Added", description: "New lead created successfully." });
+        
+        const createdLead: Lead = { id: newDocRef.id, ...finalLeadData, createdAt: new Date() } as Lead;
+        if(callback) callback(createdLead);
 
-    const handleUpdateOwner = useCallback(async (id: string, oldOwnerName: string, newOwnerId: string, newOwnerName: string) => {
-        if (!firestore || !user || !staffData || !leadsSnapshot) return;
-    
-        const leadDoc = leadsSnapshot.find(l => l.id === id);
-        if (!leadDoc) {
-            toast({ title: "Error", description: "Lead not found.", variant: "destructive"});
-            return;
-        }
-    
-        const batch = writeBatch(firestore);
-        try {
-            const leadRef = doc(firestore, 'leads', id);
-            batch.update(leadRef, { ownerId: newOwnerId, ownerName: newOwnerName });
-    
-            const appointmentsQuery = query(collection(firestore, 'appointments'), where('leadId', '==', id));
-            const appointmentsSnapshot = await getDocs(appointmentsQuery);
-            appointmentsSnapshot.forEach(appointmentDoc => {
-                batch.update(doc(firestore, 'appointments', appointmentDoc.id), { ownerId: newOwnerId });
-            });
-            await batch.commit();
+    } catch (error) {
+         console.error("Error creating lead:", error);
+         toast({ title: "Error creating lead", description: "Could not save the new lead.", variant: "destructive" });
+    }
+  }, [firestore, staffData, user, toast]);
 
-            const noteContent = `Owner changed from '${oldOwnerName}' to '${newOwnerName}' by ${user.name}`;
-            await addNoteEntry(firestore, user, id, noteContent, 'Owner Change');
-            
-            if (newOwnerId !== user.id) {
-                await createNotification(firestore, newOwnerId, leadDoc, `You have been assigned a new lead: ${leadDoc.name}.`, user.name);
-            }
-    
-            const oldOwner = staffData.find(s => s.name === oldOwnerName);
-            if (oldOwner && oldOwner.id !== user.id) {
-                 await createNotification(firestore, oldOwner.id, leadDoc, `Lead ${leadDoc.name} was reassigned to ${newOwnerName}.`, user.name);
-            }
-            toast({ title: "Owner Updated", description: `${leadDoc.name} and all their appointments are now assigned to ${newOwnerName}.` });
-        } catch (error) {
-            console.error("Error updating owner and appointments:", error);
-            toast({ title: "Error", description: "Could not update lead owner and associated appointments.", variant: "destructive"});
+  const handleUpdateOwner = useCallback(async (id: string, oldOwnerName: string, newOwnerId: string, newOwnerName: string) => {
+    if (!firestore || !user || !staffData || !leadsSnapshot) return;
+
+    const leadDoc = leadsSnapshot.find(l => l.id === id);
+    if (!leadDoc) {
+        toast({ title: "Error", description: "Lead not found.", variant: "destructive"});
+        return;
+    }
+
+    const batch = writeBatch(firestore);
+    try {
+        const leadRef = doc(firestore, 'leads', id);
+        batch.update(leadRef, { ownerId: newOwnerId, ownerName: newOwnerName });
+
+        const appointmentsQuery = query(collection(firestore, 'appointments'), where('leadId', '==', id));
+        const appointmentsSnapshot = await getDocs(appointmentsQuery);
+        appointmentsSnapshot.forEach(appointmentDoc => {
+            batch.update(doc(firestore, 'appointments', appointmentDoc.id), { ownerId: newOwnerId });
+        });
+        await batch.commit();
+
+        const noteContent = `Owner changed from '${oldOwnerName}' to '${newOwnerName}' by ${user.name}`;
+        await addNoteEntry(firestore, user, id, noteContent, 'Owner Change');
+        
+        if (newOwnerId !== user.id) {
+            await createNotification(firestore, newOwnerId, leadDoc, `You have been assigned a new lead: ${leadDoc.name}.`, user.name);
         }
-    }, [firestore, user, staffData, toast, leadsSnapshot]);
+
+        const oldOwner = staffData.find(s => s.name === oldOwnerName);
+        if (oldOwner && oldOwner.id !== user.id) {
+             await createNotification(firestore, oldOwner.id, leadDoc, `Lead ${leadDoc.name} was reassigned to ${newOwnerName}.`, user.name);
+        }
+        toast({ title: "Owner Updated", description: `${leadDoc.name} and all their appointments are now assigned to ${newOwnerName}.` });
+    } catch (error) {
+        console.error("Error updating owner and appointments:", error);
+        toast({ title: "Error", description: "Could not update lead owner and associated appointments.", variant: "destructive"});
+    }
+  }, [firestore, user, staffData, toast, leadsSnapshot]);
 
   /* ------------------------------- table setup -------------------------------- */
   
