@@ -16,7 +16,7 @@ import {
   ScoreApplicationInputSchema,
   type ScoreApplicationInput,
 } from './score-application-types';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue, query, where, getDocs, writeBatch } from 'firebase-admin/firestore';
 import { initializeApp, getApps } from 'firebase-admin/app';
 
 // This is a server-side file, so we can initialize Firebase Admin SDK
@@ -72,6 +72,32 @@ const submitApplicationFlow = ai.defineFlow(
     try {
       const candidatesCollection = adminFirestore.collection('candidates');
       await candidatesCollection.add(candidateData);
+
+      // 5. If new applicant, notify admins.
+      if (pipelineStatus === 'New Applicant') {
+          const staffRef = adminFirestore.collection('staff');
+          const q = query(staffRef, where('role', '==', 'Admin'));
+          const adminSnapshot = await getDocs(q);
+
+          if (!adminSnapshot.empty) {
+              const batch = writeBatch(adminFirestore);
+              const notificationsCollection = adminFirestore.collection('notifications');
+
+              adminSnapshot.forEach(adminDoc => {
+                  const notificationRef = notificationsCollection.doc(); // Auto-generate ID
+                  const newNotification = {
+                      userId: adminDoc.id,
+                      content: `New candidate "${candidateData.fullName}" has applied and is ready for review in the "New Applicants" pipeline.`,
+                      author: 'System',
+                      createdAt: FieldValue.serverTimestamp(),
+                      read: false,
+                  };
+                  batch.set(notificationRef, newNotification);
+              });
+              
+              await batch.commit();
+          }
+      }
 
       return {
         success: true,
