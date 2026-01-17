@@ -114,9 +114,14 @@ const submitApplicationFlow = ai.defineFlow(
         message: 'Application submitted successfully.',
       };
     } catch (error: any) {
-        console.error("Error writing to Firestore with Admin SDK:", error);
+        console.error("Error in submitApplicationFlow:", {
+            message: error.message,
+            code: error.code,
+            stack: error.stack,
+            detail: error.details
+        });
         // Throw a more specific error to the client if something goes wrong.
-        throw new Error("Failed to save application to the database. " + error.message);
+        throw new Error("Failed to save application to the database. Details: " + error.message);
     }
   }
 );
