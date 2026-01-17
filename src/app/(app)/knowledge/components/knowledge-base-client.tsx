@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -6,7 +7,7 @@ import { useFirestore, useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FilePlus2, BookOpen, Bot, Edit, Trash2, Loader2, X, Search } from 'lucide-react';
+import { FilePlus2, BookOpen, Bot, Edit, Trash2, Loader2, X, Search, ArrowLeft } from 'lucide-react';
 import { NewArticleForm } from './new-article-form';
 import { cn } from '@/lib/utils';
 import { format, isValid } from 'date-fns';
@@ -67,6 +68,13 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
     setIsEditing(false);
     setSummary(null);
   };
+  
+  const handleBackToList = () => {
+      setSelectedArticle(null);
+      setIsCreating(false);
+      setIsEditing(false);
+      setSummary(null);
+  }
 
   const handleGenerateSummary = async () => {
     if (!selectedArticle) return;
@@ -88,8 +96,7 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
     try {
       await deleteDoc(articleRef);
       toast({ title: 'Article Deleted', description: `"${selectedArticle.title}" has been removed.` });
-      setSelectedArticle(null);
-      setIsEditing(false);
+      handleBackToList();
     } catch (error) {
       toast({ title: 'Deletion Failed', description: 'Could not delete the article.', variant: 'destructive'});
     }
@@ -105,15 +112,6 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
     setIsEditing(false);
   };
 
-  const displayedContent = isCreating || isEditing ? (
-    <NewArticleForm
-        onArticleCreated={onArticleCreated}
-        editingArticle={isEditing ? selectedArticle : null}
-        onArticleUpdated={onArticleUpdated}
-        onCancel={() => setIsEditing(false)}
-    />
-  ) : selectedArticle;
-
   const renderDate = (date: any) => {
     if (!date) return 'No date';
     const jsDate = (date as any).toDate ? (date as any).toDate() : new Date(date);
@@ -121,9 +119,14 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
     return format(jsDate, 'MMM d, yyyy');
   };
 
+  const showDetails = !!selectedArticle || isCreating || isEditing;
+
   return (
     <div className="flex flex-1 h-full">
-      <aside className="w-1/3 max-w-sm border-r p-4 hidden md:flex flex-col">
+      <aside className={cn(
+          "w-full flex-col p-4 md:flex md:w-1/3 md:max-w-sm md:border-r",
+          { 'hidden': showDetails }
+      )}>
         <div className="flex justify-between items-center mb-4 gap-4">
           <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -178,93 +181,98 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
           )}
         </ScrollArea>
       </aside>
-      <main className="flex-1 p-6 overflow-y-auto">
-        {loading && !selectedArticle ? (
-           <Skeleton className="h-full w-full" />
-        ) : displayedContent ? (
-          <ScrollArea className="h-full pr-4">
-            {isCreating || isEditing ? (
-                 <NewArticleForm
-                    onArticleCreated={onArticleCreated}
-                    editingArticle={isEditing ? selectedArticle : null}
-                    onArticleUpdated={onArticleUpdated}
-                    onCancel={() => {
-                        setIsCreating(false);
-                        setIsEditing(false);
-                    }}
-                />
-            ) : selectedArticle ? (
-                <div>
-                    <div className="mb-6 pb-6 border-b">
-                        <h1 className="text-3xl font-extrabold text-slate-900">{selectedArticle.title}</h1>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
-                            <span>Category: <span className="font-semibold text-primary">{selectedArticle.category}</span></span>
-                             <span>By: <span className="font-semibold">{selectedArticle.author}</span></span>
-                            <span>Published on: <span className="font-semibold">{renderDate(selectedArticle.date)}</span></span>
-                        </div>
-                         <div className="flex items-center gap-2 mt-4">
-                            {(user?.role === 'Admin' || user?.role === 'Supervisor' || user?.role === 'Broker') && (
-                              <Button size="sm" variant="outline" onClick={handleGenerateSummary} disabled={isSummarizing}>
-                                  {isSummarizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
-                                  AI Summary
-                              </Button>
-                            )}
-                            {user?.role === 'Admin' && (
-                                <>
-                                    <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
-                                    <Edit className="mr-2 h-4 w-4" /> Edit
-                                    </Button>
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button size="sm" variant="destructive">
-                                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                            </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                <AlertDialogDescription>This will permanently delete the article "{selectedArticle.title}". This action cannot be undone.</AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction onClick={handleDeleteArticle} className="bg-destructive hover:bg-destructive/90">Delete Article</AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </>
-                            )}
-                        </div>
-                    </div>
+      
+      <main className={cn(
+        "flex-1 p-6 overflow-y-auto w-full md:w-auto",
+        { 'hidden md:block': !showDetails }
+      )}>
+        {showDetails ? (
+            <ScrollArea className="h-full pr-4">
+                 {/* Back button for mobile */}
+                <Button variant="outline" size="sm" onClick={handleBackToList} className="mb-4 md:hidden">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to List
+                </Button>
 
-                    {(isSummarizing || summary) && (
-                      <Card className="mb-6 bg-blue-50 border-blue-200">
-                        <CardHeader>
-                           <CardTitle className="text-lg flex items-center gap-2 text-blue-800"><Bot size={18}/> Resumen por IA</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          {isSummarizing ? (
-                             <div className="space-y-2">
-                               <Skeleton className="h-4 w-5/6" />
-                               <Skeleton className="h-4 w-full" />
-                               <Skeleton className="h-4 w-3/4" />
+                {isCreating || isEditing ? (
+                    <NewArticleForm
+                        onArticleCreated={onArticleCreated}
+                        editingArticle={isEditing ? selectedArticle : null}
+                        onArticleUpdated={onArticleUpdated}
+                        onCancel={handleBackToList}
+                    />
+                ) : selectedArticle && (
+                    <div>
+                        <div className="mb-6 pb-6 border-b">
+                            <h1 className="text-3xl font-extrabold text-slate-900">{selectedArticle.title}</h1>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+                                <span>Category: <span className="font-semibold text-primary">{selectedArticle.category}</span></span>
+                                <span>By: <span className="font-semibold">{selectedArticle.author}</span></span>
+                                <span>Published on: <span className="font-semibold">{renderDate(selectedArticle.date)}</span></span>
                             </div>
-                          ) : (
-                            <p className="text-sm text-blue-900 leading-relaxed whitespace-pre-wrap">{summary}</p>
-                          )}
-                        </CardContent>
-                      </Card>
-                    )}
+                            <div className="flex items-center gap-2 mt-4">
+                                {(user?.role === 'Admin' || user?.role === 'Supervisor' || user?.role === 'Broker') && (
+                                <Button size="sm" variant="outline" onClick={handleGenerateSummary} disabled={isSummarizing}>
+                                    {isSummarizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
+                                    AI Summary
+                                </Button>
+                                )}
+                                {user?.role === 'Admin' && (
+                                    <>
+                                        <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+                                        <Edit className="mr-2 h-4 w-4" /> Edit
+                                        </Button>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button size="sm" variant="destructive">
+                                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                    <AlertDialogDescription>This will permanently delete the article "{selectedArticle.title}". This action cannot be undone.</AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={handleDeleteArticle} className="bg-destructive hover:bg-destructive/90">Delete Article</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </>
+                                )}
+                            </div>
+                        </div>
 
-                    <MarkdownRenderer content={selectedArticle.content} />
-                </div>
-            ) : null}
-          </ScrollArea>
+                        {(isSummarizing || summary) && (
+                        <Card className="mb-6 bg-blue-50 border-blue-200">
+                            <CardHeader>
+                            <CardTitle className="text-lg flex items-center gap-2 text-blue-800"><Bot size={18}/> Resumen por IA</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                            {isSummarizing ? (
+                                <div className="space-y-2">
+                                <Skeleton className="h-4 w-5/6" />
+                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-4 w-3/4" />
+                                </div>
+                            ) : (
+                                <p className="text-sm text-blue-900 leading-relaxed whitespace-pre-wrap">{summary}</p>
+                            )}
+                            </CardContent>
+                        </Card>
+                        )}
+
+                        <MarkdownRenderer content={selectedArticle.content} />
+                    </div>
+                )}
+            </ScrollArea>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
-             <BookOpen className="w-16 h-16 mb-4 text-slate-300" />
-            <h3 className="text-lg font-semibold">Welcome to the Knowledge Base</h3>
-            <p>Select an article from the list to view its content.</p>
-          </div>
+             <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
+                <BookOpen className="w-16 h-16 mb-4 text-slate-300" />
+                <h3 className="text-lg font-semibold">Welcome to the Knowledge Base</h3>
+                <p>Select an article from the list to view its content.</p>
+            </div>
         )}
       </main>
     </div>

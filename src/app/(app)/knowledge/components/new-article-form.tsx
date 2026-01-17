@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm, Controller } from 'react-hook-form';
@@ -101,7 +102,7 @@ export function NewArticleForm({ onArticleCreated, editingArticle, onArticleUpda
                 title: 'Article Updated',
                 description: `"${data.title}" has been successfully updated.`,
             });
-            onArticleUpdated(updatedArticle);
+            onArticleUpdated(updatedArticle as Article);
 
         } else {
             // Create new article
