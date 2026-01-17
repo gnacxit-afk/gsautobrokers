@@ -16,22 +16,15 @@ import {
   ScoreApplicationInputSchema,
 } from './score-application-types';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-import { initializeApp, getApps, App, getApp } from 'firebase-admin/app';
-import { firebaseConfig } from '@/firebase/config'; // IMPORT THE CORRECT CONFIG
+import { initializeApp, getApps } from 'firebase-admin/app';
 
-// This is a server-side file. We explicitly initialize the Firebase Admin SDK
-// to point to the correct project ("gs-auto-brokers") and bypass security rules for writing.
-// Use a robust singleton pattern for the admin app instance.
-let adminApp: App;
-try {
-  adminApp = getApp('admin');
-} catch (error) {
-  adminApp = initializeApp({
-    projectId: firebaseConfig.projectId,
-  }, 'admin');
+// This is a server-side file. We initialize the Firebase Admin SDK to work within
+// the Google Cloud environment where it's deployed. It will automatically use the
+// project's service account credentials, ensuring it writes to the correct project.
+if (getApps().length === 0) {
+  initializeApp();
 }
-
-const adminFirestore = getFirestore(adminApp);
+const adminFirestore = getFirestore();
 
 
 // We need a schema that represents the full application data from the form.
