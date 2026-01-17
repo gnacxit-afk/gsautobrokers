@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview This file defines a secure Genkit flow for submitting a candidate application.
@@ -15,25 +16,14 @@ import {
   ScoreApplicationInputSchema,
   type ScoreApplicationInput,
 } from './score-application-types';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { getFirestore } from 'firebase-admin/firestore';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { initializeApp, getApps } from 'firebase-admin/app';
 
 // This is a server-side file, so we can initialize Firebase Admin SDK
-// to bypass security rules for writing.
-if (!getApps().length) {
-    // In a real production environment, you would use applicationDefault()
-    // or other secure credential mechanisms. For this context, we assume
-    // service account credentials might be available as environment variables.
-    try {
-        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY!);
-        initializeApp({
-            credential: cert(serviceAccount)
-        });
-    } catch (e) {
-        // Fallback for environments where service account isn't set
-        console.warn("Firebase Admin SDK not initialized. Firestore write might fail if not authenticated with sufficient permissions.");
-    }
+// to bypass security rules for writing. In a managed environment like App Hosting,
+// initializeApp() with no arguments automatically uses the service account.
+if (getApps().length === 0) {
+  initializeApp();
 }
 // We get the admin instance of Firestore
 const adminFirestore = getFirestore();
@@ -44,6 +34,7 @@ const adminFirestore = getFirestore();
 export async function submitApplication(
   input: ScoreApplicationInput
 ): Promise<{ success: boolean; message: string }> {
+  // Directly calling the flow now, as this is a server action.
   return submitApplicationFlow(input);
 }
 
@@ -68,8 +59,8 @@ const submitApplicationFlow = ai.defineFlow(
     const candidateData = {
       ...applicationData,
       source: 'Organic',
-      appliedDate: serverTimestamp(),
-      lastStatusChangeDate: serverTimestamp(),
+      appliedDate: FieldValue.serverTimestamp(),
+      lastStatusChangeDate: FieldValue.serverTimestamp(),
       pipelineStatus,
       score: scoreResult.score,
       aiAnalysis: scoreResult.reasoning,
@@ -79,8 +70,8 @@ const submitApplicationFlow = ai.defineFlow(
     // 4. Use the Admin Firestore instance to write to the 'candidates' collection,
     // bypassing client-side security rules.
     try {
-      const candidatesCollection = collection(adminFirestore, 'candidates');
-      await addDoc(candidatesCollection, candidateData);
+      const candidatesCollection = adminFirestore.collection('candidates');
+      await candidatesCollection.add(candidateData);
 
       return {
         success: true,
