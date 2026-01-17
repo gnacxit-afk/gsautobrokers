@@ -16,13 +16,15 @@ import {
   ScoreApplicationInputSchema,
 } from './score-application-types';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-import { initializeApp, getApps } from 'firebase-admin/app';
+import { initializeApp, getApps, applicationDefault } from 'firebase-admin/app';
 
 // This is a server-side file. We initialize the Firebase Admin SDK to work within
 // the Google Cloud environment where it's deployed. It will automatically use the
-// project's service account credentials, ensuring it writes to the correct project.
+// project's service account credentials (Application Default Credentials).
 if (getApps().length === 0) {
-  initializeApp();
+  initializeApp({
+    credential: applicationDefault(),
+  });
 }
 const adminFirestore = getFirestore();
 
