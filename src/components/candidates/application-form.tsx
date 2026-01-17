@@ -6,8 +6,6 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -32,8 +30,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { scoreApplication } from '@/ai/flows/score-application-flow';
-import type { ScoreApplicationInput } from '@/ai/flows/score-application-types';
+import { submitApplication } from '@/ai/flows/submit-application-flow';
 import type { Candidate } from '@/lib/types';
 import { Loader2, PartyPopper } from 'lucide-react';
 
@@ -51,10 +48,10 @@ const formSchema = z.object({
   whatsappNumber: z.string().min(8, { message: 'Por favor, introduce un número de WhatsApp válido.' }),
   country: z.string({ required_error: 'Por favor, selecciona tu país.' }),
   city: z.string({ required_error: 'Por favor, selecciona tu ciudad.' }),
-  paymentModel: z.enum(['Resultados', 'Sueldo Fijo'], { required_error: 'Debes seleccionar una opción.' }),
-  motivation: z.enum(['Ingresos Adicionales', 'Desarrollo en Ventas', 'Empleo Tradicional'], { required_error: 'Debes seleccionar una opción.' }),
+  paymentModel: z.enum(['Sí, me siento cómodo ganando según resultados', 'No, busco sueldo fijo'], { required_error: 'Debes seleccionar una opción.' }),
+  motivation: z.enum(['Generar ingresos adicionales', 'Desarrollarme en ventas y aumentar ingresos', 'Busco un empleo tradicional'], { required_error: 'Debes seleccionar una opción.' }),
   timeDedication: z.enum(['Menos de 1 hora', '1-2 horas', '2-4 horas', 'Más de 4 horas'], { required_error: 'Debes seleccionar una opción.' }),
-  timeManagement: z.enum(['Horarios fijos', 'Horarios flexibles', 'Soy freelancer / independiente', 'No tengo estructura clara'], { required_error: 'Debes seleccionar una opción.' }),
+  timeManagement: z.enum(['Trabajo con horarios fijos', 'Tengo horarios flexibles', 'Soy freelancer / independiente', 'No tengo estructura clara'], { required_error: 'Debes seleccionar una opción.' }),
   salesExperience: z.enum(['Sí', 'No, pero estoy dispuesto a aprender', 'No y no me interesa vender'], { required_error: 'Debes seleccionar una opción.' }),
   closingComfort: z.enum(['Muy cómodo', 'Cómodo', 'Poco cómodo', 'Nada cómodo'], { required_error: 'Debes seleccionar una opción.' }),
   tools: z.object({
@@ -80,39 +77,14 @@ export function ApplicationForm() {
     },
   });
   const { toast } = useToast();
-  const firestore = useFirestore();
 
   const selectedCountry = form.watch('country');
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!firestore) {
-      toast({ title: 'Error', description: 'La conexión con la base de datos no está disponible.', variant: 'destructive' });
-      return;
-    }
-
     try {
-      // 1. Score the application using the AI flow
-      const scoreInput: ScoreApplicationInput = values;
-      const scoreResult = await scoreApplication(scoreInput);
-      
-      // 2. Determine pipeline status based on score
-      const pipelineStatus = scoreResult.score < 60 ? 'Rejected' : 'New Applicant';
-
-      // 3. Prepare candidate data for Firestore
-      const candidateData: Omit<Candidate, 'id'> = {
-        ...values,
-        source: 'Organic',
-        appliedDate: serverTimestamp(),
-        lastStatusChangeDate: serverTimestamp(),
-        pipelineStatus,
-        score: scoreResult.score,
-        aiAnalysis: scoreResult.reasoning,
-        statusReason: scoreResult.status,
-      };
-
-      // 4. Save the processed candidate to the 'candidates' collection
-      await addDoc(collection(firestore, 'candidates'), candidateData);
-
+      // The frontend now only calls the secure backend flow.
+      // All validation, scoring, and database writing happens on the server.
+      await submitApplication(values);
       setIsSubmitted(true);
       
     } catch (error) {
@@ -165,10 +137,10 @@ export function ApplicationForm() {
             {/* SECCIÓN 2: Calificación */}
              <div className="space-y-6 p-4 border rounded-lg">
                 <h3 className="text-lg font-semibold">Perfil y Mentalidad</h3>
-                 <FormField control={form.control} name="paymentModel" render={({ field }) => ( <FormItem> <FormLabel>Este rol es 100% independiente y por comisión. ¿Estás de acuerdo?</FormLabel> <FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4 pt-2"> <FormItem className="flex items-center space-x-2"> <FormControl><RadioGroupItem value="Resultados" /></FormControl> <FormLabel className="font-normal">Sí, me siento cómodo ganando según resultados</FormLabel> </FormItem> <FormItem className="flex items-center space-x-2"> <FormControl><RadioGroupItem value="Sueldo Fijo" /></FormControl> <FormLabel className="font-normal">No, busco sueldo fijo</FormLabel> </FormItem> </RadioGroup></FormControl> <FormMessage /> </FormItem> )}/>
-                 <FormField control={form.control} name="motivation" render={({ field }) => ( <FormItem> <FormLabel>¿Cuál es tu principal motivación para aplicar?</FormLabel> <FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1 pt-2"> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="Ingresos Adicionales" /></FormControl><FormLabel className="font-normal">Generar ingresos adicionales</FormLabel></FormItem> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="Desarrollo en Ventas" /></FormControl><FormLabel className="font-normal">Desarrollarme en ventas y aumentar ingresos</FormLabel></FormItem> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="Empleo Tradicional" /></FormControl><FormLabel className="font-normal">Busco un empleo tradicional</FormLabel></FormItem> </RadioGroup></FormControl> <FormMessage /> </FormItem> )}/>
+                 <FormField control={form.control} name="paymentModel" render={({ field }) => ( <FormItem> <FormLabel>Este rol es 100% independiente y por comisión. ¿Estás de acuerdo?</FormLabel> <FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4 pt-2"> <FormItem className="flex items-center space-x-2"> <FormControl><RadioGroupItem value="Sí, me siento cómodo ganando según resultados" /></FormControl> <FormLabel className="font-normal">Sí, me siento cómodo ganando según resultados</FormLabel> </FormItem> <FormItem className="flex items-center space-x-2"> <FormControl><RadioGroupItem value="No, busco sueldo fijo" /></FormControl> <FormLabel className="font-normal">No, busco sueldo fijo</FormLabel> </FormItem> </RadioGroup></FormControl> <FormMessage /> </FormItem> )}/>
+                 <FormField control={form.control} name="motivation" render={({ field }) => ( <FormItem> <FormLabel>¿Cuál es tu principal motivación para aplicar?</FormLabel> <FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1 pt-2"> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="Generar ingresos adicionales" /></FormControl><FormLabel className="font-normal">Generar ingresos adicionales</FormLabel></FormItem> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="Desarrollarme en ventas y aumentar ingresos" /></FormControl><FormLabel className="font-normal">Desarrollarme en ventas y aumentar ingresos</FormLabel></FormItem> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="Busco un empleo tradicional" /></FormControl><FormLabel className="font-normal">Busco un empleo tradicional</FormLabel></FormItem> </RadioGroup></FormControl> <FormMessage /> </FormItem> )}/>
                  <FormField control={form.control} name="timeDedication" render={({ field }) => ( <FormItem> <FormLabel>¿Cuánto tiempo REAL puedes dedicarle al negocio por día?</FormLabel> <FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1 pt-2"> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="Menos de 1 hora" /></FormControl><FormLabel className="font-normal">Menos de 1 hora</FormLabel></FormItem> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="1-2 horas" /></FormControl><FormLabel className="font-normal">1–2 horas</FormLabel></FormItem> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="2-4 horas" /></FormControl><FormLabel className="font-normal">2–4 horas</FormLabel></FormItem> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="Más de 4 horas" /></FormControl><FormLabel className="font-normal">Más de 4 horas</FormLabel></FormItem> </RadioGroup></FormControl> <FormMessage /> </FormItem> )}/>
-                 <FormField control={form.control} name="timeManagement" render={({ field }) => ( <FormItem> <FormLabel>¿Cómo manejas tu tiempo actualmente?</FormLabel> <FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1 pt-2"> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="Horarios fijos" /></FormControl><FormLabel className="font-normal">Trabajo con horarios fijos</FormLabel></FormItem> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="Horarios flexibles" /></FormControl><FormLabel className="font-normal">Tengo horarios flexibles</FormLabel></FormItem> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="Soy freelancer / independiente" /></FormControl><FormLabel className="font-normal">Soy freelancer / independiente</FormLabel></FormItem> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="No tengo estructura clara" /></FormControl><FormLabel className="font-normal">No tengo estructura clara</FormLabel></FormItem> </RadioGroup></FormControl> <FormMessage /> </FormItem> )}/>
+                 <FormField control={form.control} name="timeManagement" render={({ field }) => ( <FormItem> <FormLabel>¿Cómo manejas tu tiempo actualmente?</FormLabel> <FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1 pt-2"> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="Trabajo con horarios fijos" /></FormControl><FormLabel className="font-normal">Trabajo con horarios fijos</FormLabel></FormItem> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="Tengo horarios flexibles" /></FormControl><FormLabel className="font-normal">Tengo horarios flexibles</FormLabel></FormItem> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="Soy freelancer / independiente" /></FormControl><FormLabel className="font-normal">Soy freelancer / independiente</FormLabel></FormItem> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="No tengo estructura clara" /></FormControl><FormLabel className="font-normal">No tengo estructura clara</FormLabel></FormItem> </RadioGroup></FormControl> <FormMessage /> </FormItem> )}/>
                  <FormField control={form.control} name="salesExperience" render={({ field }) => ( <FormItem> <FormLabel>¿Tienes experiencia previa en ventas o atención comercial?</FormLabel> <FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1 pt-2"> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="Sí" /></FormControl><FormLabel className="font-normal">Sí</FormLabel></FormItem> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="No, pero estoy dispuesto a aprender" /></FormControl><FormLabel className="font-normal">No, pero estoy dispuesto a aprender</FormLabel></FormItem> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="No y no me interesa vender" /></FormControl><FormLabel className="font-normal">No y no me interesa vender</FormLabel></FormItem> </RadioGroup></FormControl> <FormMessage /> </FormItem> )}/>
                  <FormField control={form.control} name="closingComfort" render={({ field }) => ( <FormItem> <FormLabel>¿Qué tan cómodo te sientes hablando con personas para cerrar ventas?</FormLabel> <FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1 pt-2"> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="Muy cómodo" /></FormControl><FormLabel className="font-normal">Muy cómodo</FormLabel></FormItem> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="Cómodo" /></FormControl><FormLabel className="font-normal">Cómodo</FormLabel></FormItem> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="Poco cómodo" /></FormControl><FormLabel className="font-normal">Poco cómodo</FormLabel></FormItem> <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="Nada cómodo" /></FormControl><FormLabel className="font-normal">Nada cómodo</FormLabel></FormItem> </RadioGroup></FormControl> <FormMessage /> </FormItem> )}/>
                 <FormItem>

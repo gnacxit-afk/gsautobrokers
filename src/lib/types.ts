@@ -174,37 +174,37 @@ export type PipelineStatus = 'New Applicant' | 'Pre-Filter Approved' | '5-Minute
 
 // Represents the data submitted by the application form.
 export type Application = {
-  id: string;
   fullName: string;
   email: string;
   whatsappNumber: string;
   country: string;
   city: string;
-  paymentModel: 'Resultados' | 'Sueldo Fijo';
-  motivation: 'Ingresos Adicionales' | 'Desarrollo en Ventas' | 'Empleo Tradicional';
-  timeDedication: 'Menos de 1 hora' | '1-2 horas' | '2-4 horas' | 'Más de 4 horas';
-  timeManagement: 'Horarios fijos' | 'Horarios flexibles' | 'Soy freelancer / independiente' | 'No tengo estructura clara';
-  salesExperience: 'Sí' | 'No, pero estoy dispuesto a aprender' | 'No y no me interesa vender';
-  closingComfort: 'Muy cómodo' | 'Cómodo' | 'Poco cómodo' | 'Nada cómodo';
+  paymentModel: string;
+  motivation: string;
+  timeDedication: string;
+  timeManagement: string;
+  salesExperience: string;
+  closingComfort: string;
   tools: {
     smartphone: boolean;
     internet: boolean;
     whatsapp: boolean;
     facebook: boolean;
   };
-  crmExperience: 'Sí' | 'No, pero puedo aprender' | 'No y no me interesa';
-  incomeModelAgreement: 'Sí, lo entiendo y estoy de acuerdo' | 'No, prefiero algo seguro';
+  crmExperience: string;
+  incomeModelAgreement: string;
   fitReason: string;
-  appliedDate: Timestamp | string | Date;
-  source: string;
 };
 
 // Represents a processed candidate in the recruiting pipeline.
 export type Candidate = Application & {
+  id: string;
   pipelineStatus: PipelineStatus;
   lastStatusChangeDate: Timestamp | string | Date;
-  approvedBy?: string;
-  recruiter?: string;
+  appliedDate: Timestamp | string | Date;
+  source: string;
+  recruiter?: string; // Optional field for who is managing the candidate
+  approvedBy?: string; // Optional for tracking who approved
   score?: number;
   aiAnalysis?: string;
   statusReason?: string;

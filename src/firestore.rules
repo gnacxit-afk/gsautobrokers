@@ -6,7 +6,7 @@ service cloud.firestore {
   // Allow public, unauthenticated writes to the applications collection.
   // This rule is separate and evaluated before the authenticated-only rules.
   match /publicApplications/{applicationId} {
-    allow create: if true;
+    allow create: if false; // This is now deprecated and handled by the candidates rule + backend flow.
     allow read, update, delete: if false; // No one can read/modify after creation
   }
 
@@ -162,8 +162,14 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Candidate data is now written via a backend flow (server action),
+    // so we can lock down client-side creation.
     match /candidates/{candidateId} {
-      allow read, write: if isSignedIn();
+      // Creation from the client is FORBIDDEN.
+      allow create: if false;
+      
+      // Admins can manage candidates.
+      allow read, update, delete: if isAdmin();
     }
   }
 }
