@@ -31,10 +31,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { submitApplication } from '@/ai/flows/submit-application-flow';
 import { Loader2, PartyPopper } from 'lucide-react';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useAuth } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { scoreApplication } from '@/ai/flows/score-application-flow';
-import type { ApplicationData } from '@/ai/flows/submit-application-flow';
+import { signInAnonymously } from 'firebase/auth';
 
 
 const countries = {
@@ -71,6 +70,7 @@ const formSchema = z.object({
 export function ApplicationForm() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const firestore = useFirestore();
+  const auth = useAuth();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -85,13 +85,56 @@ export function ApplicationForm() {
   const selectedCountry = form.watch('country');
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    // Step 1: Ensure an anonymous user session exists for secure writing.
+    if (!auth.currentUser) {
+        try {
+            await signInAnonymously(auth);
+        } catch (authError) {
+            console.error("Anonymous sign-in failed:", authError);
+            toast({
+                title: 'Error de Conexión',
+                description: 'No se pudo establecer una sesión segura. Por favor, recarga la página.',
+                variant: 'destructive',
+            });
+            return;
+        }
+    }
+    
+    if (!firestore) {
+        toast({
+            title: 'Error',
+            description: 'Database connection not available.',
+            variant: 'destructive',
+        });
+        return;
+    }
+    
     try {
+      // Step 2: Call the backend "guardian" flow to process and score the application.
       const result = await submitApplication(values);
-      if (result.success) {
+      
+      // Step 3: Check if the backend processing was successful and returned candidate data.
+      if (result.success && result.candidateData) {
+        
+        // Step 4: Write the server-validated and enriched data to Firestore from the client.
+        const candidatesCollection = collection(firestore, 'candidates');
+        
+        const finalCandidateData = {
+          ...result.candidateData,
+          appliedDate: serverTimestamp(),
+          lastStatusChangeDate: serverTimestamp(),
+        };
+
+        await addDoc(candidatesCollection, finalCandidateData);
+
+        // Step 5: Show success message to the user.
         setIsSubmitted(true);
+        
       } else {
-        throw new Error(result.message || 'An unknown error occurred.');
+        // If the backend flow failed but didn't throw, show a generic message.
+        throw new Error(result.message || 'An unknown error occurred during server processing.');
       }
+
     } catch (error: any) {
       console.error('Error submitting application:', error);
       toast({

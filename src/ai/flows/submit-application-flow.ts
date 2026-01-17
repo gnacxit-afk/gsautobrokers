@@ -1,12 +1,9 @@
 
 'use server';
 /**
- * @fileOverview This file defines a secure Genkit flow for submitting a candidate application.
- * It acts as a backend guardian, validating data, scoring the application via AI,
- * and then writing the final candidate document to Firestore.
- *
- * @exported
- * - `submitApplication`: The public-facing server action to be called from the client.
+ * @fileOverview This file defines a secure Genkit flow for processing a candidate application.
+ * It acts as a backend service, validating data and scoring the application via AI.
+ * It returns the fully formed candidate data to the client for final submission.
  */
 
 import { ai } from '@/ai/genkit';
@@ -15,22 +12,8 @@ import { scoreApplication } from './score-application-flow';
 import {
   ScoreApplicationInputSchema,
 } from './score-application-types';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-import { initializeApp, getApps, applicationDefault } from 'firebase-admin/app';
 
-// This is a server-side file. We initialize the Firebase Admin SDK to work within
-// the Google Cloud environment where it's deployed. It will automatically use the
-// project's service account credentials (Application Default Credentials).
-if (getApps().length === 0) {
-  initializeApp({
-    credential: applicationDefault(),
-  });
-}
-const adminFirestore = getFirestore();
-
-
-// We need a schema that represents the full application data from the form.
-// It extends the existing ScoreApplicationInputSchema to avoid duplication.
+// The input schema, representing the full application data from the form.
 const ApplicationDataSchema = ScoreApplicationInputSchema.extend({
   fullName: z.string(),
   email: z.string().email(),
@@ -40,79 +23,62 @@ const ApplicationDataSchema = ScoreApplicationInputSchema.extend({
 });
 export type ApplicationData = z.infer<typeof ApplicationDataSchema>;
 
+// The output schema for the data that will be returned to the client.
+// It does not include timestamps, as those will be generated on the client during the write.
+const CandidateDataOutputSchema = ApplicationDataSchema.extend({
+    source: z.string(),
+    pipelineStatus: z.string(),
+    score: z.number(),
+    aiAnalysis: z.string(),
+    statusReason: z.string(),
+});
+
+// The final output schema for the entire flow's response.
+const SubmitApplicationOutputSchema = z.object({
+    success: z.boolean(),
+    message: z.string(),
+    candidateData: CandidateDataOutputSchema.optional(),
+});
+
+
 // The public-facing server action, which will now expect the full application data.
 export async function submitApplication(
   input: ApplicationData
-): Promise<{ success: boolean; message: string }> {
+): Promise<z.infer<typeof SubmitApplicationOutputSchema>> {
   return submitApplicationFlow(input);
 }
 
 const submitApplicationFlow = ai.defineFlow(
   {
     name: 'submitApplicationFlow',
-    inputSchema: ApplicationDataSchema, // Use the new, complete schema.
-    outputSchema: z.object({
-      success: z.boolean(),
-      message: z.string(),
-    }),
+    inputSchema: ApplicationDataSchema,
+    outputSchema: SubmitApplicationOutputSchema,
   },
   async (applicationData) => {
     try {
-      // 1. Score the application.
+      // 1. Score the application using the existing AI flow.
       const scoreResult = await scoreApplication(applicationData);
 
-      // 2. Determine pipeline status based on score
+      // 2. Determine pipeline status based on the AI score.
       const pipelineStatus =
         scoreResult.score < 60 ? 'Rejected' : 'New Applicant';
 
-      // 3. Prepare the complete candidate document for Firestore.
-      // Now `applicationData` contains all the necessary fields.
-      const candidateData = {
+      // 3. Prepare the complete candidate document to be returned to the client.
+      // We no longer add timestamps here.
+      const candidateDataToReturn = {
         ...applicationData,
-        source: 'Organic',
-        appliedDate: FieldValue.serverTimestamp(),
-        lastStatusChangeDate: FieldValue.serverTimestamp(),
+        source: 'Organic', // Set by the server for tracking
         pipelineStatus,
         score: scoreResult.score,
         aiAnalysis: scoreResult.reasoning,
         statusReason: scoreResult.status,
       };
 
-      // 4. Use the Admin Firestore instance to write to the 'candidates' collection,
-      // bypassing client-side security rules.
-      const candidatesCollection = adminFirestore.collection('candidates');
-      await candidatesCollection.add(candidateData);
-
-      // 5. If new applicant, notify admins using the correct admin SDK syntax.
-      if (pipelineStatus === 'New Applicant') {
-          const staffRef = adminFirestore.collection('staff');
-          // Use the correct query syntax for the Admin SDK
-          const adminSnapshot = await staffRef.where('role', '==', 'Admin').get();
-
-          if (!adminSnapshot.empty) {
-              // Use the batch method from the adminFirestore instance
-              const batch = adminFirestore.batch();
-              const notificationsCollection = adminFirestore.collection('notifications');
-
-              adminSnapshot.docs.forEach(adminDoc => {
-                  const notificationRef = notificationsCollection.doc(); // Auto-generate ID
-                  const newNotification = {
-                      userId: adminDoc.id,
-                      content: `New candidate "${candidateData.fullName}" has applied and is ready for review in the "New Applicants" pipeline.`,
-                      author: 'System',
-                      createdAt: FieldValue.serverTimestamp(),
-                      read: false,
-                  };
-                  batch.set(notificationRef, newNotification);
-              });
-              
-              await batch.commit();
-          }
-      }
-
+      // 4. Return the processed data to the client for the final database write.
       return {
         success: true,
-        message: 'Application submitted successfully.',
+        message: 'Application processed successfully by the server.',
+        candidateData: candidateDataToReturn,
       };
     } catch (error: any) {
         console.error("CRITICAL ERROR in submitApplicationFlow:", {
@@ -121,8 +87,8 @@ const submitApplicationFlow = ai.defineFlow(
             stack: error.stack,
             detail: error.details
         });
-        // Throw a more specific error to the client if something goes wrong.
-        throw new Error("Failed to save application to the database. Details: " + error.message);
+        // We re-throw the error so the client knows something went wrong.
+        throw new Error("Failed to process application on the server. Details: " + error.message);
     }
   }
 );
