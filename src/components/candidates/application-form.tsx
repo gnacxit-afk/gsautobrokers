@@ -35,11 +35,11 @@ import type { Candidate } from '@/lib/types';
 import { Loader2, PartyPopper } from 'lucide-react';
 
 const countries = {
-  'El Salvador': ['San Salvador', 'Santa Ana', 'San Miguel'],
-  'Guatemala': ['Ciudad de Guatemala', 'Mixco', 'Quetzaltenango'],
-  'Nicaragua': ['Managua', 'León', 'Granada'],
-  'Honduras': ['Tegucigalpa', 'San Pedro Sula', 'Choluteca'],
-  'Venezuela': ['Caracas', 'Maracaibo', 'Valencia'],
+  'El Salvador': [
+    'Ahuachapán', 'Santa Ana', 'Sonsonate', 'Chalatenango', 'Cuscatlán', 'La Libertad',
+    'San Salvador', 'La Paz', 'Cabañas', 'San Vicente', 'Usulután', 'San Miguel',
+    'Morazán', 'La Unión'
+  ],
 };
 
 const formSchema = z.object({
