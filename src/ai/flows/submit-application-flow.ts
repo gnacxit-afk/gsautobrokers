@@ -16,21 +16,23 @@ import {
   ScoreApplicationInputSchema,
 } from './score-application-types';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-import { initializeApp, getApps, App } from 'firebase-admin/app';
+import { initializeApp, getApps, App, getApp } from 'firebase-admin/app';
 import { firebaseConfig } from '@/firebase/config'; // IMPORT THE CORRECT CONFIG
 
 // This is a server-side file. We explicitly initialize the Firebase Admin SDK
 // to point to the correct project ("gs-auto-brokers") and bypass security rules for writing.
+// Use a robust singleton pattern for the admin app instance.
 let adminApp: App;
-if (getApps().length === 0) {
+try {
+  adminApp = getApp('admin');
+} catch (error) {
   adminApp = initializeApp({
-      projectId: firebaseConfig.projectId,
-  });
-} else {
-  adminApp = getApps()[0];
+    projectId: firebaseConfig.projectId,
+  }, 'admin');
 }
-// We get the admin instance of Firestore from our correctly initialized app
+
 const adminFirestore = getFirestore(adminApp);
+
 
 // We need a schema that represents the full application data from the form.
 // It extends the existing ScoreApplicationInputSchema to avoid duplication.
@@ -98,7 +100,7 @@ const submitApplicationFlow = ai.defineFlow(
               const batch = adminFirestore.batch();
               const notificationsCollection = adminFirestore.collection('notifications');
 
-              adminSnapshot.forEach(adminDoc => {
+              adminSnapshot.docs.forEach(adminDoc => {
                   const notificationRef = notificationsCollection.doc(); // Auto-generate ID
                   const newNotification = {
                       userId: adminDoc.id,
