@@ -29,7 +29,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { submitApplication } from '@/ai/flows/submit-application-flow';
+import { submitApplication, notifyAdminsOfNewCandidate } from '@/ai/flows/submit-application-flow';
 import { Loader2, PartyPopper } from 'lucide-react';
 import { useFirestore, useAuth } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -129,6 +129,12 @@ export function ApplicationForm() {
 
         // Step 5: Show success message to the user.
         setIsSubmitted(true);
+
+        // Step 6: Trigger admin notification flow (fire-and-forget)
+        notifyAdminsOfNewCandidate({
+          candidateName: result.candidateData.fullName,
+          status: result.candidateData.pipelineStatus,
+        }).catch(err => console.error("Admin notification failed to trigger:", err));
         
       } else {
         // If the backend flow failed but didn't throw, show a generic message.
