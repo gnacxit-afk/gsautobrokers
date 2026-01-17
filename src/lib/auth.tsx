@@ -14,6 +14,7 @@ import {
 } from "firebase/auth";
 
 export const MASTER_ADMIN_EMAIL = "gnacxit@gmail.com";
+const PUBLIC_ROUTES = ['/login', '/apply'];
 
 interface AuthContextType {
   user: User | null;
@@ -92,6 +93,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(true); 
         return;
     }
+    
+    const isPublicRoute = PUBLIC_ROUTES.some(route => pathname.startsWith(route));
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
@@ -103,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setAuthError(null);
             
             if (pathname === '/login') {
-                if (userProfile.role === 'Admin') {
+                if (userProfile.role === 'Admin' || userProfile.role === 'Supervisor') {
                     router.replace('/dashboard');
                 } else {
                     router.replace('/kpi');
@@ -113,15 +116,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(null);
             setAuthError("Your user profile could not be found.");
             await signOut(auth);
+            if (!isPublicRoute) router.replace('/login');
           }
         } catch (error: any) {
           console.error("Failed to fetch app user profile:", error);
           setUser(null);
           setAuthError(error.message || "An error occurred fetching your profile.");
           await signOut(auth);
+          if (!isPublicRoute) router.replace('/login');
         }
       } else {
         setUser(null);
+         if (!isPublicRoute) {
+            router.replace('/login');
+         }
       }
       setLoading(false);
     });

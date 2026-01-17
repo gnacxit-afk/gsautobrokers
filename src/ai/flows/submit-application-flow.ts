@@ -16,16 +16,21 @@ import {
   ScoreApplicationInputSchema,
 } from './score-application-types';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-import { initializeApp, getApps } from 'firebase-admin/app';
+import { initializeApp, getApps, App } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { firebaseConfig } from '@/firebase/config';
 
 // This is a server-side file, so we can initialize Firebase Admin SDK
 // to bypass security rules for writing. In a managed environment like App Hosting,
 // initializeApp() with no arguments automatically uses the service account.
+let adminApp: App;
 if (getApps().length === 0) {
-  initializeApp();
+  adminApp = initializeApp();
+} else {
+  adminApp = getApps()[0];
 }
 // We get the admin instance of Firestore
-const adminFirestore = getFirestore();
+const adminFirestore = getFirestore(adminApp);
 
 // We need a schema that represents the full application data from the form.
 // It extends the existing ScoreApplicationInputSchema to avoid duplication.

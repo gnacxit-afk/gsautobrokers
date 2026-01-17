@@ -3,13 +3,6 @@ rules_version = '2';
 
 service cloud.firestore {
 
-  // Allow public, unauthenticated writes to the applications collection.
-  // This rule is separate and evaluated before the authenticated-only rules.
-  match /publicApplications/{applicationId} {
-    allow create: if false; // This is now deprecated and handled by the candidates rule + backend flow.
-    allow read, update, delete: if false; // No one can read/modify after creation
-  }
-
   match /databases/{database}/documents {
     // ----------------------------------------------------------------------
     // Helper Functions
@@ -44,29 +37,20 @@ service cloud.firestore {
     }
 
     /**
-     * Checks if the requesting user has the 'Admin' role by looking up
-     * their UserProfile document.
-     * Note: This performs a 'get' operation, which has cost and performance
-     * implications. Use judiciously.
+     * Gets the role of the currently authenticated user from their staff profile.
+     * The user's staff profile document ID is expected to be their Firebase Auth UID.
      */
-    function getStaffDocByAuthUid(authUid) {
-      // This is not performant, but required for role checking without custom claims.
-      // It queries the staff collection to find the document matching the auth UID.
-      let staffDocs = firestore.collection('staff').where('authUid', '==', authUid).get();
-      if (staffDocs.size() > 0) {
-        return staffDocs.docs[0];
-      }
-      return null;
-    }
-
     function getUserRole() {
-      let staffDoc = getStaffDocByAuthUid(request.auth.uid);
-      if (staffDoc != null) {
-        return staffDoc.data.role;
+      let path = /databases/$(database)/documents/staff/$(request.auth.uid);
+      if (exists(path)) {
+        return get(path).data.role;
       }
       return null;
     }
 
+    /**
+     * Checks if the currently authenticated user has the 'Admin' role.
+     */
     function isAdmin() {
       return isSignedIn() && getUserRole() == 'Admin';
     }
@@ -91,10 +75,11 @@ service cloud.firestore {
 
     /**
       * @description Controls access to sales leads.
+      * A 'list' operation (query) is implicitly allowed if the query's constraints
+      * guarantee that every potential document returned would be allowed by the 'get' rule.
       */
     match /leads/{leadId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
+      allow get: if isOwner(resource.data.ownerId) || isAdmin() || getUserRole() == 'Supervisor';
       allow create: if isOwner(request.resource.data.ownerId) || isAdmin();
       allow update: if isOwner(resource.data.ownerId) || isAdmin();
       allow delete: if isOwner(resource.data.ownerId) || isAdmin();
@@ -103,8 +88,7 @@ service cloud.firestore {
         * @description Controls access to a lead's note history.
         */
         match /noteHistory/{noteId} {
-          allow list: if isSignedIn();
-          allow get: if isSignedIn();
+          allow list, get: if isSignedIn();
           allow create: if isOwner(get(/databases/$(database)/documents/leads/$(leadId)).data.ownerId) || isAdmin();
           allow update: if false;
           allow delete: if false;
@@ -115,25 +99,24 @@ service cloud.firestore {
       * @description Controls access to staff member data.
       */
     match /staff/{staffId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
     }
 
     match /notifications/{notificationId} {
       allow get, update, delete: if isOwner(resource.data.userId);
       allow create: if isSignedIn();
-      // Allow a user to list only their own notifications
-      allow list: if isSignedIn() && request.query.where.size() <= 1 && (!request.query.where.size() == 1 || (request.query.where[0][0] == 'userId' && request.query.where[0][1] == '==' && request.query.where[0][2] == request.auth.uid));
+      // List is implicitly allowed if the query constrains by userId, which is handled by the client.
+      // The 'get' rule above will secure the query.
+      allow list: if request.query.where.userId == request.auth.uid;
     }
 
     match /todos/{todoId} {
       allow get, update, delete: if isOwner(resource.data.userId);
       allow create: if isOwner(request.resource.data.userId);
-      // Allow a user to list only their own todos
-      allow list: if isSignedIn() && request.query.where.size() == 1 && request.query.where[0][0] == 'userId' && request.query.where[0][1] == '==' && request.query.where[0][2] == request.auth.uid;
+      // List is implicitly allowed if the query constrains by userId.
+      // The 'get' rule above will secure the query.
+      allow list: if request.query.where.userId == request.auth.uid;
     }
     
     match /appointments/{appointmentId} {
@@ -162,14 +145,21 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // Candidate data is now written via a backend flow (server action),
-    // so we can lock down client-side creation.
+    // Public can create an application, but not read/update/delete.
+    // Admins can manage candidates.
     match /candidates/{candidateId} {
-      // Creation from the client is FORBIDDEN.
-      allow create: if false;
-      
-      // Admins can manage candidates.
+       // Allow public creation of a candidate document, but only if the
+      // request contains the essential fields. This prevents spam and
+      // malformed data while keeping the form public.
+      allow create: if request.resource.data.fullName != null &&
+                       request.resource.data.email != null &&
+                       request.resource.data.whatsappNumber != null &&
+                       request.resource.data.pipelineStatus != null &&
+                       (request.resource.data.pipelineStatus == 'New Applicant' || request.resource.data.pipelineStatus == 'Rejected');
+
+      // Only admins can read, update, or delete candidate data once created.
       allow read, update, delete: if isAdmin();
+      allow list: if isAdmin();
     }
   }
 }

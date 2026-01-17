@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState } from 'react';
@@ -31,8 +30,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { submitApplication } from '@/ai/flows/submit-application-flow';
-import type { Candidate } from '@/lib/types';
 import { Loader2, PartyPopper } from 'lucide-react';
+import { useFirestore } from '@/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { scoreApplication } from '@/ai/flows/score-application-flow';
+import type { ApplicationData } from '@/ai/flows/submit-application-flow';
+
 
 const countries = {
   'El Salvador': [
@@ -67,6 +70,7 @@ const formSchema = z.object({
 
 export function ApplicationForm() {
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const firestore = useFirestore();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -82,16 +86,17 @@ export function ApplicationForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      // The frontend now only calls the secure backend flow.
-      // All validation, scoring, and database writing happens on the server.
-      await submitApplication(values);
-      setIsSubmitted(true);
-      
-    } catch (error) {
+      const result = await submitApplication(values);
+      if (result.success) {
+        setIsSubmitted(true);
+      } else {
+        throw new Error(result.message || 'An unknown error occurred.');
+      }
+    } catch (error: any) {
       console.error('Error submitting application:', error);
       toast({
         title: 'Error al Enviar',
-        description: 'Ocurrió un error al procesar tu postulación. Por favor, inténtalo de nuevo.',
+        description: error.message || 'Ocurrió un error al procesar tu postulación. Por favor, inténtalo de nuevo.',
         variant: 'destructive',
       });
     }
