@@ -148,14 +148,9 @@ service cloud.firestore {
     // Public can create an application, but not read/update/delete.
     // Admins can manage candidates.
     match /candidates/{candidateId} {
-       // Allow public creation of a candidate document, but only if the
-      // request contains the essential fields. This prevents spam and
-      // malformed data while keeping the form public.
-      allow create: if request.resource.data.fullName != null &&
-                       request.resource.data.email != null &&
-                       request.resource.data.whatsappNumber != null &&
-                       request.resource.data.pipelineStatus != null &&
-                       (request.resource.data.pipelineStatus == 'New Applicant' || request.resource.data.pipelineStatus == 'Rejected');
+      // DENY all direct client-side creations. All candidates MUST be created
+      // through the secure `submitApplicationFlow` backend function.
+      allow create: if false;
 
       // Only admins can read, update, or delete candidate data once created.
       allow read, update, delete: if isAdmin();

@@ -17,19 +17,19 @@ import {
 } from './score-application-types';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { initializeApp, getApps, App } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-import { firebaseConfig } from '@/firebase/config';
+import { firebaseConfig } from '@/firebase/config'; // IMPORT THE CORRECT CONFIG
 
-// This is a server-side file, so we can initialize Firebase Admin SDK
-// to bypass security rules for writing. In a managed environment like App Hosting,
-// initializeApp() with no arguments automatically uses the service account.
+// This is a server-side file. We explicitly initialize the Firebase Admin SDK
+// to point to the correct project ("gs-auto-brokers") and bypass security rules for writing.
 let adminApp: App;
 if (getApps().length === 0) {
-  adminApp = initializeApp();
+  adminApp = initializeApp({
+      projectId: firebaseConfig.projectId,
+  });
 } else {
   adminApp = getApps()[0];
 }
-// We get the admin instance of Firestore
+// We get the admin instance of Firestore from our correctly initialized app
 const adminFirestore = getFirestore(adminApp);
 
 // We need a schema that represents the full application data from the form.
