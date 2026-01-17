@@ -14,9 +14,8 @@ import { z } from 'zod';
 import { scoreApplication } from './score-application-flow';
 import {
   ScoreApplicationInputSchema,
-  type ScoreApplicationInput,
 } from './score-application-types';
-import { getFirestore, FieldValue, query, where, getDocs, writeBatch } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { initializeApp, getApps } from 'firebase-admin/app';
 
 // This is a server-side file, so we can initialize Firebase Admin SDK
@@ -28,34 +27,44 @@ if (getApps().length === 0) {
 // We get the admin instance of Firestore
 const adminFirestore = getFirestore();
 
+// We need a schema that represents the full application data from the form.
+// It extends the existing ScoreApplicationInputSchema to avoid duplication.
+const ApplicationDataSchema = ScoreApplicationInputSchema.extend({
+  fullName: z.string(),
+  email: z.string().email(),
+  whatsappNumber: z.string(),
+  country: z.string(),
+  city: z.string(),
+});
+export type ApplicationData = z.infer<typeof ApplicationDataSchema>;
 
-// The flow will internally call the scoring flow.
-// The input for this submission flow is the same as the scoring flow.
+// The public-facing server action, which will now expect the full application data.
 export async function submitApplication(
-  input: ScoreApplicationInput
+  input: ApplicationData
 ): Promise<{ success: boolean; message: string }> {
-  // Directly calling the flow now, as this is a server action.
   return submitApplicationFlow(input);
 }
 
 const submitApplicationFlow = ai.defineFlow(
   {
     name: 'submitApplicationFlow',
-    inputSchema: ScoreApplicationInputSchema,
+    inputSchema: ApplicationDataSchema, // Use the new, complete schema.
     outputSchema: z.object({
       success: z.boolean(),
       message: z.string(),
     }),
   },
   async (applicationData) => {
-    // 1. Score the application using the existing AI flow
+    // 1. Score the application. scoreApplication expects ScoreApplicationInput,
+    // and our ApplicationData is a superset, so we can pass it directly.
     const scoreResult = await scoreApplication(applicationData);
 
     // 2. Determine pipeline status based on score
     const pipelineStatus =
       scoreResult.score < 60 ? 'Rejected' : 'New Applicant';
 
-    // 3. Prepare the complete candidate document for Firestore
+    // 3. Prepare the complete candidate document for Firestore.
+    // Now `applicationData` contains all the necessary fields.
     const candidateData = {
       ...applicationData,
       source: 'Organic',
@@ -73,14 +82,15 @@ const submitApplicationFlow = ai.defineFlow(
       const candidatesCollection = adminFirestore.collection('candidates');
       await candidatesCollection.add(candidateData);
 
-      // 5. If new applicant, notify admins.
+      // 5. If new applicant, notify admins using the correct admin SDK syntax.
       if (pipelineStatus === 'New Applicant') {
           const staffRef = adminFirestore.collection('staff');
-          const q = query(staffRef, where('role', '==', 'Admin'));
-          const adminSnapshot = await getDocs(q);
+          // Use the correct query syntax for the Admin SDK
+          const adminSnapshot = await staffRef.where('role', '==', 'Admin').get();
 
           if (!adminSnapshot.empty) {
-              const batch = writeBatch(adminFirestore);
+              // Use the batch method from the adminFirestore instance
+              const batch = adminFirestore.batch();
               const notificationsCollection = adminFirestore.collection('notifications');
 
               adminSnapshot.forEach(adminDoc => {
@@ -105,7 +115,8 @@ const submitApplicationFlow = ai.defineFlow(
       };
     } catch (error: any) {
         console.error("Error writing to Firestore with Admin SDK:", error);
-        throw new Error("Failed to save application to the database.");
+        // Throw a more specific error to the client if something goes wrong.
+        throw new Error("Failed to save application to the database. " + error.message);
     }
   }
 );
