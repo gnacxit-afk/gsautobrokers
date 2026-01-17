@@ -57,30 +57,29 @@ const submitApplicationFlow = ai.defineFlow(
     }),
   },
   async (applicationData) => {
-    // 1. Score the application. scoreApplication expects ScoreApplicationInput,
-    // and our ApplicationData is a superset, so we can pass it directly.
-    const scoreResult = await scoreApplication(applicationData);
-
-    // 2. Determine pipeline status based on score
-    const pipelineStatus =
-      scoreResult.score < 60 ? 'Rejected' : 'New Applicant';
-
-    // 3. Prepare the complete candidate document for Firestore.
-    // Now `applicationData` contains all the necessary fields.
-    const candidateData = {
-      ...applicationData,
-      source: 'Organic',
-      appliedDate: FieldValue.serverTimestamp(),
-      lastStatusChangeDate: FieldValue.serverTimestamp(),
-      pipelineStatus,
-      score: scoreResult.score,
-      aiAnalysis: scoreResult.reasoning,
-      statusReason: scoreResult.status,
-    };
-
-    // 4. Use the Admin Firestore instance to write to the 'candidates' collection,
-    // bypassing client-side security rules.
     try {
+      // 1. Score the application.
+      const scoreResult = await scoreApplication(applicationData);
+
+      // 2. Determine pipeline status based on score
+      const pipelineStatus =
+        scoreResult.score < 60 ? 'Rejected' : 'New Applicant';
+
+      // 3. Prepare the complete candidate document for Firestore.
+      // Now `applicationData` contains all the necessary fields.
+      const candidateData = {
+        ...applicationData,
+        source: 'Organic',
+        appliedDate: FieldValue.serverTimestamp(),
+        lastStatusChangeDate: FieldValue.serverTimestamp(),
+        pipelineStatus,
+        score: scoreResult.score,
+        aiAnalysis: scoreResult.reasoning,
+        statusReason: scoreResult.status,
+      };
+
+      // 4. Use the Admin Firestore instance to write to the 'candidates' collection,
+      // bypassing client-side security rules.
       const candidatesCollection = adminFirestore.collection('candidates');
       await candidatesCollection.add(candidateData);
 
@@ -116,7 +115,7 @@ const submitApplicationFlow = ai.defineFlow(
         message: 'Application submitted successfully.',
       };
     } catch (error: any) {
-        console.error("Error in submitApplicationFlow:", {
+        console.error("CRITICAL ERROR in submitApplicationFlow:", {
             message: error.message,
             code: error.code,
             stack: error.stack,
