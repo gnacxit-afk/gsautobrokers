@@ -77,3 +77,52 @@ export const createNotification = async (
         read: false,
     });
 };
+
+export function exportToCsv(filename: string, data: Lead[]) {
+  if (!data || data.length === 0) {
+    alert('No data available to export for the current selection.');
+    return;
+  }
+
+  const headers = ['Name', 'Phone', 'Email', 'Stage', 'Owner', 'Channel', 'Creation Date'];
+  const csvRows = [headers.join(',')];
+
+  const processValue = (value: any) => {
+    const stringValue = String(value ?? '').replace(/"/g, '""');
+    return `"${stringValue}"`;
+  };
+
+  for (const lead of data) {
+    let creationDate = '';
+    if (lead.createdAt) {
+      try {
+        // Handle both Firebase Timestamp and string/Date
+        const date = (lead.createdAt as any).toDate ? (lead.createdAt as any).toDate() : new Date(lead.createdAt as any);
+        creationDate = date.toISOString().split('T')[0];
+      } catch (e) {
+        creationDate = 'Invalid Date';
+      }
+    }
+
+    const values = [
+      lead.name,
+      lead.phone,
+      lead.email,
+      lead.stage,
+      lead.ownerName,
+      lead.channel,
+      creationDate
+    ].map(processValue);
+    csvRows.push(values.join(','));
+  }
+
+  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}

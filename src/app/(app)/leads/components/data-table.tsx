@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Search, X, Filter, Users, Tag, Share2 } from 'lucide-react';
+import { PlusCircle, Search, X, Filter, Users, Tag, Share2, Download } from 'lucide-react';
 import type { Lead, Staff } from '@/lib/types';
 import { AddLeadDialog } from './add-lead-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -31,6 +31,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
+import { exportToCsv } from '@/lib/utils';
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const leadChannels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
@@ -61,6 +62,16 @@ export function DataTable<TData, TValue>({
   const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const { user } = useUser();
+
+  const handleDownload = () => {
+    const dataToExport = table.getRowModel().rows.map(row => row.original) as Lead[];
+    if (dataToExport.length === 0) {
+        alert("No leads to export based on the current filters.");
+        return;
+    }
+    const today = new Date().toISOString().split('T')[0];
+    exportToCsv(`leads-report-${today}.csv`, dataToExport);
+  };
 
   const handleOpenAddLeadDialog = useCallback(() => {
     setIsAddLeadOpen(true);
@@ -178,6 +189,9 @@ export function DataTable<TData, TValue>({
               </DropdownMenuContent>
             </DropdownMenu>
             <DateRangePicker />
+            <Button onClick={handleDownload} variant="outline" size="sm">
+              <Download className="mr-2 h-4 w-4" /> Download
+            </Button>
             <Button onClick={handleOpenAddLeadDialog} className="w-full sm:w-auto">
                 <PlusCircle className="mr-2 h-4 w-4" /> Add Lead
             </Button>
