@@ -42,6 +42,12 @@ const countries = {
     'San Salvador', 'La Paz', 'Cabañas', 'San Vicente', 'Usulután', 'San Miguel',
     'Morazán', 'La Unión'
   ],
+  'Venezuela': [
+    'Amazonas', 'Anzoátegui', 'Apure', 'Aragua', 'Barinas', 'Bolívar', 'Carabobo', 
+    'Cojedes', 'Delta Amacuro', 'Falcón', 'Guárico', 'Lara', 'Mérida', 'Miranda', 
+    'Monagas', 'Nueva Esparta', 'Portuguesa', 'Sucre', 'Táchira', 'Trujillo', 
+    'Vargas/La Guaira', 'Yaracuy', 'Zulia'
+  ],
 };
 
 const formSchema = z.object({
@@ -49,7 +55,7 @@ const formSchema = z.object({
   email: z.string().email({ message: 'Por favor, introduce un correo válido.' }),
   whatsappNumber: z.string().min(8, { message: 'Por favor, introduce un número de WhatsApp válido.' }),
   country: z.string({ required_error: 'Por favor, selecciona tu país.' }),
-  city: z.string({ required_error: 'Por favor, selecciona tu ciudad.' }),
+  city: z.string({ required_error: 'Por favor, selecciona tu ciudad o estado.' }),
   paymentModel: z.enum(['Sí, me siento cómodo ganando según resultados', 'No, busco sueldo fijo'], { required_error: 'Debes seleccionar una opción.' }),
   motivation: z.enum(['Generar ingresos adicionales', 'Desarrollarme en ventas y aumentar ingresos', 'Busco un empleo tradicional'], { required_error: 'Debes seleccionar una opción.' }),
   timeDedication: z.enum(['Menos de 1 hora', '1-2 horas', '2-4 horas', 'Más de 4 horas'], { required_error: 'Debes seleccionar una opción.' }),
@@ -183,7 +189,7 @@ export function ApplicationForm() {
                     <FormField control={form.control} name="whatsappNumber" render={({ field }) => ( <FormItem> <FormLabel>Número de WhatsApp</FormLabel> <FormControl><Input {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
                     <div className="grid grid-cols-2 gap-4">
                         <FormField control={form.control} name="country" render={({ field }) => ( <FormItem> <FormLabel>País</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger></FormControl> <SelectContent> {Object.keys(countries).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)} </SelectContent> </Select> <FormMessage /> </FormItem> )}/>
-                        <FormField control={form.control} name="city" render={({ field }) => ( <FormItem> <FormLabel>Ciudad</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedCountry}> <FormControl><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger></FormControl> <SelectContent> {(countries[selectedCountry as keyof typeof countries] || []).map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)} </SelectContent> </Select> <FormMessage /> </FormItem> )}/>
+                        <FormField control={form.control} name="city" render={({ field }) => ( <FormItem> <FormLabel>Ciudad o Estado</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedCountry}> <FormControl><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger></FormControl> <SelectContent> {(countries[selectedCountry as keyof typeof countries] || []).map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)} </SelectContent> </Select> <FormMessage /> </FormItem> )}/>
                     </div>
                 </div>
             </div>
