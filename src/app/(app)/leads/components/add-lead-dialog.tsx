@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -25,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import type { Lead, Staff } from '@/lib/types';
+import type { Lead, Staff, Dealership } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
@@ -35,6 +34,7 @@ const leadSchema = z.object({
   email: z.string().email('Please enter a valid email.').optional().or(z.literal('')),
   channel: z.enum(['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other']),
   ownerId: z.string().min(1, 'Please select an owner.'),
+  dealershipId: z.string().min(1, 'Please select a dealership.'),
   initialNotes: z.string().optional(),
 });
 
@@ -43,12 +43,13 @@ type LeadFormValues = z.infer<typeof leadSchema>;
 interface AddLeadDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onAddLead: (leadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'> & { initialNotes?: string }, callback?: (lead: Lead) => void) => void;
+  onAddLead: (leadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName' | 'dealershipName'> & { initialNotes?: string }, callback?: (lead: Lead) => void) => void;
   staff: Staff[];
+  dealerships: Dealership[];
   defaultOwnerId: string;
 }
 
-export function AddLeadDialog({ isOpen, onOpenChange, onAddLead, staff, defaultOwnerId }: AddLeadDialogProps) {
+export function AddLeadDialog({ isOpen, onOpenChange, onAddLead, staff, dealerships, defaultOwnerId }: AddLeadDialogProps) {
   const { toast } = useToast();
   const router = useRouter();
   
@@ -66,15 +67,16 @@ export function AddLeadDialog({ isOpen, onOpenChange, onAddLead, staff, defaultO
       email: '',
       channel: 'Facebook',
       ownerId: defaultOwnerId,
+      dealershipId: '',
       initialNotes: '',
     },
   });
   
   useEffect(() => {
     if (defaultOwnerId) {
-      reset({ ownerId: defaultOwnerId, channel: 'Facebook' });
+      reset({ ownerId: defaultOwnerId, channel: 'Facebook', dealershipId: dealerships[0]?.id || '' });
     }
-  }, [defaultOwnerId, reset]);
+  }, [defaultOwnerId, reset, dealerships]);
 
   const onSubmit = async (data: LeadFormValues) => {
     const leadData = {
@@ -91,7 +93,7 @@ export function AddLeadDialog({ isOpen, onOpenChange, onAddLead, staff, defaultO
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Add New Lead</DialogTitle>
           <DialogDescription>
@@ -164,6 +166,29 @@ export function AddLeadDialog({ isOpen, onOpenChange, onAddLead, staff, defaultO
               {errors.ownerId && <p className="text-xs text-red-500">{errors.ownerId.message}</p>}
             </div>
           </div>
+          
+          <div className="grid gap-2">
+            <Label htmlFor="dealershipId">Dealership</Label>
+            <Controller
+              control={control}
+              name="dealershipId"
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <SelectTrigger id="dealershipId">
+                    <SelectValue placeholder="Select a dealership" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dealerships.map(d => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.dealershipId && <p className="text-xs text-red-500">{errors.dealershipId.message}</p>}
+          </div>
 
           <div className="grid gap-2">
             <Label htmlFor="initialNotes">Initial Notes (Optional)</Label>
@@ -180,3 +205,5 @@ export function AddLeadDialog({ isOpen, onOpenChange, onAddLead, staff, defaultO
     </Dialog>
   );
 }
+
+    

@@ -1,10 +1,9 @@
-
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
 import { getColumns } from "./components/columns";
 import { DataTable } from "@/app/(app)/leads/components/data-table";
-import type { Lead, Staff } from "@/lib/types";
+import type { Lead, Staff, Dealership } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
 import { useFirestore, useUser, useCollection } from "@/firebase";
 import {
@@ -52,13 +51,22 @@ function LeadsPageContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState<{key: string; value: string}[]>([]);
 
-  /* ------------------------------ staff data ------------------------------ */
+  /* ------------------------------ data fetching ----------------------------- */
   const staffQuery = useMemo(
     () => (firestore ? query(collection(firestore, "staff")) : null),
     [firestore]
   );
+  const dealershipsQuery = useMemo(
+    () => (firestore ? query(collection(firestore, "dealerships")) : null),
+    [firestore]
+  );
+  
   const { data: staffSnapshot, loading: staffLoading } = useCollection<Staff>(staffQuery);
+  const { data: dealershipsSnapshot, loading: dealershipsLoading } = useCollection<Dealership>(dealershipsQuery);
+
   const staffData = useMemo(() => staffSnapshot || [], [staffSnapshot]);
+  const dealershipsData = useMemo(() => dealershipsSnapshot || [], [dealershipsSnapshot]);
+
 
   /* ---------------------- SERVER-SIDE ROLE-BASED QUERY ---------------------- */
   const leadsQuery = useMemo(() => {
@@ -164,11 +172,13 @@ function LeadsPageContent() {
     }
   }, [firestore, toast]);
 
-  const handleAddLead = useCallback(async (newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'> & { initialNotes?: string }, callback?: (lead: Lead) => void) => {
-    if (!firestore || !user || !staffData) return;
+  const handleAddLead = useCallback(async (newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName' | 'dealershipName'> & { initialNotes?: string }, callback?: (lead: Lead) => void) => {
+    if (!firestore || !user || !staffData || !dealershipsData) return;
     const owner = staffData.find(s => s.id === newLeadData.ownerId);
-    if (!owner) {
-         toast({ title: "Error", description: "Could not find lead owner.", variant: "destructive" });
+    const dealership = dealershipsData.find(d => d.id === newLeadData.dealershipId);
+    
+    if (!owner || !dealership) {
+         toast({ title: "Error", description: "Could not find lead owner or dealership.", variant: "destructive" });
          return;
     };
 
@@ -180,6 +190,7 @@ function LeadsPageContent() {
         createdAt: serverTimestamp(),
         lastActivity: serverTimestamp(),
         ownerName: owner.name,
+        dealershipName: dealership.name,
     };
 
     try {
@@ -199,7 +210,7 @@ function LeadsPageContent() {
          console.error("Error creating lead:", error);
          toast({ title: "Error creating lead", description: "Could not save the new lead.", variant: "destructive" });
     }
-  }, [firestore, staffData, user, toast]);
+  }, [firestore, staffData, dealershipsData, user, toast]);
 
   const handleUpdateOwner = useCallback(async (id: string, oldOwnerName: string, newOwnerId: string, newOwnerName: string) => {
     if (!firestore || !user || !staffData || !leadsSnapshot) return;
@@ -268,7 +279,8 @@ function LeadsPageContent() {
         columns={columns}
         onAddLead={handleAddLead}
         staff={staffData}
-        loading={leadsLoading || staffLoading}
+        dealerships={dealershipsData}
+        loading={leadsLoading || staffLoading || dealershipsLoading}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         activeFilters={activeFilters}
@@ -281,3 +293,5 @@ function LeadsPageContent() {
 export default function LeadsPage() {
   return <LeadsPageContent />;
 }
+
+    

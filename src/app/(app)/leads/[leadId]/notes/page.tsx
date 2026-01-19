@@ -9,11 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFirestore, useUser, useCollection, useDoc } from "@/firebase";
 
-import type { Lead, NoteEntry, Staff, Appointment } from "@/lib/types";
+import type { Lead, NoteEntry, Staff, Dealership } from "@/lib/types";
 import { collection, orderBy, query, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, getDocs, writeBatch } from "firebase/firestore";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, User, Edit, ArrowLeft, MoreHorizontal, Users, ChevronsUpDown, Trash2, Edit2, Save, X, Calendar } from "lucide-react";
+import { Bot, User, Edit, ArrowLeft, MoreHorizontal, Users, ChevronsUpDown, Trash2, Edit2, Save, X, Calendar, Building } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -44,6 +44,7 @@ const getIconForType = (type: NoteEntry['type']) => {
         case 'Manual': return <User size={14} />;
         case 'Stage Change': return <ChevronsUpDown size={14} />;
         case 'Owner Change': return <Users size={14} />;
+        case 'Dealership Change': return <Building size={14} />;
         case 'System': return <Bot size={14} />;
         case 'AI Analysis': return <Bot size={14} />;
         default: return <Bot size={14} />;
@@ -55,6 +56,7 @@ const getColorForType = (type: NoteEntry['type']) => {
         case 'Manual': return "bg-sky-100 text-sky-800";
         case 'Stage Change': return "bg-amber-100 text-amber-800";
         case 'Owner Change': return "bg-purple-100 text-purple-800";
+        case 'Dealership Change': return 'bg-pink-100 text-pink-800';
         case 'System': return "bg-slate-100 text-slate-800";
         case 'AI Analysis': return "bg-violet-100 text-violet-800";
         default: return "bg-slate-100 text-slate-800";
@@ -81,6 +83,9 @@ export default function LeadDetailsPage() {
   
   const staffQuery = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
   const { data: staff, loading: staffLoading } = useCollection<Staff>(staffQuery);
+
+  const dealershipsQuery = useMemo(() => firestore ? collection(firestore, 'dealerships') : null, [firestore]);
+  const { data: dealerships, loading: dealershipsLoading } = useCollection<Dealership>(dealershipsQuery);
 
   const notesQuery = useMemo(() => {
     if (!firestore || !leadId) return null;
@@ -220,6 +225,26 @@ export default function LeadDetailsPage() {
         toast({ title: "Error", description: "Could not update lead owner.", variant: "destructive"});
       }
   };
+
+  const handleUpdateDealership = async (newDealershipId: string) => {
+    if (!firestore || !user || !lead || !dealerships) return;
+    const newDealership = dealerships.find(d => d.id === newDealershipId);
+    if (!newDealership) return;
+
+    const leadRef = doc(firestore, 'leads', leadId);
+    try {
+        await updateDoc(leadRef, {
+            dealershipId: newDealership.id,
+            dealershipName: newDealership.name,
+        });
+
+        const noteContent = `Dealership changed from '${lead.dealershipName}' to '${newDealership.name}' by ${user.name}.`;
+        await addNoteEntry(firestore, user, leadId, noteContent, 'Dealership Change');
+        toast({ title: "Dealership Updated", description: `${lead.name} is now assigned to ${newDealership.name}.` });
+    } catch (error) {
+        toast({ title: "Error", description: "Could not update lead dealership.", variant: "destructive"});
+    }
+  };
   
   const handleDelete = async () => {
       if (window.confirm('Are you sure you want to delete this lead?') && firestore && leadId) {
@@ -244,7 +269,7 @@ export default function LeadDetailsPage() {
     }
   }, [noteHistory]);
 
-  const loading = leadLoading || notesLoading || staffLoading;
+  const loading = leadLoading || notesLoading || staffLoading || dealershipsLoading;
   const assignableStaff = staff?.filter(s => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin') || [];
 
   return (
@@ -292,6 +317,7 @@ export default function LeadDetailsPage() {
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
                     {(authUser?.role === 'Admin' || authUser?.role === 'Supervisor') && (
+                      <>
                         <DropdownMenuSub>
                           <DropdownMenuSubTrigger>
                             <Users className="mr-2 h-4 w-4" /> Change Owner
@@ -304,6 +330,19 @@ export default function LeadDetailsPage() {
                               </DropdownMenuRadioGroup>
                           </DropdownMenuSubContent>
                         </DropdownMenuSub>
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>
+                            <Building className="mr-2 h-4 w-4" /> Change Dealership
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent>
+                              <DropdownMenuRadioGroup value={lead.dealershipId} onValueChange={handleUpdateDealership}>
+                                  {(dealerships || []).map((dealership) => (
+                                      <DropdownMenuRadioItem key={dealership.id} value={dealership.id}>{dealership.name}</DropdownMenuRadioItem>
+                                  ))}
+                              </DropdownMenuRadioGroup>
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                      </>
                     )}
                     {authUser?.role === 'Admin' && (
                         <>
@@ -381,6 +420,10 @@ export default function LeadDetailsPage() {
                                 <Label>Owner</Label>
                                 <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.ownerName}</Badge>
                             </div>
+                            <div className="space-y-2">
+                                <Label>Dealership</Label>
+                                <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.dealershipName}</Badge>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
@@ -441,3 +484,5 @@ export default function LeadDetailsPage() {
     </main>
   );
 }
+
+    

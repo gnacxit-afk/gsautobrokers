@@ -84,6 +84,14 @@
         "ownerName": {
           "type": "string",
           "description": "The name of the user who owns the lead."
+        },
+        "dealershipId": {
+          "type": "string",
+          "description": "The ID of the dealership this lead belongs to."
+        },
+        "dealershipName": {
+          "type": "string",
+          "description": "The denormalized name of the dealership."
         }
       },
       "required": [
@@ -94,7 +102,9 @@
         "stage",
         "createdAt",
         "ownerId",
-        "ownerName"
+        "ownerName",
+        "dealershipId",
+        "dealershipName"
       ]
     },
     "NoteEntry": {
@@ -119,7 +129,7 @@
         "type": {
           "type": "string",
           "description": "The type of note entry.",
-          "enum": ["Manual", "AI Analysis", "System", "Stage Change", "Owner Change"]
+          "enum": ["Manual", "AI Analysis", "System", "Stage Change", "Owner Change", "Dealership Change"]
         }
       },
       "required": ["content", "author", "date", "type"]
@@ -346,6 +356,16 @@
         "statusReason": { "type": "string", "description": "The classified status (e.g., Premium, Apto, Descartado)." }
       },
       "required": ["id", "pipelineStatus", "lastStatusChangeDate"]
+    },
+    "Dealership": {
+      "title": "Dealership",
+      "type": "object",
+      "description": "Represents a car dealership partner.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" }
+      },
+      "required": ["id", "name"]
     }
   },
   "auth": {
@@ -356,6 +376,22 @@
   },
   "firestore": {
     "structure": [
+      {
+        "path": "dealerships/{dealershipId}",
+        "definition": {
+          "entityName": "Dealership",
+          "schema": {
+            "$ref": "#/backend/entities/Dealership"
+          },
+          "description": "Stores car dealership partners.",
+          "params": [
+            {
+              "name": "dealershipId",
+              "description": "The unique dealership ID."
+            }
+          ]
+        }
+      },
       {
         "path": "artifacts/{appId}/users/{userId}/profile/data",
         "definition": {
@@ -562,4 +598,5 @@
   }
 }
 
+    
     

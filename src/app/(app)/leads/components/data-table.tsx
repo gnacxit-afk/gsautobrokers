@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
@@ -15,8 +14,8 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Search, X, Filter, Users, Tag, Share2, Download } from 'lucide-react';
-import type { Lead, Staff } from '@/lib/types';
+import { PlusCircle, Search, X, Filter, Users, Tag, Share2, Download, Building } from 'lucide-react';
+import type { Lead, Staff, Dealership } from '@/lib/types';
 import { AddLeadDialog } from './add-lead-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DateRangePicker } from '@/components/layout/date-range-picker';
@@ -39,8 +38,9 @@ const leadChannels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit'
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   table: Table<TData>;
-  onAddLead: (leadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName'> & { initialNotes?: string }, callback?: (lead: Lead) => void) => void;
+  onAddLead: (leadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName' | 'dealershipName'> & { initialNotes?: string }, callback?: (lead: Lead) => void) => void;
   staff: Staff[];
+  dealerships: Dealership[];
   loading: boolean;
   searchTerm: string;
   setSearchTerm: (value: string) => void;
@@ -53,6 +53,7 @@ export function DataTable<TData, TValue>({
   table,
   onAddLead,
   staff,
+  dealerships,
   loading,
   searchTerm,
   setSearchTerm,
@@ -102,8 +103,18 @@ export function DataTable<TData, TValue>({
     setActiveFilters(activeFilters.filter(f => !(f.key === key && f.value === value)));
   };
 
-  const getOwnerNameById = (ownerId: string) => {
-    return staff.find(s => s.id === ownerId)?.name || ownerId;
+  const getFilterDisplayValue = (key: string, value: string) => {
+      if (key === 'ownerId') return staff.find(s => s.id === value)?.name || value;
+      if (key === 'dealershipId') return dealerships.find(d => d.id === value)?.name || value;
+      return value;
+  }
+
+  const getFilterDisplayName = (key: string) => {
+      const names: Record<string, string> = {
+        ownerId: 'owner',
+        dealershipId: 'dealership'
+      };
+      return names[key] || key;
   }
 
   const clearAllFilters = () => {
@@ -133,7 +144,7 @@ export function DataTable<TData, TValue>({
                 <div className="flex items-center gap-2 flex-wrap pt-1">
                     {activeFilters.map((f, i) => (
                         <Badge key={`${f.key}-${i}`} variant="secondary" className="capitalize text-xs">
-                            <span className="font-semibold mr-1">{f.key === 'ownerId' ? 'owner' : f.key}:</span> {f.key === 'ownerId' ? getOwnerNameById(f.value) : f.value}
+                            <span className="font-semibold mr-1">{getFilterDisplayName(f.key)}:</span> {getFilterDisplayValue(f.key, f.value)}
                             <button onClick={() => removeFilter(f.key, f.value)} className="ml-2 rounded-full hover:bg-black/10 p-0.5">
                                 <X size={12} />
                             </button>
@@ -170,6 +181,20 @@ export function DataTable<TData, TValue>({
                 <DropdownMenuRadioGroup value={activeFilters.find(f => f.key === 'ownerId')?.value} onValueChange={(v) => addFilter('ownerId', v)}>
                   {staff.map(s => (
                     <DropdownMenuRadioItem key={s.id} value={s.id}>{s.name}</DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm"><Building className="mr-2 h-4 w-4" /> Dealership</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>Filter by Dealership</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup value={activeFilters.find(f => f.key === 'dealershipId')?.value} onValueChange={(v) => addFilter('dealershipId', v)}>
+                  {dealerships.map(d => (
+                    <DropdownMenuRadioItem key={d.id} value={d.id}>{d.name}</DropdownMenuRadioItem>
                   ))}
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
@@ -267,8 +292,11 @@ export function DataTable<TData, TValue>({
         onOpenChange={setIsAddLeadOpen}
         onAddLead={onAddLead}
         staff={assignableStaff}
+        dealerships={dealerships}
         defaultOwnerId={defaultOwnerId}
       />
     </div>
   );
 }
+
+    

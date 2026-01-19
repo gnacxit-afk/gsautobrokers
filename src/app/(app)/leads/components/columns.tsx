@@ -1,8 +1,7 @@
-
 "use client";
 
 import type { ColumnDef, Row } from "@tanstack/react-table";
-import { MoreHorizontal, Trash2, Users, ChevronsUpDown, FileText, Bot, Calendar } from "lucide-react";
+import { MoreHorizontal, Trash2, Users, ChevronsUpDown, FileText, Bot, Calendar, Building } from "lucide-react";
 import { format, formatDistanceToNow, isValid } from "date-fns";
 import { useRouter } from "next/navigation";
 import React from "react";
@@ -202,6 +201,15 @@ export const getColumns = (
     filterFn: 'equalsString',
   },
   {
+    accessorKey: "dealershipName",
+    header: "Dealership",
+    cell: ({ row }) => {
+      const dealershipName = row.getValue("dealershipName") as string;
+      return <Badge variant="secondary">{dealershipName}</Badge>;
+    },
+    filterFn: 'equalsString',
+  },
+  {
     accessorKey: "channel",
     header: "Channel",
     cell: ({ row }) => {
@@ -252,3 +260,5 @@ export const getColumns = (
     },
   },
 ];
+
+    

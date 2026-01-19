@@ -1,5 +1,6 @@
 
 
+
 import type { LucideIcon } from "lucide-react";
 import type { Timestamp } from "firebase/firestore";
 import { z } from 'zod';
@@ -22,7 +23,7 @@ export type NoteEntry = {
   content: string;
   author: string;
   date: Timestamp | Date | string;
-  type: 'Manual' | 'Stage Change' | 'Owner Change' | 'System' | 'AI Analysis';
+  type: 'Manual' | 'Stage Change' | 'Owner Change' | 'System' | 'AI Analysis' | 'Dealership Change';
 }
 
 export type Lead = {
@@ -38,6 +39,8 @@ export type Lead = {
   createdAt: Timestamp | Date | string;
   language: 'English' | 'Spanish';
   lastActivity?: Timestamp | Date | string;
+  dealershipId: string;
+  dealershipName: string;
 };
 
 export type Appointment = {
@@ -210,3 +213,11 @@ export type Candidate = Application & {
   statusReason?: string;
   avatarUrl?: string;
 };
+
+export type Dealership = {
+  id: string;
+  name: string;
+  createdAt: Timestamp;
+};
+
+    

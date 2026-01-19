@@ -1,10 +1,9 @@
-
 'use client';
 
 import React, { useMemo } from 'react';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
-import type { Lead, Staff } from '@/lib/types';
+import type { Lead, Staff, Dealership } from '@/lib/types';
 import { useDateRange } from '@/hooks/use-date-range';
 import { useAuthContext } from '@/lib/auth';
 import { isWithinInterval, isValid, differenceInDays, format, getISOWeek, getMonth, getYear } from 'date-fns';
@@ -24,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { TrendingUp, TrendingDown, DollarSign, Users, Target, Percent, Star, Trophy } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Users, Target, Percent, Star, Trophy, Building } from 'lucide-react';
 
 
 const StatCard = ({ title, value, change, icon: Icon, color, loading }: { title: string, value: string, change?: string, icon: React.ElementType, color: string, loading: boolean }) => (
@@ -57,11 +56,14 @@ export default function DashboardPage() {
     
     const leadsQuery = useMemo(() => firestore ? query(collection(firestore, 'leads'), orderBy('createdAt', 'desc')) : null, [firestore]);
     const staffQuery = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
+    const dealershipsQuery = useMemo(() => firestore ? query(collection(firestore, 'dealerships')) : null, [firestore]);
     
     const { data: leads, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
     const { data: staff, loading: staffLoading } = useCollection<Staff>(staffQuery);
+    const { data: dealerships, loading: dealershipsLoading } = useCollection<Dealership>(dealershipsQuery);
 
-    const loading = leadsLoading || staffLoading;
+
+    const loading = leadsLoading || staffLoading || dealershipsLoading;
 
     const filteredLeads = useMemo(() => {
         if (!leads) return [];
@@ -226,6 +228,20 @@ export default function DashboardPage() {
 
     }, [filteredLeads, staff, sellerPerformanceData]);
 
+    const salesByDealership = useMemo(() => {
+        if (!dealerships || !filteredLeads) return [];
+        const sales = filteredLeads.filter(l => l.stage === 'Ganado');
+        const byDealership = sales.reduce((acc, lead) => {
+            const name = lead.dealershipName || 'Unknown';
+            acc[name] = (acc[name] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+
+        return Object.entries(byDealership)
+            .map(([name, sales]) => ({ name, sales }))
+            .sort((a, b) => b.sales - a.sales);
+    }, [filteredLeads, dealerships]);
+
 
     return (
         <main className="flex-1 space-y-6">
@@ -302,6 +318,27 @@ export default function DashboardPage() {
                                 ))}
                             </TableBody>
                         </Table>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Sales by Dealership</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pl-2">
+                        {loading ? <Skeleton className="h-[300px] w-full" /> : (
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={salesByDealership} layout="vertical" margin={{ left: 100 }}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis type="number" allowDecimals={false} />
+                                    <YAxis dataKey="name" type="category" width={100} />
+                                    <Tooltip />
+                                    <Bar dataKey="sales" fill="hsl(var(--primary))" name="Sales" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
                     </CardContent>
                 </Card>
             </div>

@@ -77,6 +77,7 @@ const navItems: NavItemGroup[] = [
       { href: "/kpi", label: "KPI's & Performance", icon: "TrendingUp", role: ["Admin", "Supervisor", "Broker"] },
       { href: "/knowledge", label: "Knowledge Base", icon: "BookOpen", role: ["Admin", "Supervisor", "Broker"] },
       { href: "/staff", label: "Staff", icon: "Users", role: ["Admin", "Supervisor"] },
+      { href: "/dealerships", label: "Dealerships", icon: "Building", role: ["Admin"] },
       { href: "/contracts", label: "Contracts", icon: "FileText", role: ["Admin"] },
     ]
   },
@@ -306,3 +307,5 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
   );
 }
+
+    

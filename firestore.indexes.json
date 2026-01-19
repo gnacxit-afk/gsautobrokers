@@ -1,6 +1,14 @@
 
+
 {
   "indexes": [
+    {
+      "collectionGroup": "dealerships",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
     {
       "collectionGroup": "todos",
       "queryScope": "COLLECTION",
@@ -108,3 +116,6 @@
     }
   ]
 }
+
+
+    
