@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo } from 'react';
@@ -197,37 +198,6 @@ export default function DashboardPage() {
         });
     }, [filteredLeads]);
     
-     const executiveSummary = useMemo(() => {
-        if (!filteredLeads.length || !staff) {
-            return {
-                mostProfitableChannel: 'N/A',
-                topSeller: 'N/A',
-                laggingSeller: 'N/A',
-                stageCounts: {},
-            };
-        }
-
-        const sales = filteredLeads.filter(l => l.stage === 'Ganado');
-        const channelSales = sales.reduce((acc, lead) => {
-            acc[lead.channel] = (acc[lead.channel] || 0) + 1;
-            return acc;
-        }, {} as Record<string, number>);
-        
-        const mostProfitableChannel = Object.entries(channelSales).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
-
-        const sellerSales = sellerPerformanceData.filter(s => staff.find(st => st.id === s.id)?.role === 'Broker');
-        const topSeller = sellerSales.length > 0 ? sellerSales[0].name : 'N/A';
-        const laggingSeller = sellerSales.length > 0 ? sellerSales[sellerSales.length - 1].name : 'N/A';
-
-        const stageCounts = filteredLeads.reduce((acc, lead) => {
-            acc[lead.stage] = (acc[lead.stage] || 0) + 1;
-            return acc;
-        }, {} as Record<Lead['stage'], number>);
-        
-        return { mostProfitableChannel, topSeller, laggingSeller, stageCounts };
-
-    }, [filteredLeads, staff, sellerPerformanceData]);
-
     const salesByDealership = useMemo(() => {
         if (!dealerships || !filteredLeads) return [];
         const sales = filteredLeads.filter(l => l.stage === 'Ganado');
@@ -241,6 +211,39 @@ export default function DashboardPage() {
             .map(([name, sales]) => ({ name, sales }))
             .sort((a, b) => b.sales - a.sales);
     }, [filteredLeads, dealerships]);
+
+     const executiveSummary = useMemo(() => {
+        if (!filteredLeads.length || !staff) {
+            return {
+                mostProfitableChannel: 'N/A',
+                mostProfitableDealership: 'N/A',
+                topSeller: 'N/A',
+                laggingSeller: 'N/A',
+                stageCounts: {},
+            };
+        }
+
+        const sales = filteredLeads.filter(l => l.stage === 'Ganado');
+        const channelSales = sales.reduce((acc, lead) => {
+            acc[lead.channel] = (acc[lead.channel] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+        
+        const mostProfitableChannel = Object.entries(channelSales).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
+        const mostProfitableDealership = salesByDealership[0]?.name || 'N/A';
+
+        const sellerSales = sellerPerformanceData.filter(s => staff.find(st => st.id === s.id)?.role === 'Broker');
+        const topSeller = sellerSales.length > 0 ? sellerSales[0].name : 'N/A';
+        const laggingSeller = sellerSales.length > 0 ? sellerSales[sellerSales.length - 1].name : 'N/A';
+
+        const stageCounts = filteredLeads.reduce((acc, lead) => {
+            acc[lead.stage] = (acc[lead.stage] || 0) + 1;
+            return acc;
+        }, {} as Record<Lead['stage'], number>);
+        
+        return { mostProfitableChannel, mostProfitableDealership, topSeller, laggingSeller, stageCounts };
+
+    }, [filteredLeads, staff, sellerPerformanceData, salesByDealership]);
 
 
     return (
@@ -424,20 +427,20 @@ export default function DashboardPage() {
                                         <TableCell className="font-bold">{executiveSummary.stageCounts.Nuevo || 0}</TableCell>
                                     </TableRow>
                                      <TableRow>
-                                        <TableCell className="font-semibold text-slate-500">Top Seller</TableCell>
-                                        <TableCell><Badge variant="outline" className="text-green-600 border-green-300"><Trophy size={14} className="mr-1.5"/>{executiveSummary.topSeller}</Badge></TableCell>
+                                        <TableCell className="font-semibold text-slate-500">Most Profitable Dealership</TableCell>
+                                        <TableCell><Badge variant="secondary" className="flex items-center"><Building size={14} className="mr-1.5"/>{executiveSummary.mostProfitableDealership}</Badge></TableCell>
                                         <TableCell className="font-semibold text-slate-500">Total Calificado</TableCell>
                                         <TableCell className="font-bold">{executiveSummary.stageCounts.Calificado || 0}</TableCell>
                                     </TableRow>
                                      <TableRow>
-                                        <TableCell className="font-semibold text-slate-500">Lagging Seller</TableCell>
-                                        <TableCell><Badge variant="outline" className="text-red-600 border-red-300">{executiveSummary.laggingSeller}</Badge></TableCell>
+                                        <TableCell className="font-semibold text-slate-500">Top Seller</TableCell>
+                                        <TableCell><Badge variant="outline" className="text-green-600 border-green-300"><Trophy size={14} className="mr-1.5"/>{executiveSummary.topSeller}</Badge></TableCell>
                                         <TableCell className="font-semibold text-slate-500">Total de Citas</TableCell>
                                         <TableCell className="font-bold">{executiveSummary.stageCounts.Citado || 0}</TableCell>
                                     </TableRow>
                                      <TableRow>
-                                        <TableCell></TableCell>
-                                        <TableCell></TableCell>
+                                        <TableCell className="font-semibold text-slate-500">Lagging Seller</TableCell>
+                                        <TableCell><Badge variant="outline" className="text-red-600 border-red-300">{executiveSummary.laggingSeller}</Badge></TableCell>
                                         <TableCell className="font-semibold text-slate-500">Total en Seguimiento</TableCell>
                                         <TableCell className="font-bold">{executiveSummary.stageCounts['En Seguimiento'] || 0}</TableCell>
                                     </TableRow>
@@ -465,5 +468,7 @@ export default function DashboardPage() {
 
     
 }
+
+    
 
     
