@@ -85,7 +85,7 @@ export function exportToCsv(filename: string, data: Lead[]) {
     return;
   }
 
-  const headers = ['Name', 'Phone', 'Email', 'Stage', 'Owner', 'Channel', 'Creation Date'];
+  const headers = ['Name', 'Phone', 'Email', 'Stage', 'Owner', 'Dealership', 'Channel', 'Creation Date'];
   const csvRows = [headers.join(',')];
 
   const processValue = (value: any) => {
@@ -111,6 +111,7 @@ export function exportToCsv(filename: string, data: Lead[]) {
       lead.email,
       lead.stage,
       lead.ownerName,
+      lead.dealershipName,
       lead.channel,
       creationDate
     ].map(processValue);
