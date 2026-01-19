@@ -251,11 +251,41 @@ function LeadsPageContent() {
     }
   }, [firestore, user, staffData, toast, leadsSnapshot]);
 
+  const handleUpdateDealership = useCallback(async (leadId: string, newDealershipId: string) => {
+    if (!firestore || !user || !dealershipsData || !leadsSnapshot) return;
+
+    const leadDoc = leadsSnapshot.find(l => l.id === leadId);
+    const newDealership = dealershipsData.find(d => d.id === newDealershipId);
+
+    if (!leadDoc || !newDealership) {
+        toast({ title: "Error", description: "Lead or dealership not found.", variant: "destructive"});
+        return;
+    }
+
+    try {
+        const leadRef = doc(firestore, 'leads', leadId);
+        await updateDoc(leadRef, {
+            dealershipId: newDealership.id,
+            dealershipName: newDealership.name,
+            lastActivity: serverTimestamp()
+        });
+
+        const noteContent = `Dealership changed from '${leadDoc.dealershipName}' to '${newDealership.name}' by ${user.name}.`;
+        await addNoteEntry(firestore, user, leadId, noteContent, 'Dealership Change');
+        
+        toast({ title: "Dealership Updated", description: `${leadDoc.name} is now assigned to ${newDealership.name}.` });
+    } catch (error) {
+        console.error("Error updating dealership:", error);
+        toast({ title: "Error", description: "Could not update lead dealership.", variant: "destructive"});
+    }
+  }, [firestore, user, dealershipsData, leadsSnapshot, toast]);
+  
+
   /* ------------------------------- table setup -------------------------------- */
   
   const columns = useMemo(
-    () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, staffData),
-    [handleUpdateStage, handleDelete, handleUpdateOwner, staffData]
+    () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, handleUpdateDealership, staffData, dealershipsData),
+    [handleUpdateStage, handleDelete, handleUpdateOwner, handleUpdateDealership, staffData, dealershipsData]
   );
 
   const table = useReactTable({
@@ -293,5 +323,3 @@ function LeadsPageContent() {
 export default function LeadsPage() {
   return <LeadsPageContent />;
 }
-
-    

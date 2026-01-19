@@ -22,7 +22,7 @@ import {
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import type { Lead, Staff } from "@/lib/types";
+import type { Lead, Staff, Dealership } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthContext } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -44,10 +44,12 @@ interface CellActionsProps {
   onUpdateStage: (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage']) => void;
   onDelete: (id: string) => void;
   onUpdateOwner: (leadId: string, oldOwnerName: string, newOwnerId: string, newOwnerName: string) => void;
+  onUpdateDealership: (leadId: string, newDealershipId: string) => void;
   staff: Staff[];
+  dealerships: Dealership[];
 }
 
-const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateOwner, staff }) => {
+const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateOwner, onUpdateDealership, staff, dealerships }) => {
   const lead = row.original;
   const { toast } = useToast();
   const { user } = useAuthContext();
@@ -62,6 +64,10 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
     if (newOwner) {
       onUpdateOwner(lead.id, lead.ownerName, newOwnerId, newOwner.name);
     }
+  };
+
+  const handleDealershipUpdate = (newDealershipId: string) => {
+    onUpdateDealership(lead.id, newDealershipId);
   };
 
   const assignableStaff = staff.filter(
@@ -118,6 +124,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
           </DropdownMenuSub>
 
           {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
+            <>
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                   <Users className="mr-2 h-4 w-4" />
@@ -131,6 +138,20 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
                     </DropdownMenuRadioGroup>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Building className="mr-2 h-4 w-4" />
+                  <span>Change Dealership</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                    <DropdownMenuRadioGroup value={lead.dealershipId} onValueChange={handleDealershipUpdate}>
+                        {dealerships.map((dealership) => (
+                            <DropdownMenuRadioItem key={dealership.id} value={dealership.id}>{dealership.name}</DropdownMenuRadioItem>
+                        ))}
+                    </DropdownMenuRadioGroup>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            </>
           )}
 
           {user?.role === 'Admin' && (
@@ -164,7 +185,9 @@ export const getColumns = (
   onUpdateStage: (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage']) => void,
   onDelete: (id: string) => void,
   onUpdateOwner: (leadId: string, oldOwnerName: string, newOwnerId: string, newOwnerName: string) => void,
-  staff: Staff[]
+  onUpdateDealership: (leadId: string, newDealershipId: string) => void,
+  staff: Staff[],
+  dealerships: Dealership[]
 ): ColumnDef<Lead>[] => [
   {
     accessorKey: "name",
@@ -255,10 +278,10 @@ export const getColumns = (
         onUpdateStage={onUpdateStage}
         onDelete={onDelete} 
         onUpdateOwner={onUpdateOwner}
+        onUpdateDealership={onUpdateDealership}
         staff={staff}
+        dealerships={dealerships}
       />;
     },
   },
 ];
-
-    

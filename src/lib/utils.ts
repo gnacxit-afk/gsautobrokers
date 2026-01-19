@@ -1,4 +1,5 @@
 
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { collection, addDoc, serverTimestamp, type Firestore, doc, updateDoc } from "firebase/firestore";
@@ -32,7 +33,7 @@ export const addNoteEntry = async (
     user: User, 
     leadId: string, 
     content: string, 
-    type: 'Manual' | 'Stage Change' | 'Owner Change' | 'System' | 'AI Analysis'
+    type: 'Manual' | 'Stage Change' | 'Owner Change' | 'System' | 'AI Analysis' | 'Dealership Change'
 ) => {
     if (!firestore || !user) return;
     
