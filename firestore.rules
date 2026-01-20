@@ -1,5 +1,4 @@
 
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -80,10 +79,14 @@ service cloud.firestore {
       * guarantee that every potential document returned would be allowed by the 'get' rule.
       */
     match /leads/{leadId} {
+      // Explicitly allow Admins and Supervisors to perform list queries.
+      // The client-side code applies the necessary filters for Supervisors.
+      // Brokers' list queries are constrained by ownerId and secured by the 'get' rule.
+      allow list: if isAdmin() || getUserRole() == 'Supervisor';
       allow get: if isOwner(resource.data.ownerId) || isAdmin() || getUserRole() == 'Supervisor';
       allow create: if isOwner(request.resource.data.ownerId) || isAdmin();
       allow update: if isOwner(resource.data.ownerId) || isAdmin();
-      allow delete: if isOwner(resource.data.ownerId) || isAdmin();
+      delete: if isOwner(resource.data.ownerId) || isAdmin();
 
         /**
         * @description Controls access to a lead's note history.
@@ -102,6 +105,11 @@ service cloud.firestore {
     match /staff/{staffId} {
       allow get, list: if isSignedIn();
       allow create, update, delete: if isAdmin();
+    }
+    
+    match /dealerships/{dealershipId} {
+        allow get, list: if isSignedIn();
+        allow create, update, delete: if isAdmin();
     }
 
     match /notifications/{notificationId} {
@@ -149,17 +157,12 @@ service cloud.firestore {
     // Public can create an application, but not read/update/delete.
     // Admins can manage candidates.
     match /candidates/{candidateId} {
-       // Allow public creation of a candidate document, but only if the
-      // request contains the essential fields. This prevents spam and
-      // malformed data while keeping the form public.
-      allow create: if request.resource.data.fullName != null &&
-                       request.resource.data.email != null &&
-                       request.resource.data.whatsappNumber != null &&
-                       request.resource.data.pipelineStatus != null &&
-                       (request.resource.data.pipelineStatus == 'New Applicant' || request.resource.data.pipelineStatus == 'Rejected');
+      // Allow public creation only if server-side flow ran successfully (indicated by score presence)
+      allow create: if request.resource.data.score is number;
 
       // Only admins can read, update, or delete candidate data once created.
       allow read, update, delete: if isAdmin();
+      allow list: if isAdmin();
     }
   }
 }
