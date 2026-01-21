@@ -1,9 +1,11 @@
+'use client';
+
 import type { ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
 // The Next.js Image component is no longer needed.
 // import Image from 'next/image';
 
-export function Logo({ className, width = 180, height = 50, ...props }: { className?: string, width?: number, height?: number }) {
+export function Logo({ className, width = 180, height = 50, ...props }: { className?: string, width?: number, height?: number } & React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn('relative', className)}
