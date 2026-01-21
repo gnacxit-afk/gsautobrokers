@@ -14,7 +14,7 @@ import {
 } from "firebase/auth";
 
 export const MASTER_ADMIN_EMAIL = "gnacxit@gmail.com";
-const PUBLIC_ROUTES = ['/login', '/apply'];
+const PUBLIC_ROUTES = ['/login', '/apply', '/'];
 
 interface AuthContextType {
   user: User | null;
@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
     }
     
-    const isPublicRoute = PUBLIC_ROUTES.some(route => pathname.startsWith(route)) || pathname === '/';
+    const isPublicRoute = PUBLIC_ROUTES.some(route => pathname.startsWith(route));
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
