@@ -96,22 +96,25 @@ export default function LandingPage() {
 
         {/* Compliance and Contact Section */}
         <section className="py-20 bg-white">
-          <div className="container mx-auto px-4 md:px-6 max-w-4xl">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
+          <div className="container mx-auto px-4 md:px-6 max-w-6xl">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 items-start">
+              {/* Customer Communication */}
               <div>
-                <h3 className="text-2xl font-bold mb-4">Contact & Compliance</h3>
-                <div className="space-y-6 text-slate-600">
-                  <div className="flex items-start gap-4">
-                    <div className="bg-primary/10 p-2 rounded-full mt-1">
-                      <MessageCircle className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-slate-800">Customer Communication</h4>
-                      <p className="text-sm">We use WhatsApp to communicate directly with customers who contact us requesting information about our services. Messages are sent only in response to customer inquiries or with explicit customer consent. We do not send unsolicited or bulk messages.</p>
-                    </div>
+                <h3 className="text-2xl font-bold mb-4">Customer Communication</h3>
+                <div className="flex items-start gap-4 text-slate-600">
+                  <div className="bg-primary/10 p-2 rounded-full mt-1 shrink-0">
+                    <MessageCircle className="h-5 w-5 text-primary" />
                   </div>
-                  <div className="flex items-start gap-4">
-                     <div className="bg-primary/10 p-2 rounded-full mt-1">
+                  <p className="text-sm">We use WhatsApp to communicate directly with customers who contact us requesting information about our services. Messages are sent only in response to customer inquiries or with explicit customer consent. We do not send unsolicited or bulk messages.</p>
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div>
+                <h3 className="text-2xl font-bold mb-4">Contact Information</h3>
+                <div className="space-y-4 text-slate-600">
+                  <div className="flex items-center gap-4">
+                     <div className="bg-primary/10 p-2 rounded-full">
                         <Mail className="h-5 w-5 text-primary" />
                      </div>
                      <div>
@@ -119,8 +122,8 @@ export default function LandingPage() {
                         <a href="mailto:ventas@esautobrokers.com" className="text-sm hover:underline">ventas@esautobrokers.com</a>
                      </div>
                   </div>
-                  <div className="flex items-start gap-4">
-                    <div className="bg-primary/10 p-2 rounded-full mt-1">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-primary/10 p-2 rounded-full">
                         <Phone className="h-5 w-5 text-primary" />
                     </div>
                     <div>
@@ -130,19 +133,16 @@ export default function LandingPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Privacy Policy */}
               <div>
                 <h3 className="text-2xl font-bold mb-4">Privacy Policy</h3>
-                <Accordion type="single" collapsible className="w-full">
-                  <AccordionItem value="item-1">
-                    <AccordionTrigger>Read our Privacy Policy</AccordionTrigger>
-                    <AccordionContent className="text-slate-600 space-y-3 pt-2">
-                      <p>GS Autobrokers is committed to protecting the privacy of its customers.</p>
-                      <p>We collect personal information only when voluntarily provided by customers for the purpose of responding to inquiries, providing information about our services, and communicating regarding vehicle brokerage services.</p>
-                      <p>Personal information is not sold, shared, or distributed to third parties except when required to provide our services or comply with legal obligations.</p>
-                      <p>Customers may request access, correction, or deletion of their personal information by contacting us at <a href="mailto:soporte@esautobrokers.com" className="text-primary hover:underline font-medium">soporte@esautobrokers.com</a>.</p>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
+                <div className="text-slate-600 space-y-3 text-sm">
+                  <p>GS Autobrokers is committed to protecting the privacy of its customers.</p>
+                  <p>We collect personal information only when voluntarily provided by customers for the purpose of responding to inquiries, providing information about our services, and communicating regarding vehicle brokerage services.</p>
+                  <p>Personal information is not sold, shared, or distributed to third parties except when required to provide our services or comply with legal obligations.</p>
+                  <p>Customers may request access, correction, or deletion of their personal information by contacting us at <a href="mailto:soporte@esautobrokers.com" className="text-primary hover:underline font-medium">soporte@esautobrokers.com</a>.</p>
+                </div>
               </div>
             </div>
           </div>
