@@ -4,24 +4,15 @@
  *
  * @exported
  * - `sendWhatsappMessage`: A function to send a message.
- * - `SendWhatsappMessageInput`: The input type for the function.
- * - `SendWhatsappMessageOutput`: The output type for the function.
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
-
-export const SendWhatsappMessageInputSchema = z.object({
-  to: z.string().describe("The recipient's phone number, including country code."),
-  text: z.string().describe('The text message to send.'),
-});
-export type SendWhatsappMessageInput = z.infer<typeof SendWhatsappMessageInputSchema>;
-
-export const SendWhatsappMessageOutputSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-});
-export type SendWhatsappMessageOutput = z.infer<typeof SendWhatsappMessageOutputSchema>;
+import { 
+    SendWhatsappMessageInputSchema,
+    type SendWhatsappMessageInput,
+    SendWhatsappMessageOutputSchema,
+    type SendWhatsappMessageOutput
+} from './send-whatsapp-types';
 
 export async function sendWhatsappMessage(input: SendWhatsappMessageInput): Promise<SendWhatsappMessageOutput> {
   return sendWhatsappMessageFlow(input);
