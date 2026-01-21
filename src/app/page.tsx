@@ -23,9 +23,9 @@ export default function LandingPage() {
         {/* Hero Section */}
         <section className="bg-white py-20 md:py-32">
           <div className="container mx-auto px-4 md:px-6 text-center">
-            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-slate-900">
-              GS Autobrokers
-            </h1>
+            <div className="flex justify-center mb-6">
+              <Logo width={400} height={110} />
+            </div>
             <p className="mt-6 max-w-3xl mx-auto text-lg text-slate-600">
               GS Autobrokers is a vehicle brokerage company that helps customers find, finance, and purchase vehicles according to their needs and budget.
             </p>

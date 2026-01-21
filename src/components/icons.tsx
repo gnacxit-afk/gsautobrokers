@@ -1,14 +1,20 @@
 import type { ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
-export function Logo(props: Partial<ComponentProps<'div'>>) {
-  const { className, ...rest } = props;
+export function Logo({ className, width = 180, height = 50, ...props }: { className?: string, width?: number, height?: number }) {
   return (
     <div
-      className={cn('text-2xl font-bold text-slate-800', className)}
-      {...rest}
+      className={cn('relative', className)}
+      {...props}
     >
-      GS AUTOBROKERS
+      <Image 
+        src="https://storage.googleapis.com/gen-prod-public-images/user-images/f7b03681-42e3-4674-8b65-6e42b26002f2.png"
+        alt="GS Autobrokers Logo"
+        width={width}
+        height={height}
+        priority
+      />
     </div>
   );
 }
