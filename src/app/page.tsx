@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,7 +44,7 @@ export default function LandingPage() {
               <h2 className="text-3xl font-bold">Our Services</h2>
               <p className="text-muted-foreground mt-2">We assist clients with vehicle availability, pricing, financing options, and appointment scheduling through direct customer communication.</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               <Card>
                 <CardHeader className="items-center text-center">
                   <div className="bg-primary/10 p-4 rounded-full mb-4">
@@ -75,6 +76,18 @@ export default function LandingPage() {
                 </CardHeader>
                 <CardContent className="text-center text-slate-600">
                   We coordinate direct communication to facilitate the buying process.
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="items-center text-center">
+                  <div className="bg-primary/10 p-4 rounded-full mb-4">
+                    <MessageCircle className="h-8 w-8 text-primary" />
+                  </div>
+                  <CardTitle>Contact by WhatsApp</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center text-slate-600 flex flex-col items-center gap-4">
+                  <p>Have questions? Send us a message directly on WhatsApp.</p>
+                  <Button>Send Message</Button>
                 </CardContent>
               </Card>
             </div>
