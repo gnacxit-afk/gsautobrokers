@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
     }
     
-    const isPublicRoute = PUBLIC_ROUTES.some(route => pathname.startsWith(route));
+    const isPublicRoute = PUBLIC_ROUTES.some(route => pathname.startsWith(route)) || pathname === '/';
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
