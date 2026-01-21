@@ -14,7 +14,7 @@ export function Logo({ className, width = 180, height = 50, ...props }: { classN
       {/* Reverted to a standard <img> tag to bypass any Next.js image optimization issues
           and ensure the logo is displayed directly from the source URL. */}
       <img 
-        src="https://storage.googleapis.com/gen-prod-public-images/user-images/f7b03681-42e3-4674-8b65-6e42b26002f2.png"
+        src="https://drive.google.com/uc?export=view&id=1kF35eGHp-Rp1NegG0gSqjkmlQnXFbwer"
         alt="GS Autobrokers Logo"
         width={width}
         height={height}
