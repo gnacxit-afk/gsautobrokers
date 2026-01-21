@@ -14,6 +14,7 @@ export function Logo({ className, width = 180, height = 50, ...props }: { classN
         width={width}
         height={height}
         priority
+        unoptimized
       />
     </div>
   );
