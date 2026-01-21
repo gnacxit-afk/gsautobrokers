@@ -1,7 +1,7 @@
 "use client";
 
 import type { ColumnDef, Row } from "@tanstack/react-table";
-import { MoreHorizontal, Trash2, Users, ChevronsUpDown, FileText, Bot, Calendar, Building } from "lucide-react";
+import { MoreHorizontal, Trash2, Users, ChevronsUpDown, FileText, Bot, Calendar, Building, MessageSquare } from "lucide-react";
 import { format, formatDistanceToNow, isValid } from "date-fns";
 import { useRouter } from "next/navigation";
 import React from "react";
@@ -45,11 +45,12 @@ interface CellActionsProps {
   onDelete: (id: string) => void;
   onUpdateOwner: (leadId: string, oldOwnerName: string, newOwnerId: string, newOwnerName: string) => void;
   onUpdateDealership: (leadId: string, newDealershipId: string) => void;
+  onSendWhatsapp: (lead: Lead) => void;
   staff: Staff[];
   dealerships: Dealership[];
 }
 
-const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateOwner, onUpdateDealership, staff, dealerships }) => {
+const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateOwner, onUpdateDealership, onSendWhatsapp, staff, dealerships }) => {
   const lead = row.original;
   const { toast } = useToast();
   const { user } = useAuthContext();
@@ -92,6 +93,11 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
           <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/notes`)}>
               <FileText className="mr-2 h-4 w-4" />
               <span>Details / Notes</span>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem onSelect={() => onSendWhatsapp(lead)}>
+              <MessageSquare className="mr-2 h-4 w-4" />
+              <span>Send WhatsApp</span>
           </DropdownMenuItem>
 
            <DropdownMenuItem onSelect={() => router.push(`/appointments?leadId=${lead.id}`)}>
@@ -186,6 +192,7 @@ export const getColumns = (
   onDelete: (id: string) => void,
   onUpdateOwner: (leadId: string, oldOwnerName: string, newOwnerId: string, newOwnerName: string) => void,
   onUpdateDealership: (leadId: string, newDealershipId: string) => void,
+  onSendWhatsapp: (lead: Lead) => void,
   staff: Staff[],
   dealerships: Dealership[]
 ): ColumnDef<Lead>[] => [
@@ -279,6 +286,7 @@ export const getColumns = (
         onDelete={onDelete} 
         onUpdateOwner={onUpdateOwner}
         onUpdateDealership={onUpdateDealership}
+        onSendWhatsapp={onSendWhatsapp}
         staff={staff}
         dealerships={dealerships}
       />;

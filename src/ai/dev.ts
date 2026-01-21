@@ -9,3 +9,4 @@ import '@/ai/flows/enhance-lead-notes.ts';
 import '@/ai/flows/qualify-lead-flow.ts';
 import '@/ai/flows/score-application-flow.ts';
 import '@/ai/flows/submit-application-flow.ts';
+import '@/ai/flows/send-whatsapp-flow.ts';

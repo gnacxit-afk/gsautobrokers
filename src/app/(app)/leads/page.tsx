@@ -34,6 +34,7 @@ import { useToast } from "@/hooks/use-toast";
 import { isWithinInterval, isValid } from "date-fns";
 import { addNoteEntry, createNotification } from "@/lib/utils";
 import { matchSorter } from 'match-sorter';
+import { SendWhatsappDialog } from "./components/send-whatsapp-dialog";
 
 function LeadsPageContent() {
   const { user } = useUser();
@@ -46,6 +47,7 @@ function LeadsPageContent() {
   ]);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 100 });
   const [expanded, setExpanded] = useState({});
+  const [whatsAppLead, setWhatsAppLead] = useState<Lead | null>(null);
   
   // Structured filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -280,12 +282,15 @@ function LeadsPageContent() {
     }
   }, [firestore, user, dealershipsData, leadsSnapshot, toast]);
   
+  const handleSendWhatsapp = useCallback((lead: Lead) => {
+    setWhatsAppLead(lead);
+  }, []);
 
   /* ------------------------------- table setup -------------------------------- */
   
   const columns = useMemo(
-    () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, handleUpdateDealership, staffData, dealershipsData),
-    [handleUpdateStage, handleDelete, handleUpdateOwner, handleUpdateDealership, staffData, dealershipsData]
+    () => getColumns(handleUpdateStage, handleDelete, handleUpdateOwner, handleUpdateDealership, handleSendWhatsapp, staffData, dealershipsData),
+    [handleUpdateStage, handleDelete, handleUpdateOwner, handleUpdateDealership, handleSendWhatsapp, staffData, dealershipsData]
   );
 
   const table = useReactTable({
@@ -315,6 +320,11 @@ function LeadsPageContent() {
         setSearchTerm={setSearchTerm}
         activeFilters={activeFilters}
         setActiveFilters={setActiveFilters}
+      />
+      <SendWhatsappDialog 
+        lead={whatsAppLead}
+        isOpen={!!whatsAppLead}
+        onClose={() => setWhatsAppLead(null)}
       />
     </main>
   );
