@@ -10,11 +10,14 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
+        body: ['Manrope', 'sans-serif'],
+        headline: ['Manrope', 'sans-serif'],
+        display: ['Manrope', 'sans-serif'],
         code: ['"Source Code Pro"', 'monospace'],
       },
       colors: {
+        'background-light': '#f6f7f8',
+        'background-dark': '#101922',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {
@@ -67,9 +70,12 @@ export default {
         },
       },
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        DEFAULT: "0.5rem",
+        lg: "1rem",
+        md: "calc(1rem - 2px)",
+        sm: "calc(1rem - 4px)",
+        xl: "1.5rem",
+        full: "9999px",
       },
       keyframes: {
         'accordion-down': {
