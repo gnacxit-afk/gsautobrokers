@@ -1,4 +1,3 @@
-
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,10 +20,10 @@ export default function LandingPage() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="bg-white py-20 md:py-32">
+        <section className="bg-white py-12 md:py-20">
           <div className="container mx-auto px-4 md:px-6 text-center">
             <div className="flex justify-center mb-6">
-              <Logo width={400} height={110} />
+              <Logo width={500} height={138} />
             </div>
             <p className="mt-6 max-w-3xl mx-auto text-lg text-slate-600">
               GS Autobrokers is a vehicle brokerage company that helps customers find, finance, and purchase vehicles according to their needs and budget.
