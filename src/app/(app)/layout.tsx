@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from "react";
@@ -37,11 +38,11 @@ import { useAuthContext } from "@/lib/auth";
 import type { NavItemGroup, Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { RoleSwitcher } from "./role-switcher";
-import { Logo } from "../icons";
+import { Logo } from "@/components/icons";
 import { Notifications } from "./notifications";
 import { ContractSigningBanner } from '@/components/contracts/contract-signing-banner';
-import { Avatar, AvatarFallback } from "../ui/avatar";
-import { ScrollArea } from "../ui/scroll-area";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const icons: { [key: string]: LucideIcon } = {
