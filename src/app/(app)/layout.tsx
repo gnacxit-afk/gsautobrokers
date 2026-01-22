@@ -138,7 +138,7 @@ function MainNav({ items, onLinkClick }: { items: NavItemGroup[], onLinkClick?: 
   
   return (
     <nav className="flex-1 px-4 space-y-2">
-      <Accordion type="multiple" defaultValue={['CRM', 'Inventory', 'Recruiting']} className="w-full">
+      <Accordion type="multiple" className="w-full">
         {items.map((group) => (
            hasAccess(user.role, group.role) && group.heading && group.items && Array.isArray(group.items) && (
             <AccordionItem key={group.heading} value={group.heading} className="border-b-0">
@@ -317,3 +317,5 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </div>
   );
 }
+
+    
