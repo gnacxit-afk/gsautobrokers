@@ -14,12 +14,12 @@ export default function LandingPage() {
                     <nav className="hidden md:flex items-center gap-10">
                         <a className="text-[#111418] dark:text-gray-300 text-sm font-semibold hover:text-primary transition-colors" href="#">Home</a>
                         <a className="text-[#111418] dark:text-gray-300 text-sm font-semibold hover:text-primary transition-colors" href="#services">Services</a>
-                        <a className="text-[#111418] dark:text-gray-300 text-sm font-semibold hover:text-primary transition-colors" href="#listings">Inventory</a>
+                        <Link className="text-[#111418] dark:text-gray-300 text-sm font-semibold hover:text-primary transition-colors" href="/inventory">Inventory</Link>
                         <a className="text-[#111418] dark:text-gray-300 text-sm font-semibold hover:text-primary transition-colors" href="#contact">Contact</a>
                     </nav>
                     <div className="flex items-center gap-4">
                         <Link href="/login" className="bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-lg text-sm font-bold transition-all shadow-sm">
-                            Get Started
+                            Broker Access
                         </Link>
                     </div>
                 </div>
@@ -30,19 +30,19 @@ export default function LandingPage() {
                         <div className="order-2 lg:order-1 flex flex-col gap-8">
                             <div className="flex flex-col gap-4">
                                 <h1 className="text-[#111418] dark:text-white text-5xl md:text-6xl font-extrabold leading-[1.1] tracking-tight">
-                                    Find Your Perfect Vehicle <span className="text-primary">Without the Stress</span>
+                                    Vehicle Brokerage <span className="text-primary">Made Simple</span>
                                 </h1>
                                 <p className="text-[#617589] dark:text-gray-400 text-lg md:text-xl font-normal leading-relaxed max-w-[540px]">
-                                    We handle the sourcing, negotiating, and financing so you don't have to. Professional brokerage for your next luxury car.
+                                    We handle the sourcing, negotiation, and financing according to our customers´ needs and budget.
                                 </p>
                             </div>
                             <div className="flex flex-wrap gap-4">
                                 <a href="#contact" className="bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-xl text-base font-bold transition-all shadow-lg shadow-primary/20">
-                                    Schedule a Consultation
+                                    Schedule a Testdrive
                                 </a>
-                                <a href="#listings" className="bg-white dark:bg-gray-800 border border-[#dbe0e6] dark:border-gray-700 px-8 py-4 rounded-xl text-base font-bold hover:bg-gray-50 transition-all">
-                                    View Inventory
-                                </a>
+                                <Link href="/inventory" className="bg-white dark:bg-gray-800 border border-[#dbe0e6] dark:border-gray-700 px-8 py-4 rounded-xl text-base font-bold hover:bg-gray-50 transition-all">
+                                    View Our Inventory
+                                </Link>
                             </div>
                             <div className="flex items-center gap-6 pt-4 border-t border-gray-100 dark:border-gray-800">
                                 <div className="flex -space-x-2">
@@ -56,7 +56,7 @@ export default function LandingPage() {
                                         <img className="w-full h-full object-cover" alt="client portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMhOWQ9aDnOI2McB4Uo2DJLwEKp0OZ4ayRflXGKlzc2A0LZNpEMw-6ziHs4EahngpsGdPVZgjTAnGPAb9oEyMSGyl10hhWg5LKknuIkvxva7lfjWrn5F-gKHDHI9wodeHgDLqQrTlzf5iQpJ9JmzcfIFcKy4ZYH9_ohYrdZaqri7CTOC-Xn3S7aWwcMIXBvKa5nW9g5i2uhrAXvsqBr0M5Y0rIjDq0EpkElhMe5cA2XTgiv4ovC2lrbmqtoW_9fLMTD5CVqCda9Gw" />
                                     </div>
                                 </div>
-                                <p className="text-sm font-medium text-gray-500"><span className="text-primary font-bold">500+</span> luxury vehicles sourced this year</p>
+                                <p className="text-sm font-medium text-gray-500"><span className="text-primary font-bold">500+</span> pre-owned vehicles sourced last year</p>
                             </div>
                         </div>
                         <div className="order-1 lg:order-2">
@@ -84,7 +84,7 @@ export default function LandingPage() {
                                 <div className="flex flex-col gap-2">
                                     <h2 className="text-[#111418] dark:text-white text-xl font-bold leading-tight">Vehicle Sourcing</h2>
                                     <p className="text-[#617589] dark:text-gray-400 text-base font-normal leading-relaxed">
-                                        Access to a global network to find your specific make, model, and trim level, including rare editions.
+                                        Access to the Houston, Texas network market to find your specific make, model, and trim level, including rare editions.
                                     </p>
                                 </div>
                             </div>
@@ -101,12 +101,12 @@ export default function LandingPage() {
                             </div>
                             <div className="group flex flex-col gap-5 rounded-2xl border border-[#dbe0e6] dark:border-gray-800 bg-white dark:bg-gray-900/50 p-8 hover:shadow-xl hover:border-primary/30 transition-all">
                                 <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                                    <span className="material-symbols-outlined text-3xl">local_shipping</span>
+                                    <span className="material-symbols-outlined text-3xl">thumb_up</span>
                                 </div>
                                 <div className="flex flex-col gap-2">
-                                    <h2 className="text-[#111418] dark:text-white text-xl font-bold leading-tight">Home Delivery</h2>
+                                    <h2 className="text-[#111418] dark:text-white text-xl font-bold leading-tight">Great Customer Service</h2>
                                     <p className="text-[#617589] dark:text-gray-400 text-base font-normal leading-relaxed">
-                                        Safe, door-to-door delivery of your new vehicle anywhere in the country with full detailing upon arrival.
+                                    Our team assists with vehicle availability, pricing, financing options, and appointment scheduling.
                                     </p>
                                 </div>
                             </div>
@@ -120,9 +120,9 @@ export default function LandingPage() {
                                 <h2 className="text-primary text-sm font-bold uppercase tracking-widest">Exclusive Inventory</h2>
                                 <h1 className="text-[#111418] dark:text-white text-4xl font-extrabold tracking-tight">Our Featured Listings</h1>
                             </div>
-                            <button className="text-primary font-bold flex items-center gap-2 hover:gap-3 transition-all">
+                            <Link href="/inventory" className="text-primary font-bold flex items-center gap-2 hover:gap-3 transition-all">
                                 Browse All Listings <span className="material-symbols-outlined">arrow_forward</span>
-                            </button>
+                            </Link>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                             <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden border border-[#dbe0e6] dark:border-gray-700 shadow-sm hover:shadow-xl transition-all group">
@@ -260,11 +260,11 @@ export default function LandingPage() {
                                     <div className="flex flex-col gap-6">
                                         <div className="flex items-start gap-4">
                                             <div className="bg-primary/10 p-2 rounded-lg text-primary">
-                                                <span className="material-symbols-outlined">location_on</span>
+                                                <span className="material-symbols-outlined">call_log</span>
                                             </div>
                                             <div>
-                                                <p className="font-bold text-[#111418] dark:text-white">Headquarters</p>
-                                                <p className="text-[#617589] dark:text-gray-400">123 Luxury Lane, Auto District<br />Miami, FL 33101</p>
+                                                <p className="font-bold text-[#111418] dark:text-white">Call Us</p>
+                                                <p className="text-[#617589] dark:text-gray-400">+1 (832)400-5373</p>
                                             </div>
                                         </div>
                                         <div className="flex items-start gap-4">
@@ -273,7 +273,7 @@ export default function LandingPage() {
                                             </div>
                                             <div>
                                                 <p className="font-bold text-[#111418] dark:text-white">Email Us</p>
-                                                <p className="text-[#617589] dark:text-gray-400">concierge@gsautobrokers.com</p>
+                                                <p className="text-[#617589] dark:text-gray-400">ventas@gsautobrokers.com</p>
                                             </div>
                                         </div>
                                     </div>

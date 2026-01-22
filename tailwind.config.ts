@@ -18,6 +18,8 @@ export default {
       colors: {
         'background-light': '#f6f7f8',
         'background-dark': '#101922',
+        'navy-brand': '#0f172a',
+        'whatsapp': '#25D366',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {
@@ -101,5 +103,5 @@ export default {
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [require('tailwindcss-animate'), require('@tailwindcss/forms')],
 } satisfies Config;
