@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -22,13 +21,13 @@ export default function RejectedCandidatesPage() {
   const { data: candidates, loading } = useCollection<Candidate>(candidatesQuery);
 
   return (
-    <CandidateTable
-      title="Rejected Candidates"
-      description="Candidates who have been rejected during the selection process."
-      candidates={candidates || []}
-      isLoading={loading}
-    />
+    <main className="flex-1 space-y-6">
+      <CandidateTable
+        title="Rejected Candidates"
+        description="Candidates who have been rejected during the selection process."
+        candidates={candidates || []}
+        isLoading={loading}
+      />
+    </main>
   );
 }
-
-    

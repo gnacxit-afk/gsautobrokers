@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -22,13 +21,13 @@ export default function PreFilterApprovedPage() {
   const { data: candidates, loading } = useCollection<Candidate>(candidatesQuery);
 
   return (
-    <CandidateTable
-      title="Pre-Filter Approved"
-      description="Candidates who passed initial screening and are ready to be scheduled for 5-minute calls."
-      candidates={candidates || []}
-      isLoading={loading}
-    />
+    <main className="flex-1 space-y-6">
+      <CandidateTable
+        title="Pre-Filter Approved"
+        description="Candidates who passed initial screening and are ready to be scheduled for 5-minute calls."
+        candidates={candidates || []}
+        isLoading={loading}
+      />
+    </main>
   );
 }
-
-    

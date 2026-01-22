@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -22,13 +21,13 @@ export default function InactiveCandidatesPage() {
   const { data: candidates, loading } = useCollection<Candidate>(candidatesQuery);
 
   return (
-    <CandidateTable
-      title="Inactive Candidates"
-      description="Candidates who have been marked as inactive."
-      candidates={candidates || []}
-      isLoading={loading}
-    />
+    <main className="flex-1 space-y-6">
+      <CandidateTable
+        title="Inactive Candidates"
+        description="Candidates who have been marked as inactive."
+        candidates={candidates || []}
+        isLoading={loading}
+      />
+    </main>
   );
 }
-
-    

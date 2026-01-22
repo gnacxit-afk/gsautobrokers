@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useMemo } from 'react';
@@ -24,11 +22,13 @@ export default function NewApplicantsPage() {
   const { data: candidates, loading } = useCollection<Candidate>(applicationsQuery);
 
   return (
-    <CandidateTable
-      title="New Applicants"
-      description="Candidates who have applied and passed the initial AI scoring filter."
-      candidates={candidates || []}
-      isLoading={loading}
-    />
+    <main className="flex-1 space-y-6">
+      <CandidateTable
+        title="New Applicants"
+        description="Candidates who have applied and passed the initial AI scoring filter."
+        candidates={candidates || []}
+        isLoading={loading}
+      />
+    </main>
   );
 }
