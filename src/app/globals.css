@@ -93,3 +93,25 @@
     opacity: 1;
     transform: translateY(0);
 }
+
+/* Kanban Board Styles */
+.kanban-board::-webkit-scrollbar {
+    height: 8px;
+}
+.kanban-board::-webkit-scrollbar-track {
+    background: transparent;
+}
+.kanban-board::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+.dark .kanban-board::-webkit-scrollbar-thumb {
+    background: #334155;
+}
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
