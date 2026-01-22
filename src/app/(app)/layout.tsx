@@ -96,7 +96,7 @@ const navItems: NavItemGroup[] = [
     items: [
       { href: '/recruiting/dashboard', label: 'Recruiting Dashboard', icon: 'LayoutDashboard' },
       { href: '/recruiting/pipeline/new', label: 'New Applicants', icon: 'UserPlus' },
-      { href: '/recruiting/pipeline/5-minute-filter', label: '5-Minute Filter', icon: 'Clock5' },
+      { href: '/recruiting/pipeline/interviews', label: 'Interviews', icon: 'Clock5' },
       { href: '/recruiting/onboarding/approved', label: 'Approved for Onboarding', icon: 'UserCheck' },
       { href: '/recruiting/onboarding/training', label: 'Training', icon: 'Rocket' },
       { href: '/recruiting/active', label: 'Active', icon: 'UserCheck' },

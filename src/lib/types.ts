@@ -172,7 +172,7 @@ export type ContractEvent = {
   timestamp: Timestamp;
 };
 
-export type PipelineStatus = 'New Applicant' | 'Pre-Filter Approved' | '5-Minute Filter' | 'Approved' | 'Onboarding' | 'Active' | 'Rejected' | 'Inactive';
+export type PipelineStatus = 'New Applicant' | 'Interviews' | 'Approved' | 'Onboarding' | 'Active' | 'Rejected' | 'Inactive';
 
 // Represents the data submitted by the application form.
 export type Application = {

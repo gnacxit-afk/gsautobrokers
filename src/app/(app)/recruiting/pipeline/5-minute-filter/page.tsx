@@ -1,42 +1,17 @@
-
 'use client';
 
-import { useMemo } from 'react';
-import { useFirestore, useCollection } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
-import type { Candidate } from '@/lib/types';
-import { CandidateTable } from '../../components/candidate-table';
-import { CallScript } from '../../components/call-script';
+import Link from 'next/link';
 
-export default function FiveMinuteFilterPage() {
-  const firestore = useFirestore();
-
-  const candidatesQuery = useMemo(() => {
-    if (!firestore) return null;
-    return query(
-      collection(firestore, 'candidates'),
-      where('pipelineStatus', '==', '5-Minute Filter'),
-      orderBy('lastStatusChangeDate', 'desc')
-    );
-  }, [firestore]);
-
-  const { data: candidates, loading } = useCollection<Candidate>(candidatesQuery);
-
+export default function MovedPage() {
   return (
-    <main className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2">
-        <CandidateTable
-          title="5-Minute Filter"
-          description="Conduct quick interview calls to approve or reject candidates."
-          candidates={candidates || []}
-          isLoading={loading}
-        />
-      </div>
-      <div className="lg:col-span-1">
-        <CallScript />
-      </div>
-    </main>
+    <div className="flex flex-col items-center justify-center h-full text-center">
+      <h1 className="text-2xl font-bold">This page has moved.</h1>
+      <p className="text-muted-foreground">
+        This pipeline stage is now called "Interviews".
+      </p>
+      <Link href="/recruiting/pipeline/interviews" className="mt-4 text-primary hover:underline">
+        Go to the new Interviews page
+      </Link>
+    </div>
   );
 }
-
-    

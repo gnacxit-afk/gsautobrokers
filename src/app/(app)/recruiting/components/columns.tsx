@@ -26,8 +26,7 @@ const getAvatarFallback = (name: string) => {
 
 const stageColors: Record<PipelineStatus, string> = {
   "New Applicant": "bg-gray-100 text-gray-800 border-gray-200",
-  "Pre-Filter Approved": "bg-blue-100 text-blue-800 border-blue-200",
-  "5-Minute Filter": "bg-cyan-100 text-cyan-800 border-cyan-200",
+  "Interviews": "bg-cyan-100 text-cyan-800 border-cyan-200",
   "Approved": "bg-teal-100 text-teal-800 border-teal-200",
   "Onboarding": "bg-purple-100 text-purple-800 border-purple-200",
   "Active": "bg-green-100 text-green-800 border-green-200",
@@ -36,9 +35,8 @@ const stageColors: Record<PipelineStatus, string> = {
 };
 
 const statusOptions: Record<PipelineStatus, PipelineStatus[]> = {
-    'New Applicant': ['Pre-Filter Approved', '5-Minute Filter', 'Approved', 'Onboarding', 'Rejected', 'Inactive'],
-    'Pre-Filter Approved': ['5-Minute Filter', 'Approved', 'Onboarding', 'Rejected', 'Inactive'],
-    '5-Minute Filter': ['Approved', 'Onboarding', 'Rejected', 'Inactive'],
+    'New Applicant': ['Interviews', 'Approved', 'Onboarding', 'Rejected', 'Inactive'],
+    'Interviews': ['Approved', 'Onboarding', 'Rejected', 'Inactive'],
     'Approved': ['Onboarding', 'Rejected', 'Inactive'],
     'Onboarding': ['Active', 'Rejected', 'Inactive'],
     'Active': ['Inactive'],
