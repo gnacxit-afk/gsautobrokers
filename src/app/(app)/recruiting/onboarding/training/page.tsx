@@ -6,7 +6,7 @@ import { collection, query, where, orderBy } from 'firebase/firestore';
 import type { Candidate } from '@/lib/types';
 import { CandidateTable } from '../../components/candidate-table';
 
-export default function OnboardingPage() {
+export default function TrainingPage() {
   const firestore = useFirestore();
 
   const candidatesQuery = useMemo(() => {
@@ -23,8 +23,8 @@ export default function OnboardingPage() {
   return (
     <main className="flex-1 space-y-6">
       <CandidateTable
-        title="Onboarding Process"
-        description="Track candidates through onboarding. Follow up within 48 hours."
+        title="Training Process"
+        description="Track candidates through training. Follow up within 48 hours."
         candidates={candidates || []}
         isLoading={loading}
       />

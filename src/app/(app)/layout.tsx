@@ -99,7 +99,7 @@ const navItems: NavItemGroup[] = [
       { href: '/recruiting/pipeline/pre-filter-approved', label: 'Pre-Filter Approved', icon: 'Filter' },
       { href: '/recruiting/pipeline/5-minute-filter', label: '5-Minute Filter', icon: 'Clock5' },
       { href: '/recruiting/onboarding/approved', label: 'Approved for Onboarding', icon: 'UserCheck' },
-      { href: '/recruiting/onboarding/onboarding', label: 'Onboarding', icon: 'Rocket' },
+      { href: '/recruiting/onboarding/training', label: 'Training', icon: 'Rocket' },
       { href: '/recruiting/rejected', label: 'Rejected', icon: 'UserX' },
       { href: '/recruiting/inactive', label: 'Inactive', icon: 'Archive' },
       { href: '/apply', label: 'Public Application Form', icon: 'Briefcase', target: '_blank' },
