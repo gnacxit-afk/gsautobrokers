@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { getColumns } from './columns';
 import { useReactTable, getCoreRowModel, getPaginationRowModel } from '@tanstack/react-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +11,7 @@ import type { Candidate } from '@/lib/types';
 import { CandidateDetailsDialog } from './candidate-details-dialog';
 import { NewStaffDialog } from '@/app/(app)/staff/components/new-staff-dialog';
 import { useFirestore } from '@/firebase';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 interface CandidateTableProps {
@@ -50,7 +50,19 @@ export function CandidateTable({ title, description, candidates, isLoading }: Ca
     }
   };
 
-  const columns = useMemo(() => getColumns(handleViewDetails, handleCreateStaff), []);
+  const handleDeleteCandidate = useCallback(async (candidate: Candidate) => {
+    if (!firestore) return;
+    try {
+      const candidateRef = doc(firestore, 'candidates', candidate.id);
+      await deleteDoc(candidateRef);
+      toast({ title: 'Candidate Deleted', description: `${candidate.fullName} has been removed from the database.` });
+    } catch (error) {
+      console.error("Error deleting candidate:", error);
+      toast({ title: 'Deletion Failed', description: 'Could not delete the candidate.', variant: 'destructive' });
+    }
+  }, [firestore, toast]);
+
+  const columns = useMemo(() => getColumns(handleViewDetails, handleCreateStaff, handleDeleteCandidate), [handleDeleteCandidate]);
 
   const table = useReactTable({
     data: candidates,
