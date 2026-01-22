@@ -42,7 +42,7 @@ const stageColors: Record<Lead['stage'], string> = {
 interface CellActionsProps {
   row: Row<Lead>;
   onUpdateStage: (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage']) => void;
-  onDelete: (id: string) => void;
+  onConfirmDelete: (lead: Lead) => void;
   onUpdateOwner: (leadId: string, oldOwnerName: string, newOwnerId: string, newOwnerName: string) => void;
   onUpdateDealership: (leadId: string, newDealershipId: string) => void;
   onSendWhatsapp: (lead: Lead) => void;
@@ -50,7 +50,7 @@ interface CellActionsProps {
   dealerships: Dealership[];
 }
 
-const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete, onUpdateOwner, onUpdateDealership, onSendWhatsapp, staff, dealerships }) => {
+const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onConfirmDelete, onUpdateOwner, onUpdateDealership, onSendWhatsapp, staff, dealerships }) => {
   const lead = row.original;
   const { toast } = useToast();
   const { user } = useAuthContext();
@@ -165,7 +165,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDelete,
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                   className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                  onSelect={() => onDelete(lead.id)}
+                  onSelect={() => onConfirmDelete(lead)}
               >
                   <Trash2 className="mr-2 h-4 w-4" /> Delete Lead
               </DropdownMenuItem>
@@ -189,7 +189,7 @@ const getAvatarFallback = (name: string) => {
 
 export const getColumns = (
   onUpdateStage: (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage']) => void,
-  onDelete: (id: string) => void,
+  onConfirmDelete: (lead: Lead) => void,
   onUpdateOwner: (leadId: string, oldOwnerName: string, newOwnerId: string, newOwnerName: string) => void,
   onUpdateDealership: (leadId: string, newDealershipId: string) => void,
   onSendWhatsapp: (lead: Lead) => void,
@@ -283,7 +283,7 @@ export const getColumns = (
       return <CellActions 
         row={row} 
         onUpdateStage={onUpdateStage}
-        onDelete={onDelete} 
+        onConfirmDelete={onConfirmDelete} 
         onUpdateOwner={onUpdateOwner}
         onUpdateDealership={onUpdateDealership}
         onSendWhatsapp={onSendWhatsapp}

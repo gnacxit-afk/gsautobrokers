@@ -10,10 +10,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { formatDistanceToNow, isValid } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser } from '@/firebase';
-import { doc, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-
 
 const getAvatarFallback = (name: string) => {
     if (!name) return 'U';
@@ -44,7 +42,7 @@ const statusOptions: Record<PipelineStatus, PipelineStatus[]> = {
     'Inactive': ['New Applicant', 'Rejected'],
 };
 
-const CellActions: React.FC<{ row: Row<Candidate>; onCreateStaff: (candidate: Candidate) => void; onDelete: (candidate: Candidate) => void; }> = ({ row, onCreateStaff, onDelete }) => {
+const CellActions: React.FC<{ row: Row<Candidate>; onCreateStaff: (candidate: Candidate) => void; onConfirmDelete: (candidate: Candidate) => void; }> = ({ row, onCreateStaff, onConfirmDelete }) => {
     const candidate = row.original;
     const { toast } = useToast();
     const firestore = useFirestore();
@@ -123,30 +121,12 @@ const CellActions: React.FC<{ row: Row<Candidate>; onCreateStaff: (candidate: Ca
             {user?.role === 'Admin' && candidate.pipelineStatus === 'Inactive' && (
               <>
                 <DropdownMenuSeparator />
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <DropdownMenuItem
-                      onSelect={(e) => e.preventDefault()}
-                      className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete Candidate
-                    </DropdownMenuItem>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will permanently delete the candidate profile for <span className="font-bold">{candidate.fullName}</span>. This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => onDelete(candidate)} className="bg-destructive hover:bg-destructive/90">
-                        Yes, delete candidate
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <DropdownMenuItem
+                    onSelect={() => onConfirmDelete(candidate)}
+                    className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                >
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete Candidate
+                </DropdownMenuItem>
               </>
             )}
           </DropdownMenuContent>
@@ -175,7 +155,7 @@ const ScoreBadge = ({ score }: { score?: number }) => {
 };
 
 
-export const getColumns = (onViewDetails: (candidate: Candidate) => void, onCreateStaff: (candidate: Candidate) => void, onDelete: (candidate: Candidate) => void): ColumnDef<Candidate>[] => [
+export const getColumns = (onViewDetails: (candidate: Candidate) => void, onCreateStaff: (candidate: Candidate) => void, onConfirmDelete: (candidate: Candidate) => void): ColumnDef<Candidate>[] => [
   {
     accessorKey: 'fullName',
     header: 'Candidate',
@@ -244,6 +224,6 @@ export const getColumns = (onViewDetails: (candidate: Candidate) => void, onCrea
   },
   {
     id: 'actions',
-    cell: ({ row }) => <CellActions row={row} onCreateStaff={onCreateStaff} onDelete={onDelete} />,
+    cell: ({ row }) => <CellActions row={row} onCreateStaff={onCreateStaff} onConfirmDelete={onConfirmDelete} />,
   },
 ];

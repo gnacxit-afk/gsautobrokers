@@ -1,5 +1,4 @@
-
-'use client';
+"use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
 import { MoreHorizontal, Trash2, Edit } from "lucide-react";
@@ -19,21 +18,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Staff } from "@/lib/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 interface CellActionsProps {
   staffMember: Staff;
-  onDelete: (id: string, name: string) => void;
+  onConfirmDelete: (staff: Staff) => void;
   isMasterAdmin: boolean;
   allStaff: Staff[];
 }
@@ -47,7 +35,7 @@ const getAvatarFallback = (name: string) => {
   return name.substring(0, 2).toUpperCase();
 };
 
-const CellActions: React.FC<CellActionsProps> = ({ staffMember, onDelete, isMasterAdmin, allStaff }) => {
+const CellActions: React.FC<CellActionsProps> = ({ staffMember, onConfirmDelete, isMasterAdmin, allStaff }) => {
   const router = useRouter();
 
   const isEditingMasterAdmin = isMasterAdmin && staffMember.email === 'gnacxit@gmail.com';
@@ -78,30 +66,12 @@ const CellActions: React.FC<CellActionsProps> = ({ staffMember, onDelete, isMast
           {isMasterAdmin && !isEditingMasterAdmin && (
             <>
               <DropdownMenuSeparator />
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <DropdownMenuItem
-                    onSelect={(e) => e.preventDefault()}
-                    className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" /> Delete Profile
-                  </DropdownMenuItem>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete the profile for <span className="font-bold">{staffMember.name}</span> and reassign their leads to the Master Admin.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => onDelete(staffMember.id, staffMember.name)} className="bg-destructive hover:bg-destructive/90">
-                            Yes, delete profile
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <DropdownMenuItem
+                onSelect={() => onConfirmDelete(staffMember)}
+                className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" /> Delete Profile
+              </DropdownMenuItem>
             </>
           )}
         </DropdownMenuContent>
@@ -110,7 +80,7 @@ const CellActions: React.FC<CellActionsProps> = ({ staffMember, onDelete, isMast
   );
 };
 
-export const getColumns = ({ onDelete, isMasterAdmin, allStaff }: { onDelete: (id: string, name: string) => void; isMasterAdmin: boolean; allStaff: Staff[] }): ColumnDef<Staff>[] => [
+export const getColumns = ({ onConfirmDelete, isMasterAdmin, allStaff }: { onConfirmDelete: (staff: Staff) => void; isMasterAdmin: boolean; allStaff: Staff[] }): ColumnDef<Staff>[] => [
   {
     accessorKey: "name",
     header: "Employee",
@@ -163,7 +133,7 @@ export const getColumns = ({ onDelete, isMasterAdmin, allStaff }: { onDelete: (i
       return (
         <CellActions
           staffMember={row.original}
-          onDelete={onDelete}
+          onConfirmDelete={onConfirmDelete}
           isMasterAdmin={isMasterAdmin}
           allStaff={allStaff}
         />
