@@ -15,6 +15,8 @@ export type User = {
   avatarUrl: string;
   role: Role;
   dui?: string;
+  enrolledCourses?: string[];
+  certificates?: string[];
 };
 
 export type NoteEntry = {
@@ -75,6 +77,8 @@ export type Staff = {
   supervisorId?: string; // This will be the supervisor's document ID
   createdAt: Timestamp | Date | string;
   dui?: string;
+  enrolledCourses?: string[];
+  certificates?: string[];
 };
 
 export type NavItem = {
@@ -217,6 +221,76 @@ export type Dealership = {
   id: string;
   name: string;
   createdAt: Timestamp;
+};
+
+// LMS Types
+export type Course = {
+  id: string;
+  title: string;
+  description: string;
+  thumbnailUrl: string;
+  passingScore: number;
+  published: boolean;
+  authorId: string;
+  createdAt: Timestamp;
+};
+
+export type Module = {
+  id: string;
+  courseId: string;
+  title: string;
+  order: number;
+};
+
+export type Lesson = {
+  id: string;
+  courseId: string;
+  moduleId: string;
+  title: string;
+  videoUrl: string;
+  duration: number; // in seconds
+  order: number;
+};
+
+export type QuizQuestion = {
+  question: string;
+  options: string[];
+  correctIndex: number;
+  timestamp?: number; // For in-video quizzes
+};
+
+export type Quiz = {
+  id: string;
+  lessonId: string;
+  type: 'inVideo' | 'endLesson' | 'finalExam';
+  passingScore: number;
+  questions: QuizQuestion[];
+};
+
+export type UserProgress = {
+  id: string; // e.g., `${userId}_${courseId}`
+  userId: string;
+  courseId: string;
+  lessonProgress: {
+    [lessonId: string]: {
+      watchedSeconds: number;
+      completed: boolean;
+    }
+  };
+  quizScores: {
+    [quizId: string]: number;
+  };
+  completed: boolean;
+};
+
+export type Certificate = {
+  id: string;
+  userId: string;
+  courseId: string;
+  issuedAt: Timestamp;
+  score: number;
+  pdfUrl: string;
+  verificationCode: string;
 };
 
     

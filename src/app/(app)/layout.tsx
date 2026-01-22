@@ -105,6 +105,15 @@ const navItems: NavItemGroup[] = [
       { href: '/apply', label: 'Public Application Form', icon: 'Briefcase', target: '_blank' },
     ],
   },
+  {
+    heading: 'TRAINING',
+    role: ["Admin", "Supervisor", "Broker"],
+    items: [
+      { href: '/training/dashboard', label: 'My Learning', icon: 'BookOpen' },
+      { href: '/training/admin/courses', label: 'Course Management', icon: 'ClipboardList', role: ["Admin", "Supervisor"] },
+      { href: '/training/admin/progress', label: 'User Progress', icon: 'LineChart', role: ["Admin", "Supervisor"] },
+    ]
+  },
 ];
 
 
@@ -317,3 +326,5 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </div>
   );
 }
+
+    

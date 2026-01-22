@@ -86,7 +86,7 @@ service cloud.firestore {
       allow get: if isOwner(resource.data.ownerId) || isAdmin() || getUserRole() == 'Supervisor';
       allow create: if isOwner(request.resource.data.ownerId) || isAdmin();
       allow update: if isOwner(resource.data.ownerId) || isAdmin();
-      delete: if isOwner(resource.data.ownerId) || isAdmin();
+      allow delete: if isOwner(resource.data.ownerId) || isAdmin();
 
         /**
         * @description Controls access to a lead's note history.
@@ -164,5 +164,34 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
       allow list: if isAdmin();
     }
+
+    // LMS Rules
+    match /courses/{courseId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || getUserRole() == 'Supervisor';
+    }
+    match /modules/{moduleId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || getUserRole() == 'Supervisor';
+    }
+    match /lessons/{lessonId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || getUserRole() == 'Supervisor';
+    }
+    match /quizzes/{quizId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || getUserRole() == 'Supervisor';
+    }
+    match /userProgress/{progressId} {
+      allow read: if isOwner(resource.data.userId) || isAdmin() || getUserRole() == 'Supervisor';
+      allow create, update: if isOwner(request.resource.data.userId);
+      allow delete: if false;
+    }
+    match /certificates/{certId} {
+      allow read: if isOwner(resource.data.userId) || isAdmin() || getUserRole() == 'Supervisor';
+      allow create, write: if isAdmin(); // Create should be handled by a Cloud Function
+    }
   }
 }
+
+    

@@ -198,6 +198,16 @@
         "dui": {
           "type": "string",
           "description": "The staff member's DUI (Documento Unico de Identidad)."
+        },
+        "enrolledCourses": {
+          "type": "array",
+          "description": "Array of course IDs the user is enrolled in.",
+          "items": { "type": "string" }
+        },
+        "certificates": {
+            "type": "array",
+            "description": "Array of certificate IDs the user has earned.",
+            "items": { "type": "string" }
         }
       },
       "required": [
@@ -366,6 +376,121 @@
         "name": { "type": "string" }
       },
       "required": ["id", "name"]
+    },
+    "Course": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Course",
+      "type": "object",
+      "description": "Represents a single course in the LMS.",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "passingScore": { "type": "number" },
+        "published": { "type": "boolean" },
+        "authorId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "description", "passingScore", "published", "authorId", "createdAt"]
+    },
+    "Module": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Module",
+      "type": "object",
+      "description": "Represents a module within a course.",
+      "properties": {
+        "id": { "type": "string" },
+        "courseId": { "type": "string" },
+        "title": { "type": "string" },
+        "order": { "type": "number" }
+      },
+      "required": ["courseId", "title", "order"]
+    },
+    "Lesson": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Lesson",
+      "type": "object",
+      "description": "Represents a lesson within a module.",
+      "properties": {
+        "id": { "type": "string" },
+        "courseId": { "type": "string" },
+        "moduleId": { "type": "string" },
+        "title": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "duration": { "type": "number", "description": "Duration in seconds" },
+        "order": { "type": "number" }
+      },
+      "required": ["courseId", "moduleId", "title", "videoUrl", "duration", "order"]
+    },
+    "Quiz": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Quiz",
+      "type": "object",
+      "description": "Represents a quiz for a lesson or course.",
+      "properties": {
+        "id": { "type": "string" },
+        "lessonId": { "type": "string" },
+        "type": { "type": "string", "enum": ["inVideo", "endLesson", "finalExam"] },
+        "passingScore": { "type": "number" },
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "question": { "type": "string" },
+              "options": { "type": "array", "items": { "type": "string" } },
+              "correctIndex": { "type": "number" },
+              "timestamp": { "type": "number", "description": "Timestamp in seconds for in-video quizzes." }
+            },
+            "required": ["question", "options", "correctIndex"]
+          }
+        }
+      },
+      "required": ["lessonId", "type", "passingScore", "questions"]
+    },
+    "UserProgress": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProgress",
+      "type": "object",
+      "description": "Tracks a user's progress in a course.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "lessonProgress": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "watchedSeconds": { "type": "number" },
+              "completed": { "type": "boolean" }
+            }
+          }
+        },
+        "quizScores": {
+          "type": "object",
+          "additionalProperties": { "type": "number" }
+        },
+        "completed": { "type": "boolean", "default": false }
+      },
+      "required": ["userId", "courseId"]
+    },
+    "Certificate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Certificate",
+      "type": "object",
+      "description": "Represents a certificate issued to a user.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "issuedAt": { "type": "string", "format": "date-time" },
+        "score": { "type": "number" },
+        "pdfUrl": { "type": "string" },
+        "verificationCode": { "type": "string" }
+      },
+      "required": ["userId", "courseId", "issuedAt", "score", "pdfUrl", "verificationCode"]
     }
   },
   "auth": {
@@ -592,8 +717,65 @@
             }
           ]
         }
+      },
+      {
+        "path": "courses/{courseId}",
+        "definition": {
+          "entityName": "Course",
+          "schema": { "$ref": "#/backend/entities/Course" },
+          "description": "Stores LMS course overviews.",
+          "params": [{ "name": "courseId", "description": "The unique course ID." }]
+        }
+      },
+      {
+        "path": "modules/{moduleId}",
+        "definition": {
+          "entityName": "Module",
+          "schema": { "$ref": "#/backend/entities/Module" },
+          "description": "Stores LMS course modules.",
+          "params": [{ "name": "moduleId", "description": "The unique module ID." }]
+        }
+      },
+      {
+        "path": "lessons/{lessonId}",
+        "definition": {
+          "entityName": "Lesson",
+          "schema": { "$ref": "#/backend/entities/Lesson" },
+          "description": "Stores LMS lesson details.",
+          "params": [{ "name": "lessonId", "description": "The unique lesson ID." }]
+        }
+      },
+      {
+        "path": "quizzes/{quizId}",
+        "definition": {
+          "entityName": "Quiz",
+          "schema": { "$ref": "#/backend/entities/Quiz" },
+          "description": "Stores LMS quiz questions and details.",
+          "params": [{ "name": "quizId", "description": "The unique quiz ID." }]
+        }
+      },
+      {
+        "path": "userProgress/{progressId}",
+        "definition": {
+          "entityName": "UserProgress",
+          "schema": { "$ref": "#/backend/entities/UserProgress" },
+          "description": "Tracks individual user progress through courses.",
+          "params": [{ "name": "progressId", "description": "The unique progress ID, likely a combination of userId and courseId." }]
+        }
+      },
+      {
+        "path": "certificates/{certificateId}",
+        "definition": {
+          "entityName": "Certificate",
+          "schema": { "$ref": "#/backend/entities/Certificate" },
+          "description": "Stores issued certificates for users.",
+          "params": [{ "name": "certificateId", "description": "The unique certificate ID." }]
+        }
       }
     ],
     "reasoning": "This Firestore structure is designed to support the AutoSales AI application, prioritizing authorization independence, clarity, and scalability. It leverages structural segregation and denormalization to simplify security rules and ensure efficient data access. The root of the database is segmented by `artifacts/{appId}`, where `appId` allows the application to be instantiated in multiple environments without conflicting documents.\\n\\n**Authorization Independence (CRITICAL):**\\n\\n*   Leads: The `leads` collection, located at `artifacts/{appId}/public/data/leads`, includes the `ownerId` (auto-generated staff document ID) and `ownerName` of the user who owns the lead. This denormalization allows security rules to validate ownership without needing to perform expensive `get()` operations to retrieve user data. This ensures that lead access can be controlled based solely on the data within the lead document itself, combined with the authenticated user's ID.\\n*   Staff: The `staff` collection uses an auto-generated document ID. It includes the `supervisorId` (also an auto-generated ID) for reporting relationships. While the UI only allows Admins to manage staff, we can add roles if needed.\\n\\n**Structural Segregation (Homogeneous Security Posture):**\\n\\n*   User Data: User profiles are stored within the `staff` collection. The mapping between a Firebase Auth UID and the staff document ID happens at login.\\n*   Public Data: The `knowledge_base` and `leads` collections are within the `/public/data/` section of the database. While the security rules may differentiate access within those collections, this design communicates the intent that they are generally readable.\\n\\n**QAPs (Rules are not Filters):**\\n\\n*   List Operations: The segregation of user data and public data allows for secure `list` operations. For example, listing leads requires checking if the user has the correct role (Broker, Supervisor, Admin) and filtering based on `ownerId`.\\n\\n**Global Roles (DBAC):**\\n\\n*   Role-Based Access: User roles are stored in the `staff` document. The system can be expanded to utilize a dedicated `/roles_{role}/{uid}` collection to manage administrative or elevated rights. The UI only uses role to gate access to Staff management features, so this functionality isn't required for compliance."
   }
 }
+
+
+    
