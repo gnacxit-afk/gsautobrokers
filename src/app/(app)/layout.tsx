@@ -186,8 +186,8 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
 
     return (
         <>
-            <div className="p-6 border-b border-slate-800 h-16 flex items-center shrink-0">
-                <Logo className="text-white text-lg" />
+            <div className="p-6 border-b border-slate-200 h-16 flex items-center justify-center shrink-0 bg-white">
+                <Logo />
             </div>
 
             <div className="p-4 border-b border-slate-800 shrink-0">
@@ -317,5 +317,3 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </div>
   );
 }
-
-    
