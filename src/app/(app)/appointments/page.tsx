@@ -109,30 +109,28 @@ function AppointmentsContent() {
   const handleDelete = async (appointment: Appointment) => {
     if (!firestore || !user) return;
     
-    if (window.confirm(`Are you sure you want to cancel the appointment for ${appointment.leadName}?`)) {
-      const appointmentRef = doc(firestore, 'appointments', appointment.id);
-      const leadRef = doc(firestore, 'leads', appointment.leadId);
-      
-      try {
-          await deleteDoc(appointmentRef);
-          await updateDoc(leadRef, { stage: 'En Seguimiento' });
-          
-          if (user) {
-            await addNoteEntry(firestore, user, appointment.leadId, `Appointment for ${format(appointment.startTime.toDate(), "d MMM yyyy, p")} was canceled by ${user.name}. Stage automatically changed to "En Seguimiento".`, 'System');
-          }
-  
-          toast({
-              title: 'Appointment Canceled',
-              description: `The appointment for ${appointment.leadName} has been removed.`,
-          });
-  
-      } catch (error: any) {
-          toast({
-              title: 'Error',
-              description: 'Could not cancel the appointment.',
-              variant: 'destructive',
-          });
-      }
+    const appointmentRef = doc(firestore, 'appointments', appointment.id);
+    const leadRef = doc(firestore, 'leads', appointment.leadId);
+    
+    try {
+        await deleteDoc(appointmentRef);
+        await updateDoc(leadRef, { stage: 'En Seguimiento' });
+        
+        if (user) {
+          await addNoteEntry(firestore, user, appointment.leadId, `Appointment for ${format(appointment.startTime.toDate(), "d MMM yyyy, p")} was canceled by ${user.name}. Stage automatically changed to "En Seguimiento".`, 'System');
+        }
+
+        toast({
+            title: 'Appointment Canceled',
+            description: `The appointment for ${appointment.leadName} has been removed.`,
+        });
+
+    } catch (error: any) {
+        toast({
+            title: 'Error',
+            description: 'Could not cancel the appointment.',
+            variant: 'destructive',
+        });
     }
   }
 

@@ -12,14 +12,19 @@ import { NewArticleForm } from './new-article-form';
 import { cn } from '@/lib/utils';
 import { format, isValid } from 'date-fns';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { doc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { summarizeArticle } from '@/ai/flows/summarize-knowledge-base-articles';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { MarkdownRenderer } from '@/components/markdown-renderer';
-
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 
 export function KnowledgeBaseClient({ initialArticles, loading }: { initialArticles: Article[]; loading: boolean }) {
@@ -222,23 +227,20 @@ export function KnowledgeBaseClient({ initialArticles, loading }: { initialArtic
                                         <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
                                         <Edit className="mr-2 h-4 w-4" /> Edit
                                         </Button>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
                                                 <Button size="sm" variant="destructive">
                                                 <Trash2 className="mr-2 h-4 w-4" /> Delete
                                                 </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                    <AlertDialogDescription>This will permanently delete the article "{selectedArticle.title}". This action cannot be undone.</AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={handleDeleteArticle} className="bg-destructive hover:bg-destructive/90">Delete Article</AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent>
+                                                <DropdownMenuLabel>Are you sure?</DropdownMenuLabel>
+                                                <DropdownMenuItem onSelect={handleDeleteArticle} className="text-destructive focus:text-destructive">
+                                                    Confirm Deletion
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem>Cancel</DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </>
                                 )}
                             </div>

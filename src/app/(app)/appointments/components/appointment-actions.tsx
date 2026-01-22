@@ -114,25 +114,37 @@ export function AppointmentActions({ appointment, userRole, onEdit, onDelete, on
     );
   }
 
-  // Supervisor sees only the delete option, now as a nested menu
+  // Supervisor sees edit and delete options
   if (userRole === 'Supervisor') {
-    return (
+     return (
       <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
-                  <Trash2 size={16} />
-              </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-              <DropdownMenuLabel>Delete Appointment?</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={handleDeleteClick} className="text-destructive focus:text-destructive">
-                  Confirm Deletion
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                  Cancel
-              </DropdownMenuItem>
-          </DropdownMenuContent>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="h-8 w-8 p-0">
+            <span className="sr-only">Open menu</span>
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={onEdit}>
+                <Edit className="mr-2 h-4 w-4" />
+                <span>Edit Date/Time</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="text-destructive focus:text-destructive">
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete Appointment
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                    <DropdownMenuLabel>Are you sure?</DropdownMenuLabel>
+                    <DropdownMenuItem onSelect={handleDeleteClick} className="text-destructive focus:text-destructive">
+                        Confirm Deletion
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                        Cancel
+                    </DropdownMenuItem>
+                </DropdownMenuSubContent>
+            </DropdownMenuSub>
+        </DropdownMenuContent>
       </DropdownMenu>
     );
   }

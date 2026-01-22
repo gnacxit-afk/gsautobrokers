@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState, useCallback } from 'react';
@@ -13,8 +14,6 @@ import { NewStaffDialog } from '@/app/(app)/staff/components/new-staff-dialog';
 import { useFirestore } from '@/firebase';
 import { doc, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-
 
 interface CandidateTableProps {
   title: string;
@@ -26,7 +25,6 @@ interface CandidateTableProps {
 export function CandidateTable({ title, description, candidates, isLoading }: CandidateTableProps) {
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [candidateToConvert, setCandidateToConvert] = useState<Candidate | null>(null);
-  const [candidateToDelete, setCandidateToDelete] = useState<Candidate | null>(null);
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -53,21 +51,19 @@ export function CandidateTable({ title, description, candidates, isLoading }: Ca
     }
   };
 
-  const executeDelete = useCallback(async () => {
-    if (!firestore || !candidateToDelete) return;
+  const handleDeleteCandidate = useCallback(async (candidate: Candidate) => {
+    if (!firestore || !candidate) return;
     try {
-      const candidateRef = doc(firestore, 'candidates', candidateToDelete.id);
+      const candidateRef = doc(firestore, 'candidates', candidate.id);
       await deleteDoc(candidateRef);
-      toast({ title: 'Candidate Deleted', description: `${candidateToDelete.fullName} has been removed from the database.` });
+      toast({ title: 'Candidate Deleted', description: `${candidate.fullName} has been removed from the database.` });
     } catch (error) {
       console.error("Error deleting candidate:", error);
       toast({ title: 'Deletion Failed', description: 'Could not delete the candidate.', variant: 'destructive' });
-    } finally {
-      setCandidateToDelete(null);
     }
-  }, [firestore, toast, candidateToDelete]);
+  }, [firestore, toast]);
 
-  const columns = useMemo(() => getColumns(handleViewDetails, handleCreateStaff, setCandidateToDelete), [setCandidateToDelete]);
+  const columns = useMemo(() => getColumns(handleViewDetails, handleCreateStaff, handleDeleteCandidate), [handleDeleteCandidate]);
 
   const table = useReactTable({
     data: candidates,
@@ -145,22 +141,6 @@ export function CandidateTable({ title, description, candidates, isLoading }: Ca
         candidate={candidateToConvert}
         onStaffCreated={onStaffCreated}
       />
-       <AlertDialog open={!!candidateToDelete} onOpenChange={() => setCandidateToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the candidate profile for <span className="font-bold">{candidateToDelete?.fullName}</span>. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={executeDelete} className="bg-destructive hover:bg-destructive/90">
-              Yes, delete candidate
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

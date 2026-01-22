@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { ColumnDef, Row } from '@tanstack/react-table';
@@ -42,7 +43,7 @@ const statusOptions: Record<PipelineStatus, PipelineStatus[]> = {
     'Inactive': ['New Applicant', 'Rejected'],
 };
 
-const CellActions: React.FC<{ row: Row<Candidate>; onCreateStaff: (candidate: Candidate) => void; onConfirmDelete: (candidate: Candidate) => void; }> = ({ row, onCreateStaff, onConfirmDelete }) => {
+const CellActions: React.FC<{ row: Row<Candidate>; onCreateStaff: (candidate: Candidate) => void; onDeleteCandidate: (candidate: Candidate) => void; }> = ({ row, onCreateStaff, onDeleteCandidate }) => {
     const candidate = row.original;
     const { toast } = useToast();
     const firestore = useFirestore();
@@ -121,12 +122,21 @@ const CellActions: React.FC<{ row: Row<Candidate>; onCreateStaff: (candidate: Ca
             {user?.role === 'Admin' && candidate.pipelineStatus === 'Inactive' && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                    onSelect={() => onConfirmDelete(candidate)}
-                    className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                >
-                    <Trash2 className="mr-2 h-4 w-4" /> Delete Candidate
-                </DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="text-destructive focus:text-destructive">
+                      <Trash2 className="mr-2 h-4 w-4" /> Delete Candidate
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                      <DropdownMenuLabel>Are you sure?</DropdownMenuLabel>
+                      <DropdownMenuItem
+                          onSelect={() => onDeleteCandidate(candidate)}
+                          className="text-destructive focus:text-destructive"
+                      >
+                          Confirm Deletion
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>Cancel</DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
               </>
             )}
           </DropdownMenuContent>
@@ -155,7 +165,7 @@ const ScoreBadge = ({ score }: { score?: number }) => {
 };
 
 
-export const getColumns = (onViewDetails: (candidate: Candidate) => void, onCreateStaff: (candidate: Candidate) => void, onConfirmDelete: (candidate: Candidate) => void): ColumnDef<Candidate>[] => [
+export const getColumns = (onViewDetails: (candidate: Candidate) => void, onCreateStaff: (candidate: Candidate) => void, onDeleteCandidate: (candidate: Candidate) => void): ColumnDef<Candidate>[] => [
   {
     accessorKey: 'fullName',
     header: 'Candidate',
@@ -224,6 +234,6 @@ export const getColumns = (onViewDetails: (candidate: Candidate) => void, onCrea
   },
   {
     id: 'actions',
-    cell: ({ row }) => <CellActions row={row} onCreateStaff={onCreateStaff} onConfirmDelete={onConfirmDelete} />,
+    cell: ({ row }) => <CellActions row={row} onCreateStaff={onCreateStaff} onDeleteCandidate={onDeleteCandidate} />,
   },
 ];

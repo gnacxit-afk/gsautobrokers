@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { ColumnDef, Row } from "@tanstack/react-table";
@@ -42,7 +43,7 @@ const stageColors: Record<Lead['stage'], string> = {
 interface CellActionsProps {
   row: Row<Lead>;
   onUpdateStage: (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage']) => void;
-  onConfirmDelete: (lead: Lead) => void;
+  onDeleteLead: (lead: Lead) => void;
   onUpdateOwner: (leadId: string, oldOwnerName: string, newOwnerId: string, newOwnerName: string) => void;
   onUpdateDealership: (leadId: string, newDealershipId: string) => void;
   onSendWhatsapp: (lead: Lead) => void;
@@ -50,7 +51,7 @@ interface CellActionsProps {
   dealerships: Dealership[];
 }
 
-const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onConfirmDelete, onUpdateOwner, onUpdateDealership, onSendWhatsapp, staff, dealerships }) => {
+const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDeleteLead, onUpdateOwner, onUpdateDealership, onSendWhatsapp, staff, dealerships }) => {
   const lead = row.original;
   const { toast } = useToast();
   const { user } = useAuthContext();
@@ -161,14 +162,23 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onConfirm
           )}
 
           {user?.role === 'Admin' && (
-            <>
+             <>
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                  className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                  onSelect={() => onConfirmDelete(lead)}
-              >
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="text-destructive focus:text-destructive">
                   <Trash2 className="mr-2 h-4 w-4" /> Delete Lead
-              </DropdownMenuItem>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuLabel>Are you sure?</DropdownMenuLabel>
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onSelect={() => onDeleteLead(lead)}
+                  >
+                    Confirm Deletion
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>Cancel</DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
             </>
           )}
         </DropdownMenuContent>
@@ -189,7 +199,7 @@ const getAvatarFallback = (name: string) => {
 
 export const getColumns = (
   onUpdateStage: (leadId: string, oldStage: Lead['stage'], newStage: Lead['stage']) => void,
-  onConfirmDelete: (lead: Lead) => void,
+  onDeleteLead: (lead: Lead) => void,
   onUpdateOwner: (leadId: string, oldOwnerName: string, newOwnerId: string, newOwnerName: string) => void,
   onUpdateDealership: (leadId: string, newDealershipId: string) => void,
   onSendWhatsapp: (lead: Lead) => void,
@@ -283,7 +293,7 @@ export const getColumns = (
       return <CellActions 
         row={row} 
         onUpdateStage={onUpdateStage}
-        onConfirmDelete={onConfirmDelete} 
+        onDeleteLead={onDeleteLead} 
         onUpdateOwner={onUpdateOwner}
         onUpdateDealership={onUpdateDealership}
         onSendWhatsapp={onSendWhatsapp}

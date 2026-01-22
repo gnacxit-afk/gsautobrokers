@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
@@ -14,6 +15,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import type { Staff } from "@/lib/types";
@@ -21,7 +25,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface CellActionsProps {
   staffMember: Staff;
-  onConfirmDelete: (staff: Staff) => void;
+  onDeleteStaff: (staff: Staff) => void;
   isMasterAdmin: boolean;
   allStaff: Staff[];
 }
@@ -35,7 +39,7 @@ const getAvatarFallback = (name: string) => {
   return name.substring(0, 2).toUpperCase();
 };
 
-const CellActions: React.FC<CellActionsProps> = ({ staffMember, onConfirmDelete, isMasterAdmin, allStaff }) => {
+const CellActions: React.FC<CellActionsProps> = ({ staffMember, onDeleteStaff, isMasterAdmin, allStaff }) => {
   const router = useRouter();
 
   const isEditingMasterAdmin = isMasterAdmin && staffMember.email === 'gnacxit@gmail.com';
@@ -66,12 +70,21 @@ const CellActions: React.FC<CellActionsProps> = ({ staffMember, onConfirmDelete,
           {isMasterAdmin && !isEditingMasterAdmin && (
             <>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onSelect={() => onConfirmDelete(staffMember)}
-                className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-              >
-                <Trash2 className="mr-2 h-4 w-4" /> Delete Profile
-              </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="text-destructive focus:text-destructive">
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete Profile
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuLabel>Are you sure?</DropdownMenuLabel>
+                  <DropdownMenuItem
+                    onSelect={() => onDeleteStaff(staffMember)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    Confirm Deletion
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>Cancel</DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
             </>
           )}
         </DropdownMenuContent>
@@ -80,7 +93,7 @@ const CellActions: React.FC<CellActionsProps> = ({ staffMember, onConfirmDelete,
   );
 };
 
-export const getColumns = ({ onConfirmDelete, isMasterAdmin, allStaff }: { onConfirmDelete: (staff: Staff) => void; isMasterAdmin: boolean; allStaff: Staff[] }): ColumnDef<Staff>[] => [
+export const getColumns = ({ onDeleteStaff, isMasterAdmin, allStaff }: { onDeleteStaff: (staff: Staff) => void; isMasterAdmin: boolean; allStaff: Staff[] }): ColumnDef<Staff>[] => [
   {
     accessorKey: "name",
     header: "Employee",
@@ -133,7 +146,7 @@ export const getColumns = ({ onConfirmDelete, isMasterAdmin, allStaff }: { onCon
       return (
         <CellActions
           staffMember={row.original}
-          onConfirmDelete={onConfirmDelete}
+          onDeleteStaff={onDeleteStaff}
           isMasterAdmin={isMasterAdmin}
           allStaff={allStaff}
         />

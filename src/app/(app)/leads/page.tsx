@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
@@ -35,7 +36,6 @@ import { isWithinInterval, isValid } from "date-fns";
 import { addNoteEntry, createNotification } from "@/lib/utils";
 import { matchSorter } from 'match-sorter';
 import { SendWhatsappDialog } from "./components/send-whatsapp-dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 function LeadsPageContent() {
   const { user } = useUser();
@@ -49,7 +49,6 @@ function LeadsPageContent() {
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 100 });
   const [expanded, setExpanded] = useState({});
   const [whatsAppLead, setWhatsAppLead] = useState<Lead | null>(null);
-  const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
   
   // Structured filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -164,7 +163,7 @@ function LeadsPageContent() {
     }
   }, [firestore, user, toast, leadsSnapshot]);
 
-  const executeDelete = useCallback(async () => {
+  const handleDeleteLead = useCallback(async (leadToDelete: Lead) => {
     if (!leadToDelete || !firestore) return;
 
     const leadRef = doc(firestore, 'leads', leadToDelete.id);
@@ -173,10 +172,8 @@ function LeadsPageContent() {
         toast({ title: "Lead Deleted", description: `The lead "${leadToDelete.name}" has been removed.` });
     } catch (error) {
          toast({ title: "Error Deleting Lead", description: "Could not remove the lead.", variant: "destructive" });
-    } finally {
-        setLeadToDelete(null);
     }
-  }, [firestore, toast, leadToDelete]);
+  }, [firestore, toast]);
 
   const handleAddLead = useCallback(async (newLeadData: Omit<Lead, 'id' | 'createdAt' | 'ownerName' | 'dealershipName'> & { initialNotes?: string }, callback?: (lead: Lead) => void) => {
     if (!firestore || !user || !staffData || !dealershipsData) return;
@@ -293,8 +290,8 @@ function LeadsPageContent() {
   /* ------------------------------- table setup -------------------------------- */
   
   const columns = useMemo(
-    () => getColumns(handleUpdateStage, setLeadToDelete, handleUpdateOwner, handleUpdateDealership, handleSendWhatsapp, staffData, dealershipsData),
-    [handleUpdateStage, handleUpdateOwner, handleUpdateDealership, handleSendWhatsapp, staffData, dealershipsData]
+    () => getColumns(handleUpdateStage, handleDeleteLead, handleUpdateOwner, handleUpdateDealership, handleSendWhatsapp, staffData, dealershipsData),
+    [handleUpdateStage, handleDeleteLead, handleUpdateOwner, handleUpdateDealership, handleSendWhatsapp, staffData, dealershipsData]
   );
 
   const table = useReactTable({
@@ -330,25 +327,6 @@ function LeadsPageContent() {
         isOpen={!!whatsAppLead}
         onClose={() => setWhatsAppLead(null)}
       />
-       <AlertDialog open={!!leadToDelete} onOpenChange={() => setLeadToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the lead "{leadToDelete?.name}".
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={executeDelete}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Yes, delete lead
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </main>
   );
 }

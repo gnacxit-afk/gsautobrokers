@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useState, useCallback } from 'react';
@@ -15,8 +16,6 @@ import { SendNotificationDialog } from './components/send-notification-dialog';
 import { getColumns } from './components/columns';
 import { StaffDataTable } from './components/staff-data-table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-
 
 export default function StaffPage() {
   const { user } = useUser();
@@ -29,10 +28,8 @@ export default function StaffPage() {
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
-  const [staffToDelete, setStaffToDelete] = useState<Staff | null>(null);
 
-
-  const executeDelete = useCallback(async () => {
+  const handleDeleteStaff = useCallback(async (staffToDelete: Staff) => {
     if (!firestore || !staff || !staffToDelete) return;
     try {
       const masterAdmin = staff.find(s => s.email === MASTER_ADMIN_EMAIL);
@@ -68,12 +65,10 @@ export default function StaffPage() {
         description: error.message || "Could not delete the profile.",
         variant: "destructive"
       });
-    } finally {
-      setStaffToDelete(null);
     }
-  }, [firestore, staff, staffToDelete, MASTER_ADMIN_EMAIL, toast]);
+  }, [firestore, staff, MASTER_ADMIN_EMAIL, toast]);
 
-  const columns = useMemo(() => getColumns({ onConfirmDelete: setStaffToDelete, isMasterAdmin: user?.email === MASTER_ADMIN_EMAIL, allStaff: staff || [] }), [user?.email, MASTER_ADMIN_EMAIL, staff]);
+  const columns = useMemo(() => getColumns({ onDeleteStaff: handleDeleteStaff, isMasterAdmin: user?.email === MASTER_ADMIN_EMAIL, allStaff: staff || [] }), [user?.email, MASTER_ADMIN_EMAIL, staff, handleDeleteStaff]);
 
   const { myTeam, otherStaff } = useMemo(() => {
     if (!user || !staff) return { myTeam: [], otherStaff: [] };
@@ -165,24 +160,6 @@ export default function StaffPage() {
               </TabsContent>
           </Tabs>
       )}
-
-      <AlertDialog open={!!staffToDelete} onOpenChange={() => setStaffToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the profile for <span className="font-bold">{staffToDelete?.name}</span> and reassign their leads.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={executeDelete} className="bg-destructive hover:bg-destructive/90">
-              Yes, delete profile
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
     </main>
   );
 }
