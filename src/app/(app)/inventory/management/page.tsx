@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
+import Link from "next/link";
 
 const vehicles = [{
   name: '2023 Toyota Corolla',
@@ -64,6 +65,22 @@ const vehicles = [{
 export default function InventoryManagementPage() {
   return (
     <div className="space-y-8">
+        <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Inventory Management</h2>
+            <div className="relative w-full max-w-lg group">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <Search className="text-xl" />
+                </div>
+                <input className="block w-full pl-10 pr-3 py-2.5 border-none bg-[#edf2f7] dark:bg-slate-800 rounded-xl focus:ring-0 text-sm placeholder:text-slate-500" placeholder="Search year, make, model or VIN..." type="text"/>
+            </div>
+            <div className="flex items-center gap-4">
+                <Link href="/inventory/add" className="flex items-center gap-2 bg-primary hover:bg-blue-600 text-white px-5 py-2.5 rounded-full font-bold text-sm transition-all shadow-sm shadow-primary/20">
+                    <PlusCircle className="text-lg" />
+                    <span>Add New Vehicle</span>
+                </Link>
+            </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-6">
             <div className="size-14 rounded-full bg-[#f0f7ff] dark:bg-blue-900/30 flex items-center justify-center text-primary">
@@ -186,3 +203,5 @@ export default function InventoryManagementPage() {
       </div>
   );
 }
+
+    
