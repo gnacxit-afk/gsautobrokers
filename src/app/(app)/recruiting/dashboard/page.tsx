@@ -2,13 +2,14 @@
 
 import React, { useMemo } from 'react';
 import { useFirestore, useCollection } from '@/firebase';
-import { collection } from 'firebase/firestore';
-import type { Candidate } from '@/lib/types';
+import { collection, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import type { Candidate, PipelineStatus } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users, UserCheck, BadgePercent, Clock } from 'lucide-react';
 import { differenceInDays, isValid } from 'date-fns';
 import { KanbanBoard } from '../components/kanban-board';
+import { useToast } from '@/hooks/use-toast';
 
 const StatCard = ({ title, value, icon: Icon, loading }: { title: string, value: string, icon: React.ElementType, loading: boolean }) => (
     <Card>
@@ -24,6 +25,7 @@ const StatCard = ({ title, value, icon: Icon, loading }: { title: string, value:
 
 export default function RecruitingDashboard() {
     const firestore = useFirestore();
+    const { toast } = useToast();
     const candidatesQuery = useMemo(() => firestore ? collection(firestore, 'candidates') : null, [firestore]);
     const { data: candidates, loading } = useCollection<Candidate>(candidatesQuery);
 
@@ -66,6 +68,24 @@ export default function RecruitingDashboard() {
             avgActivationTime,
         };
     }, [candidates]);
+    
+    const handleStatusChange = async (candidateId: string, newStatus: PipelineStatus) => {
+        if (!firestore) return;
+
+        try {
+            const candidateRef = doc(firestore, 'candidates', candidateId);
+            await updateDoc(candidateRef, {
+                pipelineStatus: newStatus,
+                lastStatusChangeDate: serverTimestamp(),
+            });
+            
+            toast({ title: 'Status Updated', description: `Candidate status changed to ${newStatus}.` });
+        } catch (error) {
+            console.error("Error updating status:", error);
+            toast({ title: 'Update Failed', description: 'Could not update candidate status.', variant: 'destructive' });
+        }
+    };
+
 
     return (
         <main className="flex-1 space-y-6">
@@ -80,7 +100,11 @@ export default function RecruitingDashboard() {
 
             <div className="space-y-6">
                 <h2 className="text-xl font-bold">Candidate Pipeline</h2>
-                <KanbanBoard candidates={candidates || []} isLoading={loading} />
+                <KanbanBoard 
+                    candidates={candidates || []} 
+                    isLoading={loading}
+                    onStatusChange={handleStatusChange}
+                />
             </div>
             
         </main>
