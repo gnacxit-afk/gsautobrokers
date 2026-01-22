@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -34,7 +35,22 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https' as const,
+        hostname: 'i.ibb.co',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https' as const,
+        hostname: 'i.postimg.cc',
+        port: '',
+        pathname: '/**',
+      }
     ],
+  },
+  experimental: {
+    allowedDevOrigins: ["https://6000-firebase-studio-1767064926867.cluster-dwvm25yncracsxpd26rcd5ja3m.cloudworkstations.dev"],
   },
   eslint: {
     ignoreDuringBuilds: true,
