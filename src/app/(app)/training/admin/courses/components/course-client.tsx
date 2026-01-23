@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
@@ -20,9 +21,10 @@ import { CourseDialog } from './course-dialog';
 interface CourseClientProps {
   initialCourses: Course[];
   loading: boolean;
+  onSetDefault: (course: Course) => void;
 }
 
-export function CourseClient({ initialCourses, loading }: CourseClientProps) {
+export function CourseClient({ initialCourses, loading, onSetDefault }: CourseClientProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -66,7 +68,7 @@ export function CourseClient({ initialCourses, loading }: CourseClientProps) {
   };
 
 
-  const columns = useMemo(() => getColumns({ onEdit: handleOpenDialog, onTogglePublish: handleTogglePublish, onDelete: handleDeleteCourse }), []);
+  const columns = useMemo(() => getColumns({ onEdit: handleOpenDialog, onTogglePublish: handleTogglePublish, onDelete: handleDeleteCourse, onSetDefault }), [onSetDefault]);
 
   const table = useReactTable({
     data: initialCourses,
@@ -94,6 +96,7 @@ export function CourseClient({ initialCourses, loading }: CourseClientProps) {
                 ...courseData,
                 authorId: user.id,
                 published: false, // Always start as draft
+                isDefaultOnboarding: false,
                 createdAt: serverTimestamp(),
             });
             toast({ title: 'Course Created', description: 'Your new course has been saved as a draft.' });
@@ -126,3 +129,4 @@ export function CourseClient({ initialCourses, loading }: CourseClientProps) {
     </>
   );
 }
+

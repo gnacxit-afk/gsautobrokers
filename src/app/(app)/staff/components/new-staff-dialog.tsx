@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -19,8 +20,19 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import type { Staff, Role, Candidate } from '@/lib/types';
+import {
+  collection,
+  doc,
+  setDoc,
+  serverTimestamp,
+  query,
+  where,
+  limit,
+  getDocs,
+  arrayUnion,
+  updateDoc,
+} from 'firebase/firestore';
+import type { Staff, Role, Candidate, Course } from '@/lib/types';
 import { Eye, EyeOff } from 'lucide-react';
 import { initializeApp, deleteApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
@@ -81,18 +93,14 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
       return;
     }
 
-    // Create a temporary, isolated Firebase app instance for user creation
-    // to avoid logging out the current admin user.
     const tempAppName = `user-creation-${Date.now()}`;
     const tempApp = initializeApp(firebaseConfig, tempAppName);
     const tempAuth = getAuth(tempApp);
     
     try {
-      // 1. Create the Firebase Auth user using the temporary auth instance
       const userCredential = await createUserWithEmailAndPassword(tempAuth, data.email, data.password);
       const authUser = userCredential.user;
 
-      // 2. Create the staff profile in Firestore using the Auth UID as the document ID
       const newStaffMember: Omit<Staff, 'id'> = {
         authUid: authUser.uid,
         name: data.name,
@@ -101,23 +109,60 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
         dui: data.dui,
         createdAt: serverTimestamp(),
         hireDate: serverTimestamp(),
-        avatarUrl: '', // Default avatar
+        avatarUrl: '',
+        enrolledCourses: [],
       };
       
       const staffDocRef = doc(firestore, 'staff', authUser.uid);
       await setDoc(staffDocRef, newStaffMember);
 
-      // 3. If this was from a candidate, run the callback to update their status
       if (candidate && onStaffCreated) {
         await onStaffCreated(candidate.id);
       }
+      
+      // Auto-enrollment logic
+      try {
+        const coursesRef = collection(firestore, 'courses');
+        const q = query(coursesRef, where('isDefaultOnboarding', '==', true), limit(1));
+        const courseSnapshot = await getDocs(q);
 
-      toast({
-        title: 'Employee Registered',
-        description: `${data.name} has been added to the staff.`,
-      });
+        if (!courseSnapshot.empty) {
+          const defaultCourse = { id: courseSnapshot.docs[0].id, ...courseSnapshot.docs[0].data() } as Course;
+          
+          const progressRef = doc(firestore, 'userProgress', `${authUser.uid}_${defaultCourse.id}`);
+          await setDoc(progressRef, {
+            userId: authUser.uid,
+            courseId: defaultCourse.id,
+            completed: false,
+            lessonProgress: {},
+            quizScores: {},
+          });
 
-      onOpenChange(false); // Close dialog on success
+          await updateDoc(staffDocRef, {
+            enrolledCourses: arrayUnion(defaultCourse.id)
+          });
+          
+          toast({
+            title: 'Employee Registered & Enrolled!',
+            description: `${data.name} has been added and automatically enrolled in the onboarding course.`,
+          });
+
+        } else {
+           toast({
+            title: 'Employee Registered',
+            description: `${data.name} has been added to the staff. No default onboarding course was found.`,
+          });
+        }
+      } catch (enrollError) {
+        console.error("Error during auto-enrollment:", enrollError);
+        toast({
+          title: 'Employee Registered, Enrollment Failed',
+          description: `Staff profile for ${data.name} was created, but automatic course enrollment failed. Please enroll them manually.`,
+          variant: 'destructive'
+        });
+      }
+
+      onOpenChange(false);
     } catch (error: any) {
       console.error("Error creating staff:", error);
       toast({
@@ -128,12 +173,10 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
         variant: 'destructive',
       });
     } finally {
-        // 4. Clean up the temporary app instance
         await deleteApp(tempApp);
     }
   };
   
-  // If children are provided, it's the original trigger-based usage
   if (children) {
     return (
        <Dialog onOpenChange={onOpenChange}>
@@ -211,7 +254,6 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
     )
   }
 
-  // Controlled component usage (for converting candidates)
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[425px]">
@@ -286,3 +328,4 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
     </Dialog>
   );
 }
+

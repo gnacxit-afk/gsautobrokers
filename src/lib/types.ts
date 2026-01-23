@@ -1,5 +1,6 @@
 
 
+
 import type { LucideIcon } from "lucide-react";
 import type { Timestamp } from "firebase/firestore";
 import { z } from 'zod';
@@ -239,6 +240,7 @@ export type Course = {
   published: boolean;
   authorId: string;
   createdAt: Timestamp;
+  isDefaultOnboarding?: boolean;
 };
 
 export type Module = {
@@ -327,3 +329,4 @@ export type Vehicle = {
   soldBy?: string; // UID of the staff member who sold it
   soldAt?: Timestamp; // Timestamp of when it was sold
 };
+

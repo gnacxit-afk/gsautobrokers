@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { ColumnDef } from '@tanstack/react-table';
@@ -5,7 +6,7 @@ import type { Course } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Edit, Trash2, BookOpen, Eye, EyeOff } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, BookOpen, Eye, EyeOff, Star } from 'lucide-react';
 import { format, isValid } from 'date-fns';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -15,9 +16,10 @@ interface ColumnActionsProps {
   onEdit: (course: Course) => void;
   onTogglePublish: (course: Course) => void;
   onDelete: (courseId: string) => void;
+  onSetDefault: (course: Course) => void;
 }
 
-const ColumnActions: React.FC<ColumnActionsProps> = ({ course, onEdit, onTogglePublish, onDelete }) => {
+const ColumnActions: React.FC<ColumnActionsProps> = ({ course, onEdit, onTogglePublish, onDelete, onSetDefault }) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -35,6 +37,9 @@ const ColumnActions: React.FC<ColumnActionsProps> = ({ course, onEdit, onToggleP
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => onEdit(course)}>
           <Edit className="mr-2 h-4 w-4" /> Edit Details
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => onSetDefault(course)} disabled={course.isDefaultOnboarding}>
+            <Star className="mr-2 h-4 w-4" /> Set as Default Onboarding
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => onTogglePublish(course)}>
             {course.published ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
@@ -58,7 +63,7 @@ const ColumnActions: React.FC<ColumnActionsProps> = ({ course, onEdit, onToggleP
 };
 
 export const getColumns = (
-    { onEdit, onTogglePublish, onDelete } : { onEdit: (course: Course) => void; onTogglePublish: (course: Course) => void; onDelete: (courseId: string) => void; }
+    { onEdit, onTogglePublish, onDelete, onSetDefault } : { onEdit: (course: Course) => void; onTogglePublish: (course: Course) => void; onDelete: (courseId: string) => void; onSetDefault: (course: Course) => void; }
 ): ColumnDef<Course>[] => [
   {
     accessorKey: 'title',
@@ -67,7 +72,14 @@ export const getColumns = (
       const course = row.original;
       return (
         <div className="flex flex-col">
-          <span className="font-semibold text-slate-800">{course.title}</span>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-slate-800">{course.title}</span>
+            {course.isDefaultOnboarding && (
+                <Badge variant="outline" className="text-blue-600 border-blue-200">
+                    <Star className="mr-1 h-3 w-3" /> Default Onboarding
+                </Badge>
+            )}
+          </div>
           <span className="text-xs text-muted-foreground">{course.description}</span>
         </div>
       );
@@ -110,6 +122,7 @@ export const getColumns = (
   },
   {
     id: 'actions',
-    cell: ({ row }) => <ColumnActions course={row.original} onEdit={onEdit} onTogglePublish={onTogglePublish} onDelete={onDelete} />,
+    cell: ({ row }) => <ColumnActions course={row.original} onEdit={onEdit} onTogglePublish={onTogglePublish} onDelete={onDelete} onSetDefault={onSetDefault} />,
   },
 ];
+
