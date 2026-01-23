@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import ReactPlayer from 'react-player/vimeo';
+import ReactPlayer from 'react-player';
 import { v4 as uuidv4 } from 'uuid';
 import {
   Dialog,

@@ -103,7 +103,7 @@ export function EditPanel({ editingItem, onSave, onCancel }: EditPanelProps) {
             <>
               <div className="space-y-2">
                 <Label htmlFor="videoUrl" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Video URL</Label>
-                <Input id="videoUrl" {...register('videoUrl')} placeholder="https://vimeo.com/..." />
+                <Input id="videoUrl" {...register('videoUrl')} placeholder="https://youtube.com/watch?v=..." />
                  {errors.videoUrl && <p className="text-xs text-destructive">{(errors.videoUrl as any).message}</p>}
               </div>
               <div className="space-y-2">
