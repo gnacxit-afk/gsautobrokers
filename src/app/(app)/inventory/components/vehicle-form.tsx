@@ -1,23 +1,30 @@
-
 'use client';
 
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { Vehicle, Dealership } from '@/lib/types';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useFirestore, useUser, useCollection } from '@/firebase';
-import { addDoc, collection, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, serverTimestamp, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Save, Send } from 'lucide-react';
+import { ArrowLeft, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const vehicleSchema = z.object({
   year: z.coerce.number().min(1980, "Must be after 1980").max(new Date().getFullYear() + 1),
@@ -48,6 +55,7 @@ interface VehicleFormProps {
 export function VehicleForm({ vehicle }: VehicleFormProps) {
   const router = useRouter();
   const firestore = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
   const isEditing = !!vehicle;
   const [newVehicleId] = useState(() => uuidv4().split('-')[0].toUpperCase());
@@ -140,6 +148,17 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
     }
   };
 
+  const handleDelete = async () => {
+    if (!firestore || !isEditing || !vehicle?.id) return;
+    try {
+        await deleteDoc(doc(firestore, 'inventory', vehicle.id));
+        toast({ title: 'Vehicle Deleted', description: 'The vehicle has been successfully removed from inventory.' });
+        router.push('/inventory/management');
+    } catch (error: any) {
+        toast({ title: 'Deletion Failed', description: error.message, variant: 'destructive' });
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         <div className="flex justify-between items-center">
@@ -156,6 +175,25 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
                 <Button type="submit" disabled={isSubmitting}>
                     <Save className="mr-2 h-4 w-4" /> {isSubmitting ? 'Saving...' : 'Save Changes'}
                 </Button>
+                {isEditing && (user?.role === 'Admin' || user?.role === 'Supervisor') && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="destructive">
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuLabel>Are you sure?</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={handleDelete} className="text-destructive focus:text-destructive">
+                                Yes, confirm deletion
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                                Cancel
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
             </div>
         </div>
 
