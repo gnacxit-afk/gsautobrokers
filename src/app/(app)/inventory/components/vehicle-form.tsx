@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ArrowLeft, Save, Send } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { Textarea } from '@/components/ui/textarea';
 
 const vehicleSchema = z.object({
   year: z.coerce.number().min(1980, "Must be after 1980").max(new Date().getFullYear() + 1),
@@ -35,7 +36,7 @@ const vehicleSchema = z.object({
   fuelType: z.enum(['Gasoline', 'Diesel', 'Electric', 'Hybrid']),
   status: z.enum(['Active', 'Pending', 'Sold']),
   dealershipId: z.string().min(1, "Dealership is required."),
-  photos: z.array(z.string().url().or(z.literal(''))).optional().default(['','','','','']),
+  photoUrls: z.string().optional(),
 });
 
 type VehicleFormValues = z.infer<typeof vehicleSchema>;
@@ -57,18 +58,31 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
 
   const { register, handleSubmit, control, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm<VehicleFormValues>({
     resolver: zodResolver(vehicleSchema),
-    defaultValues: isEditing ? {
-        ...vehicle,
-        photos: Array.isArray(vehicle.photos) ? [...vehicle.photos, ...Array(5 - vehicle.photos.length).fill('')] : Array(5).fill(''),
-    } : {
-        condition: 'Used',
-        transmission: 'Automatic',
-        fuelType: 'Gasoline',
-        status: 'Active',
-        photos: Array(5).fill(''),
-        stockNumber: 'Select a dealership to generate',
-    }
   });
+
+  useEffect(() => {
+    if (isEditing && vehicle) {
+        const { photos, ...vehicleData } = vehicle;
+        reset({
+            ...vehicleData,
+            photoUrls: photos?.join('\n') || '',
+        });
+    } else {
+        reset({
+            condition: 'Used',
+            transmission: 'Automatic',
+            fuelType: 'Gasoline',
+            status: 'Active',
+            stockNumber: 'Select a dealership to generate',
+            photoUrls: '',
+            year: new Date().getFullYear(),
+            cashPrice: 0,
+            downPayment: 0,
+            mileage: 0,
+        });
+    }
+  }, [isEditing, vehicle, reset]);
+
 
   const watchedDealershipId = watch('dealershipId');
 
@@ -96,10 +110,14 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
         toast({ title: 'Error', description: 'Selected dealership not found.', variant: 'destructive'});
         return;
     }
+    
+    const { photoUrls, ...restOfData } = data;
+    const photos = photoUrls ? photoUrls.split('\n').map(url => url.trim()).filter(url => url) : [];
+
 
     const processedData = {
-        ...data,
-        photos: data.photos?.filter(url => url && url.trim() !== '') || [],
+        ...restOfData,
+        photos,
         dealershipCode: selectedDealership.dealershipCode,
         commission: selectedDealership.commission,
     };
@@ -107,7 +125,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
     try {
         if (isEditing && vehicle.id) {
             const vehicleRef = doc(firestore, 'inventory', vehicle.id);
-            await updateDoc(vehicleRef, processedData);
+            await updateDoc(vehicleRef, processedData as any);
             toast({ title: 'Vehicle Updated', description: 'The vehicle details have been saved.' });
         } else {
             await addDoc(collection(firestore, 'inventory'), {
@@ -187,16 +205,26 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
         </Card>
         
         <Card>
-            <CardHeader><CardTitle>Photos</CardTitle><CardDescription>Enter the URLs for the vehicle photos. The first URL will be used as the main image.</CardDescription></CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[...Array(5)].map((_, index) => (
-                    <div className="space-y-2" key={index}>
-                        <Label>Photo URL {index + 1}</Label>
-                        <Input {...register(`photos.${index}`)} placeholder="https://..."/>
-                    </div>
-                ))}
+            <CardHeader>
+                <CardTitle>Photos</CardTitle>
+                <CardDescription>
+                    Paste direct image URLs, one per line. The first URL will be the main image. You can get these links from a service like Postimages.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-2">
+                    <Label htmlFor="photoUrls">Image URLs</Label>
+                    <Textarea
+                        id="photoUrls"
+                        {...register('photoUrls')}
+                        placeholder="https://.../image1.jpg&#10;https://.../image2.png&#10;https://.../image3.webp"
+                        rows={5}
+                    />
+                    {errors.photoUrls && <p className="text-xs text-destructive">{errors.photoUrls.message}</p>}
+                </div>
             </CardContent>
         </Card>
+
          <Card>
             <CardHeader><CardTitle>Listing Status</CardTitle></CardHeader>
             <CardContent>
