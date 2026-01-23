@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { Module, Lesson } from '@/lib/types';
-import { GripVertical, Plus, Edit, Trash2, PlayCircle, BookText } from 'lucide-react';
+import { GripVertical, Plus, Edit, Trash2, PlayCircle, BookText, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -15,6 +15,7 @@ interface ModuleListProps {
   onEdit: (type: 'module' | 'lesson', data: Module | Lesson) => void;
   onDelete: (type: 'module' | 'lesson', id: string) => void;
   onReorder: (type: 'module' | 'lesson', reorderedItems: any[]) => void;
+  onManageQuiz: (lesson: Lesson) => void;
 }
 
 export function ModuleList({
@@ -25,6 +26,7 @@ export function ModuleList({
   onEdit,
   onDelete,
   onReorder,
+  onManageQuiz,
 }: ModuleListProps) {
   
   const [draggedItem, setDraggedItem] = useState<{type: 'module' | 'lesson', id: string} | null>(null);
@@ -113,6 +115,7 @@ export function ModuleList({
                             <span className="text-[10px] font-bold text-slate-400 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 uppercase">
                                 {lesson.duration} min
                             </span>
+                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onManageQuiz(lesson)}><ClipboardList size={14} /></Button>
                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onEdit('lesson', lesson)}><Edit size={14} /></Button>
                             <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/70 hover:text-destructive" onClick={() => onDelete('lesson', lesson.id)}><Trash2 size={14} /></Button>
                         </div>

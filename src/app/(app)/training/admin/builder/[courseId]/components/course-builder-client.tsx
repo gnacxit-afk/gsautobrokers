@@ -25,6 +25,7 @@ import Link from 'next/link';
 import { ModuleList } from './module-list';
 import { EditPanel } from './edit-panel';
 import { useToast } from '@/hooks/use-toast';
+import { QuizManagerDialog } from './quiz-manager-dialog';
 
 interface CourseBuilderClientProps {
   course: Course;
@@ -39,6 +40,8 @@ export function CourseBuilderClient({ course }: CourseBuilderClientProps) {
     data: Partial<Module> | Partial<Lesson> | null;
     moduleId?: string; // To know which module a new lesson belongs to
   } | null>(null);
+
+  const [quizLesson, setQuizLesson] = useState<Lesson | null>(null);
 
   const modulesQuery = useMemo(
     () =>
@@ -77,6 +80,10 @@ export function CourseBuilderClient({ course }: CourseBuilderClientProps) {
   const handleCancelEdit = useCallback(() => {
     setEditingItem(null);
   }, []);
+  
+  const handleManageQuiz = (lesson: Lesson) => {
+    setQuizLesson(lesson);
+  };
 
   const handleSave = async (
     type: 'module' | 'lesson',
@@ -162,46 +169,56 @@ export function CourseBuilderClient({ course }: CourseBuilderClientProps) {
   };
 
   return (
-    <div className="h-full flex flex-col">
-      <header className="h-16 flex items-center justify-between px-6 bg-white dark:bg-slate-900 border-b border-border-light dark:border-slate-800 z-10 shrink-0">
-        <div className="flex items-center gap-4">
-          <Button asChild variant="outline" size="icon" className="h-9 w-9">
-            <Link href="/training/admin/courses">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div>
-            <nav className="text-xs text-slate-500 mb-0.5">
-              <span>Courses / Builder</span>
-            </nav>
-            <h1 className="text-sm font-bold tracking-tight">{course.title}</h1>
+    <>
+      <div className="h-full flex flex-col">
+        <header className="h-16 flex items-center justify-between px-6 bg-white dark:bg-slate-900 border-b border-border-light dark:border-slate-800 z-10 shrink-0">
+          <div className="flex items-center gap-4">
+            <Button asChild variant="outline" size="icon" className="h-9 w-9">
+              <Link href="/training/admin/courses">
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+            </Button>
+            <div>
+              <nav className="text-xs text-slate-500 mb-0.5">
+                <span>Courses / Builder</span>
+              </nav>
+              <h1 className="text-sm font-bold tracking-tight">{course.title}</h1>
+            </div>
           </div>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm">Preview Course</Button>
+            <Button size="sm">Publish Changes</Button>
+          </div>
+        </header>
+        <div className="flex flex-1 overflow-hidden">
+          <main className="w-full md:w-[60%] flex flex-col bg-slate-50 dark:bg-slate-950 border-r border-border-light dark:border-slate-800 overflow-y-auto">
+            <ModuleList
+              modules={modules || []}
+              lessons={lessons || []}
+              loading={modulesLoading || lessonsLoading}
+              onAddNew={handleAddNew}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onReorder={handleReorder}
+              onManageQuiz={handleManageQuiz}
+            />
+          </main>
+          <aside className="hidden md:flex w-[40%] flex-col bg-white dark:bg-slate-900 overflow-hidden">
+            <EditPanel 
+              editingItem={editingItem}
+              onSave={handleSave}
+              onCancel={handleCancelEdit}
+            />
+          </aside>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm">Preview Course</Button>
-          <Button size="sm">Publish Changes</Button>
-        </div>
-      </header>
-      <div className="flex flex-1 overflow-hidden">
-        <main className="w-full md:w-[60%] flex flex-col bg-slate-50 dark:bg-slate-950 border-r border-border-light dark:border-slate-800 overflow-y-auto">
-          <ModuleList
-            modules={modules || []}
-            lessons={lessons || []}
-            loading={modulesLoading || lessonsLoading}
-            onAddNew={handleAddNew}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onReorder={handleReorder}
-          />
-        </main>
-        <aside className="hidden md:flex w-[40%] flex-col bg-white dark:bg-slate-900 overflow-hidden">
-          <EditPanel 
-            editingItem={editingItem}
-            onSave={handleSave}
-            onCancel={handleCancelEdit}
-          />
-        </aside>
       </div>
-    </div>
+      {quizLesson && (
+        <QuizManagerDialog 
+            lesson={quizLesson}
+            isOpen={!!quizLesson}
+            onClose={() => setQuizLesson(null)}
+        />
+      )}
+    </>
   );
 }
