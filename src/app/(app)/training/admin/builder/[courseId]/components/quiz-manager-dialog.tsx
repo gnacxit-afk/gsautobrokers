@@ -38,6 +38,7 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { FormDescription } from '@/components/ui/form';
 
 const questionSchema = z.object({
   type: z.enum(['single', 'multiple', 'open']),
@@ -45,6 +46,7 @@ const questionSchema = z.object({
   options: z.array(z.string()).default(['', '', '', '']),
   correctIndex: z.coerce.number().optional(),
   correctIndices: z.array(z.number()).optional(),
+  timestamp: z.coerce.number().optional(),
 }).superRefine((data, ctx) => {
   if (data.type === 'single' || data.type === 'multiple') {
     if (data.options.length !== 4 || data.options.some(opt => opt.trim() === '')) {
@@ -131,9 +133,10 @@ export function QuizManagerDialog({ lesson, isOpen, onClose }: QuizManagerDialog
         options: editingQuestion.options || ['', '', '', ''],
         correctIndex: editingQuestion.correctIndex,
         correctIndices: editingQuestion.correctIndices || [],
+        timestamp: editingQuestion.timestamp,
       });
     } else {
-      reset({ type: 'single', question: '', options: ['', '', '', ''], correctIndex: undefined, correctIndices: [] });
+      reset({ type: 'single', question: '', options: ['', '', '', ''], correctIndex: undefined, correctIndices: [], timestamp: undefined });
     }
   }, [editingQuestion, reset]);
 
@@ -144,6 +147,7 @@ export function QuizManagerDialog({ lesson, isOpen, onClose }: QuizManagerDialog
         type: formData.type,
         question: formData.question,
         options: [],
+        timestamp: formData.timestamp,
     };
 
     if (formData.type === 'single') {
@@ -274,6 +278,7 @@ export function QuizManagerDialog({ lesson, isOpen, onClose }: QuizManagerDialog
                                     <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{index + 1}. {q.question}</p>
                                     <div className="flex items-center gap-2">
                                         <Badge variant="outline" className="capitalize">{q.type.replace('-', ' ')}</Badge>
+                                        {q.timestamp && <Badge variant="secondary">{q.timestamp}s</Badge>}
                                         {q.type === 'single' && (
                                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
                                                 Correct: "{q.options[q.correctIndex!]}"
@@ -310,24 +315,31 @@ export function QuizManagerDialog({ lesson, isOpen, onClose }: QuizManagerDialog
                             <Textarea id="question" {...register('question')} className="mt-2" />
                             {errors.question && <p className="text-xs text-destructive mt-1">{errors.question.message}</p>}
                         </div>
-                        <div className="space-y-2">
-                             <Label htmlFor="type" className="font-semibold">Question Type</Label>
-                             <Controller
-                                control={control}
-                                name="type"
-                                render={({ field }) => (
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <SelectTrigger id="type" className="mt-2">
-                                            <SelectValue placeholder="Select type" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="single">Single Choice</SelectItem>
-                                            <SelectItem value="multiple">Multiple Choice</SelectItem>
-                                            <SelectItem value="open">Open Answer</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                )}
-                            />
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="type" className="font-semibold">Question Type</Label>
+                                <Controller
+                                    control={control}
+                                    name="type"
+                                    render={({ field }) => (
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <SelectTrigger id="type" className="mt-2">
+                                                <SelectValue placeholder="Select type" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="single">Single Choice</SelectItem>
+                                                <SelectItem value="multiple">Multiple Choice</SelectItem>
+                                                <SelectItem value="open">Open Answer</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="timestamp" className="font-semibold">Timestamp (seconds)</Label>
+                                <Input id="timestamp" type="number" {...register('timestamp')} placeholder="e.g., 125" />
+                                <FormDescription className="text-xs">Leave blank if this is an end-of-lesson question.</FormDescription>
+                            </div>
                         </div>
                     </div>
                     {watchedType !== 'open' && (

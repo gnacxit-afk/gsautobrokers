@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useMemo, useEffect, useRef, useState } from 'react';
 import { useFirestore, useUser, useDoc, useCollection } from '@/firebase';
 import { doc, updateDoc, serverTimestamp, setDoc, getDoc, collection, query, where, getDocs, addDoc, arrayUnion } from 'firebase/firestore';
-import type { Lesson, Quiz, UserProgress, Course } from '@/lib/types';
+import type { Lesson, Quiz, UserProgress, Course, QuizQuestion } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -106,31 +106,163 @@ function QuizModal({ quiz, isOpen, onSubmit }: { quiz: Quiz; isOpen: boolean; on
     );
 }
 
+function InVideoQuizModal({ question, isOpen, onClose }: { question: QuizQuestion, isOpen: boolean, onClose: () => void }) {
+    const [selected, setSelected] = useState<number | number[] | null>(null);
+    const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
+
+    const handleSubmit = () => {
+        let isCorrect = false;
+        if (question.type === 'single') {
+            isCorrect = selected === question.correctIndex;
+        } else if (question.type === 'multiple') {
+            const userAnswers = (selected as number[] || []);
+            const correctAnswers = question.correctIndices || [];
+            isCorrect = userAnswers.length === correctAnswers.length && userAnswers.every(a => correctAnswers.includes(a));
+        }
+        setFeedback(isCorrect ? 'correct' : 'incorrect');
+        
+        setTimeout(() => {
+            handleClose();
+        }, 2000); // Show feedback for 2 seconds
+    };
+    
+    const handleClose = () => {
+        setFeedback(null);
+        setSelected(null);
+        onClose();
+    }
+
+    const handleAnswerChange = (answerIndex: number) => {
+        if (question.type === 'single') {
+            setSelected(answerIndex);
+        } else if (question.type === 'multiple') {
+            const currentAnswers = (selected as number[] || []);
+            const newAnswers = currentAnswers.includes(answerIndex)
+                ? currentAnswers.filter(a => a !== answerIndex)
+                : [...currentAnswers, answerIndex];
+            setSelected(newAnswers);
+        }
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={handleClose}>
+            <DialogContent>
+                {feedback ? (
+                    <div className="text-center p-8">
+                        <p className="text-6xl">{feedback === 'correct' ? '😊' : '😔'}</p>
+                        <p className="mt-4 font-semibold text-lg">{feedback === 'correct' ? 'Correct!' : 'Not quite. Pay close attention!'}</p>
+                    </div>
+                ) : (
+                    <>
+                        <DialogHeader>
+                            <DialogTitle>Quick Question!</DialogTitle>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <p className="font-semibold mb-4">{question.question}</p>
+                            {question.type === 'single' && (
+                                <RadioGroup onValueChange={(val) => handleAnswerChange(parseInt(val))}>
+                                    {question.options.map((opt, optIndex) => (
+                                        <div key={optIndex} className="flex items-center space-x-2">
+                                            <RadioGroupItem value={String(optIndex)} id={`ivq-opt${optIndex}`} />
+                                            <Label htmlFor={`ivq-opt${optIndex}`}>{opt}</Label>
+                                        </div>
+                                    ))}
+                                </RadioGroup>
+                            )}
+                             {question.type === 'multiple' && (
+                                 <div className="space-y-2">
+                                    {question.options.map((opt, optIndex) => (
+                                        <div key={optIndex} className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id={`ivq-opt${optIndex}`}
+                                                onCheckedChange={() => handleAnswerChange(optIndex)}
+                                            />
+                                            <Label htmlFor={`ivq-opt${optIndex}`}>{opt}</Label>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <DialogFooter>
+                            <Button onClick={handleSubmit}>Submit</Button>
+                        </DialogFooter>
+                    </>
+                )}
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+
 function LessonView({ lesson, quiz, allLessonsForCourse }: { lesson: Lesson; quiz: Quiz | null; allLessonsForCourse: Lesson[] }) {
   const playerRef = useRef<ReactPlayer>(null);
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [showQuiz, setShowQuiz] = useState(false);
   
+  const [showEndOfLessonQuiz, setShowEndOfLessonQuiz] = useState(false);
+  
+  const [inVideoQuestions, setInVideoQuestions] = useState<QuizQuestion[]>([]);
+  const [endOfLessonQuiz, setEndOfLessonQuiz] = useState<Quiz | null>(null);
+  const [currentInVideoQuestion, setCurrentInVideoQuestion] = useState<QuizQuestion | null>(null);
+  const [shownQuestionIndices, setShownQuestionIndices] = useState<number[]>([]);
+
+   useEffect(() => {
+    if (quiz) {
+      const inVideo = quiz.questions.filter(q => q.timestamp && q.timestamp > 0);
+      const endOfLesson = {
+        ...quiz,
+        questions: quiz.questions.filter(q => !q.timestamp || q.timestamp <= 0)
+      };
+      setInVideoQuestions(inVideo.sort((a,b) => a.timestamp! - b.timestamp!));
+      if (endOfLesson.questions.length > 0) {
+        setEndOfLessonQuiz(endOfLesson);
+      } else {
+        setEndOfLessonQuiz(null);
+      }
+    } else {
+        setInVideoQuestions([]);
+        setEndOfLessonQuiz(null);
+    }
+  }, [quiz]);
+
   const handleProgress = async ({ playedSeconds }: { playedSeconds: number }) => {
     if (!firestore || !user) return;
-    const progressRef = doc(firestore, 'userProgress', `${user.id}_${lesson.courseId}`);
     
+    // Update watch progress
+    const progressRef = doc(firestore, 'userProgress', `${user.id}_${lesson.courseId}`);
     await setDoc(progressRef, {
         lessonProgress: {
             [lesson.id]: { watchedSeconds: playedSeconds }
         }
     }, { merge: true });
+
+    // Check for in-video questions
+    const questionToShowIndex = inVideoQuestions.findIndex((q, index) => 
+        !shownQuestionIndices.includes(index) && 
+        q.timestamp && 
+        Math.abs(playedSeconds - q.timestamp) < 1
+    );
+
+    if (questionToShowIndex !== -1) {
+        playerRef.current?.getInternalPlayer()?.pauseVideo?.();
+        setCurrentInVideoQuestion(inVideoQuestions[questionToShowIndex]);
+        setShownQuestionIndices(prev => [...prev, questionToShowIndex]);
+    }
   };
   
   const handleLessonEnd = async () => {
-    if (quiz) {
-      setShowQuiz(true);
+    if (endOfLessonQuiz) {
+      setShowEndOfLessonQuiz(true);
     } else {
-      // No quiz, so mark as complete
+      // No end-of-lesson quiz, so mark as complete
       await markLessonAsComplete(true);
     }
+  };
+
+  const handleInVideoQuizClose = () => {
+    setCurrentInVideoQuestion(null);
+    playerRef.current?.getInternalPlayer()?.playVideo?.();
   };
 
   const issueCertificate = async (course: Course) => {
@@ -170,7 +302,7 @@ function LessonView({ lesson, quiz, allLessonsForCourse }: { lesson: Lesson; qui
 
   const markLessonAsComplete = async (isCorrect: boolean, score?: number) => {
     if (!firestore || !user) return;
-    setShowQuiz(false);
+    setShowEndOfLessonQuiz(false);
 
     if (isCorrect) {
         const progressRef = doc(firestore, 'userProgress', `${user.id}_${lesson.courseId}`);
@@ -178,8 +310,8 @@ function LessonView({ lesson, quiz, allLessonsForCourse }: { lesson: Lesson; qui
             [`lessonProgress.${lesson.id}.completed`]: true,
         };
 
-        if (quiz && score !== undefined) {
-             updatePayload[`quizScores.${quiz.id}`] = score;
+        if (endOfLessonQuiz && score !== undefined) {
+             updatePayload[`quizScores.${endOfLessonQuiz.id}`] = score;
         }
         
         await updateDoc(progressRef, updatePayload);
@@ -197,7 +329,7 @@ function LessonView({ lesson, quiz, allLessonsForCourse }: { lesson: Lesson; qui
             }
         }
     } else {
-        toast({ title: "Quiz Failed", description: `You did not meet the passing score of ${quiz?.passingScore}%. Please review the video and try again.`, variant: "destructive" });
+        toast({ title: "Quiz Failed", description: `You did not meet the passing score of ${endOfLessonQuiz?.passingScore}%. Please review the video and try again.`, variant: "destructive" });
         if (playerRef.current) {
             playerRef.current.seekTo(0);
         }
@@ -218,7 +350,16 @@ function LessonView({ lesson, quiz, allLessonsForCourse }: { lesson: Lesson; qui
             />
         </div>
         <h1 className="text-2xl font-bold">{lesson.title}</h1>
-        {quiz && showQuiz && <QuizModal quiz={quiz} isOpen={showQuiz} onSubmit={markLessonAsComplete} />}
+        
+        {endOfLessonQuiz && showEndOfLessonQuiz && <QuizModal quiz={endOfLessonQuiz} isOpen={showEndOfLessonQuiz} onSubmit={markLessonAsComplete} />}
+
+        {currentInVideoQuestion && (
+            <InVideoQuizModal 
+                question={currentInVideoQuestion}
+                isOpen={!!currentInVideoQuestion}
+                onClose={handleInVideoQuizClose}
+            />
+        )}
     </div>
   )
 }
@@ -231,7 +372,7 @@ export default function LessonPage() {
   const lessonRef = useMemo(() => firestore ? doc(firestore, 'lessons', lessonId) : null, [firestore, lessonId]);
   const { data: lesson, loading: lessonLoading } = useDoc<Lesson>(lessonRef);
   
-  const quizQuery = useMemo(() => firestore && lessonId ? query(collection(firestore, 'quizzes'), where('lessonId', '==', lessonId)) : null, [firestore, lessonId]);
+  const quizQuery = useMemo(() => firestore && lessonId ? query(collection(firestore, 'quizzes'), where('lessonId', '==', lessonId), where('type', '==', 'endLesson')) : null, [firestore, lessonId]);
   const { data: quizzes, loading: quizLoading } = useCollection<Quiz>(quizQuery);
 
   const allLessonsQuery = useMemo(() => firestore && lesson?.courseId ? query(collection(firestore, 'lessons'), where('courseId', '==', lesson.courseId)) : null, [firestore, lesson]);
