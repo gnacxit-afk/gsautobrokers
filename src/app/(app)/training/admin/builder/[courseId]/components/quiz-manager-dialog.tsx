@@ -314,25 +314,26 @@ export function QuizManagerDialog({ lesson, isOpen, onClose }: QuizManagerDialog
                             {errors.question && <p className="text-xs text-destructive mt-1">{errors.question.message}</p>}
                         </div>
                         <div className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="type" className="font-semibold">Question Type</Label>
-                                <Controller
-                                    control={control}
-                                    name="type"
-                                    render={({ field }) => (
+                            <FormField
+                                control={control}
+                                name="type"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="font-semibold">Question Type</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value}>
-                                            <SelectTrigger id="type" className="mt-2">
-                                                <SelectValue placeholder="Select type" />
-                                            </SelectTrigger>
+                                            <FormControl>
+                                                <SelectTrigger id="type" className="mt-2"><SelectValue placeholder="Select type" /></SelectTrigger>
+                                            </FormControl>
                                             <SelectContent>
                                                 <SelectItem value="single">Single Choice</SelectItem>
                                                 <SelectItem value="multiple">Multiple Choice</SelectItem>
                                                 <SelectItem value="open">Open Answer</SelectItem>
                                             </SelectContent>
                                         </Select>
-                                    )}
-                                />
-                            </div>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                             <FormField
                                 control={control}
                                 name="timestamp"
@@ -349,60 +350,88 @@ export function QuizManagerDialog({ lesson, isOpen, onClose }: QuizManagerDialog
                             />
                         </div>
                     </div>
+                    
                     {watchedType !== 'open' && (
-                        <div>
-                            <Label className="font-semibold">Options & Correct Answer</Label>
+                        <div className="space-y-4">
+                            <div>
+                                <Label className="font-semibold">Options</Label>
+                                <div className="mt-2 space-y-2">
+                                    {[0, 1, 2, 3].map(index => (
+                                        <div key={index}>
+                                            <Input {...register(`options.${index}`)} placeholder={`Option ${index + 1}`} />
+                                        </div>
+                                    ))}
+                                </div>
+                                {errors.options && <p className="text-xs text-destructive mt-1">{(errors.options as any)?.message || (errors.options as any)?.root?.message}</p>}
+                            </div>
+
                             {watchedType === 'single' && (
-                                <Controller
+                                <FormField
                                     control={control}
                                     name="correctIndex"
                                     render={({ field }) => (
-                                        <RadioGroup onValueChange={field.onChange} value={String(field.value)} className="mt-2 space-y-2">
-                                            {[0, 1, 2, 3].map(index => (
-                                                <div key={index} className="flex items-center gap-3">
-                                                    <div className="flex-1 relative">
-                                                        <Input {...register(`options.${index}`)} placeholder={`Option ${index + 1}`} />
-                                                    </div>
-                                                    <RadioGroupItem value={String(index)} id={`q${index}-opt${index}`} />
-                                                </div>
-                                            ))}
-                                        </RadioGroup>
+                                        <FormItem>
+                                            <FormLabel className="font-semibold">Correct Answer</FormLabel>
+                                            <FormControl>
+                                                <RadioGroup
+                                                    onValueChange={(value) => field.onChange(parseInt(value))}
+                                                    value={field.value !== undefined ? String(field.value) : ""}
+                                                    className="flex flex-wrap gap-x-6 gap-y-2 pt-2"
+                                                >
+                                                    {[0, 1, 2, 3].map(index => (
+                                                        <FormItem key={index} className="flex items-center space-x-2 space-y-0">
+                                                            <FormControl><RadioGroupItem value={String(index)} /></FormControl>
+                                                            <FormLabel className="font-normal">Option {index + 1}</FormLabel>
+                                                        </FormItem>
+                                                    ))}
+                                                </RadioGroup>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
                                     )}
                                 />
                             )}
+
                             {watchedType === 'multiple' && (
-                                 <Controller
-                                    name="correctIndices"
+                                <FormField
                                     control={control}
-                                    render={({ field }) => (
-                                        <div className="mt-2 space-y-2">
-                                            {[0, 1, 2, 3].map(index => (
-                                                <div key={index} className="flex items-center gap-3">
-                                                    <div className="flex-1 relative">
-                                                        <Input {...register(`options.${index}`)} placeholder={`Option ${index + 1}`} />
-                                                    </div>
-                                                     <Checkbox
-                                                        checked={field.value?.includes(index)}
-                                                        onCheckedChange={(checked) => {
-                                                            const current = field.value || [];
-                                                            if (checked) {
-                                                                field.onChange([...current, index]);
-                                                            } else {
-                                                                field.onChange(current.filter(i => i !== index));
-                                                            }
-                                                        }}
+                                    name="correctIndices"
+                                    render={() => (
+                                        <FormItem>
+                                            <FormLabel className="font-semibold">Correct Answers</FormLabel>
+                                            <div className="flex flex-wrap gap-x-6 gap-y-2 pt-2">
+                                                {[0, 1, 2, 3].map(index => (
+                                                    <FormField
+                                                        key={index}
+                                                        control={control}
+                                                        name="correctIndices"
+                                                        render={({ field }) => (
+                                                            <FormItem className="flex items-center space-x-2 space-y-0">
+                                                                <FormControl>
+                                                                    <Checkbox
+                                                                        checked={field.value?.includes(index)}
+                                                                        onCheckedChange={(checked) => {
+                                                                            return checked
+                                                                                ? field.onChange([...(field.value || []), index])
+                                                                                : field.onChange((field.value || []).filter((value) => value !== index))
+                                                                        }}
+                                                                    />
+                                                                </FormControl>
+                                                                <FormLabel className="font-normal">Option {index + 1}</FormLabel>
+                                                            </FormItem>
+                                                        )}
                                                     />
-                                                </div>
-                                            ))}
-                                        </div>
+                                                ))}
+                                            </div>
+                                            <FormMessage />
+                                        </FormItem>
                                     )}
                                 />
                             )}
-                            {errors.options && <p className="text-xs text-destructive mt-1">{errors.options.message}</p>}
-                            {errors.correctIndex && <p className="text-xs text-destructive mt-1">{errors.correctIndex.message}</p>}
-                             {errors.correctIndices && <p className="text-xs text-destructive mt-1">{errors.correctIndices.message}</p>}
                         </div>
                     )}
+
+
                      <div className="flex justify-end gap-2">
                         {editingQuestion && <Button type="button" variant="ghost" onClick={() => setEditingQuestion(null)}>Cancel Edit</Button>}
                         <Button type="submit" disabled={isSubmitting}>

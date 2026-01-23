@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useParams, useRouter } from "next/navigation";
@@ -88,7 +89,17 @@ function QuizModal({ quiz, isOpen, onSubmit }: { quiz: Quiz; isOpen: boolean; on
                                         <div key={optIndex} className="flex items-center space-x-2">
                                             <Checkbox
                                                 id={`q${qIndex}-opt${optIndex}`}
-                                                onCheckedChange={() => handleAnswerChange(qIndex, optIndex, 'multiple')}
+                                                checked={((selectedAnswers[qIndex] as number[]) || []).includes(optIndex)}
+                                                onCheckedChange={(checked) => {
+                                                    const currentAnswers = (selectedAnswers[qIndex] as number[] || []);
+                                                    let newAnswers: number[];
+                                                    if (checked) {
+                                                        newAnswers = [...currentAnswers, optIndex];
+                                                    } else {
+                                                        newAnswers = currentAnswers.filter(a => a !== optIndex);
+                                                    }
+                                                    setSelectedAnswers(prev => ({...prev, [qIndex]: newAnswers}));
+                                                }}
                                             />
                                             <Label htmlFor={`q${qIndex}-opt${optIndex}`}>{opt}</Label>
                                         </div>
@@ -372,7 +383,7 @@ export default function LessonPage() {
   const lessonRef = useMemo(() => firestore ? doc(firestore, 'lessons', lessonId) : null, [firestore, lessonId]);
   const { data: lesson, loading: lessonLoading } = useDoc<Lesson>(lessonRef);
   
-  const quizQuery = useMemo(() => firestore && lessonId ? query(collection(firestore, 'quizzes'), where('lessonId', '==', lessonId), where('type', '==', 'endLesson')) : null, [firestore, lessonId]);
+  const quizQuery = useMemo(() => firestore && lessonId ? query(collection(firestore, 'quizzes'), where('lessonId', '==', lessonId)) : null, [firestore, lessonId]);
   const { data: quizzes, loading: quizLoading } = useCollection<Quiz>(quizQuery);
 
   const allLessonsQuery = useMemo(() => firestore && lesson?.courseId ? query(collection(firestore, 'lessons'), where('courseId', '==', lesson.courseId)) : null, [firestore, lesson]);
