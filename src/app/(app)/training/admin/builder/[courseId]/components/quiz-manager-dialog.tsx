@@ -115,7 +115,7 @@ export function QuizManagerDialog({ lesson, isOpen, onClose }: QuizManagerDialog
 
   const form = useForm<QuestionFormValues>({
     resolver: zodResolver(questionSchema),
-    defaultValues: { type: 'single', question: '', options: ['', '', '', ''], correctIndex: undefined, correctIndices: [] },
+    defaultValues: { type: 'single', question: '', options: ['', '', '', ''], correctIndex: undefined, correctIndices: [], timestamp: undefined },
   });
 
   const { register, control, reset, watch, formState: { errors, isSubmitting } } = form;
@@ -340,7 +340,7 @@ export function QuizManagerDialog({ lesson, isOpen, onClose }: QuizManagerDialog
                                     <FormItem>
                                         <FormLabel className="font-semibold">Timestamp (seconds)</FormLabel>
                                         <FormControl>
-                                            <Input type="number" placeholder="e.g., 125" {...field} />
+                                            <Input type="number" placeholder="e.g., 125" {...field} value={field.value ?? ''} />
                                         </FormControl>
                                         <FormDescription className="text-xs">Leave blank if this is an end-of-lesson question.</FormDescription>
                                         <FormMessage />
@@ -421,5 +421,3 @@ export function QuizManagerDialog({ lesson, isOpen, onClose }: QuizManagerDialog
     </Dialog>
   );
 }
-
-    
