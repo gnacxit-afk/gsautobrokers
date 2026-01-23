@@ -27,22 +27,22 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const vehicleSchema = z.object({
-  year: z.coerce.number().min(1980, "Must be after 1980").max(new Date().getFullYear() + 1),
-  make: z.string().min(2, "Make is required"),
-  model: z.string().min(1, "Model is required"),
+  year: z.coerce.number().min(1980, "Must be after 1980").max(new Date().getFullYear() + 1).optional(),
+  make: z.string().optional(),
+  model: z.string().optional(),
   trim: z.string().optional(),
-  stockNumber: z.string().min(1, "Stock number is required"),
-  cashPrice: z.coerce.number().min(0),
-  downPayment: z.coerce.number().min(0),
-  condition: z.enum(['New', 'Used', 'Rebuilt']),
-  mileage: z.coerce.number().min(0),
-  transmission: z.enum(['Automatic', 'Manual', 'CVT']),
-  driveTrain: z.string().min(2, "Drive train is required"),
-  exteriorColor: z.string().min(2, "Exterior color is required"),
-  interiorColor: z.string().min(2, "Interior color is required"),
-  fuelType: z.enum(['Gasoline', 'Diesel', 'Electric', 'Hybrid']),
-  status: z.enum(['Active', 'Pending', 'Sold']),
-  dealershipId: z.string().min(1, "Dealership is required."),
+  stockNumber: z.string().optional(),
+  cashPrice: z.coerce.number().min(0).optional(),
+  downPayment: z.coerce.number().min(0).optional(),
+  condition: z.enum(['New', 'Used', 'Rebuilt']).optional(),
+  mileage: z.coerce.number().min(0).optional(),
+  transmission: z.enum(['Automatic', 'Manual', 'CVT']).optional(),
+  driveTrain: z.enum(['FWD', 'RWD', 'AWD', '4x4']).optional(),
+  exteriorColor: z.string().optional(),
+  interiorColor: z.string().optional(),
+  fuelType: z.enum(['Gasoline', 'Diesel', 'Electric', 'Hybrid']).optional(),
+  status: z.enum(['Active', 'Pending', 'Sold']).optional(),
+  dealershipId: z.string().optional(),
   photoUrls: z.string().optional(),
 });
 
@@ -75,21 +75,24 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
             ...vehicleData,
             photoUrls: photos?.join('\n') || '',
         });
-    } else {
+    } else if (!isEditing && dealerships) {
+        const defaultDealership = dealerships.find(d => d.name === "USA Auto Brokers");
         reset({
+            dealershipId: defaultDealership?.id || '',
+            downPayment: 1500,
             condition: 'Used',
             transmission: 'Automatic',
+            driveTrain: 'AWD',
             fuelType: 'Gasoline',
             status: 'Active',
             stockNumber: 'Select a dealership to generate',
             photoUrls: '',
             year: new Date().getFullYear(),
             cashPrice: 0,
-            downPayment: 0,
             mileage: 0,
         });
     }
-  }, [isEditing, vehicle, reset]);
+  }, [isEditing, vehicle, reset, dealerships]);
 
 
   const watchedDealershipId = watch('dealershipId');
@@ -112,6 +115,11 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
 
   const onSubmit = async (data: VehicleFormValues) => {
     if (!firestore || !dealerships) return;
+    
+    if (!data.dealershipId) {
+        toast({ title: 'Error', description: 'Please select a dealership.', variant: 'destructive'});
+        return;
+    }
 
     const selectedDealership = dealerships.find(d => d.id === data.dealershipId);
     if (!selectedDealership) {
@@ -235,7 +243,27 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
                  <div className="space-y-2"><Label>Condition</Label><Controller name="condition" control={control} render={({field}) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="New">New</SelectItem><SelectItem value="Used">Used</SelectItem><SelectItem value="Rebuilt">Rebuilt</SelectItem></SelectContent></Select>)}/></div>
                  <div className="space-y-2"><Label>Mileage</Label><Input type="number" {...register('mileage')} />{errors.mileage && <p className="text-xs text-destructive">{errors.mileage.message}</p>}</div>
                  <div className="space-y-2"><Label>Transmission</Label><Controller name="transmission" control={control} render={({field}) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Automatic">Automatic</SelectItem><SelectItem value="Manual">Manual</SelectItem><SelectItem value="CVT">CVT</SelectItem></SelectContent></Select>)}/></div>
-                 <div className="space-y-2"><Label>Drive Train</Label><Input {...register('driveTrain')} />{errors.driveTrain && <p className="text-xs text-destructive">{errors.driveTrain.message}</p>}</div>
+                 <div className="space-y-2">
+                    <Label>Drive Train</Label>
+                    <Controller
+                    name="driveTrain"
+                    control={control}
+                    render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value}>
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="FWD">FWD</SelectItem>
+                            <SelectItem value="RWD">RWD</SelectItem>
+                            <SelectItem value="AWD">AWD</SelectItem>
+                            <SelectItem value="4x4">4x4</SelectItem>
+                        </SelectContent>
+                        </Select>
+                    )}
+                    />
+                    {errors.driveTrain && <p className="text-xs text-destructive">{errors.driveTrain.message}</p>}
+                </div>
                  <div className="space-y-2"><Label>Exterior Color</Label><Input {...register('exteriorColor')} />{errors.exteriorColor && <p className="text-xs text-destructive">{errors.exteriorColor.message}</p>}</div>
                  <div className="space-y-2"><Label>Interior Color</Label><Input {...register('interiorColor')} />{errors.interiorColor && <p className="text-xs text-destructive">{errors.interiorColor.message}</p>}</div>
                  <div className="space-y-2"><Label>Fuel Type</Label><Controller name="fuelType" control={control} render={({field}) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Gasoline">Gasoline</SelectItem><SelectItem value="Diesel">Diesel</SelectItem><SelectItem value="Electric">Electric</SelectItem><SelectItem value="Hybrid">Hybrid</SelectItem></SelectContent></Select>)}/></div>
@@ -255,7 +283,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
                     <Textarea
                         id="photoUrls"
                         {...register('photoUrls')}
-                        placeholder="https://.../image1.jpg&#10;https://.../image2.png&#10;https://.../image3.webp"
+                        placeholder="https://.../image1.jpg\nhttps://.../image2.png\nhttps://.../image3.webp"
                         rows={5}
                     />
                     {errors.photoUrls && <p className="text-xs text-destructive">{errors.photoUrls.message}</p>}
