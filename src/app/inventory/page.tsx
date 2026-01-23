@@ -88,3 +88,5 @@ export default function PublicInventoryPage() {
     </div>
   );
 }
+
+    

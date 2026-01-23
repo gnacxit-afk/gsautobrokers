@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -28,6 +29,24 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https' as const,
+        hostname: 'lh3.googleusercontent.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https' as const,
+        hostname: 'i.ibb.co',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https' as const,
+        hostname: 'i.postimg.cc',
+        port: '',
+        pathname: '/**',
+      }
     ],
   },
   eslint: {
@@ -52,3 +71,5 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+    

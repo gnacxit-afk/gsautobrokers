@@ -4,9 +4,9 @@
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import type { Vehicle } from '@/lib/types';
+import type { Vehicle, Dealership } from '@/lib/types';
 import { useRouter, useParams } from 'next/navigation';
-import { useFirestore, useUser } from '@/firebase';
+import { useFirestore, useUser, useCollection } from '@/firebase';
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Save, Send } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 const vehicleSchema = z.object({
   year: z.coerce.number().min(1980, "Must be after 1980").max(new Date().getFullYear() + 1),
@@ -34,6 +34,7 @@ const vehicleSchema = z.object({
   interiorColor: z.string().min(2, "Interior color is required"),
   fuelType: z.enum(['Gasoline', 'Diesel', 'Electric', 'Hybrid']),
   status: z.enum(['Active', 'Pending', 'Sold']),
+  dealershipId: z.string().min(1, "Dealership is required."),
   photos: z.array(z.string().url().or(z.literal(''))).optional().default(['','','','','']),
 });
 
@@ -49,7 +50,11 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
   const { toast } = useToast();
   const isEditing = !!vehicle;
 
-  const { register, handleSubmit, control, reset, formState: { errors, isSubmitting } } = useForm<VehicleFormValues>({
+  const { data: dealerships, loading: dealershipsLoading } = useCollection<Dealership>(
+    firestore ? collection(firestore, 'dealerships') : null
+  );
+
+  const { register, handleSubmit, control, reset, setValue, formState: { errors, isSubmitting } } = useForm<VehicleFormValues>({
     resolver: zodResolver(vehicleSchema),
     defaultValues: isEditing ? {
         ...vehicle,
@@ -64,12 +69,19 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
   });
 
   const onSubmit = async (data: VehicleFormValues) => {
-    if (!firestore) return;
+    if (!firestore || !dealerships) return;
 
-    // Filter out empty photo URLs
+    const selectedDealership = dealerships.find(d => d.id === data.dealershipId);
+    if (!selectedDealership) {
+        toast({ title: 'Error', description: 'Selected dealership not found.', variant: 'destructive'});
+        return;
+    }
+
     const processedData = {
         ...data,
-        photos: data.photos?.filter(url => url && url.trim() !== '') || []
+        photos: data.photos?.filter(url => url && url.trim() !== '') || [],
+        dealershipCode: selectedDealership.dealershipCode,
+        commission: selectedDealership.commission,
     };
 
     try {
@@ -116,6 +128,13 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
                 <div className="space-y-2"><Label>Make</Label><Input {...register('make')} />{errors.make && <p className="text-xs text-destructive">{errors.make.message}</p>}</div>
                 <div className="space-y-2"><Label>Model</Label><Input {...register('model')} />{errors.model && <p className="text-xs text-destructive">{errors.model.message}</p>}</div>
                 <div className="space-y-2"><Label>Trim</Label><Input {...register('trim')} /></div>
+            </CardContent>
+        </Card>
+        
+         <Card>
+            <CardHeader><CardTitle>Dealership</CardTitle></CardHeader>
+            <CardContent>
+                 <div className="space-y-2 max-w-xs"><Label>Dealership</Label><Controller name="dealershipId" control={control} render={({field}) => (<Select onValueChange={field.onChange} value={field.value} disabled={dealershipsLoading}><SelectTrigger><SelectValue placeholder="Select a Dealership"/></SelectTrigger><SelectContent>{dealerships?.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent></Select>)}/>{errors.dealershipId && <p className="text-xs text-destructive">{errors.dealershipId.message}</p>}</div>
             </CardContent>
         </Card>
 

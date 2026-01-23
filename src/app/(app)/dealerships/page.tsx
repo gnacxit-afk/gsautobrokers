@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -6,19 +7,28 @@ import { collection, query, orderBy } from 'firebase/firestore';
 import type { Dealership } from '@/lib/types';
 import { AccessDenied } from '@/components/access-denied';
 import { DealershipClient } from './components/dealership-client';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DealershipsPage() {
   const { user, loading: userLoading } = useUser();
   const firestore = useFirestore();
 
   const dealershipsQuery = useMemo(() =>
-    firestore ? query(collection(firestore, 'dealerships'), orderBy('name', 'asc')) : null
+    firestore ? query(collection(firestore, 'dealerships'), orderBy('createdAt', 'desc')) : null
   , [firestore]);
 
   const { data: dealerships, loading: dealershipsLoading } = useCollection<Dealership>(dealershipsQuery);
 
-  if (userLoading) {
-    return <div>Loading...</div>;
+  if (userLoading || dealershipsLoading) {
+    return (
+        <div className="space-y-4">
+            <div className="flex justify-between items-center">
+                <Skeleton className="h-10 w-64" />
+                <Skeleton className="h-10 w-32" />
+            </div>
+            <Skeleton className="h-96 w-full" />
+        </div>
+    )
   }
 
   if (user?.role !== 'Admin') {
@@ -33,7 +43,6 @@ export default function DealershipsPage() {
       </div>
       <DealershipClient
         initialDealerships={dealerships || []}
-        loading={dealershipsLoading}
       />
     </main>
   );

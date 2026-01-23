@@ -96,6 +96,10 @@
         "interestedVehicleId": {
             "type": "string",
             "description": "The ID of the vehicle from the inventory that the lead is interested in."
+        },
+        "brokerCommission": {
+            "type": "number",
+            "description": "The commission amount earned by the broker for this specific sale."
         }
       },
       "required": [
@@ -212,6 +216,10 @@
             "type": "array",
             "description": "Array of certificate IDs the user has earned.",
             "items": { "type": "string" }
+        },
+        "commission": {
+          "type": "number",
+          "description": "The fixed commission amount per vehicle sold by this staff member."
         }
       },
       "required": [
@@ -378,6 +386,7 @@
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
         "pocName": { "type": "string", "description": "Point of Contact's name." },
         "pocEmail": { "type": "string", "description": "Point of Contact's email.", "format": "email" },
         "commission": { "type": "number", "description": "The fixed commission amount per vehicle sold." },
@@ -835,3 +844,4 @@
   }
 }
 
+    
