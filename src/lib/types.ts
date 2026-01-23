@@ -324,4 +324,6 @@ export type Vehicle = {
   dealershipId: string;
   dealershipCode: string;
   commission: number;
+  soldBy?: string; // UID of the staff member who sold it
+  soldAt?: Timestamp; // Timestamp of when it was sold
 };

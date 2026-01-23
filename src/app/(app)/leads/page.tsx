@@ -142,6 +142,16 @@ function LeadsPageContent() {
             batch.update(appointmentDoc.ref, { stage: newStage });
         });
 
+        // If lead is won, update the linked vehicle
+        if (newStage === 'Ganado' && lead.interestedVehicleId) {
+            const vehicleRef = doc(firestore, 'inventory', lead.interestedVehicleId);
+            batch.update(vehicleRef, { 
+                status: 'Sold',
+                soldBy: lead.ownerId,
+                soldAt: serverTimestamp()
+            });
+        }
+
         await batch.commit();
 
         let noteContent = `Stage changed from '${oldStage}' to '${newStage}' by ${user.name}.`;
@@ -156,7 +166,7 @@ function LeadsPageContent() {
                 user.name
             );
         }
-        toast({ title: "Stage Updated", description: `Lead stage and appointment statuses changed to ${newStage}.` });
+        toast({ title: "Stage Updated", description: `Lead stage and associated records updated to ${newStage}.` });
     } catch (error) {
          console.error("Error updating stage:", error);
          toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
