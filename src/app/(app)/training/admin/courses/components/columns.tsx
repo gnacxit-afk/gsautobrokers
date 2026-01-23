@@ -1,8 +1,7 @@
-
 'use client';
 
 import type { ColumnDef } from '@tanstack/react-table';
-import type { Course } from '@/lib/types';
+import type { Course, Module, Lesson } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
@@ -63,7 +62,14 @@ const ColumnActions: React.FC<ColumnActionsProps> = ({ course, onEdit, onToggleP
 };
 
 export const getColumns = (
-    { onEdit, onTogglePublish, onDelete, onSetDefault } : { onEdit: (course: Course) => void; onTogglePublish: (course: Course) => void; onDelete: (courseId: string) => void; onSetDefault: (course: Course) => void; }
+    { onEdit, onTogglePublish, onDelete, onSetDefault, allModules, allLessons } : { 
+        onEdit: (course: Course) => void; 
+        onTogglePublish: (course: Course) => void; 
+        onDelete: (courseId: string) => void; 
+        onSetDefault: (course: Course) => void;
+        allModules: Module[];
+        allLessons: Lesson[];
+    }
 ): ColumnDef<Course>[] => [
   {
     accessorKey: 'title',
@@ -105,9 +111,11 @@ export const getColumns = (
   },
   {
     header: 'Content',
-    cell: () => {
-      // Placeholder values as requested
-      return <span className="text-sm text-muted-foreground">3 Modules, 12 Lessons</span>;
+    cell: ({ row }) => {
+      const course = row.original;
+      const moduleCount = allModules.filter(m => m.courseId === course.id).length;
+      const lessonCount = allLessons.filter(l => l.courseId === course.id).length;
+      return <span className="text-sm text-muted-foreground">{moduleCount} Modules, {lessonCount} Lessons</span>;
     },
   },
   {
@@ -125,4 +133,3 @@ export const getColumns = (
     cell: ({ row }) => <ColumnActions course={row.original} onEdit={onEdit} onTogglePublish={onTogglePublish} onDelete={onDelete} onSetDefault={onSetDefault} />,
   },
 ];
-

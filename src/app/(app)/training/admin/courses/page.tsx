@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useMemo } from 'react';
 import { useFirestore, useUser, useCollection } from '@/firebase';
 import { collection, query, orderBy, doc, writeBatch } from 'firebase/firestore';
-import type { Course } from '@/lib/types';
+import type { Course, Module, Lesson } from '@/lib/types';
 import { AccessDenied } from '@/components/access-denied';
 import { CourseClient } from './components/course-client';
 import { useToast } from '@/hooks/use-toast';
@@ -18,8 +17,13 @@ export default function CourseManagementPage() {
     if (!firestore) return null;
     return query(collection(firestore, 'courses'), orderBy('createdAt', 'desc'));
   }, [firestore]);
-
   const { data: courses, loading: coursesLoading } = useCollection<Course>(coursesQuery);
+
+  const modulesQuery = useMemo(() => firestore ? collection(firestore, 'modules') : null, [firestore]);
+  const { data: modules, loading: modulesLoading } = useCollection<Module>(modulesQuery);
+
+  const lessonsQuery = useMemo(() => firestore ? collection(firestore, 'lessons') : null, [firestore]);
+  const { data: lessons, loading: lessonsLoading } = useCollection<Lesson>(lessonsQuery);
 
   const handleSetDefaultCourse = async (courseToSet: Course) => {
     if (!firestore || !courses) return;
@@ -46,6 +50,8 @@ export default function CourseManagementPage() {
     }
   };
 
+  const loading = userLoading || coursesLoading || modulesLoading || lessonsLoading;
+
   if (userLoading) {
     return <div>Loading...</div>;
   }
@@ -64,10 +70,11 @@ export default function CourseManagementPage() {
       </div>
       <CourseClient
         initialCourses={courses || []}
-        loading={coursesLoading}
+        allModules={modules || []}
+        allLessons={lessons || []}
+        loading={loading}
         onSetDefault={handleSetDefaultCourse}
       />
     </main>
   );
 }
-

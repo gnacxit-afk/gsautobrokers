@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import type { Course } from '@/lib/types';
+import type { Course, Module, Lesson } from '@/lib/types';
 import { useFirestore, useUser } from '@/firebase';
 import {
   collection,
@@ -20,11 +19,13 @@ import { CourseDialog } from './course-dialog';
 
 interface CourseClientProps {
   initialCourses: Course[];
+  allModules: Module[];
+  allLessons: Lesson[];
   loading: boolean;
   onSetDefault: (course: Course) => void;
 }
 
-export function CourseClient({ initialCourses, loading, onSetDefault }: CourseClientProps) {
+export function CourseClient({ initialCourses, allModules, allLessons, loading, onSetDefault }: CourseClientProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -68,7 +69,7 @@ export function CourseClient({ initialCourses, loading, onSetDefault }: CourseCl
   };
 
 
-  const columns = useMemo(() => getColumns({ onEdit: handleOpenDialog, onTogglePublish: handleTogglePublish, onDelete: handleDeleteCourse, onSetDefault }), [onSetDefault]);
+  const columns = useMemo(() => getColumns({ onEdit: handleOpenDialog, onTogglePublish: handleTogglePublish, onDelete: handleDeleteCourse, onSetDefault, allModules, allLessons }), [onSetDefault, allModules, allLessons]);
 
   const table = useReactTable({
     data: initialCourses,
@@ -129,4 +130,3 @@ export function CourseClient({ initialCourses, loading, onSetDefault }: CourseCl
     </>
   );
 }
-
