@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -35,12 +36,33 @@ import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { type Lesson, type Quiz, type QuizQuestion } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const questionSchema = z.object({
+  type: z.enum(['single', 'multiple', 'open']),
   question: z.string().min(5, 'Question text is required.'),
-  options: z.array(z.string().min(1, 'Option cannot be empty.')).length(4, 'There must be 4 options.'),
-  correctIndex: z.coerce.number().min(0).max(3),
+  options: z.array(z.string()).default(['', '', '', '']),
+  correctIndex: z.coerce.number().optional(),
+  correctIndices: z.array(z.number()).optional(),
+}).superRefine((data, ctx) => {
+  if (data.type === 'single' || data.type === 'multiple') {
+    if (data.options.length !== 4 || data.options.some(opt => opt.trim() === '')) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "All four options are required.", path: ["options"] });
+    }
+  }
+  if (data.type === 'single') {
+    if (data.correctIndex === undefined) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Please select the correct answer.", path: ["correctIndex"] });
+    }
+  }
+  if (data.type === 'multiple') {
+    if (!data.correctIndices || data.correctIndices.length === 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Please select at least one correct answer.", path: ["correctIndices"] });
+    }
+  }
 });
+
 
 type QuestionFormValues = z.infer<typeof questionSchema>;
 
@@ -87,32 +109,55 @@ export function QuizManagerDialog({ lesson, isOpen, onClose }: QuizManagerDialog
     handleSubmit,
     control,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<QuestionFormValues>({
     resolver: zodResolver(questionSchema),
-    defaultValues: { question: '', options: ['', '', '', ''], correctIndex: 0 },
+    defaultValues: { type: 'single', question: '', options: ['', '', '', ''], correctIndex: undefined, correctIndices: [] },
   });
+
+  const watchedType = watch('type');
 
   useEffect(() => {
     if (editingQuestion) {
       reset({
+        type: editingQuestion.type,
         question: editingQuestion.question,
-        options: editingQuestion.options,
+        options: editingQuestion.options || ['', '', '', ''],
         correctIndex: editingQuestion.correctIndex,
+        correctIndices: editingQuestion.correctIndices || [],
       });
     } else {
-      reset({ question: '', options: ['', '', '', ''], correctIndex: 0 });
+      reset({ type: 'single', question: '', options: ['', '', '', ''], correctIndex: undefined, correctIndices: [] });
     }
   }, [editingQuestion, reset]);
 
-  const handleSaveQuestion = async (data: QuestionFormValues) => {
+  const handleSaveQuestion = async (formData: QuestionFormValues) => {
     if (!firestore) return;
 
+    const sanitizedData: QuizQuestion = {
+        type: formData.type,
+        question: formData.question,
+        options: [],
+    };
+
+    if (formData.type === 'single') {
+        sanitizedData.options = formData.options!;
+        sanitizedData.correctIndex = formData.correctIndex;
+    } else if (formData.type === 'multiple') {
+        sanitizedData.options = formData.options!;
+        sanitizedData.correctIndices = formData.correctIndices;
+    }
+    
     let updatedQuestions: QuizQuestion[];
     if (editingQuestion) {
-        updatedQuestions = questions.map(q => q === editingQuestion ? { ...data } : q);
+        const index = questions.indexOf(editingQuestion);
+        updatedQuestions = [...questions];
+        if (index > -1) {
+            updatedQuestions[index] = sanitizedData;
+        }
     } else {
-        updatedQuestions = [...questions, data];
+        updatedQuestions = [...questions, sanitizedData];
     }
     
     try {
@@ -221,10 +266,20 @@ export function QuizManagerDialog({ lesson, isOpen, onClose }: QuizManagerDialog
                         questions.map((q, index) => (
                              <div key={index} className="flex items-start justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-primary/50 transition-all shadow-sm">
                                 <div className="space-y-2">
-                                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{q.question}</p>
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-                                        Correct: "{q.options[q.correctIndex]}"
-                                    </span>
+                                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{index + 1}. {q.question}</p>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="capitalize">{q.type.replace('-', ' ')}</Badge>
+                                        {q.type === 'single' && (
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                                                Correct: "{q.options[q.correctIndex!]}"
+                                            </span>
+                                        )}
+                                         {q.type === 'multiple' && (
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                                                {q.correctIndices?.length} correct answers
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="flex gap-1">
                                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingQuestion(q)}><Edit size={16} /></Button>
@@ -244,35 +299,86 @@ export function QuizManagerDialog({ lesson, isOpen, onClose }: QuizManagerDialog
                     <h4 className="text-sm font-bold uppercase tracking-wider text-slate-500">{editingQuestion ? 'Edit Question' : 'New Question'}</h4>
                 </div>
                  <form onSubmit={handleSubmit(handleSaveQuestion)} className="space-y-6">
-                    <div>
-                        <Label htmlFor="question" className="font-semibold">Question Text</Label>
-                        <Textarea id="question" {...register('question')} className="mt-2" />
-                        {errors.question && <p className="text-xs text-destructive mt-1">{errors.question.message}</p>}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="md:col-span-2 space-y-2">
+                            <Label htmlFor="question" className="font-semibold">Question Text</Label>
+                            <Textarea id="question" {...register('question')} className="mt-2" />
+                            {errors.question && <p className="text-xs text-destructive mt-1">{errors.question.message}</p>}
+                        </div>
+                        <div className="space-y-2">
+                             <Label htmlFor="type" className="font-semibold">Question Type</Label>
+                             <Controller
+                                control={control}
+                                name="type"
+                                render={({ field }) => (
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <SelectTrigger id="type" className="mt-2">
+                                            <SelectValue placeholder="Select type" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="single">Single Choice</SelectItem>
+                                            <SelectItem value="multiple">Multiple Choice</SelectItem>
+                                            <SelectItem value="open">Open Answer</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+                        </div>
                     </div>
-                    <div>
-                        <Label className="font-semibold">Options</Label>
-                         <Controller
-                            control={control}
-                            name="correctIndex"
-                            render={({ field }) => (
-                                <RadioGroup onValueChange={field.onChange} value={String(field.value)} className="mt-2 space-y-2">
-                                    {[0, 1, 2, 3].map(index => (
-                                        <div key={index} className="flex items-center gap-3">
-                                            <div className="flex-1 relative">
-                                                <Input 
-                                                    {...register(`options.${index}`)}
-                                                    placeholder={`Option ${index + 1}`}
-                                                />
-                                            </div>
-                                            <RadioGroupItem value={String(index)} id={`option-${index}`} />
-                                        </div>
-                                    ))}
-                                </RadioGroup>
+                    {watchedType !== 'open' && (
+                        <div>
+                            <Label className="font-semibold">Options & Correct Answer</Label>
+                            {watchedType === 'single' && (
+                                <Controller
+                                    control={control}
+                                    name="correctIndex"
+                                    render={({ field }) => (
+                                        <RadioGroup onValueChange={field.onChange} value={String(field.value)} className="mt-2 space-y-2">
+                                            {[0, 1, 2, 3].map(index => (
+                                                <div key={index} className="flex items-center gap-3">
+                                                    <div className="flex-1 relative">
+                                                        <Input {...register(`options.${index}`)} placeholder={`Option ${index + 1}`} />
+                                                    </div>
+                                                    <RadioGroupItem value={String(index)} id={`option-${index}`} />
+                                                </div>
+                                            ))}
+                                        </RadioGroup>
+                                    )}
+                                />
                             )}
-                        />
-                        {errors.options && <p className="text-xs text-destructive mt-1">All four options are required.</p>}
-                    </div>
-
+                            {watchedType === 'multiple' && (
+                                 <Controller
+                                    name="correctIndices"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <div className="mt-2 space-y-2">
+                                            {[0, 1, 2, 3].map(index => (
+                                                <div key={index} className="flex items-center gap-3">
+                                                    <div className="flex-1 relative">
+                                                        <Input {...register(`options.${index}`)} placeholder={`Option ${index + 1}`} />
+                                                    </div>
+                                                     <Checkbox
+                                                        checked={field.value?.includes(index)}
+                                                        onCheckedChange={(checked) => {
+                                                            const current = field.value || [];
+                                                            if (checked) {
+                                                                field.onChange([...current, index]);
+                                                            } else {
+                                                                field.onChange(current.filter(i => i !== index));
+                                                            }
+                                                        }}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                />
+                            )}
+                            {errors.options && <p className="text-xs text-destructive mt-1">{errors.options.message}</p>}
+                            {errors.correctIndex && <p className="text-xs text-destructive mt-1">{errors.correctIndex.message}</p>}
+                             {errors.correctIndices && <p className="text-xs text-destructive mt-1">{errors.correctIndices.message}</p>}
+                        </div>
+                    )}
                      <div className="flex justify-end gap-2">
                         {editingQuestion && <Button type="button" variant="ghost" onClick={() => setEditingQuestion(null)}>Cancel Edit</Button>}
                         <Button type="submit" disabled={isSubmitting}>

@@ -253,9 +253,11 @@ export type Lesson = {
 };
 
 export type QuizQuestion = {
+  type: 'single' | 'multiple' | 'open';
   question: string;
   options: string[];
-  correctIndex: number;
+  correctIndex?: number;
+  correctIndices?: number[];
   timestamp?: number; // For in-video quizzes
 };
 
@@ -292,5 +294,3 @@ export type Certificate = {
   pdfUrl: string;
   verificationCode: string;
 };
-
-    
