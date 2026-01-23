@@ -5,7 +5,7 @@ import type { UserProgress, Staff, Course, Lesson } from '@/lib/types';
 import { useReactTable, getCoreRowModel, getPaginationRowModel, getSortedRowModel, getFilteredRowModel, type SortingState } from '@tanstack/react-table';
 import { getColumns, type ProgressRow } from './columns';
 import { ProgressDataTable } from './data-table';
-import { ProgressDetailsDialog } from './progress-details-dialog';
+import { useRouter } from 'next/navigation';
 
 interface ProgressClientProps {
   allProgress: UserProgress[];
@@ -18,7 +18,7 @@ interface ProgressClientProps {
 export function ProgressClient({ allProgress, allStaff, allCourses, allLessons, loading }: ProgressClientProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
-  const [selectedDetails, setSelectedDetails] = useState<{ progress: ProgressRow; lessons: Lesson[] } | null>(null);
+  const router = useRouter();
 
   const tableData = useMemo<ProgressRow[]>(() => {
     if (loading) return [];
@@ -56,9 +56,8 @@ export function ProgressClient({ allProgress, allStaff, allCourses, allLessons, 
   }, [allProgress, allStaff, allCourses, allLessons, loading]);
 
   const handleViewDetails = useCallback((row: ProgressRow) => {
-    const courseLessons = allLessons.filter(l => l.courseId === row.course.id);
-    setSelectedDetails({ progress: row, lessons: courseLessons });
-  }, [allLessons]);
+    router.push(`/training/admin/progress/${row.id}`);
+  }, [router]);
   
   const columns = useMemo(() => getColumns({ onViewDetails: handleViewDetails }), [handleViewDetails]);
 
@@ -81,12 +80,6 @@ export function ProgressClient({ allProgress, allStaff, allCourses, allLessons, 
         loading={loading}
         globalFilter={globalFilter}
         setGlobalFilter={setGlobalFilter}
-      />
-      <ProgressDetailsDialog
-        isOpen={!!selectedDetails}
-        onClose={() => setSelectedDetails(null)}
-        progressData={selectedDetails?.progress || null}
-        allLessons={selectedDetails?.lessons || []}
       />
     </>
   );
