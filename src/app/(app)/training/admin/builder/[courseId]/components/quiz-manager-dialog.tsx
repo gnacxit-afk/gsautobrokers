@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -38,7 +39,8 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { FormDescription } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+
 
 const questionSchema = z.object({
   type: z.enum(['single', 'multiple', 'open']),
@@ -111,17 +113,12 @@ export function QuizManagerDialog({ lesson, isOpen, onClose }: QuizManagerDialog
     }
   }, [quizData]);
 
-  const {
-    register,
-    handleSubmit,
-    control,
-    reset,
-    watch,
-    formState: { errors, isSubmitting },
-  } = useForm<QuestionFormValues>({
+  const form = useForm<QuestionFormValues>({
     resolver: zodResolver(questionSchema),
     defaultValues: { type: 'single', question: '', options: ['', '', '', ''], correctIndex: undefined, correctIndices: [] },
   });
+
+  const { register, control, reset, watch, formState: { errors, isSubmitting } } = form;
 
   const watchedType = watch('type');
 
@@ -308,7 +305,8 @@ export function QuizManagerDialog({ lesson, isOpen, onClose }: QuizManagerDialog
                     <PlusCircle className="text-primary text-xl" />
                     <h4 className="text-sm font-bold uppercase tracking-wider text-slate-500">{editingQuestion ? 'Edit Question' : 'New Question'}</h4>
                 </div>
-                 <form onSubmit={handleSubmit(handleSaveQuestion)} className="space-y-6">
+                <Form {...form}>
+                 <form onSubmit={form.handleSubmit(handleSaveQuestion)} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="md:col-span-2 space-y-2">
                             <Label htmlFor="question" className="font-semibold">Question Text</Label>
@@ -335,11 +333,20 @@ export function QuizManagerDialog({ lesson, isOpen, onClose }: QuizManagerDialog
                                     )}
                                 />
                             </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="timestamp" className="font-semibold">Timestamp (seconds)</Label>
-                                <Input id="timestamp" type="number" {...register('timestamp')} placeholder="e.g., 125" />
-                                <FormDescription className="text-xs">Leave blank if this is an end-of-lesson question.</FormDescription>
-                            </div>
+                            <FormField
+                                control={control}
+                                name="timestamp"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="font-semibold">Timestamp (seconds)</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" placeholder="e.g., 125" {...field} />
+                                        </FormControl>
+                                        <FormDescription className="text-xs">Leave blank if this is an end-of-lesson question.</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                         </div>
                     </div>
                     {watchedType !== 'open' && (
@@ -403,6 +410,7 @@ export function QuizManagerDialog({ lesson, isOpen, onClose }: QuizManagerDialog
                         </Button>
                     </div>
                  </form>
+                </Form>
             </section>
 
         </div>
@@ -413,3 +421,5 @@ export function QuizManagerDialog({ lesson, isOpen, onClose }: QuizManagerDialog
     </Dialog>
   );
 }
+
+    
