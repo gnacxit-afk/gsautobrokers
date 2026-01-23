@@ -38,6 +38,7 @@ import { type Lesson, type Quiz, type QuizQuestion } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 
 const questionSchema = z.object({
   type: z.enum(['single', 'multiple', 'open']),
