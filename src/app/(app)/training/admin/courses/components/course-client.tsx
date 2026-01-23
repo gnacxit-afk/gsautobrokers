@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import type { Course, Module, Lesson } from '@/lib/types';
+import type { Course } from '@/lib/types';
 import { useFirestore, useUser } from '@/firebase';
 import {
   collection,
@@ -19,13 +19,11 @@ import { CourseDialog } from './course-dialog';
 
 interface CourseClientProps {
   initialCourses: Course[];
-  moduleCounts: Map<string, number>;
-  lessonCounts: Map<string, number>;
   loading: boolean;
   onSetDefault: (course: Course) => void;
 }
 
-export function CourseClient({ initialCourses, moduleCounts, lessonCounts, loading, onSetDefault }: CourseClientProps) {
+export function CourseClient({ initialCourses, loading, onSetDefault }: CourseClientProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -70,7 +68,7 @@ export function CourseClient({ initialCourses, moduleCounts, lessonCounts, loadi
   }, [firestore, toast]);
 
 
-  const columns = useMemo(() => getColumns({ onEdit: handleOpenDialog, onTogglePublish: handleTogglePublish, onDelete: handleDeleteCourse, onSetDefault, moduleCounts, lessonCounts }), [onSetDefault, moduleCounts, lessonCounts, handleDeleteCourse]);
+  const columns = useMemo(() => getColumns({ onEdit: handleOpenDialog, onTogglePublish: handleTogglePublish, onDelete: handleDeleteCourse, onSetDefault }), [onSetDefault, handleDeleteCourse]);
 
   const table = useReactTable({
     data: initialCourses,

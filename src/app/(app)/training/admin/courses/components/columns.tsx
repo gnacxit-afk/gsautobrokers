@@ -1,7 +1,7 @@
 'use client';
 
 import type { ColumnDef } from '@tanstack/react-table';
-import type { Course, Module, Lesson } from '@/lib/types';
+import type { Course } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
@@ -62,13 +62,11 @@ const ColumnActions: React.FC<ColumnActionsProps> = ({ course, onEdit, onToggleP
 };
 
 export const getColumns = (
-    { onEdit, onTogglePublish, onDelete, onSetDefault, moduleCounts, lessonCounts } : { 
+    { onEdit, onTogglePublish, onDelete, onSetDefault } : { 
         onEdit: (course: Course) => void; 
         onTogglePublish: (course: Course) => void; 
         onDelete: (courseId: string) => void; 
         onSetDefault: (course: Course) => void;
-        moduleCounts: Map<string, number>;
-        lessonCounts: Map<string, number>;
     }
 ): ColumnDef<Course>[] => [
   {
@@ -107,15 +105,6 @@ export const getColumns = (
           {isPublished ? 'Published' : 'Draft'}
         </Badge>
       );
-    },
-  },
-  {
-    header: 'Content',
-    cell: ({ row }) => {
-      const course = row.original;
-      const moduleCount = moduleCounts.get(course.id) || 0;
-      const lessonCount = lessonCounts.get(course.id) || 0;
-      return <span className="text-sm text-muted-foreground">{moduleCount} Modules, {lessonCount} Lessons</span>;
     },
   },
   {

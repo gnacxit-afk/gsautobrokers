@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useFirestore, useUser, useCollection } from '@/firebase';
 import { collection, query, orderBy, doc, writeBatch } from 'firebase/firestore';
-import type { Course, Module, Lesson } from '@/lib/types';
+import type { Course } from '@/lib/types';
 import { AccessDenied } from '@/components/access-denied';
 import { CourseClient } from './components/course-client';
 import { useToast } from '@/hooks/use-toast';
@@ -18,28 +18,6 @@ export default function CourseManagementPage() {
     return query(collection(firestore, 'courses'), orderBy('createdAt', 'desc'));
   }, [firestore]);
   const { data: courses, loading: coursesLoading } = useCollection<Course>(coursesQuery);
-
-  const modulesQuery = useMemo(() => firestore ? collection(firestore, 'modules') : null, [firestore]);
-  const { data: modules, loading: modulesLoading } = useCollection<Module>(modulesQuery);
-
-  const lessonsQuery = useMemo(() => firestore ? collection(firestore, 'lessons') : null, [firestore]);
-  const { data: lessons, loading: lessonsLoading } = useCollection<Lesson>(lessonsQuery);
-
-  const moduleCounts = useMemo(() => {
-    if (!modules) return new Map<string, number>();
-    return modules.reduce((acc, module) => {
-      acc.set(module.courseId, (acc.get(module.courseId) || 0) + 1);
-      return acc;
-    }, new Map<string, number>());
-  }, [modules]);
-  
-  const lessonCounts = useMemo(() => {
-    if (!lessons) return new Map<string, number>();
-    return lessons.reduce((acc, lesson) => {
-      acc.set(lesson.courseId, (acc.get(lesson.courseId) || 0) + 1);
-      return acc;
-    }, new Map<string, number>());
-  }, [lessons]);
 
   const handleSetDefaultCourse = async (courseToSet: Course) => {
     if (!firestore || !courses) return;
@@ -66,7 +44,7 @@ export default function CourseManagementPage() {
     }
   };
 
-  const loading = userLoading || coursesLoading || modulesLoading || lessonsLoading;
+  const loading = userLoading || coursesLoading;
 
   if (userLoading) {
     return <div>Loading...</div>;
@@ -86,8 +64,6 @@ export default function CourseManagementPage() {
       </div>
       <CourseClient
         initialCourses={courses || []}
-        moduleCounts={moduleCounts}
-        lessonCounts={lessonCounts}
         loading={loading}
         onSetDefault={handleSetDefaultCourse}
       />
