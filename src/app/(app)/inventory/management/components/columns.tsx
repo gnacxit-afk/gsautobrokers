@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { ColumnDef } from "@tanstack/react-table";
@@ -67,7 +66,18 @@ export const getColumns = (): ColumnDef<Vehicle>[] => [
         header: '',
         cell: ({ row }) => {
             const photos = row.getValue('photos') as string[];
-            const imageUrl = photos && photos.length > 0 ? photos[0] : `https://placehold.co/80x60/f0f2f4/9ca3af?text=${row.original.make.charAt(0)}`;
+            let imageUrl = `https://placehold.co/80x60/f0f2f4/9ca3af?text=${row.original.make.charAt(0)}`;
+
+            if (photos && photos.length > 0 && photos[0]) {
+                try {
+                    // This will throw an error for invalid URLs, which we catch.
+                    new URL(photos[0]); 
+                    imageUrl = photos[0];
+                } catch (error) {
+                    // If photos[0] is not a valid URL, imageUrl remains the placeholder.
+                }
+            }
+            
             return (
                 <div className="w-20 h-14 rounded-md overflow-hidden bg-slate-100">
                     <Image src={imageUrl} alt={`${row.original.make} ${row.original.model}`} width={80} height={56} className="object-cover w-full h-full" />
