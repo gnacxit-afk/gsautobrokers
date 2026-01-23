@@ -13,11 +13,11 @@ export function calculateBonus(sales: number): number {
   if (sales >= 5 && sales < 10) return 100;
   
   const baseBonusFor10 = 225;
-  if (sales === 10) return baseBonusFor10;
-  
-  // For sales over 10
-  const extraSales = sales - 10;
-  return baseBonusFor10 + (extraSales * 25);
+  if (sales >= 10) {
+     const extraSales = sales - 10;
+     return baseBonusFor10 + (extraSales * 25);
+  }
+  return 0;
 }
 
 export function getNextBonusGoal(sales: number): { nextGoal: number, needed: number } {

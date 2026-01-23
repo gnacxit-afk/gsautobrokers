@@ -186,7 +186,7 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
   
   if (children) {
     return (
-       <Dialog onOpenChange={onOpenChange}>
+       <Dialog open={isOpen} onOpenChange={onOpenChange}>
           <DialogTrigger asChild>{children}</DialogTrigger>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
