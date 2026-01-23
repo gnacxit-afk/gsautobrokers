@@ -33,26 +33,34 @@ export function ProgressClient({ allProgress, allStaff, allCourses, allLessons, 
       return acc;
     }, {} as Record<string, Lesson[]>);
 
-    return allProgress.map(progress => {
+    return allProgress.reduce((acc, progress) => {
       const user = staffMap.get(progress.userId);
       const course = courseMap.get(progress.courseId);
+
+      // If the user or course associated with the progress record doesn't exist, skip it.
+      if (!user || !course) {
+        return acc;
+      }
+
       const courseLessons = lessonsByCourse[progress.courseId] || [];
       const totalLessons = courseLessons.length;
       
       const completedLessons = Object.values(progress.lessonProgress || {}).filter(p => p.completed).length;
       const progressPercentage = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
-      return {
+      acc.push({
         id: progress.id,
-        user: user || { id: progress.userId, name: 'Unknown User' },
-        course: course || { id: progress.courseId, title: 'Unknown Course' },
+        user: user,
+        course: course,
         progressPercentage,
         completedLessons,
         totalLessons,
         isCompleted: progress.completed,
         rawProgress: progress,
-      };
-    });
+      });
+      
+      return acc;
+    }, [] as ProgressRow[]);
   }, [allProgress, allStaff, allCourses, allLessons, loading]);
 
   const handleViewDetails = useCallback((row: ProgressRow) => {
