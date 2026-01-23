@@ -1,5 +1,6 @@
 
 
+
 import type { LucideIcon } from "lucide-react";
 import type { Timestamp } from "firebase/firestore";
 import { z } from 'zod';
@@ -248,7 +249,7 @@ export type Lesson = {
   moduleId: string;
   title: string;
   videoUrl: string;
-  duration: number; // in seconds
+  duration: number; // in minutes
   order: number;
 };
 
@@ -294,3 +295,27 @@ export type Certificate = {
   pdfUrl: string;
   verificationCode: string;
 };
+
+export type Vehicle = {
+  id: string;
+  year: number;
+  make: string;
+  model: string;
+  trim: string;
+  vin: string;
+  stockNumber: string;
+  cashPrice: number;
+  downPayment: number;
+  condition: "New" | "Used" | "Rebuilt";
+  mileage: number;
+  transmission: "Automatic" | "Manual" | "CVT";
+  driveTrain: string;
+  exteriorColor: string;
+  interiorColor: string;
+  fuelType: "Gasoline" | "Diesel" | "Electric" | "Hybrid";
+  photos: string[];
+  status: "Active" | "Pending" | "Sold";
+  createdAt: Timestamp;
+};
+
+    
