@@ -1,5 +1,4 @@
 
-
 import type { LucideIcon } from "lucide-react";
 import type { Timestamp } from "firebase/firestore";
 import { z } from 'zod';
@@ -310,7 +309,6 @@ export type Vehicle = {
   make: string;
   model: string;
   trim: string;
-  vin: string;
   stockNumber: string;
   cashPrice: number;
   downPayment: number;
@@ -330,5 +328,3 @@ export type Vehicle = {
   soldBy?: string; // UID of the staff member who sold it
   soldAt?: Timestamp; // Timestamp of when it was sold
 };
-
-    

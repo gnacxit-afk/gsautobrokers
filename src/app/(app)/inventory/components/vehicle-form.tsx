@@ -16,13 +16,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Save, Send } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 
 const vehicleSchema = z.object({
   year: z.coerce.number().min(1980, "Must be after 1980").max(new Date().getFullYear() + 1),
   make: z.string().min(2, "Make is required"),
   model: z.string().min(1, "Model is required"),
   trim: z.string().optional(),
-  vin: z.string().min(17, "VIN must be 17 characters").max(17),
   stockNumber: z.string().min(1, "Stock number is required"),
   cashPrice: z.coerce.number().min(0),
   downPayment: z.coerce.number().min(0),
@@ -49,12 +49,13 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const isEditing = !!vehicle;
+  const [newVehicleId] = useState(() => uuidv4().split('-')[0].toUpperCase());
 
   const { data: dealerships, loading: dealershipsLoading } = useCollection<Dealership>(
     firestore ? collection(firestore, 'dealerships') : null
   );
 
-  const { register, handleSubmit, control, reset, setValue, formState: { errors, isSubmitting } } = useForm<VehicleFormValues>({
+  const { register, handleSubmit, control, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm<VehicleFormValues>({
     resolver: zodResolver(vehicleSchema),
     defaultValues: isEditing ? {
         ...vehicle,
@@ -65,8 +66,27 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
         fuelType: 'Gasoline',
         status: 'Active',
         photos: Array(5).fill(''),
+        stockNumber: 'Select a dealership to generate',
     }
   });
+
+  const watchedDealershipId = watch('dealershipId');
+
+  useEffect(() => {
+    if (!isEditing) {
+        if (watchedDealershipId && dealerships) {
+            const selectedDealership = dealerships.find(d => d.id === watchedDealershipId);
+            if (selectedDealership?.dealershipCode) {
+                const stockNumber = `${selectedDealership.dealershipCode.toUpperCase()}-${newVehicleId}`;
+                setValue('stockNumber', stockNumber);
+            } else {
+                 setValue('stockNumber', 'Dealership has no code...');
+            }
+        } else {
+            setValue('stockNumber', 'Select a dealership to generate');
+        }
+    }
+  }, [watchedDealershipId, dealerships, isEditing, newVehicleId, setValue]);
 
   const onSubmit = async (data: VehicleFormValues) => {
     if (!firestore || !dealerships) return;
@@ -141,8 +161,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
         <Card>
             <CardHeader><CardTitle>Identification</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <div className="space-y-2"><Label>VIN</Label><Input {...register('vin')} />{errors.vin && <p className="text-xs text-destructive">{errors.vin.message}</p>}</div>
-                 <div className="space-y-2"><Label>Stock #</Label><Input {...register('stockNumber')} />{errors.stockNumber && <p className="text-xs text-destructive">{errors.stockNumber.message}</p>}</div>
+                 <div className="space-y-2"><Label>Stock #</Label><Input {...register('stockNumber')} disabled />{errors.stockNumber && <p className="text-xs text-destructive">{errors.stockNumber.message}</p>}</div>
             </CardContent>
         </Card>
 
@@ -187,5 +206,3 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
     </form>
   );
 }
-
-    

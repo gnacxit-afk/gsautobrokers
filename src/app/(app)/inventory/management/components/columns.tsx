@@ -89,14 +89,13 @@ export const getColumns = (): ColumnDef<Vehicle>[] => [
         }
     },
     {
-        accessorKey: 'vin',
-        header: 'VIN / Stock #',
+        accessorKey: 'stockNumber',
+        header: 'Stock #',
         cell: ({row}) => {
             const vehicle = row.original;
             return (
                 <div className="font-mono text-xs">
-                    <p>VIN: {vehicle.vin}</p>
-                    <p>STK: {vehicle.stockNumber}</p>
+                    <p>{vehicle.stockNumber}</p>
                 </div>
             )
         }
@@ -126,5 +125,3 @@ export const getColumns = (): ColumnDef<Vehicle>[] => [
         cell: ({ row }) => <ColumnActions vehicle={row.original} />,
     },
 ];
-
-    
