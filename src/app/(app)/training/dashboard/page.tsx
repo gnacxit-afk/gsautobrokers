@@ -1,19 +1,36 @@
-
 'use client';
 
 import { useMemo } from 'react';
 import { useFirestore, useUser, useCollection } from '@/firebase';
 import { collection, query, where, orderBy, doc, setDoc, arrayUnion, getDoc, updateDoc } from 'firebase/firestore';
-import type { Course, UserProgress } from '@/lib/types';
+import type { Course, UserProgress, Certificate } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import Image from 'next/image';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Award } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+
+function CertificateCard({ certificate, course }: { certificate: Certificate, course?: Course }) {
+    return (
+        <div className="flex items-center justify-between p-4 border rounded-lg bg-slate-50">
+            <div className="flex items-center gap-3">
+                <Award className="h-6 w-6 text-yellow-500" />
+                <div>
+                    <p className="font-semibold">{course?.title || 'Completed Course'}</p>
+                    <p className="text-xs text-muted-foreground">Issued on: {format(certificate.issuedAt.toDate(), 'MMM d, yyyy')}</p>
+                </div>
+            </div>
+            <Button asChild size="sm" variant="outline">
+                <Link href={`/training/certificate/${certificate.id}`}>View</Link>
+            </Button>
+        </div>
+    )
+}
 
 function CourseCard({ course, progress }: { course: Course, progress?: UserProgress | null }) {
     const router = useRouter();
@@ -21,7 +38,8 @@ function CourseCard({ course, progress }: { course: Course, progress?: UserProgr
     const { user } = useUser();
     const { toast } = useToast();
 
-    const totalLessons = 10; // Placeholder
+    // Placeholder: we need a way to get the actual lesson count
+    const totalLessons = 10;
     const completedLessons = progress ? Object.values(progress.lessonProgress || {}).filter(p => p.completed).length : 0;
     const progressPercentage = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
     
@@ -112,7 +130,15 @@ export default function TrainingDashboardPage() {
   }, [firestore, user]);
   const { data: userProgress, loading: progressLoading } = useCollection<UserProgress>(progressQuery);
 
-  const loading = userLoading || coursesLoading || progressLoading;
+  // Query for the user's certificates
+  const certificatesQuery = useMemo(() => {
+      if (!firestore || !user) return null;
+      return query(collection(firestore, 'certificates'), where('userId', '==', user.id));
+  }, [firestore, user]);
+  const { data: certificates, loading: certificatesLoading } = useCollection<Certificate>(certificatesQuery);
+  
+
+  const loading = userLoading || coursesLoading || progressLoading || certificatesLoading;
   
   const { enrolledCourses, availableCourses } = useMemo(() => {
       if (!courses || !userProgress) return { enrolledCourses: [], availableCourses: [] };
@@ -132,6 +158,9 @@ export default function TrainingDashboardPage() {
       return { enrolledCourses: enrolled, availableCourses: available };
 
   }, [courses, userProgress]);
+  
+  const coursesById = useMemo(() => new Map(courses?.map(c => [c.id, c])), [courses]);
+
 
   return (
     <main>
@@ -158,6 +187,17 @@ export default function TrainingDashboardPage() {
             <p className="text-muted-foreground">You are not enrolled in any courses yet. Browse the available courses below.</p>
           )}
         </section>
+        
+        {certificates && certificates.length > 0 && (
+            <section>
+                <h2 className="text-xl font-semibold mb-4">My Certificates</h2>
+                <div className="space-y-3">
+                    {certificates.map(cert => (
+                        <CertificateCard key={cert.id} certificate={cert} course={coursesById.get(cert.courseId)} />
+                    ))}
+                </div>
+            </section>
+        )}
 
         <section>
           <h2 className="text-xl font-semibold mb-4">Available Courses</h2>

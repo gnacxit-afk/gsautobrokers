@@ -188,8 +188,14 @@ service cloud.firestore {
       allow delete: if false;
     }
     match /certificates/{certId} {
-      allow read: if isOwner(resource.data.userId) || isAdmin() || getUserRole() == 'Supervisor';
-      allow create, write: if isAdmin(); // Create should be handled by a Cloud Function
+      // Anyone can view a specific certificate to verify it
+      allow get: if true;
+      // Users can list their own certificates, admins/supervisors can list any
+      allow list: if (isSignedIn() && request.query.userId == request.auth.uid) || isAdmin() || getUserRole() == 'Supervisor';
+      // A user can create their own certificate record upon completing a course
+      allow create: if isOwner(request.resource.data.userId);
+      // Only Admins can modify or delete certificates
+      allow update, delete: if isAdmin();
     }
   }
 }
