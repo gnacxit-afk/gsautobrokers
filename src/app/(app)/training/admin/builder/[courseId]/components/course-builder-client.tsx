@@ -192,7 +192,11 @@ export function CourseBuilderClient({ course }: CourseBuilderClientProps) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm">Preview Course</Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/training/course/${course.id}`} target="_blank">
+                Preview Course
+              </Link>
+            </Button>
             <Button size="sm">Publish Changes</Button>
           </div>
         </header>
