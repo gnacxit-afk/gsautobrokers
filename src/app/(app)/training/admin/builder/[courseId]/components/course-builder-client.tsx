@@ -104,13 +104,19 @@ export function CourseBuilderClient({ course }: CourseBuilderClientProps) {
             : (lessons?.filter(l => l.moduleId === editingItem?.moduleId).length || 0);
 
         const collectionName = `${type}s`;
-        await addDoc(collection(firestore, collectionName), {
-          ...data,
-          courseId: course.id,
-          moduleId: type === 'lesson' ? editingItem?.moduleId : undefined,
-          order: newOrder,
-          createdAt: serverTimestamp(),
-        });
+        
+        const newDocData: any = {
+            ...data,
+            courseId: course.id,
+            order: newOrder,
+            createdAt: serverTimestamp(),
+        };
+
+        if (type === 'lesson') {
+            newDocData.moduleId = editingItem?.moduleId;
+        }
+        
+        await addDoc(collection(firestore, collectionName), newDocData);
         toast({ title: `${type} Created`, description: `A new ${type} has been added.`});
       }
       setEditingItem(null);
