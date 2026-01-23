@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -27,6 +26,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@/firebase';
 
 interface InventoryDataTableProps<TData, TValue> {
   table: Table<TData>;
@@ -48,6 +48,7 @@ export function InventoryDataTable<TData, TValue>({
   setActiveFilters
 }: InventoryDataTableProps<TData, TValue>) {
     const router = useRouter();
+    const { user } = useUser();
 
     const addFilter = (key: string, value: string) => {
         const otherFilters = activeFilters.filter(f => f.key !== key);
@@ -108,9 +109,11 @@ export function InventoryDataTable<TData, TValue>({
                         </DropdownMenuRadioGroup>
                     </DropdownMenuContent>
                 </DropdownMenu>
-                <Button onClick={() => router.push('/inventory/add')} className="w-full sm:w-auto">
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Vehicle
-                </Button>
+                {(user?.role === 'Admin' || user?.role === 'Supervisor') && (
+                    <Button onClick={() => router.push('/inventory/add')} className="w-full sm:w-auto">
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Vehicle
+                    </Button>
+                )}
             </div>
         </div>
 
@@ -181,5 +184,3 @@ export function InventoryDataTable<TData, TValue>({
     </div>
   );
 }
-
-    
