@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { X, Video, BookText } from 'lucide-react';
+import { X, Video, BookText, Book } from 'lucide-react';
 
 const moduleSchema = z.object({
   title: z.string().min(3, 'Title is required.'),
@@ -66,7 +66,7 @@ export function EditPanel({ editingItem, onSave, onCancel }: EditPanelProps) {
       <div className="flex flex-col items-center justify-center h-full text-center text-slate-400 p-6">
         <BookText size={48} className="mb-4 text-slate-300" />
         <h3 className="font-semibold text-slate-600">Course Builder</h3>
-        <p className="text-sm">Select an item to edit, or create a new module to get started.</p>
+        <p className="text-sm">Select an item to edit, or click '+' to create a new module or lesson. Your form will appear here.</p>
       </div>
     );
   }
@@ -74,20 +74,23 @@ export function EditPanel({ editingItem, onSave, onCancel }: EditPanelProps) {
   return (
     <>
       <div className="flex items-center justify-between p-6 border-b border-border-light dark:border-slate-800">
-        <div>
-          <h2 className="text-lg font-bold">
-            {editingItem.data?.id ? 'Edit' : 'Create'} {editingItem.type}
-          </h2>
-          <p className="text-xs text-slate-500">
-            {isModule ? 'Organize your course into sections.' : 'Add a video lesson to your module.'}
-          </p>
+        <div className="flex items-center gap-3">
+          {isModule ? <Book size={18} className="text-primary" /> : <Video size={18} className="text-primary" />}
+           <div>
+            <h2 className="text-lg font-bold">
+              {editingItem.data?.id ? 'Edit' : 'Create'} {editingItem.type}
+            </h2>
+            <p className="text-xs text-slate-500">
+              {isModule ? 'Organize your course into sections.' : 'Add a video lesson to your module.'}
+            </p>
+          </div>
         </div>
         <Button variant="ghost" size="icon" onClick={onCancel} className="size-8">
             <X size={16} />
         </Button>
       </div>
       <div className="flex-1 overflow-y-auto p-6">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form id="edit-panel-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="title" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
                 {editingItem.type} Title
@@ -113,11 +116,11 @@ export function EditPanel({ editingItem, onSave, onCancel }: EditPanelProps) {
         </form>
       </div>
        <div className="p-6 border-t border-border-light dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center gap-3">
-            <Button onClick={handleSubmit(onSubmit)} className="flex-1" disabled={isSubmitting}>
-                {isSubmitting ? 'Saving...' : 'Save Changes'}
-            </Button>
             <Button onClick={onCancel} variant="outline" className="flex-1">
                 Cancel
+            </Button>
+             <Button type="submit" form="edit-panel-form" className="flex-1" disabled={isSubmitting}>
+                {isSubmitting ? 'Saving...' : 'Save Changes'}
             </Button>
         </div>
     </>
