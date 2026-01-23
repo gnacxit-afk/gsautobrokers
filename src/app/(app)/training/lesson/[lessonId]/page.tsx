@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useParams, useRouter } from "next/navigation";
@@ -25,7 +24,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from "@/components/ui/checkbox";
 
-function QuizModal({ quiz, isOpen, onSubmit }: { quiz: Quiz; isOpen: boolean; onSubmit: (isCorrect: boolean, score: number) => void }) {
+function QuizModal({ quiz, isOpen, onSubmit, onClose }: { quiz: Quiz; isOpen: boolean; onSubmit: (isCorrect: boolean, score: number) => void; onClose: () => void; }) {
     const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number | number[]>>({});
 
     const handleSubmit = () => {
@@ -63,7 +62,7 @@ function QuizModal({ quiz, isOpen, onSubmit }: { quiz: Quiz; isOpen: boolean; on
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={() => {}}>
+        <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Lesson Quiz</DialogTitle>
@@ -362,7 +361,7 @@ function LessonView({ lesson, quiz, allLessonsForCourse }: { lesson: Lesson; qui
         </div>
         <h1 className="text-2xl font-bold">{lesson.title}</h1>
         
-        {endOfLessonQuiz && showEndOfLessonQuiz && <QuizModal quiz={endOfLessonQuiz} isOpen={showEndOfLessonQuiz} onSubmit={markLessonAsComplete} />}
+        {endOfLessonQuiz && showEndOfLessonQuiz && <QuizModal quiz={endOfLessonQuiz} isOpen={showEndOfLessonQuiz} onSubmit={markLessonAsComplete} onClose={() => setShowEndOfLessonQuiz(false)} />}
 
         {currentInVideoQuestion && (
             <InVideoQuizModal 
