@@ -7,12 +7,12 @@ import { collection, query, where, orderBy } from 'firebase/firestore';
 import type { Lead, Staff, Dealership, Vehicle } from '@/lib/types';
 import { useDateRange } from '@/hooks/use-date-range';
 import { useAuthContext } from '@/lib/auth';
-import { isWithinInterval, isValid, differenceInDays, format, getISOWeek, getMonth, getYear } from 'date-fns';
+import { isWithinInterval, isValid, differenceInDays, format, getISOWeek, getMonth, getYear, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { calculateBonus } from '@/lib/utils';
 import { DateRangePicker } from '@/components/layout/date-range-picker';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, LineChart, Line, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, LineChart, Line, CartesianGrid, AreaChart, Area } from 'recharts';
 import {
   Table,
   TableBody,
@@ -22,7 +22,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, DollarSign, Users, Target, Percent, Star, Trophy, Building, Lock } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Users, Target, Percent, Star, Trophy, Building, Lock, Briefcase, FileText, Share2, Activity } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 
 const StatCard = ({ title, value, change, icon: Icon, color, loading }: { title: string, value: string, change?: string, icon: React.ElementType, color: string, loading: boolean }) => (
@@ -38,7 +39,17 @@ const StatCard = ({ title, value, change, icon: Icon, color, loading }: { title:
     </Card>
 );
 
-const AdminDashboard = ({ loading, filteredLeads, allStaff, allDealerships, allVehicles }: { loading: boolean, filteredLeads: Lead[], allStaff: Staff[], allDealerships: Dealership[], allVehicles: Vehicle[] }) => {
+const getAvatarFallback = (name: string) => {
+    if (!name) return 'U';
+    const parts = name.split(' ');
+    if (parts.length > 1) {
+        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+}
+
+
+const AdminDashboard = ({ loading, filteredLeads, allStaff, allDealerships, allVehicles, dateRange }: { loading: boolean, filteredLeads: Lead[], allStaff: Staff[], allDealerships: Dealership[], allVehicles: Vehicle[], dateRange: { start: Date, end: Date } }) => {
     
     const supervisors = useMemo(() => allStaff.filter(s => s.role === 'Supervisor'), [allStaff]);
 
@@ -93,18 +104,214 @@ const AdminDashboard = ({ loading, filteredLeads, allStaff, allDealerships, allV
         });
     }, [supervisors, allStaff, filteredLeads, allVehicles]);
 
-    const totalOverridePayouts = supervisorPerformance.reduce((acc, s) => acc + s.overrideCommission, 0);
+    const totalOverridePayouts = useMemo(() => supervisorPerformance.reduce((acc, s) => acc + s.overrideCommission, 0), [supervisorPerformance]);
+    const totalToPay = useMemo(() => salesMetrics.totalCommissions + salesMetrics.totalBonuses + totalOverridePayouts, [salesMetrics, totalOverridePayouts]);
+
+    const salesAndLeadsData = useMemo(() => {
+        const days = differenceInDays(dateRange.end, dateRange.start);
+        let dataMap: Map<string, { date: string, leads: number, sales: number }> = new Map();
+
+        const getGroupKey = (date: Date) => {
+            if (days <= 31) return format(date, 'yyyy-MM-dd');
+            if (days <= 365) return `${getYear(date)}-W${getISOWeek(date)}`;
+            return format(date, 'yyyy-MM');
+        };
+
+        filteredLeads.forEach(lead => {
+            const date = (lead.createdAt as any).toDate ? (lead.createdAt as any).toDate() : new Date(lead.createdAt as string);
+            if (!isValid(date)) return;
+
+            const key = getGroupKey(date);
+            if (!dataMap.has(key)) dataMap.set(key, { date: key, leads: 0, sales: 0 });
+
+            const entry = dataMap.get(key)!;
+            entry.leads++;
+            if (lead.stage === 'Ganado') entry.sales++;
+        });
+
+        return Array.from(dataMap.values()).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    }, [filteredLeads, dateRange]);
+
+    const sellerPerformance = useMemo(() => {
+        const sellers = allStaff.filter(s => s.role === 'Broker' || s.role === 'Supervisor');
+        return sellers.map(seller => {
+            const sellerLeads = filteredLeads.filter(l => l.ownerId === seller.id);
+            const closedSales = sellerLeads.filter(l => l.stage === 'Ganado');
+            return {
+                id: seller.id,
+                name: seller.name,
+                avatarUrl: seller.avatarUrl,
+                sales: closedSales.length,
+                leads: sellerLeads.length,
+                conversionRate: sellerLeads.length > 0 ? (closedSales.length / sellerLeads.length) * 100 : 0
+            }
+        }).sort((a,b) => b.sales - a.sales);
+    }, [allStaff, filteredLeads]);
+
+    const channelPerformance = useMemo(() => {
+        const channels = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
+        const channelMap = new Map(channels.map(c => [c, { channel: c, leads: 0, sales: 0 }]));
+        filteredLeads.forEach(lead => {
+            if(channelMap.has(lead.channel)) {
+                const entry = channelMap.get(lead.channel)!;
+                entry.leads++;
+                if (lead.stage === 'Ganado') entry.sales++;
+            }
+        });
+        return Array.from(channelMap.values()).map(c => ({...c, conversion: c.leads > 0 ? (c.sales / c.leads) * 100 : 0}));
+    }, [filteredLeads]);
+
+    const dealershipSales = useMemo(() => {
+        const salesByDealership = filteredLeads
+            .filter(l => l.stage === 'Ganado')
+            .reduce((acc, lead) => {
+                const name = lead.dealershipName || 'Unknown';
+                acc[name] = (acc[name] || 0) + 1;
+                return acc;
+            }, {} as {[key: string]: number});
+        
+        return Object.entries(salesByDealership)
+            .map(([name, sales]) => ({ name, sales }))
+            .sort((a,b) => b.sales - a.sales);
+    }, [filteredLeads]);
+    
+    const executiveSummary = `During this period, the team generated ${salesMetrics.totalLeads} leads, closing ${salesMetrics.closedSalesCount} of them. This resulted in $${salesMetrics.totalRevenue.toLocaleString()} in revenue for the company from commissions. Total payouts including broker commissions, bonuses, and supervisor overrides amount to $${totalToPay.toLocaleString()}.`;
 
     return (
-        <>
+        <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <StatCard title="Total Revenue" value={`$${salesMetrics.totalRevenue.toLocaleString()}`} icon={DollarSign} color="text-green-500" loading={loading} />
                 <StatCard title="Total Leads" value={`${salesMetrics.totalLeads}`} icon={Users} color="text-indigo-500" loading={loading} />
                 <StatCard title="Closed Sales" value={`${salesMetrics.closedSalesCount}`} icon={Target} color="text-amber-500" loading={loading} />
                 <StatCard title="Conversion Rate" value={`${salesMetrics.conversionRate.toFixed(1)}%`} icon={Percent} color="text-violet-500" loading={loading} />
+            </div>
+             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <StatCard title="Total Broker Commissions" value={`$${salesMetrics.totalCommissions.toLocaleString()}`} icon={TrendingUp} color="text-cyan-500" loading={loading} />
                 <StatCard title="Total Bonuses" value={`$${salesMetrics.totalBonuses.toLocaleString()}`} icon={Star} color="text-pink-500" loading={loading} />
-                <StatCard title="Total Override Payouts" value={`$${totalOverridePayouts.toLocaleString()}`} icon={TrendingDown} color="text-red-500" loading={loading} />
+                <StatCard title="Total Override Payouts" value={`$${totalOverridePayouts.toLocaleString()}`} icon={TrendingUp} color="text-orange-500" loading={loading} />
+                <StatCard title="Total to Pay" value={`$${totalToPay.toLocaleString()}`} icon={DollarSign} color="text-red-500" loading={loading} />
+            </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Activity size={20} /> Sales & Leads Trend</CardTitle>
+                </CardHeader>
+                <CardContent>
+                     {loading ? <Skeleton className="h-72 w-full" /> : 
+                        <ResponsiveContainer width="100%" height={300}>
+                            <AreaChart data={salesAndLeadsData}>
+                                <defs>
+                                    <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="var(--color-sales)" stopOpacity={0.8}/>
+                                        <stop offset="95%" stopColor="var(--color-sales)" stopOpacity={0}/>
+                                    </linearGradient>
+                                     <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="var(--color-leads)" stopOpacity={0.8}/>
+                                        <stop offset="95%" stopColor="var(--color-leads)" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="date" tick={{fontSize: 12}} tickLine={false} axisLine={false} />
+                                <YAxis tick={{fontSize: 12}} tickLine={false} axisLine={false} />
+                                <Tooltip contentStyle={{fontSize: '12px', borderRadius: '0.5rem'}} />
+                                <Legend wrapperStyle={{fontSize: '14px'}}/>
+                                 <Area type="monotone" dataKey="leads" stroke="hsl(var(--chart-2))" fill="url(#colorLeads)" name="Leads" strokeWidth={2} />
+                                <Area type="monotone" dataKey="sales" stroke="hsl(var(--chart-1))" fill="url(#colorSales)" name="Sales" strokeWidth={2} />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    }
+                </CardContent>
+            </Card>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <Card className="lg:col-span-2">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Briefcase size={20} /> Seller Performance</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Seller</TableHead>
+                                    <TableHead className="text-right">Leads</TableHead>
+                                    <TableHead className="text-right">Sales</TableHead>
+                                    <TableHead className="text-right">Conversion</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {loading ? [...Array(5)].map((_, i) => (
+                                    <TableRow key={i}>
+                                        <TableCell><Skeleton className="h-8 w-32" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-12 ml-auto" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-12 ml-auto" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
+                                    </TableRow>
+                                )) : sellerPerformance.map(s => (
+                                    <TableRow key={s.id}>
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-8 w-8"><AvatarFallback>{getAvatarFallback(s.name)}</AvatarFallback></Avatar>
+                                                <span className="font-medium">{s.name}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-right">{s.leads}</TableCell>
+                                        <TableCell className="text-right font-bold">{s.sales}</TableCell>
+                                        <TableCell className="text-right">{s.conversionRate.toFixed(1)}%</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+                <Card>
+                     <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><FileText size={20} /> Executive Summary</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {loading ? <div className="space-y-2"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-5/6" /><Skeleton className="h-4 w-3/4" /></div> : <p className="text-sm text-slate-600">{executiveSummary}</p>}
+                    </CardContent>
+                </Card>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                    <CardHeader>
+                         <CardTitle className="flex items-center gap-2"><Share2 size={20} /> Channel Conversion</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                         {loading ? <Skeleton className="h-64 w-full" /> : 
+                            <ResponsiveContainer width="100%" height={250}>
+                                <BarChart data={channelPerformance} layout="vertical" margin={{ left: 20 }}>
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                                    <XAxis type="number" hide />
+                                    <YAxis type="category" dataKey="channel" width={80} tick={{fontSize: 12}} tickLine={false} axisLine={false}/>
+                                    <Tooltip contentStyle={{fontSize: '12px', borderRadius: '0.5rem'}} />
+                                    <Legend wrapperStyle={{fontSize: '14px'}}/>
+                                    <Bar dataKey="leads" fill="hsl(var(--chart-2))" name="Leads" radius={[0, 4, 4, 0]} />
+                                    <Bar dataKey="sales" fill="hsl(var(--chart-1))" name="Sales" radius={[0, 4, 4, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        }
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader>
+                         <CardTitle className="flex items-center gap-2"><Building size={20} /> Sales by Dealership</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                         {loading ? <Skeleton className="h-64 w-full" /> : 
+                            <ResponsiveContainer width="100%" height={250}>
+                                <BarChart data={dealershipSales}>
+                                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis dataKey="name" tick={{fontSize: 10}} tickLine={false} axisLine={false} />
+                                    <YAxis tick={{fontSize: 12}} tickLine={false} axisLine={false} />
+                                    <Tooltip contentStyle={{fontSize: '12px', borderRadius: '0.5rem'}} />
+                                    <Bar dataKey="sales" fill="hsl(var(--chart-1))" name="Sales" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        }
+                    </CardContent>
+                </Card>
             </div>
 
             <Card>
@@ -142,7 +349,7 @@ const AdminDashboard = ({ loading, filteredLeads, allStaff, allDealerships, allV
                     </Table>
                 </CardContent>
             </Card>
-        </>
+        </div>
     )
 }
 
@@ -234,12 +441,13 @@ export default function DashboardPage() {
 
         switch (user.role) {
             case 'Admin':
-                return <AdminDashboard loading={loading} filteredLeads={filteredLeads} allStaff={staff || []} allDealerships={dealerships || []} allVehicles={vehicles || []} />;
+                return <AdminDashboard loading={loading} filteredLeads={filteredLeads} allStaff={staff || []} allDealerships={dealerships || []} allVehicles={vehicles || []} dateRange={dateRange} />;
             case 'Supervisor':
                  return <SupervisorDashboard user={user} loading={loading} filteredLeads={filteredLeads} allStaff={staff || []} allVehicles={vehicles || []} />;
             case 'Broker':
-                // Broker Dashboard logic could go here, or redirect
-                 return <p>Broker dashboard coming soon.</p>;
+                // Redirect to KPI page which is the main dashboard for brokers
+                // This could be handled with a router.push in a useEffect, but for now a message is fine
+                 return <p>Your dashboard is the KPI & Performance page.</p>;
             default:
                 return <p>No dashboard available for your role.</p>;
         }
