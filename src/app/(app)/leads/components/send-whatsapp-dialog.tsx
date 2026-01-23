@@ -30,9 +30,10 @@ interface SendWhatsappDialogProps {
   lead: Lead | null;
   isOpen: boolean;
   onClose: () => void;
+  initialMessage?: string;
 }
 
-export function SendWhatsappDialog({ lead, isOpen, onClose }: SendWhatsappDialogProps) {
+export function SendWhatsappDialog({ lead, isOpen, onClose, initialMessage }: SendWhatsappDialogProps) {
   const { toast } = useToast();
   const {
     register,
@@ -44,10 +45,11 @@ export function SendWhatsappDialog({ lead, isOpen, onClose }: SendWhatsappDialog
   });
 
   useEffect(() => {
-    if (lead) {
-      reset({ message: `Hello ${lead.name}, this is a message from GS Auto Brokers.` });
+    if (isOpen && lead) {
+      const defaultMessage = `Hola ${lead.name}, te saluda de GS Auto Brokers.`;
+      reset({ message: initialMessage || defaultMessage });
     }
-  }, [lead, reset]);
+  }, [lead, isOpen, reset, initialMessage]);
 
   const onSubmit = async (data: MessageFormValues) => {
     if (!lead) return;

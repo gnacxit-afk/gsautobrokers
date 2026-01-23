@@ -14,7 +14,7 @@ import type { Lead, NoteEntry, Staff, Dealership, Vehicle } from "@/lib/types";
 import { collection, orderBy, query, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, getDocs, writeBatch } from "firebase/firestore";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, User, Edit, ArrowLeft, MoreHorizontal, Users, ChevronsUpDown, Trash2, Edit2, Save, X, Calendar, Building, Car, Link2, XCircle } from "lucide-react";
+import { Bot, User, Edit, ArrowLeft, MoreHorizontal, Users, ChevronsUpDown, Trash2, Edit2, Save, X, Calendar, Building, Car, Link2, XCircle, Wand2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -48,7 +48,9 @@ import {
 import { useAuthContext } from "@/lib/auth";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { addNoteEntry } from '@/lib/utils';
+import { addNoteEntry } from "@/lib/utils";
+import { generateFollowup } from "@/ai/flows/generate-followup-flow";
+import { SendWhatsappDialog } from "../../components/send-whatsapp-dialog";
 
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
@@ -88,6 +90,11 @@ export default function LeadDetailsPage() {
   
   const [isEditing, setIsEditing] = useState(false);
   const [draftData, setDraftData] = useState<{name: string, phone: string}>({ name: '', phone: '' });
+  
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiMessage, setAiMessage] = useState<string>("");
+  const [isWhatsAppDialogOpen, setIsWhatsAppDialogOpen] = useState(false);
+
 
   const firestore = useFirestore();
   const { user } = useUser();
@@ -121,6 +128,26 @@ export default function LeadDetailsPage() {
       setDraftData({ name: lead.name, phone: lead.phone || '' });
     }
   }, [lead]);
+  
+  const handleGenerateFollowup = async () => {
+    if (!lead || !noteHistory || !user) return;
+    setIsGenerating(true);
+    try {
+        const result = await generateFollowup({
+            leadDetails: JSON.stringify({ ...lead, brokerName: user.name }),
+            conversationHistory: JSON.stringify(noteHistory),
+            vehicleDetails: interestedVehicle ? JSON.stringify(interestedVehicle) : undefined,
+        });
+        setAiMessage(result.whatsappMessage);
+        setIsWhatsAppDialogOpen(true);
+    } catch (error) {
+        console.error("Error generating AI follow-up:", error);
+        toast({ title: 'AI Assistant Error', description: 'Could not generate follow-up message.', variant: 'destructive' });
+    } finally {
+        setIsGenerating(false);
+    }
+  };
+
 
   const handleEditToggle = () => {
     if (isEditing) {
@@ -528,6 +555,18 @@ export default function LeadDetailsPage() {
                             )}
                         </CardContent>
                     </Card>
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><Wand2 size={18} /> AI Sales Copilot</CardTitle>
+                             <CardDescription>Generate a contextual follow-up message for this lead.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                             <Button onClick={handleGenerateFollowup} className="w-full" disabled={isGenerating}>
+                                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot size={16} className="mr-2" />}
+                                Generate WhatsApp Follow-up
+                             </Button>
+                        </CardContent>
+                    </Card>
                 </div>
                 <div className="lg:col-span-2">
                     <Card className="flex flex-col flex-1 max-h-[calc(100vh-14rem)]">
@@ -581,6 +620,12 @@ export default function LeadDetailsPage() {
                     </Card>
                 </div>
             </div>
+            <SendWhatsappDialog 
+                lead={lead}
+                isOpen={isWhatsAppDialogOpen}
+                onClose={() => setIsWhatsAppDialogOpen(false)}
+                initialMessage={aiMessage}
+            />
            </>
         )}
     </main>
