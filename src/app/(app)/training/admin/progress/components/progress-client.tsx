@@ -72,6 +72,14 @@ export function ProgressClient({ allProgress, allStaff, allCourses, allLessons, 
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
   });
+  
+  const selectedCourseLessons = useMemo(() => {
+    if (!selectedProgress) {
+        return [];
+    }
+    return allLessons.filter(l => l.courseId === selectedProgress.course.id);
+  }, [selectedProgress, allLessons]);
+
 
   return (
     <>
@@ -85,7 +93,7 @@ export function ProgressClient({ allProgress, allStaff, allCourses, allLessons, 
         isOpen={!!selectedProgress}
         onClose={() => setSelectedProgress(null)}
         progressData={selectedProgress}
-        allLessons={allLessons.filter(l => l.courseId === selectedProgress?.course.id)}
+        allLessons={selectedCourseLessons}
       />
     </>
   );
