@@ -4,16 +4,17 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFirestore, useUser, useCollection, useDoc } from "@/firebase";
 
-import type { Lead, NoteEntry, Staff, Dealership } from "@/lib/types";
+import type { Lead, NoteEntry, Staff, Dealership, Vehicle } from "@/lib/types";
 import { collection, orderBy, query, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, getDocs, writeBatch } from "firebase/firestore";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, User, Edit, ArrowLeft, MoreHorizontal, Users, ChevronsUpDown, Trash2, Edit2, Save, X, Calendar, Building } from "lucide-react";
+import { Bot, User, Edit, ArrowLeft, MoreHorizontal, Users, ChevronsUpDown, Trash2, Edit2, Save, X, Calendar, Building, Car, Link2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -31,6 +32,19 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { useAuthContext } from "@/lib/auth";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -45,6 +59,7 @@ const getIconForType = (type: NoteEntry['type']) => {
         case 'Stage Change': return <ChevronsUpDown size={14} />;
         case 'Owner Change': return <Users size={14} />;
         case 'Dealership Change': return <Building size={14} />;
+        case 'Vehicle Link': return <Car size={14} />;
         case 'System': return <Bot size={14} />;
         case 'AI Analysis': return <Bot size={14} />;
         default: return <Bot size={14} />;
@@ -57,6 +72,7 @@ const getColorForType = (type: NoteEntry['type']) => {
         case 'Stage Change': return "bg-amber-100 text-amber-800";
         case 'Owner Change': return "bg-purple-100 text-purple-800";
         case 'Dealership Change': return 'bg-pink-100 text-pink-800';
+        case 'Vehicle Link': return 'bg-teal-100 text-teal-800';
         case 'System': return "bg-slate-100 text-slate-800";
         case 'AI Analysis': return "bg-violet-100 text-violet-800";
         default: return "bg-slate-100 text-slate-800";
@@ -86,6 +102,12 @@ export default function LeadDetailsPage() {
 
   const dealershipsQuery = useMemo(() => firestore ? collection(firestore, 'dealerships') : null, [firestore]);
   const { data: dealerships, loading: dealershipsLoading } = useCollection<Dealership>(dealershipsQuery);
+
+  const inventoryQuery = useMemo(() => firestore ? query(collection(firestore, 'inventory'), where('status', '==', 'Active')) : null, [firestore]);
+  const { data: inventory, loading: inventoryLoading } = useCollection<Vehicle>(inventoryQuery);
+
+  const interestedVehicleRef = useMemo(() => (firestore && lead?.interestedVehicleId) ? doc(firestore, 'inventory', lead.interestedVehicleId) : null, [firestore, lead]);
+  const { data: interestedVehicle, loading: vehicleLoading } = useDoc<Vehicle>(interestedVehicleRef);
 
   const notesQuery = useMemo(() => {
     if (!firestore || !leadId) return null;
@@ -245,6 +267,35 @@ export default function LeadDetailsPage() {
         toast({ title: "Error", description: "Could not update lead dealership.", variant: "destructive"});
     }
   };
+
+  const handleLinkVehicle = async (vehicleId: string) => {
+    if (!firestore || !user || !lead) return;
+    const vehicle = inventory?.find(v => v.id === vehicleId);
+    if (!vehicle) return;
+
+    const leadRef = doc(firestore, 'leads', lead.id);
+    try {
+        await updateDoc(leadRef, { interestedVehicleId: vehicleId });
+        const noteContent = `Vehicle "${vehicle.year} ${vehicle.make} ${vehicle.model}" linked by ${user.name}.`;
+        await addNoteEntry(firestore, user, lead.id, noteContent, 'Vehicle Link');
+        toast({ title: 'Vehicle Linked' });
+    } catch (error) {
+         toast({ title: 'Error', description: 'Could not link vehicle.', variant: 'destructive' });
+    }
+  };
+
+  const handleUnlinkVehicle = async () => {
+    if (!firestore || !user || !lead) return;
+    const leadRef = doc(firestore, 'leads', lead.id);
+    try {
+        await updateDoc(leadRef, { interestedVehicleId: null });
+        const noteContent = `Vehicle unlinked by ${user.name}.`;
+        await addNoteEntry(firestore, user, lead.id, noteContent, 'Vehicle Link');
+        toast({ title: 'Vehicle Unlinked' });
+    } catch (error) {
+         toast({ title: 'Error', description: 'Could not unlink vehicle.', variant: 'destructive' });
+    }
+  };
   
   const handleDelete = async () => {
       if (window.confirm('Are you sure you want to delete this lead?') && firestore && leadId) {
@@ -269,7 +320,7 @@ export default function LeadDetailsPage() {
     }
   }, [noteHistory]);
 
-  const loading = leadLoading || notesLoading || staffLoading || dealershipsLoading;
+  const loading = leadLoading || notesLoading || staffLoading || dealershipsLoading || inventoryLoading || vehicleLoading;
   const assignableStaff = staff?.filter(s => s.role === 'Broker' || s.role === 'Supervisor' || s.role === 'Admin') || [];
 
   return (
@@ -424,6 +475,57 @@ export default function LeadDetailsPage() {
                                 <Label>Dealership</Label>
                                 <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.dealershipName}</Badge>
                             </div>
+                             {lead.stage === 'Ganado' && lead.brokerCommission && (
+                                <div className="space-y-2">
+                                    <Label>Broker Commission</Label>
+                                    <Badge variant="outline" className="text-base py-1 text-green-600 border-green-200 bg-green-50 w-full justify-start">${lead.brokerCommission.toLocaleString()}</Badge>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Vehicle of Interest</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {loading ? <Skeleton className="h-24 w-full" /> : 
+                            interestedVehicle ? (
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-4">
+                                        <Image src={interestedVehicle.photos?.[0] || `https://placehold.co/80x60/f0f2f4/9ca3af?text=GS`} alt="Vehicle" width={80} height={60} className="rounded-md object-cover" />
+                                        <div>
+                                            <p className="font-semibold">{interestedVehicle.year} {interestedVehicle.make} {interestedVehicle.model}</p>
+                                            <p className="text-sm text-muted-foreground">${interestedVehicle.cashPrice.toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                    {lead.stage !== 'Ganado' && (
+                                        <Button variant="outline" size="sm" className="w-full" onClick={handleUnlinkVehicle}><XCircle size={14} className="mr-2"/> Unlink Vehicle</Button>
+                                    )}
+                                </div>
+                            ) : lead.stage !== 'Ganado' ? (
+                                 <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" className="w-full"><Link2 size={14} className="mr-2"/>Link Vehicle</Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[400px] p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Search inventory..." />
+                                            <CommandList>
+                                                <CommandEmpty>No vehicles found.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {(inventory || []).map((vehicle) => (
+                                                        <CommandItem key={vehicle.id} value={vehicle.id} onSelect={() => handleLinkVehicle(vehicle.id)}>
+                                                            {vehicle.year} {vehicle.make} {vehicle.model} - ${vehicle.cashPrice.toLocaleString()}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                            ) : (
+                                <p className="text-sm text-muted-foreground text-center py-4">Sale completed.</p>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
@@ -484,5 +586,3 @@ export default function LeadDetailsPage() {
     </main>
   );
 }
-
-    
