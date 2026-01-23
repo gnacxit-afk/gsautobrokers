@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useParams, useRouter } from "next/navigation";
@@ -23,6 +24,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 
 function QuizModal({ quiz, isOpen, onSubmit, onClose }: { quiz: Quiz; isOpen: boolean; onSubmit: (isCorrect: boolean, score: number) => void; onClose: () => void; }) {
     const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number | number[]>>({});
@@ -109,6 +111,7 @@ function QuizModal({ quiz, isOpen, onSubmit, onClose }: { quiz: Quiz; isOpen: bo
                     ))}
                 </div>
                 <DialogFooter>
+                    <Button onClick={onClose} variant="outline">Cancel</Button>
                     <Button onClick={handleSubmit}>Submit Answers</Button>
                 </DialogFooter>
             </DialogContent>
@@ -118,6 +121,7 @@ function QuizModal({ quiz, isOpen, onSubmit, onClose }: { quiz: Quiz; isOpen: bo
 
 function InVideoQuizModal({ question, isOpen, onClose }: { question: QuizQuestion, isOpen: boolean, onClose: () => void }) {
     const [selected, setSelected] = useState<number | number[] | null>(null);
+    const [openAnswer, setOpenAnswer] = useState('');
     const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
 
     const handleSubmit = () => {
@@ -128,6 +132,8 @@ function InVideoQuizModal({ question, isOpen, onClose }: { question: QuizQuestio
             const userAnswers = (selected as number[] || []);
             const correctAnswers = question.correctIndices || [];
             isCorrect = userAnswers.length === correctAnswers.length && userAnswers.every(a => correctAnswers.includes(a));
+        } else if (question.type === 'open') {
+            isCorrect = openAnswer.trim() !== '';
         }
         setFeedback(isCorrect ? 'correct' : 'incorrect');
         
@@ -139,6 +145,7 @@ function InVideoQuizModal({ question, isOpen, onClose }: { question: QuizQuestio
     const handleClose = () => {
         setFeedback(null);
         setSelected(null);
+        setOpenAnswer('');
         onClose();
     }
 
@@ -191,6 +198,13 @@ function InVideoQuizModal({ question, isOpen, onClose }: { question: QuizQuestio
                                         </div>
                                     ))}
                                 </div>
+                            )}
+                            {question.type === 'open' && (
+                                <Textarea
+                                    value={openAnswer}
+                                    onChange={(e) => setOpenAnswer(e.target.value)}
+                                    placeholder="Escribe tu respuesta aquí..."
+                                />
                             )}
                         </div>
                         <DialogFooter>
@@ -418,3 +432,5 @@ export default function LessonPage() {
     </main>
   );
 }
+
+    
