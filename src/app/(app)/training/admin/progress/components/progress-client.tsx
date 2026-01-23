@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import type { UserProgress, Staff, Course, Lesson } from '@/lib/types';
 import { useReactTable, getCoreRowModel, getPaginationRowModel, getSortedRowModel, getFilteredRowModel, type SortingState } from '@tanstack/react-table';
 import { getColumns, type ProgressRow } from './columns';
@@ -18,7 +18,7 @@ interface ProgressClientProps {
 export function ProgressClient({ allProgress, allStaff, allCourses, allLessons, loading }: ProgressClientProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
-  const [selectedProgress, setSelectedProgress] = useState<ProgressRow | null>(null);
+  const [selectedDetails, setSelectedDetails] = useState<{ progress: ProgressRow; lessons: Lesson[] } | null>(null);
 
   const tableData = useMemo<ProgressRow[]>(() => {
     if (loading) return [];
@@ -55,11 +55,12 @@ export function ProgressClient({ allProgress, allStaff, allCourses, allLessons, 
     });
   }, [allProgress, allStaff, allCourses, allLessons, loading]);
 
-  const handleViewDetails = (row: ProgressRow) => {
-    setSelectedProgress(row);
-  };
+  const handleViewDetails = useCallback((row: ProgressRow) => {
+    const courseLessons = allLessons.filter(l => l.courseId === row.course.id);
+    setSelectedDetails({ progress: row, lessons: courseLessons });
+  }, [allLessons]);
   
-  const columns = useMemo(() => getColumns({ onViewDetails: handleViewDetails }), []);
+  const columns = useMemo(() => getColumns({ onViewDetails: handleViewDetails }), [handleViewDetails]);
 
   const table = useReactTable({
     data: tableData,
@@ -72,14 +73,6 @@ export function ProgressClient({ allProgress, allStaff, allCourses, allLessons, 
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
   });
-  
-  const selectedCourseLessons = useMemo(() => {
-    if (!selectedProgress) {
-        return [];
-    }
-    return allLessons.filter(l => l.courseId === selectedProgress.course.id);
-  }, [selectedProgress, allLessons]);
-
 
   return (
     <>
@@ -90,10 +83,10 @@ export function ProgressClient({ allProgress, allStaff, allCourses, allLessons, 
         setGlobalFilter={setGlobalFilter}
       />
       <ProgressDetailsDialog
-        isOpen={!!selectedProgress}
-        onClose={() => setSelectedProgress(null)}
-        progressData={selectedProgress}
-        allLessons={selectedCourseLessons}
+        isOpen={!!selectedDetails}
+        onClose={() => setSelectedDetails(null)}
+        progressData={selectedDetails?.progress || null}
+        allLessons={selectedDetails?.lessons || []}
       />
     </>
   );
