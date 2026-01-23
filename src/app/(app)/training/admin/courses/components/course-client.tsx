@@ -4,18 +4,15 @@ import { useState, useMemo, useCallback } from 'react';
 import type { Course } from '@/lib/types';
 import { useFirestore, useUser } from '@/firebase';
 import {
-  collection,
-  addDoc,
   doc,
   updateDoc,
   deleteDoc,
-  serverTimestamp,
 } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useReactTable, getCoreRowModel, getPaginationRowModel, getSortedRowModel, getFilteredRowModel, type SortingState } from '@tanstack/react-table';
 import { getColumns } from './columns';
 import { CourseDataTable } from './data-table';
-import { CourseDialog } from './course-dialog';
+import { useRouter } from 'next/navigation';
 
 interface CourseClientProps {
   initialCourses: Course[];
@@ -24,19 +21,12 @@ interface CourseClientProps {
 }
 
 export function CourseClient({ initialCourses, loading, onSetDefault }: CourseClientProps) {
-  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
-
-  const handleOpenDialog = (course?: Course) => {
-    setEditingCourse(course || null);
-    setIsDialogOpen(true);
-  };
 
   const handleTogglePublish = async (course: Course) => {
     if (!firestore) return;
@@ -66,9 +56,13 @@ export function CourseClient({ initialCourses, loading, onSetDefault }: CourseCl
          toast({ title: 'Error', description: 'Could not delete the course.', variant: 'destructive' });
     }
   }, [firestore, toast]);
+  
+  const handleEditCourse = (course: Course) => {
+    router.push(`/training/admin/courses/edit/${course.id}`);
+  }
 
 
-  const columns = useMemo(() => getColumns({ onEdit: handleOpenDialog, onTogglePublish: handleTogglePublish, onDelete: handleDeleteCourse, onSetDefault }), [onSetDefault, handleDeleteCourse]);
+  const columns = useMemo(() => getColumns({ onEdit: handleEditCourse, onTogglePublish: handleTogglePublish, onDelete: handleDeleteCourse, onSetDefault }), [onSetDefault, handleDeleteCourse, handleEditCourse]);
 
   const table = useReactTable({
     data: initialCourses,
@@ -82,54 +76,13 @@ export function CourseClient({ initialCourses, loading, onSetDefault }: CourseCl
     getFilteredRowModel: getFilteredRowModel(),
   });
   
-  const handleSaveCourse = async (courseData: Pick<Course, 'title' | 'description' | 'passingScore' | 'thumbnailUrl'>) => {
-     if (!firestore || !user) return;
-     
-     try {
-        if (editingCourse) {
-            // Update existing course
-            const courseRef = doc(firestore, 'courses', editingCourse.id);
-            await updateDoc(courseRef, courseData);
-            toast({ title: 'Course Updated', description: `"${courseData.title}" has been saved.` });
-        } else {
-            // Create new course
-            const coursesCollection = collection(firestore, 'courses');
-            await addDoc(coursesCollection, {
-                ...courseData,
-                authorId: user.id,
-                published: false, // Always start as draft
-                isDefaultOnboarding: false,
-                createdAt: serverTimestamp(),
-            });
-            toast({ title: 'Course Created', description: 'Your new course has been saved as a draft.' });
-        }
-        setIsDialogOpen(false);
-        setEditingCourse(null);
-     } catch (error) {
-        toast({ title: 'Save Failed', description: 'Could not save the course details.', variant: 'destructive' });
-     }
-  };
-
-
   return (
-    <>
       <CourseDataTable
         table={table}
         columns={columns}
         loading={loading}
-        onOpenNewCourseDialog={() => handleOpenDialog()}
         globalFilter={globalFilter}
         setGlobalFilter={setGlobalFilter}
       />
-      <CourseDialog
-        isOpen={isDialogOpen}
-        onClose={() => {
-          setIsDialogOpen(false);
-          setEditingCourse(null);
-        }}
-        onSave={handleSaveCourse}
-        initialData={editingCourse}
-      />
-    </>
   );
 }

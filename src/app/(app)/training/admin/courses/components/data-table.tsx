@@ -15,12 +15,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PlusCircle, Search } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface CourseDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   table: Table<TData>;
   loading: boolean;
-  onOpenNewCourseDialog: () => void;
   globalFilter: string;
   setGlobalFilter: (value: string) => void;
 }
@@ -29,10 +29,10 @@ export function CourseDataTable<TData, TValue>({
   columns,
   table,
   loading,
-  onOpenNewCourseDialog,
   globalFilter,
   setGlobalFilter,
 }: CourseDataTableProps<TData, TValue>) {
+  const router = useRouter();
 
   return (
     <div className="space-y-4">
@@ -46,7 +46,7 @@ export function CourseDataTable<TData, TValue>({
             className="pl-10"
           />
         </div>
-        <Button onClick={onOpenNewCourseDialog}>
+        <Button onClick={() => router.push('/training/admin/courses/new')}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Create New Course
         </Button>

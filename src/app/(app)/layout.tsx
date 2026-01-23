@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from "react";
@@ -287,6 +286,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     if (pathname.startsWith('/leads/')) return 'Lead Details';
     if (pathname.startsWith('/staff/')) return 'Staff Profile';
     if (pathname.startsWith('/inventory/management')) return 'Inventory Management';
+    if (pathname.startsWith('/training/admin/courses/new')) return 'New Course';
+    if (pathname.startsWith('/training/admin/courses/edit')) return 'Edit Course';
+
 
     return 'Dashboard';
   };
@@ -326,5 +328,3 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </div>
   );
 }
-
-    
