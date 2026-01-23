@@ -13,9 +13,10 @@ import { DealershipDialog } from './dealership-dialog';
 
 interface DealershipClientProps {
   initialDealerships: Dealership[];
+  loading: boolean;
 }
 
-export function DealershipClient({ initialDealerships }: DealershipClientProps) {
+export function DealershipClient({ initialDealerships, loading }: DealershipClientProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -83,6 +84,7 @@ export function DealershipClient({ initialDealerships }: DealershipClientProps) 
         onOpenNewDialog={() => handleOpenDialog()}
         globalFilter={globalFilter}
         setGlobalFilter={setGlobalFilter}
+        loading={loading}
       />
       <DealershipDialog 
         isOpen={isDialogOpen} 
@@ -93,5 +95,3 @@ export function DealershipClient({ initialDealerships }: DealershipClientProps) 
     </>
   );
 }
-
-    

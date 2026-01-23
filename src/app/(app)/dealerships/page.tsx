@@ -19,7 +19,7 @@ export default function DealershipsPage() {
 
   const { data: dealerships, loading: dealershipsLoading } = useCollection<Dealership>(dealershipsQuery);
 
-  if (userLoading || dealershipsLoading) {
+  if (userLoading) {
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center">
@@ -43,9 +43,8 @@ export default function DealershipsPage() {
       </div>
       <DealershipClient
         initialDealerships={dealerships || []}
+        loading={dealershipsLoading || userLoading}
       />
     </main>
   );
 }
-
-    
