@@ -81,7 +81,7 @@ export function CourseClient({ initialCourses, allModules, allLessons, loading, 
     getSortedRowModel: getSortedRowModel(),
   });
   
-  const handleSaveCourse = async (courseData: Pick<Course, 'title' | 'description' | 'passingScore'>) => {
+  const handleSaveCourse = async (courseData: Pick<Course, 'title' | 'description' | 'passingScore' | 'thumbnailUrl'>) => {
      if (!firestore || !user) return;
      
      try {

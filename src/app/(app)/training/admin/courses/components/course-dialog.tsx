@@ -15,6 +15,7 @@ const courseSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters.'),
   description: z.string().min(10, 'Description must be at least 10 characters.'),
   passingScore: z.coerce.number().min(0).max(100, 'Score must be between 0 and 100.'),
+  thumbnailUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
 });
 
 type CourseFormValues = z.infer<typeof courseSchema>;
@@ -42,12 +43,14 @@ export function CourseDialog({ isOpen, onClose, onSave, initialData }: CourseDia
         title: initialData.title,
         description: initialData.description,
         passingScore: initialData.passingScore,
+        thumbnailUrl: initialData.thumbnailUrl || '',
       });
     } else {
       reset({
         title: '',
         description: '',
         passingScore: 80, // Default passing score
+        thumbnailUrl: '',
       });
     }
   }, [initialData, reset, isOpen]);
@@ -73,6 +76,11 @@ export function CourseDialog({ isOpen, onClose, onSave, initialData }: CourseDia
             <Label htmlFor="description">Course Description</Label>
             <Textarea id="description" {...register('description')} />
             {errors.description && <p className="text-xs text-red-500">{errors.description.message}</p>}
+          </div>
+           <div className="grid gap-2">
+            <Label htmlFor="thumbnailUrl">Thumbnail URL (Optional)</Label>
+            <Input id="thumbnailUrl" {...register('thumbnailUrl')} placeholder="https://example.com/image.png" />
+            {errors.thumbnailUrl && <p className="text-xs text-red-500">{errors.thumbnailUrl.message}</p>}
           </div>
            <div className="grid gap-2">
             <Label htmlFor="passingScore">Passing Score (%)</Label>

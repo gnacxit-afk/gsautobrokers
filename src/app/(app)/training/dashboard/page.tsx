@@ -81,8 +81,8 @@ function CourseCard({ course, progress }: { course: Course, progress?: UserProgr
                     {course.thumbnailUrl ? (
                         <Image src={course.thumbnailUrl} alt={course.title} fill className="object-cover" />
                     ) : (
-                        <div className="flex items-center justify-center h-full text-slate-400">
-                            <BookOpen size={48} />
+                         <div className="flex items-center justify-center h-full text-slate-400 bg-slate-200">
+                            <BookOpen size={32} />
                         </div>
                     )}
                 </div>
