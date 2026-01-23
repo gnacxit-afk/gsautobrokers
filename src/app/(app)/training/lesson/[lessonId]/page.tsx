@@ -56,7 +56,7 @@ function QuizModal({ quiz, isOpen, onSubmit }: { quiz: Quiz; isOpen: boolean; on
             const currentAnswers = (selectedAnswers[qIndex] as number[] || []);
             const newAnswers = currentAnswers.includes(answerIndex)
                 ? currentAnswers.filter(a => a !== answerIndex)
-                : [...currentAnswers, index];
+                : [...currentAnswers, answerIndex];
             setSelectedAnswers(prev => ({...prev, [qIndex]: newAnswers}));
         }
     };

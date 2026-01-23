@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -345,7 +344,7 @@ export function QuizManagerDialog({ lesson, isOpen, onClose }: QuizManagerDialog
                                                     <div className="flex-1 relative">
                                                         <Input {...register(`options.${index}`)} placeholder={`Option ${index + 1}`} />
                                                     </div>
-                                                    <RadioGroupItem value={String(index)} id={`option-${index}`} />
+                                                    <RadioGroupItem value={String(index)} id={`q${index}-opt${index}`} />
                                                 </div>
                                             ))}
                                         </RadioGroup>
@@ -402,5 +401,3 @@ export function QuizManagerDialog({ lesson, isOpen, onClose }: QuizManagerDialog
     </Dialog>
   );
 }
-
-    

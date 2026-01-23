@@ -26,7 +26,7 @@ function CertificateCard({ certificate, course }: { certificate: Certificate, co
                 </div>
             </div>
             <Button asChild size="sm" variant="outline">
-                <Link href={`/training/certificate/${certificate.id}`}>View</Link>
+                <Link href={`/training/certificate/${certificate.id}`} target="_blank">View</Link>
             </Button>
         </div>
     )

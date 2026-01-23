@@ -458,10 +458,12 @@
             "properties": {
               "question": { "type": "string" },
               "options": { "type": "array", "items": { "type": "string" } },
+              "type": { "type": "string", "enum": ["single", "multiple", "open"] },
               "correctIndex": { "type": "number" },
+              "correctIndices": { "type": "array", "items": { "type": "number" } },
               "timestamp": { "type": "number", "description": "Timestamp in seconds for in-video quizzes." }
             },
-            "required": ["question", "options", "correctIndex"]
+            "required": ["question", "type"]
           }
         }
       },
