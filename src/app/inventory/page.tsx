@@ -11,11 +11,22 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 
 function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
+  let imageUrl = 'https://placehold.co/600x400/f0f2f4/9ca3af?text=GS+Auto';
+  if (vehicle.photos && vehicle.photos.length > 0 && vehicle.photos[0]) {
+    try {
+      // This will throw an error for invalid URLs, which we catch.
+      new URL(vehicle.photos[0]); 
+      imageUrl = vehicle.photos[0];
+    } catch (error) {
+      // If photos[0] is not a valid URL, imageUrl remains the placeholder.
+    }
+  }
+
   return (
     <Card className="overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group">
       <div className="relative h-60 w-full overflow-hidden">
         <Image 
-          src={vehicle.photos[0] || 'https://placehold.co/600x400/f0f2f4/9ca3af?text=GS+Auto'} 
+          src={imageUrl} 
           alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`} 
           fill
           className="object-cover group-hover:scale-105 transition-transform"
@@ -88,5 +99,3 @@ export default function PublicInventoryPage() {
     </div>
   );
 }
-
-    
