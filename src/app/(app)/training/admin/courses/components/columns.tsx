@@ -62,13 +62,13 @@ const ColumnActions: React.FC<ColumnActionsProps> = ({ course, onEdit, onToggleP
 };
 
 export const getColumns = (
-    { onEdit, onTogglePublish, onDelete, onSetDefault, allModules, allLessons } : { 
+    { onEdit, onTogglePublish, onDelete, onSetDefault, moduleCounts, lessonCounts } : { 
         onEdit: (course: Course) => void; 
         onTogglePublish: (course: Course) => void; 
         onDelete: (courseId: string) => void; 
         onSetDefault: (course: Course) => void;
-        allModules: Module[];
-        allLessons: Lesson[];
+        moduleCounts: Map<string, number>;
+        lessonCounts: Map<string, number>;
     }
 ): ColumnDef<Course>[] => [
   {
@@ -113,8 +113,8 @@ export const getColumns = (
     header: 'Content',
     cell: ({ row }) => {
       const course = row.original;
-      const moduleCount = allModules.filter(m => m.courseId === course.id).length;
-      const lessonCount = allLessons.filter(l => l.courseId === course.id).length;
+      const moduleCount = moduleCounts.get(course.id) || 0;
+      const lessonCount = lessonCounts.get(course.id) || 0;
       return <span className="text-sm text-muted-foreground">{moduleCount} Modules, {lessonCount} Lessons</span>;
     },
   },

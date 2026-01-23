@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -22,6 +21,8 @@ interface CourseDataTableProps<TData, TValue> {
   table: Table<TData>;
   loading: boolean;
   onOpenNewCourseDialog: () => void;
+  globalFilter: string;
+  setGlobalFilter: (value: string) => void;
 }
 
 export function CourseDataTable<TData, TValue>({
@@ -29,8 +30,9 @@ export function CourseDataTable<TData, TValue>({
   table,
   loading,
   onOpenNewCourseDialog,
+  globalFilter,
+  setGlobalFilter,
 }: CourseDataTableProps<TData, TValue>) {
-  const [filter, setFilter] = useState('');
 
   return (
     <div className="space-y-4">
@@ -39,11 +41,8 @@ export function CourseDataTable<TData, TValue>({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search courses..."
-            value={filter}
-            onChange={(e) => {
-              setFilter(e.target.value);
-              table.setGlobalFilter(e.target.value);
-            }}
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.target.value)}
             className="pl-10"
           />
         </div>

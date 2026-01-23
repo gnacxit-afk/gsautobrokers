@@ -25,6 +25,22 @@ export default function CourseManagementPage() {
   const lessonsQuery = useMemo(() => firestore ? collection(firestore, 'lessons') : null, [firestore]);
   const { data: lessons, loading: lessonsLoading } = useCollection<Lesson>(lessonsQuery);
 
+  const moduleCounts = useMemo(() => {
+    if (!modules) return new Map<string, number>();
+    return modules.reduce((acc, module) => {
+      acc.set(module.courseId, (acc.get(module.courseId) || 0) + 1);
+      return acc;
+    }, new Map<string, number>());
+  }, [modules]);
+  
+  const lessonCounts = useMemo(() => {
+    if (!lessons) return new Map<string, number>();
+    return lessons.reduce((acc, lesson) => {
+      acc.set(lesson.courseId, (acc.get(lesson.courseId) || 0) + 1);
+      return acc;
+    }, new Map<string, number>());
+  }, [lessons]);
+
   const handleSetDefaultCourse = async (courseToSet: Course) => {
     if (!firestore || !courses) return;
 
@@ -70,8 +86,8 @@ export default function CourseManagementPage() {
       </div>
       <CourseClient
         initialCourses={courses || []}
-        allModules={modules || []}
-        allLessons={lessons || []}
+        moduleCounts={moduleCounts}
+        lessonCounts={lessonCounts}
         loading={loading}
         onSetDefault={handleSetDefaultCourse}
       />

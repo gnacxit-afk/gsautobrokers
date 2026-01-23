@@ -12,25 +12,26 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { useReactTable, getCoreRowModel, getPaginationRowModel, getSortedRowModel, type SortingState } from '@tanstack/react-table';
+import { useReactTable, getCoreRowModel, getPaginationRowModel, getSortedRowModel, getFilteredRowModel, type SortingState } from '@tanstack/react-table';
 import { getColumns } from './columns';
 import { CourseDataTable } from './data-table';
 import { CourseDialog } from './course-dialog';
 
 interface CourseClientProps {
   initialCourses: Course[];
-  allModules: Module[];
-  allLessons: Lesson[];
+  moduleCounts: Map<string, number>;
+  lessonCounts: Map<string, number>;
   loading: boolean;
   onSetDefault: (course: Course) => void;
 }
 
-export function CourseClient({ initialCourses, allModules, allLessons, loading, onSetDefault }: CourseClientProps) {
+export function CourseClient({ initialCourses, moduleCounts, lessonCounts, loading, onSetDefault }: CourseClientProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
 
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
 
@@ -54,7 +55,7 @@ export function CourseClient({ initialCourses, allModules, allLessons, loading, 
     }
   };
   
-  const handleDeleteCourse = async (courseId: string) => {
+  const handleDeleteCourse = useCallback(async (courseId: string) => {
     if (!firestore) return;
     const courseRef = doc(firestore, 'courses', courseId);
     try {
@@ -66,19 +67,21 @@ export function CourseClient({ initialCourses, allModules, allLessons, loading, 
     } catch (error) {
          toast({ title: 'Error', description: 'Could not delete the course.', variant: 'destructive' });
     }
-  };
+  }, [firestore, toast]);
 
 
-  const columns = useMemo(() => getColumns({ onEdit: handleOpenDialog, onTogglePublish: handleTogglePublish, onDelete: handleDeleteCourse, onSetDefault, allModules, allLessons }), [onSetDefault, allModules, allLessons]);
+  const columns = useMemo(() => getColumns({ onEdit: handleOpenDialog, onTogglePublish: handleTogglePublish, onDelete: handleDeleteCourse, onSetDefault, moduleCounts, lessonCounts }), [onSetDefault, moduleCounts, lessonCounts, handleDeleteCourse]);
 
   const table = useReactTable({
     data: initialCourses,
     columns,
-    state: { sorting },
+    state: { sorting, globalFilter },
     onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
   });
   
   const handleSaveCourse = async (courseData: Pick<Course, 'title' | 'description' | 'passingScore' | 'thumbnailUrl'>) => {
@@ -117,6 +120,8 @@ export function CourseClient({ initialCourses, allModules, allLessons, loading, 
         columns={columns}
         loading={loading}
         onOpenNewCourseDialog={() => handleOpenDialog()}
+        globalFilter={globalFilter}
+        setGlobalFilter={setGlobalFilter}
       />
       <CourseDialog
         isOpen={isDialogOpen}
