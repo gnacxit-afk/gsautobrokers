@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -31,10 +32,6 @@ export function CourseDataTable<TData, TValue>({
 }: CourseDataTableProps<TData, TValue>) {
   const [filter, setFilter] = useState('');
 
-  // This is a simple client-side filter.
-  // For larger datasets, consider server-side filtering.
-  // We apply this by filtering the data passed to the table instance.
-
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -42,8 +39,11 @@ export function CourseDataTable<TData, TValue>({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search courses..."
-            // value={globalFilter ?? ''}
-            // onChange={event => setGlobalFilter(event.target.value)}
+            value={filter}
+            onChange={(e) => {
+              setFilter(e.target.value);
+              table.setGlobalFilter(e.target.value);
+            }}
             className="pl-10"
           />
         </div>

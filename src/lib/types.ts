@@ -228,7 +228,7 @@ export type Course = {
   id: string;
   title: string;
   description: string;
-  thumbnailUrl: string;
+  thumbnailUrl?: string;
   passingScore: number;
   published: boolean;
   authorId: string;
