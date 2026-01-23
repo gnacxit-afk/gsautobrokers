@@ -96,7 +96,12 @@ export function QuizManagerDialog({ lesson, isOpen, onClose }: QuizManagerDialog
     if (quizData && quizData.length > 0) {
       const q = quizData[0];
       setQuizDocId(q.id);
-      setQuestions(q.questions || []);
+      // Normalize questions to ensure 'type' field exists, defaulting to 'single'
+      const normalizedQuestions = (q.questions || []).map(question => ({
+          ...question,
+          type: question.type || 'single'
+      }));
+      setQuestions(normalizedQuestions);
       setPassingScore(q.passingScore || 80);
     } else {
       setQuizDocId(null);
@@ -397,3 +402,5 @@ export function QuizManagerDialog({ lesson, isOpen, onClose }: QuizManagerDialog
     </Dialog>
   );
 }
+
+    
