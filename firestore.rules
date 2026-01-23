@@ -167,20 +167,20 @@ service cloud.firestore {
 
     // LMS Rules
     match /courses/{courseId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || getUserRole() == 'Supervisor';
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin() || getUserRole() == 'Supervisor';
     }
     match /modules/{moduleId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || getUserRole() == 'Supervisor';
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin() || getUserRole() == 'Supervisor';
     }
     match /lessons/{lessonId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || getUserRole() == 'Supervisor';
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin() || getUserRole() == 'Supervisor';
     }
     match /quizzes/{quizId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || getUserRole() == 'Supervisor';
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin() || getUserRole() == 'Supervisor';
     }
     match /userProgress/{progressId} {
       allow read: if isOwner(resource.data.userId) || isAdmin() || getUserRole() == 'Supervisor';
@@ -193,5 +193,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
