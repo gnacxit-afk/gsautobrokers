@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import type { Vehicle } from "@/lib/types";
-import { useFirestore } from "@/firebase";
+import { useFirestore, useUser } from "@/firebase";
 import { doc, deleteDoc } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,7 @@ const ColumnActions: React.FC<{ vehicle: Vehicle }> = ({ vehicle }) => {
     const router = useRouter();
     const firestore = useFirestore();
     const { toast } = useToast();
+    const { user } = useUser();
 
     const handleDelete = async () => {
         if (!firestore || !window.confirm(`Are you sure you want to delete ${vehicle.make} ${vehicle.model}?`)) return;
@@ -36,6 +37,8 @@ const ColumnActions: React.FC<{ vehicle: Vehicle }> = ({ vehicle }) => {
         }
     };
 
+    const canManage = user?.role === 'Admin' || user?.role === 'Supervisor';
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -46,15 +49,21 @@ const ColumnActions: React.FC<{ vehicle: Vehicle }> = ({ vehicle }) => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem onSelect={() => router.push(`/inventory/edit/${vehicle.id}`)}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    <span>Edit Vehicle</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={handleDelete} className="text-destructive focus:text-destructive">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    <span>Delete</span>
-                </DropdownMenuItem>
+                {canManage ? (
+                    <>
+                        <DropdownMenuItem onSelect={() => router.push(`/inventory/edit/${vehicle.id}`)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            <span>Edit Vehicle</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onSelect={handleDelete} className="text-destructive focus:text-destructive">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            <span>Delete</span>
+                        </DropdownMenuItem>
+                    </>
+                ) : (
+                    <DropdownMenuItem disabled>No actions available</DropdownMenuItem>
+                )}
             </DropdownMenuContent>
         </DropdownMenu>
     );
@@ -122,7 +131,7 @@ export const getColumns = (): ColumnDef<Vehicle>[] => [
         accessorKey: 'cashPrice',
         header: 'Price',
         cell: ({ row }) => {
-            const price = parseFloat(row.getValue('cashPrice'));
+            const price = parseFloat(row.getValue('cashPrice') as string);
             const formatted = new Intl.NumberFormat('en-US', {
                 style: 'currency',
                 currency: 'USD',
