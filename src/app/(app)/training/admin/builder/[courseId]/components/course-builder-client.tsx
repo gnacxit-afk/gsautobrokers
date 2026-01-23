@@ -42,6 +42,7 @@ export function CourseBuilderClient({ course }: CourseBuilderClientProps) {
   } | null>(null);
 
   const [quizLesson, setQuizLesson] = useState<Lesson | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const modulesQuery = useMemo(
     () =>
@@ -174,6 +175,25 @@ export function CourseBuilderClient({ course }: CourseBuilderClientProps) {
     }
   };
 
+  const handlePublishToggle = async () => {
+    if (!firestore) return;
+    setIsPublishing(true);
+    const newStatus = !course.published;
+    try {
+      const courseRef = doc(firestore, 'courses', course.id);
+      await updateDoc(courseRef, { published: newStatus });
+      toast({
+        title: `Course ${newStatus ? 'Published' : 'Unpublished'}`,
+        description: `"${course.title}" is now ${newStatus ? 'live and visible to users' : 'a draft and hidden from users'}.`,
+      });
+    } catch (error) {
+      console.error('Failed to toggle publish state', error);
+      toast({ title: 'Update Failed', variant: 'destructive' });
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   return (
     <>
       <div className="h-full flex flex-col">
@@ -197,7 +217,18 @@ export function CourseBuilderClient({ course }: CourseBuilderClientProps) {
                 Preview Course
               </Link>
             </Button>
-            <Button size="sm">Publish Changes</Button>
+            <Button 
+                size="sm"
+                onClick={handlePublishToggle} 
+                disabled={isPublishing}
+                variant={course.published ? "destructive" : "default"}
+            >
+              {isPublishing 
+                ? 'Updating...' 
+                : course.published 
+                ? 'Unpublish' 
+                : 'Publish Course'}
+            </Button>
           </div>
         </header>
         <div className="flex flex-1 overflow-hidden">
