@@ -85,7 +85,7 @@ const navItems: NavItemGroup[] = [
   },
   {
     heading: 'Inventory',
-    role: ["Admin", "Supervisor"],
+    role: ["Admin", "Supervisor", "Broker"],
     items: [
       { href: '/inventory/management', label: 'Inventory Management', icon: 'ClipboardList' },
     ]
@@ -326,5 +326,3 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </div>
   );
 }
-
-    

@@ -1,6 +1,5 @@
 
 
-
 import type { LucideIcon } from "lucide-react";
 import type { Timestamp } from "firebase/firestore";
 import { z } from 'zod';
@@ -25,7 +24,7 @@ export type NoteEntry = {
   content: string;
   author: string;
   date: Timestamp | Date | string;
-  type: 'Manual' | 'Stage Change' | 'Owner Change' | 'System' | 'AI Analysis' | 'Dealership Change';
+  type: 'Manual' | 'Stage Change' | 'Owner Change' | 'System' | 'AI Analysis' | 'Dealership Change' | 'Vehicle Link';
 }
 
 export type Lead = {
@@ -43,6 +42,8 @@ export type Lead = {
   lastActivity?: Timestamp | Date | string;
   dealershipId: string;
   dealershipName: string;
+  interestedVehicleId?: string | null;
+  commissionValue?: number | null;
 };
 
 export type Appointment = {
@@ -222,6 +223,10 @@ export type Dealership = {
   id: string;
   name: string;
   createdAt: Timestamp;
+  pocName?: string;
+  pocEmail?: string;
+  commission?: number;
+  dealershipCode?: string;
 };
 
 // LMS Types
@@ -316,6 +321,7 @@ export type Vehicle = {
   photos: string[];
   status: "Active" | "Pending" | "Sold";
   createdAt: Timestamp;
+  dealershipId: string;
+  dealershipCode: string;
+  commission: number;
 };
-
-    
