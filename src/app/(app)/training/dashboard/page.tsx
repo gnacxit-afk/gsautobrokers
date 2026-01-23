@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useFirestore, useUser, useCollection } from '@/firebase';
 import { collection, query, where, orderBy, doc, setDoc, arrayUnion, getDoc, updateDoc } from 'firebase/firestore';
-import type { Course, UserProgress, Certificate } from '@/lib/types';
+import type { Course, UserProgress, Certificate, Lesson } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -32,16 +32,16 @@ function CertificateCard({ certificate, course }: { certificate: Certificate, co
     )
 }
 
-function CourseCard({ course, progress }: { course: Course, progress?: UserProgress | null }) {
+function CourseCard({ course, progress, allLessons }: { course: Course; progress?: UserProgress | null, allLessons: Lesson[] }) {
     const router = useRouter();
     const firestore = useFirestore();
     const { user } = useUser();
     const { toast } = useToast();
 
-    // Placeholder: we need a way to get the actual lesson count
-    const totalLessons = 10;
+    const courseLessons = useMemo(() => allLessons.filter(l => l.courseId === course.id), [allLessons, course.id]);
+    const totalLessons = courseLessons.length;
     const completedLessons = progress ? Object.values(progress.lessonProgress || {}).filter(p => p.completed).length : 0;
-    const progressPercentage = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+    const progressPercentage = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
     
     const handleStartCourse = async () => {
         if (!firestore || !user) return;
@@ -123,6 +123,13 @@ export default function TrainingDashboardPage() {
   }, [firestore]);
   const { data: courses, loading: coursesLoading } = useCollection<Course>(coursesQuery);
 
+  // Query for all lessons to calculate progress
+  const lessonsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'lessons'));
+  }, [firestore]);
+  const { data: allLessons, loading: lessonsLoading } = useCollection<Lesson>(lessonsQuery);
+
   // Query for the user's progress
   const progressQuery = useMemo(() => {
     if (!firestore || !user) return null;
@@ -138,7 +145,7 @@ export default function TrainingDashboardPage() {
   const { data: certificates, loading: certificatesLoading } = useCollection<Certificate>(certificatesQuery);
   
 
-  const loading = userLoading || coursesLoading || progressLoading || certificatesLoading;
+  const loading = userLoading || coursesLoading || progressLoading || certificatesLoading || lessonsLoading;
   
   const { enrolledCourses, availableCourses } = useMemo(() => {
       if (!courses || !userProgress) return { enrolledCourses: [], availableCourses: [] };
@@ -180,7 +187,7 @@ export default function TrainingDashboardPage() {
           ) : enrolledCourses.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {enrolledCourses.map(({ course, progress }) => (
-                <CourseCard key={course.id} course={course} progress={progress} />
+                <CourseCard key={course.id} course={course} progress={progress} allLessons={allLessons || []} />
               ))}
             </div>
           ) : (
@@ -210,7 +217,7 @@ export default function TrainingDashboardPage() {
           ) : availableCourses.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {availableCourses.map(course => (
-                <CourseCard key={course.id} course={course} />
+                <CourseCard key={course.id} course={course} allLessons={allLessons || []} />
               ))}
             </div>
           ) : (
