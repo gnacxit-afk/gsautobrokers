@@ -1,6 +1,3 @@
-
-
-
 import type { LucideIcon } from "lucide-react";
 import type { Timestamp } from "firebase/firestore";
 import { z } from 'zod';
@@ -18,6 +15,7 @@ export type User = {
   dui?: string;
   enrolledCourses?: string[];
   certificates?: string[];
+  commission?: number;
 };
 
 export type NoteEntry = {
@@ -44,7 +42,7 @@ export type Lead = {
   dealershipId: string;
   dealershipName: string;
   interestedVehicleId?: string | null;
-  commissionValue?: number | null;
+  brokerCommission?: number;
 };
 
 export type Appointment = {
@@ -82,6 +80,7 @@ export type Staff = {
   dui?: string;
   enrolledCourses?: string[];
   certificates?: string[];
+  commission?: number;
 };
 
 export type NavItem = {
@@ -329,4 +328,3 @@ export type Vehicle = {
   soldBy?: string; // UID of the staff member who sold it
   soldAt?: Timestamp; // Timestamp of when it was sold
 };
-

@@ -1,5 +1,3 @@
-
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { collection, addDoc, serverTimestamp, type Firestore, doc, updateDoc } from "firebase/firestore";
@@ -11,21 +9,21 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function calculateBonus(sales: number): number {
-  if (sales >= 25) return 750;
-  if (sales >= 20) return 600;
-  if (sales >= 15) return 450;
-  if (sales >= 10) return 250;
-  if (sales >= 5) return 100;
-  return 0;
+  if (sales < 5) return 0;
+  if (sales >= 5 && sales < 10) return 100;
+  
+  const baseBonusFor10 = 225;
+  if (sales === 10) return baseBonusFor10;
+  
+  // For sales over 10
+  const extraSales = sales - 10;
+  return baseBonusFor10 + (extraSales * 25);
 }
 
 export function getNextBonusGoal(sales: number): { nextGoal: number, needed: number } {
   if (sales < 5) return { nextGoal: 5, needed: 5 - sales };
   if (sales < 10) return { nextGoal: 10, needed: 10 - sales };
-  if (sales < 15) return { nextGoal: 15, needed: 15 - sales };
-  if (sales < 20) return { nextGoal: 20, needed: 20 - sales };
-  if (sales < 25) return { nextGoal: 25, needed: 25 - sales };
-  return { nextGoal: 25, needed: 0 };
+  return { nextGoal: sales + 1, needed: 1 };
 }
 
 export const addNoteEntry = async (

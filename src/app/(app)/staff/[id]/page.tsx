@@ -144,7 +144,7 @@ export default function StaffProfilePage() {
     try {
         const { password, id, authUid, createdAt, hireDate, email, ...updateData } = formData;
         
-        await updateDoc(staffDocRef, updateData);
+        await updateDoc(staffDocRef, { ...updateData, commission: Number(updateData.commission) });
         
         toast({
             title: "Profile Updated",
@@ -268,6 +268,11 @@ export default function StaffProfilePage() {
                         </Select>
                     </div>
 
+                    <div className="space-y-2">
+                        <Label htmlFor="commission">Commission per Sale ($)</Label>
+                        <Input id="commission" type="number" value={formData.commission || ''} onChange={handleChange} />
+                    </div>
+
                     {formData.role === 'Broker' && (
                         <div className="space-y-2">
                             <Label htmlFor="supervisorId">Supervisor / Admin</Label>
@@ -340,5 +345,3 @@ export default function StaffProfilePage() {
     </main>
   );
 }
-
-    

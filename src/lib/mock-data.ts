@@ -6,8 +6,8 @@ import { PlaceHolderImages } from './placeholder-images';
 // The constants below are still used for financial calculations.
 
 export const REVENUE_PER_VEHICLE = 300;
-export const COMMISSION_PER_VEHICLE = 75;
-export const MARGIN_PER_VEHICLE = 225;
+export const COMMISSION_PER_VEHICLE = 100;
+export const MARGIN_PER_VEHICLE = 200;
 
 // Mock functions are kept to prevent breaking imports, but they return empty arrays.
 export const getLeads = (): Lead[] => [];

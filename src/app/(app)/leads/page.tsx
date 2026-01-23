@@ -4,7 +4,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { getColumns } from "./components/columns";
 import { DataTable } from "@/app/(app)/leads/components/data-table";
-import type { Lead, Staff, Dealership } from "@/lib/types";
+import type { Lead, Staff, Dealership, Vehicle } from "@/lib/types";
 import { useDateRange } from "@/hooks/use-date-range";
 import { useFirestore, useUser, useCollection } from "@/firebase";
 import {
@@ -30,12 +30,14 @@ import {
   writeBatch,
   limit,
   type QueryConstraint,
+  getDoc,
 } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { isWithinInterval, isValid } from "date-fns";
 import { addNoteEntry, createNotification } from "@/lib/utils";
 import { matchSorter } from 'match-sorter';
 import { SendWhatsappDialog } from "./components/send-whatsapp-dialog";
+import { COMMISSION_PER_VEHICLE } from "@/lib/mock-data";
 
 function LeadsPageContent() {
   const { user } = useUser();
@@ -134,23 +136,30 @@ function LeadsPageContent() {
     
     const batch = writeBatch(firestore);
     try {
-        batch.update(leadRef, { stage: newStage, lastActivity: serverTimestamp() });
+        let brokerCommission = lead.brokerCommission || null;
+        
+        // If lead is won, update records and calculate commission
+        if (newStage === 'Ganado') {
+            const owner = staffData.find(s => s.id === lead.ownerId);
+            brokerCommission = owner?.commission ?? COMMISSION_PER_VEHICLE;
+
+            if (lead.interestedVehicleId) {
+                const vehicleRef = doc(firestore, 'inventory', lead.interestedVehicleId);
+                batch.update(vehicleRef, { 
+                    status: 'Sold',
+                    soldBy: lead.ownerId,
+                    soldAt: serverTimestamp()
+                });
+            }
+        }
+        
+        batch.update(leadRef, { stage: newStage, lastActivity: serverTimestamp(), brokerCommission });
 
         const appointmentsQuery = query(collection(firestore, 'appointments'), where("leadId", "==", leadId));
         const appointmentsSnapshot = await getDocs(appointmentsQuery);
         appointmentsSnapshot.forEach(appointmentDoc => {
             batch.update(appointmentDoc.ref, { stage: newStage });
         });
-
-        // If lead is won, update the linked vehicle
-        if (newStage === 'Ganado' && lead.interestedVehicleId) {
-            const vehicleRef = doc(firestore, 'inventory', lead.interestedVehicleId);
-            batch.update(vehicleRef, { 
-                status: 'Sold',
-                soldBy: lead.ownerId,
-                soldAt: serverTimestamp()
-            });
-        }
 
         await batch.commit();
 
@@ -171,7 +180,7 @@ function LeadsPageContent() {
          console.error("Error updating stage:", error);
          toast({ title: "Error", description: "Could not update lead stage.", variant: "destructive"});
     }
-  }, [firestore, user, toast, leadsSnapshot]);
+  }, [firestore, user, toast, leadsSnapshot, staffData]);
 
   const handleDeleteLead = useCallback(async (leadToDelete: Lead) => {
     if (!leadToDelete || !firestore) return;

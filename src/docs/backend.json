@@ -1,4 +1,5 @@
 
+
 {
   "entities": {
     "UserProfile": {
@@ -83,6 +84,22 @@
         "ownerName": {
           "type": "string",
           "description": "The name of the user who owns the lead."
+        },
+        "dealershipId": {
+          "type": "string",
+          "description": "The ID of the dealership this lead belongs to."
+        },
+        "dealershipName": {
+          "type": "string",
+          "description": "The denormalized name of the dealership."
+        },
+        "interestedVehicleId": {
+            "type": "string",
+            "description": "The ID of the vehicle from the inventory that the lead is interested in."
+        },
+        "brokerCommission": {
+            "type": "number",
+            "description": "The commission amount earned by the broker for this specific sale."
         }
       },
       "required": [
@@ -93,7 +110,9 @@
         "stage",
         "createdAt",
         "ownerId",
-        "ownerName"
+        "ownerName",
+        "dealershipId",
+        "dealershipName"
       ]
     },
     "NoteEntry": {
@@ -118,7 +137,7 @@
         "type": {
           "type": "string",
           "description": "The type of note entry.",
-          "enum": ["Manual", "AI Analysis", "System", "Stage Change", "Owner Change"]
+          "enum": ["Manual", "AI Analysis", "System", "Stage Change", "Owner Change", "Dealership Change"]
         }
       },
       "required": ["content", "author", "date", "type"]
@@ -187,6 +206,20 @@
         "dui": {
           "type": "string",
           "description": "The staff member's DUI (Documento Unico de Identidad)."
+        },
+        "enrolledCourses": {
+          "type": "array",
+          "description": "Array of course IDs the user is enrolled in.",
+          "items": { "type": "string" }
+        },
+        "certificates": {
+            "type": "array",
+            "description": "Array of certificate IDs the user has earned.",
+            "items": { "type": "string" }
+        },
+        "commission": {
+          "type": "number",
+          "description": "The fixed commission amount per vehicle sold by this staff member."
         }
       },
       "required": [
@@ -298,38 +331,216 @@
       },
       "required": ["contractId", "contractTitle", "contractVersion", "userEmail", "userName", "eventType", "timestamp"]
     },
-    "Candidate": {
-      "title": "Candidate",
-      "type": "object",
-      "description": "Represents a candidate in the talent acquisition pipeline.",
-      "properties": {
-        "id": { "type": "string" },
-        "fullName": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "pipelineStatus": { "type": "string" },
-        "appliedDate": { "type": "string", "format": "date-time" },
-        "lastStatusChangeDate": { "type": "string", "format": "date-time" },
-        "approvedBy": { "type": "string" }
-      },
-      "required": ["id", "fullName", "email", "pipelineStatus", "appliedDate", "lastStatusChangeDate"]
-    },
     "Application": {
       "title": "Application",
       "type": "object",
-      "description": "Represents a candidate's application submitted through the public form.",
+      "description": "Represents the data submitted by a candidate through the public application form.",
       "properties": {
-        "fullName": { "type": "string", "description": "Candidate's full name." },
-        "whatsappNumber": { "type": "string", "description": "Candidate's WhatsApp phone number." },
-        "email": { "type": "string", "description": "Candidate's email address.", "format": "email" },
-        "city": { "type": "string", "description": "Candidate's city of residence." },
-        "availableHours": { "type": "string", "description": "Candidate's availability." },
-        "comfortableWithSales": { "type": "string", "enum": ["yes", "no"], "description": "If the candidate is comfortable with a sales role." },
-        "salesExperienceDescription": { "type": "string", "description": "Description of sales experience, if any." },
-        "motivation": { "type": "string", "description": "Candidate's motivation for the role." },
-        "source": { "type": "string", "description": "How the candidate was sourced.", "default": "Organic" },
-        "appliedDate": { "type": "string", "description": "The date of application.", "format": "date-time" }
+        "fullName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "whatsappNumber": { "type": "string" },
+        "country": { "type": "string" },
+        "city": { "type": "string" },
+        "paymentModel": { "type": "string" },
+        "motivation": { "type": "string" },
+        "timeDedication": { "type": "string" },
+        "timeManagement": { "type": "string" },
+        "salesExperience": { "type": "string" },
+        "closingComfort": { "type": "string" },
+        "tools": { 
+          "type": "object",
+          "properties": {
+            "smartphone": { "type": "boolean" },
+            "internet": { "type": "boolean" },
+            "whatsapp": { "type": "boolean" },
+            "facebook": { "type": "boolean" }
+          }
+        },
+        "crmExperience": { "type": "string" },
+        "incomeModelAgreement": { "type": "string" },
+        "fitReason": { "type": "string" },
+        "appliedDate": { "type": "string", "format": "date-time" },
+        "source": { "type": "string" }
       },
-      "required": ["fullName", "whatsappNumber", "email", "city", "availableHours", "comfortableWithSales", "motivation", "source", "appliedDate"]
+      "required": ["fullName", "email", "whatsappNumber", "country", "city", "paymentModel", "motivation", "timeDedication", "timeManagement", "salesExperience", "closingComfort", "tools", "crmExperience", "incomeModelAgreement", "fitReason", "appliedDate"]
+    },
+    "Candidate": {
+      "title": "Candidate",
+      "type": "object",
+      "description": "Represents a candidate in the talent acquisition pipeline, including their application data and scoring.",
+      "allOf": [{ "$ref": "#/backend/entities/Application" }],
+      "properties": {
+        "id": { "type": "string" },
+        "pipelineStatus": { "type": "string" },
+        "lastStatusChangeDate": { "type": "string", "format": "date-time" },
+        "score": { "type": "number", "description": "The AI-generated score from 0-100." },
+        "aiAnalysis": { "type": "string", "description": "The AI's reasoning for the score." },
+        "statusReason": { "type": "string", "description": "The classified status (e.g., Premium, Apto, Descartado)." }
+      },
+      "required": ["id", "pipelineStatus", "lastStatusChangeDate"]
+    },
+    "Dealership": {
+      "title": "Dealership",
+      "type": "object",
+      "description": "Represents a car dealership partner.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "pocName": { "type": "string", "description": "Point of Contact's name." },
+        "pocEmail": { "type": "string", "description": "Point of Contact's email.", "format": "email" },
+        "commission": { "type": "number", "description": "The fixed commission amount per vehicle sold." },
+        "dealershipCode": { "type": "string", "description": "A unique code to identify the dealership internally." }
+      },
+      "required": ["id", "name"]
+    },
+    "Course": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Course",
+      "type": "object",
+      "description": "Represents a single course in the LMS.",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "passingScore": { "type": "number" },
+        "published": { "type": "boolean" },
+        "authorId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "isDefaultOnboarding": { "type": "boolean", "description": "Whether this is the default course for new user onboarding." }
+      },
+      "required": ["title", "description", "passingScore", "published", "authorId", "createdAt"]
+    },
+    "Module": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Module",
+      "type": "object",
+      "description": "Represents a module within a course.",
+      "properties": {
+        "id": { "type": "string" },
+        "courseId": { "type": "string" },
+        "title": { "type": "string" },
+        "order": { "type": "number" }
+      },
+      "required": ["courseId", "title", "order"]
+    },
+    "Lesson": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Lesson",
+      "type": "object",
+      "description": "Represents a lesson within a module.",
+      "properties": {
+        "id": { "type": "string" },
+        "courseId": { "type": "string" },
+        "moduleId": { "type": "string" },
+        "title": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "duration": { "type": "number", "description": "Duration in seconds" },
+        "order": { "type": "number" }
+      },
+      "required": ["courseId", "moduleId", "title", "videoUrl", "duration", "order"]
+    },
+    "Quiz": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Quiz",
+      "type": "object",
+      "description": "Represents a quiz for a lesson or course.",
+      "properties": {
+        "id": { "type": "string" },
+        "lessonId": { "type": "string" },
+        "type": { "type": "string", "enum": ["inVideo", "endLesson", "finalExam"] },
+        "passingScore": { "type": "number" },
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "question": { "type": "string" },
+              "options": { "type": "array", "items": { "type": "string" } },
+              "correctIndex": { "type": "number" },
+              "timestamp": { "type": "number", "description": "Timestamp in seconds for in-video quizzes." }
+            },
+            "required": ["question", "options", "correctIndex"]
+          }
+        }
+      },
+      "required": ["lessonId", "type", "passingScore", "questions"]
+    },
+    "UserProgress": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProgress",
+      "type": "object",
+      "description": "Tracks a user's progress in a course.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "lessonProgress": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "watchedSeconds": { "type": "number" },
+              "completed": { "type": "boolean" }
+            }
+          }
+        },
+        "quizScores": {
+          "type": "object",
+          "additionalProperties": { "type": "number" }
+        },
+        "completed": { "type": "boolean", "default": false }
+      },
+      "required": ["userId", "courseId"]
+    },
+    "Certificate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Certificate",
+      "type": "object",
+      "description": "Represents a certificate issued to a user.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "issuedAt": { "type": "string", "format": "date-time" },
+        "score": { "type": "number" },
+        "pdfUrl": { "type": "string" },
+        "verificationCode": { "type": "string" }
+      },
+      "required": ["userId", "courseId", "issuedAt", "score", "pdfUrl", "verificationCode"]
+    },
+    "Vehicle": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Vehicle",
+      "type": "object",
+      "description": "Represents a vehicle in the inventory.",
+      "properties": {
+        "id": { "type": "string" },
+        "year": { "type": "number" },
+        "make": { "type": "string" },
+        "model": { "type": "string" },
+        "trim": { "type": "string" },
+        "cashPrice": { "type": "number" },
+        "downPayment": { "type": "number" },
+        "condition": { "type": "string", "enum": ["New", "Used", "Rebuilt"] },
+        "mileage": { "type": "number" },
+        "transmission": { "type": "string", "enum": ["Automatic", "Manual", "CVT"] },
+        "driveTrain": { "type": "string" },
+        "exteriorColor": { "type": "string" },
+        "interiorColor": { "type": "string" },
+        "fuelType": { "type": "string", "enum": ["Gasoline", "Diesel", "Electric", "Hybrid"] },
+        "photos": { "type": "array", "items": { "type": "string", "format": "uri" } },
+        "status": { "type": "string", "enum": ["Active", "Pending", "Sold"] },
+        "vin": { "type": "string" },
+        "stockNumber": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "dealershipId": { "type": "string" },
+        "dealershipCode": { "type": "string" },
+        "commission": { "type": "number" },
+        "soldBy": { "type": "string", "description": "The UID of the staff member who sold the vehicle." },
+        "soldAt": { "type": "string", "format": "date-time", "description": "The timestamp when the vehicle was marked as sold." }
+      },
+      "required": ["year", "make", "model", "cashPrice", "condition", "mileage", "status", "createdAt", "dealershipId", "dealershipCode", "commission"]
     }
   },
   "auth": {
@@ -341,13 +552,18 @@
   "firestore": {
     "structure": [
       {
-        "path": "publicApplications/{applicationId}",
+        "path": "dealerships/{dealershipId}",
         "definition": {
-          "entityName": "Application",
-          "schema": { "$ref": "#/backend/entities/Application" },
-          "description": "Stores raw, incoming candidate applications from the public form. This collection is write-only for the public and should be processed by a backend function.",
+          "entityName": "Dealership",
+          "schema": {
+            "$ref": "#/backend/entities/Dealership"
+          },
+          "description": "Stores car dealership partners.",
           "params": [
-            { "name": "applicationId", "description": "The unique application ID." }
+            {
+              "name": "dealershipId",
+              "description": "The unique dealership ID."
+            }
           ]
         }
       },
@@ -551,10 +767,79 @@
             }
           ]
         }
+      },
+      {
+        "path": "courses/{courseId}",
+        "definition": {
+          "entityName": "Course",
+          "schema": { "$ref": "#/backend/entities/Course" },
+          "description": "Stores LMS course overviews.",
+          "params": [{ "name": "courseId", "description": "The unique course ID." }]
+        }
+      },
+      {
+        "path": "modules/{moduleId}",
+        "definition": {
+          "entityName": "Module",
+          "schema": { "$ref": "#/backend/entities/Module" },
+          "description": "Stores LMS course modules.",
+          "params": [{ "name": "moduleId", "description": "The unique module ID." }]
+        }
+      },
+      {
+        "path": "lessons/{lessonId}",
+        "definition": {
+          "entityName": "Lesson",
+          "schema": { "$ref": "#/backend/entities/Lesson" },
+          "description": "Stores LMS lesson details.",
+          "params": [{ "name": "lessonId", "description": "The unique lesson ID." }]
+        }
+      },
+      {
+        "path": "quizzes/{quizId}",
+        "definition": {
+          "entityName": "Quiz",
+          "schema": { "$ref": "#/backend/entities/Quiz" },
+          "description": "Stores LMS quiz questions and details.",
+          "params": [{ "name": "quizId", "description": "The unique quiz ID." }]
+        }
+      },
+      {
+        "path": "userProgress/{progressId}",
+        "definition": {
+          "entityName": "UserProgress",
+          "schema": { "$ref": "#/backend/entities/UserProgress" },
+          "description": "Tracks individual user progress through courses.",
+          "params": [{ "name": "progressId", "description": "The unique progress ID, likely a combination of userId and courseId." }]
+        }
+      },
+      {
+        "path": "certificates/{certificateId}",
+        "definition": {
+          "entityName": "Certificate",
+          "schema": { "$ref": "#/backend/entities/Certificate" },
+          "description": "Stores issued certificates for users.",
+          "params": [{ "name": "certificateId", "description": "The unique certificate ID." }]
+        }
+      },
+      {
+        "path": "inventory/{vehicleId}",
+        "definition": {
+          "entityName": "Vehicle",
+          "schema": {
+            "$ref": "#/backend/entities/Vehicle"
+          },
+          "description": "Stores all vehicles available in the inventory.",
+          "params": [
+            {
+              "name": "vehicleId",
+              "description": "The unique vehicle ID."
+            }
+          ]
+        }
       }
     ],
     "reasoning": "This Firestore structure is designed to support the AutoSales AI application, prioritizing authorization independence, clarity, and scalability. It leverages structural segregation and denormalization to simplify security rules and ensure efficient data access. The root of the database is segmented by `artifacts/{appId}`, where `appId` allows the application to be instantiated in multiple environments without conflicting documents.\\n\\n**Authorization Independence (CRITICAL):**\\n\\n*   Leads: The `leads` collection, located at `artifacts/{appId}/public/data/leads`, includes the `ownerId` (auto-generated staff document ID) and `ownerName` of the user who owns the lead. This denormalization allows security rules to validate ownership without needing to perform expensive `get()` operations to retrieve user data. This ensures that lead access can be controlled based solely on the data within the lead document itself, combined with the authenticated user's ID.\\n*   Staff: The `staff` collection uses an auto-generated document ID. It includes the `supervisorId` (also an auto-generated ID) for reporting relationships. While the UI only allows Admins to manage staff, we can add roles if needed.\\n\\n**Structural Segregation (Homogeneous Security Posture):**\\n\\n*   User Data: User profiles are stored within the `staff` collection. The mapping between a Firebase Auth UID and the staff document ID happens at login.\\n*   Public Data: The `knowledge_base` and `leads` collections are within the `/public/data/` section of the database. While the security rules may differentiate access within those collections, this design communicates the intent that they are generally readable.\\n\\n**QAPs (Rules are not Filters):**\\n\\n*   List Operations: The segregation of user data and public data allows for secure `list` operations. For example, listing leads requires checking if the user has the correct role (Broker, Supervisor, Admin) and filtering based on `ownerId`.\\n\\n**Global Roles (DBAC):**\\n\\n*   Role-Based Access: User roles are stored in the `staff` document. The system can be expanded to utilize a dedicated `/roles_{role}/{uid}` collection to manage administrative or elevated rights. The UI only uses role to gate access to Staff management features, so this functionality isn't required for compliance."
   }
 }
 
-    

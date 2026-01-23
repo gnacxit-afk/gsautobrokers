@@ -37,6 +37,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { initializeApp, deleteApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { firebaseConfig } from '@/firebase/config';
+import { COMMISSION_PER_VEHICLE } from '@/lib/mock-data';
 
 const roles: Role[] = ["Admin", "Supervisor", "Broker"];
 
@@ -46,6 +47,7 @@ const staffSchema = z.object({
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
   role: z.enum(roles, { required_error: 'Please select a role.' }),
   dui: z.string().optional(),
+  commission: z.coerce.number().min(0, "Commission cannot be negative.").default(COMMISSION_PER_VEHICLE),
 });
 
 type StaffFormValues = z.infer<typeof staffSchema>;
@@ -71,6 +73,9 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
     formState: { errors, isSubmitting },
   } = useForm<StaffFormValues>({
     resolver: zodResolver(staffSchema),
+    defaultValues: {
+        commission: COMMISSION_PER_VEHICLE
+    }
   });
 
   useEffect(() => {
@@ -81,9 +86,10 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
         password: '',
         role: 'Broker', // Default role for new candidates
         dui: '',
+        commission: COMMISSION_PER_VEHICLE,
       });
     } else if (!isOpen) {
-      reset({ name: '', email: '', password: '', role: undefined, dui: '' });
+      reset({ name: '', email: '', password: '', role: undefined, dui: '', commission: COMMISSION_PER_VEHICLE });
     }
   }, [isOpen, candidate, reset]);
 
@@ -107,6 +113,7 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
         email: data.email,
         role: data.role,
         dui: data.dui,
+        commission: data.commission,
         createdAt: serverTimestamp(),
         hireDate: serverTimestamp(),
         avatarUrl: '',
@@ -181,7 +188,7 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
     return (
        <Dialog onOpenChange={onOpenChange}>
           <DialogTrigger asChild>{children}</DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
             <DialogTitle>{candidate ? `Convert Candidate: ${candidate.fullName}` : 'Register New Employee'}</DialogTitle>
             <DialogDescription>
@@ -241,6 +248,12 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
                     <Label htmlFor="dui">DUI (Optional)</Label>
                     <Input id="dui" {...register('dui')} />
                 </div>
+            </div>
+            
+            <div className="grid gap-2">
+                <Label htmlFor="commission">Commission per Sale ($)</Label>
+                <Input id="commission" type="number" {...register('commission')} />
+                {errors.commission && <p className="text-xs text-red-500">{errors.commission.message}</p>}
             </div>
 
             <DialogFooter>
@@ -256,7 +269,7 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-md">
             <DialogHeader>
             <DialogTitle>{candidate ? `Convert Candidate: ${candidate.fullName}` : 'Register New Employee'}</DialogTitle>
             <DialogDescription>
@@ -317,6 +330,12 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
                     <Input id="dui" {...register('dui')} />
                 </div>
             </div>
+            
+             <div className="grid gap-2">
+                <Label htmlFor="commission">Commission per Sale ($)</Label>
+                <Input id="commission" type="number" {...register('commission')} />
+                {errors.commission && <p className="text-xs text-red-500">{errors.commission.message}</p>}
+            </div>
 
             <DialogFooter>
                 <Button type="submit" disabled={isSubmitting}>
@@ -328,4 +347,3 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
     </Dialog>
   );
 }
-

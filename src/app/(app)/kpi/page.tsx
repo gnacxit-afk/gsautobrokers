@@ -13,7 +13,6 @@ import { useAuthContext } from '@/lib/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useDateRange } from '@/hooks/use-date-range';
 import { calculateBonus } from '@/lib/utils';
-import { COMMISSION_PER_VEHICLE } from '@/lib/mock-data';
 import { isWithinInterval, isValid, startOfToday, endOfToday, formatDistanceToNow } from 'date-fns';
 import { DateRangePicker } from '@/components/layout/date-range-picker';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -29,6 +28,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import Link from 'next/link';
 import { NewTaskForNewLeadDialog } from '../todos/components/new-task-for-new-lead-dialog';
 import { Separator } from '@/components/ui/separator';
+import { COMMISSION_PER_VEHICLE } from '@/lib/mock-data';
 
 const DEFAULT_KPIS: KPI[] = [
     { id: 'leads_recibidos', label: 'Leads recibidos', target: 'informativo', description: 'Total de leads que ingresan al sistema.' },
@@ -158,10 +158,12 @@ function BrokerGoalsView({kpis, kpisLoading, allLeads, staff, loading}) {
         return l.ownerId === user.id && isWithinInterval(leadDate, dateRange);
     });
       
+    const closedLeads = brokerLeads.filter(l => l.stage === 'Ganado');
     const totalLeads = brokerLeads.length;
-    const closedSales = brokerLeads.filter(l => l.stage === 'Ganado').length;
+    const closedSales = closedLeads.length;
     const conversion = totalLeads > 0 ? (closedSales / totalLeads) * 100 : 0;
-    const totalCommissions = closedSales * COMMISSION_PER_VEHICLE;
+    
+    const totalCommissions = closedLeads.reduce((acc, lead) => acc + (lead.brokerCommission || COMMISSION_PER_VEHICLE), 0);
     const brokerBonus = calculateBonus(closedSales);
 
     // Daily stats
@@ -585,5 +587,3 @@ const KpiPageWithProvider = () => {
 };
 
 export default KpiPageWithProvider;
-
-    
