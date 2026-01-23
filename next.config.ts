@@ -49,9 +49,6 @@ const nextConfig: NextConfig = {
       }
     ],
   },
-  experimental: {
-    allowedDevOrigins: ["https://6000-firebase-studio-1767064926867.cluster-dwvm25yncracsxpd26rcd5ja3m.cloudworkstations.dev"],
-  },
   eslint: {
     ignoreDuringBuilds: true,
   },
