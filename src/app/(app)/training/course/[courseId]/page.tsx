@@ -96,8 +96,10 @@ export default function CoursePage() {
   const lessonsQuery = useMemo(() => firestore ? query(collection(firestore, 'lessons'), where('courseId', '==', courseId), orderBy('order')) : null, [firestore, courseId]);
   const { data: lessons, loading: lessonsLoading } = useCollection<Lesson>(lessonsQuery);
   
-  const progressRef = useMemo(() => firestore && user ? doc(firestore, 'userProgress', `${user.id}_${courseId}`) : null, [firestore, user, courseId]);
-  const { data: progress, loading: progressLoading } = useDoc<UserProgress>(progressRef);
+  const progressQuery = useMemo(() => firestore && user ? query(collection(firestore, 'userProgress'), where('userId', '==', user.id), where('courseId', '==', courseId)) : null, [firestore, user, courseId]);
+  const { data: progressData, loading: progressLoading } = useCollection<UserProgress>(progressQuery);
+  const progress = progressData && progressData.length > 0 ? progressData[0] : null;
+
 
   const loading = courseLoading || modulesLoading || lessonsLoading || progressLoading;
 
