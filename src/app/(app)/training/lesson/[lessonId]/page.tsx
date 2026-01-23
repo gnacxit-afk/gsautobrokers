@@ -107,6 +107,9 @@ function QuizModal({ quiz, isOpen, onSubmit, onClose }: { quiz: Quiz; isOpen: bo
                                     ))}
                                 </div>
                             )}
+                             {q.type === 'open' && (
+                                <Textarea disabled placeholder="Your answer will be recorded." />
+                            )}
                         </div>
                     ))}
                 </div>
@@ -289,8 +292,17 @@ function LessonView({ lesson, quiz, allLessonsForCourse }: { lesson: Lesson; qui
     playerRef.current?.getInternalPlayer()?.playVideo?.();
   };
 
-  const issueCertificate = async (course: Course) => {
+  const issueCertificate = async (course: Course, progress: UserProgress) => {
     if (!firestore || !user) return;
+
+    const calculateFinalScore = (quizScores: { [quizId: string]: number }): number => {
+        const scores = Object.values(quizScores || {});
+        if (scores.length === 0) return 100;
+        const totalScore = scores.reduce((acc, s) => acc + s, 0);
+        return Math.round(totalScore / scores.length);
+    };
+
+    const finalScore = calculateFinalScore(progress.quizScores);
 
     try {
         const certificatesCollection = collection(firestore, 'certificates');
@@ -300,6 +312,7 @@ function LessonView({ lesson, quiz, allLessonsForCourse }: { lesson: Lesson; qui
             userId: user.id,
             courseId: course.id,
             issuedAt: serverTimestamp(),
+            score: finalScore,
             verificationCode: uuidv4(),
             pdfUrl: '', // Placeholder
         });
@@ -349,7 +362,8 @@ function LessonView({ lesson, quiz, allLessonsForCourse }: { lesson: Lesson; qui
             const courseRef = doc(firestore, 'courses', lesson.courseId);
             const courseSnap = await getDoc(courseRef);
             if(courseSnap.exists()){
-                await issueCertificate(courseSnap.data() as Course);
+                const courseWithId = { id: courseSnap.id, ...courseSnap.data() } as Course;
+                await issueCertificate(courseWithId, progressData);
             }
         }
     } else {
@@ -432,5 +446,3 @@ export default function LessonPage() {
     </main>
   );
 }
-
-    
