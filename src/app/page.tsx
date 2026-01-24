@@ -1,4 +1,123 @@
+'use client';
+
 import Link from 'next/link';
+import { useMemo } from 'react';
+import { useFirestore, useCollection } from '@/firebase';
+import { collection, query, where, orderBy, limit } from 'firebase/firestore';
+import type { Vehicle } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
+import Image from 'next/image';
+
+// New component for the featured vehicle card
+function FeaturedVehicleCard({ vehicle }: { vehicle: Vehicle }) {
+  let imageUrl = 'https://placehold.co/600x400/f0f2f4/9ca3af?text=GS+Auto';
+  if (vehicle.photos && vehicle.photos.length > 0 && vehicle.photos[0]) {
+    try {
+      new URL(vehicle.photos[0]); 
+      imageUrl = vehicle.photos[0];
+    } catch (error) {
+      // Invalid URL, keep placeholder
+    }
+  }
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden border border-[#dbe0e6] dark:border-gray-700 shadow-sm hover:shadow-xl transition-all group">
+      <Link href={`/inventory/vehicle/${vehicle.id}`}>
+        <div className="relative h-64 overflow-hidden">
+            <Image
+                src={imageUrl}
+                alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
+                fill
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          <div className="absolute top-4 right-4 bg-white/90 dark:bg-gray-900/90 px-3 py-1 rounded-full text-xs font-bold text-primary">Featured</div>
+        </div>
+      </Link>
+      <div className="p-6">
+        <Link href={`/inventory/vehicle/${vehicle.id}`}>
+            <h3 className="text-xl font-extrabold text-[#111418] dark:text-white mb-4 hover:text-primary transition-colors">{vehicle.year} {vehicle.make} {vehicle.model}</h3>
+        </Link>
+        <div className="grid grid-cols-3 gap-2 mb-6">
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Mileage</span>
+            <div className="flex items-center gap-1 text-sm font-semibold text-[#111418] dark:text-gray-200">
+              <span className="material-symbols-outlined text-xs text-primary">speed</span>
+              {vehicle.mileage.toLocaleString()} mi
+            </div>
+          </div>
+          <div className="flex flex-col gap-1 border-x border-gray-100 dark:border-gray-700 px-2">
+            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Fuel</span>
+            <div className="flex items-center gap-1 text-sm font-semibold text-[#111418] dark:text-gray-200">
+              <span className="material-symbols-outlined text-xs text-primary">local_gas_station</span>
+              {vehicle.fuelType}
+            </div>
+          </div>
+          <div className="flex flex-col gap-1 text-right">
+            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Trans</span>
+            <div className="flex items-center justify-end gap-1 text-sm font-semibold text-[#111418] dark:text-gray-200">
+              <span className="material-symbols-outlined text-xs text-primary">settings_input_component</span>
+              {vehicle.transmission}
+            </div>
+          </div>
+        </div>
+        <Link href={`/inventory/vehicle/${vehicle.id}`} className="w-full bg-primary/5 hover:bg-primary hover:text-white text-primary font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2">
+          View Details
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+
+function FeaturedListings() {
+  const firestore = useFirestore();
+
+  const inventoryQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(
+      collection(firestore, "inventory"),
+      where("status", "==", "Active"),
+      orderBy("createdAt", "desc"),
+      limit(3)
+    );
+  }, [firestore]);
+
+  const { data: vehicles, loading } = useCollection<Vehicle>(inventoryQuery);
+
+  return (
+    <section className="bg-[#f8f9fb] dark:bg-gray-900/40 py-20" id="listings">
+        <div className="max-w-[1280px] mx-auto px-6 lg:px-10">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+                <div className="flex flex-col gap-4">
+                    <h2 className="text-primary text-sm font-bold uppercase tracking-widest">Exclusive Inventory</h2>
+                    <h1 className="text-[#111418] dark:text-white text-4xl font-extrabold tracking-tight">Our Featured Listings</h1>
+                </div>
+                <Link href="/inventory" className="text-primary font-bold flex items-center gap-2 hover:gap-3 transition-all">
+                    Browse All Listings <span className="material-symbols-outlined">arrow_forward</span>
+                </Link>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {loading ? (
+                    [...Array(3)].map((_, i) => (
+                        <div key={i} className="space-y-4">
+                            <Skeleton className="h-64 w-full rounded-2xl" />
+                            <Skeleton className="h-6 w-3/4" />
+                            <Skeleton className="h-10 w-full" />
+                            <Skeleton className="h-10 w-full" />
+                        </div>
+                    ))
+                ) : vehicles && vehicles.length > 0 ? (
+                    vehicles.map(vehicle => (
+                        <FeaturedVehicleCard key={vehicle.id} vehicle={vehicle} />
+                    ))
+                ) : (
+                    <p className="col-span-3 text-center text-muted-foreground">No featured vehicles available at the moment.</p>
+                )}
+            </div>
+        </div>
+    </section>
+  )
+}
 
 export default function LandingPage() {
     return (
@@ -113,124 +232,9 @@ export default function LandingPage() {
                         </div>
                     </div>
                 </section>
-                <section className="bg-[#f8f9fb] dark:bg-gray-900/40 py-20" id="listings">
-                    <div className="max-w-[1280px] mx-auto px-6 lg:px-10">
-                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-                            <div className="flex flex-col gap-4">
-                                <h2 className="text-primary text-sm font-bold uppercase tracking-widest">Exclusive Inventory</h2>
-                                <h1 className="text-[#111418] dark:text-white text-4xl font-extrabold tracking-tight">Our Featured Listings</h1>
-                            </div>
-                            <Link href="/inventory" className="text-primary font-bold flex items-center gap-2 hover:gap-3 transition-all">
-                                Browse All Listings <span className="material-symbols-outlined">arrow_forward</span>
-                            </Link>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden border border-[#dbe0e6] dark:border-gray-700 shadow-sm hover:shadow-xl transition-all group">
-                                <div className="relative h-64 overflow-hidden">
-                                    <img alt="2024 Performance Sedan" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAW8qwR1QFDlNtFay3FowX4CLtETin5kobnN8-sjj8jAvUlvVXgRnP87eUjXxpyOzsrxuht8hjlBeC9Tc0L5x2RxbbBgvqX2j8Hmg9faBtEAC4-d-X8pCAhn4oWz_i-oR0QHp07G5enhrkFFInps8m7hvArrVGBv2YGONKjHpzjl_qVecFKxCsSEMjGiUjj9mtFfAmBQbhIm2ctk2QxXEP3DBOTU0SilJy6gi30FmSSXDGYO-MgzDrzZ3TgwlSpFO-vxqNXKs3hCkI" />
-                                    <div className="absolute top-4 right-4 bg-white/90 dark:bg-gray-900/90 px-3 py-1 rounded-full text-xs font-bold text-primary">Featured</div>
-                                </div>
-                                <div className="p-6">
-                                    <h3 className="text-xl font-extrabold text-[#111418] dark:text-white mb-4">2024 BMW X5 M Competition</h3>
-                                    <div className="grid grid-cols-3 gap-2 mb-6">
-                                        <div className="flex flex-col gap-1">
-                                            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Mileage</span>
-                                            <div className="flex items-center gap-1 text-sm font-semibold text-[#111418] dark:text-gray-200">
-                                                <span className="material-symbols-outlined text-xs text-primary">speed</span>
-                                                1,200 mi
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col gap-1 border-x border-gray-100 dark:border-gray-700 px-2">
-                                            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Fuel</span>
-                                            <div className="flex items-center gap-1 text-sm font-semibold text-[#111418] dark:text-gray-200">
-                                                <span className="material-symbols-outlined text-xs text-primary">local_gas_station</span>
-                                                Gasoline
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col gap-1 text-right">
-                                            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Trans</span>
-                                            <div className="flex items-center justify-end gap-1 text-sm font-semibold text-[#111418] dark:text-gray-200">
-                                                <span className="material-symbols-outlined text-xs text-primary">settings_input_component</span>
-                                                Auto
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button className="w-full bg-primary/5 hover:bg-primary hover:text-white text-primary font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2">
-                                        View Details
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden border border-[#dbe0e6] dark:border-gray-700 shadow-sm hover:shadow-xl transition-all group">
-                                <div className="relative h-64 overflow-hidden">
-                                    <img alt="Luxury SUV" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMhOWQ9aDnOI2McB4Uo2DJLwEKp0OZ4ayRflXGKlzc2A0LZNpEMw-6ziHs4EahngpsGdPVZgjTAnGPAb9oEyMSGyl10hhWg5LKknuIkvxva7lfjWrn5F-gKHDHI9wodeHgDLqQrTlzf5iQpJ9JmzcfIFcKy4ZYH9_ohYrdZaqri7CTOC-Xn3S7aWwcMIXBvKa5nW9g5i2uhrAXvsqBr0M5Y0rIjDq0EpkElhMe5cA2XTgiv4ovC2lrbmqtoW_9fLMTD5CVqCda9Gw" />
-                                </div>
-                                <div className="p-6">
-                                    <h3 className="text-xl font-extrabold text-[#111418] dark:text-white mb-4">2023 Porsche Taycan 4S</h3>
-                                    <div className="grid grid-cols-3 gap-2 mb-6">
-                                        <div className="flex flex-col gap-1">
-                                            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Mileage</span>
-                                            <div className="flex items-center gap-1 text-sm font-semibold text-[#111418] dark:text-gray-200">
-                                                <span className="material-symbols-outlined text-xs text-primary">speed</span>
-                                                5,450 mi
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col gap-1 border-x border-gray-100 dark:border-gray-700 px-2">
-                                            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Fuel</span>
-                                            <div className="flex items-center gap-1 text-sm font-semibold text-[#111418] dark:text-gray-200">
-                                                <span className="material-symbols-outlined text-xs text-primary">bolt</span>
-                                                Electric
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col gap-1 text-right">
-                                            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Trans</span>
-                                            <div className="flex items-center justify-end gap-1 text-sm font-semibold text-[#111418] dark:text-gray-200">
-                                                <span className="material-symbols-outlined text-xs text-primary">settings_input_component</span>
-                                                Auto
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button className="w-full bg-primary/5 hover:bg-primary hover:text-white text-primary font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2">
-                                        View Details
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden border border-[#dbe0e6] dark:border-gray-700 shadow-sm hover:shadow-xl transition-all group">
-                                <div className="relative h-64 overflow-hidden">
-                                    <img alt="Sports Coupe" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwlOf5moe1tn3zHpcevOxX4bo_UJt716RTLRmCReh2sbLP63jDGhZ2Fh-0CheFxkmmiExG05nnwHQlF63x-VtpLLjBMz4cjPzTb8UiM7IKjHDYeg7fbYMbFzyIv1yL6ah3eIC1_0vJKFIXDiAPuZo9skyqwVDhKtO-DpU-nmYE3yVHTbZuFT4kh5sTCf6wZqL0RoTKxk2zxvcnyUlCb5qFeRMjR3j89lRN3SK3cVt5fD6rmpeabuCfpavI7yQd68FSjoO8DiXdd-o" />
-                                </div>
-                                <div className="p-6">
-                                    <h3 className="text-xl font-extrabold text-[#111418] dark:text-white mb-4">2024 Audi RS e-tron GT</h3>
-                                    <div className="grid grid-cols-3 gap-2 mb-6">
-                                        <div className="flex flex-col gap-1">
-                                            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Mileage</span>
-                                            <div className="flex items-center gap-1 text-sm font-semibold text-[#111418] dark:text-gray-200">
-                                                <span className="material-symbols-outlined text-xs text-primary">speed</span>
-                                                420 mi
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col gap-1 border-x border-gray-100 dark:border-gray-700 px-2">
-                                            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Fuel</span>
-                                            <div className="flex items-center gap-1 text-sm font-semibold text-[#111418] dark:text-gray-200">
-                                                <span className="material-symbols-outlined text-xs text-primary">bolt</span>
-                                                Electric
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col gap-1 text-right">
-                                            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Trans</span>
-                                            <div className="flex items-center justify-end gap-1 text-sm font-semibold text-[#111418] dark:text-gray-200">
-                                                <span className="material-symbols-outlined text-xs text-primary">settings_input_component</span>
-                                                Auto
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button className="w-full bg-primary/5 hover:bg-primary hover:text-white text-primary font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2">
-                                        View Details
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                
+                <FeaturedListings />
+
                 <section className="py-20 px-6">
                     <div className="max-w-[1100px] mx-auto bg-gradient-to-br from-[#128c7e] to-[#25d366] rounded-3xl p-8 md:p-16 text-center text-white relative overflow-hidden shadow-2xl">
                         <div className="absolute -right-20 -top-20 opacity-10">
