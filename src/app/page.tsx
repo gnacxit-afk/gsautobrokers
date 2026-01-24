@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -459,7 +460,7 @@ export default function LandingPage() {
                         <div className="flex items-center gap-8">
                             <a className="text-gray-500 hover:text-primary transition-colors" href="/"><span className="material-symbols-outlined">public</span></a>
                             <button onClick={handleShare} className="text-gray-500 hover:text-primary transition-colors"><span className="material-symbols-outlined">share</span></button>
-                            <a className="text-gray-500 hover:text-primary transition-colors" href="https://www.facebook.com" target="_blank" rel="noopener noreferrer"><span className="material-symbols-outlined">thumb_up</span></a>
+                            <a className="text-gray-500 hover:text-primary transition-colors" href="https://www.facebook.com/profile.php?id=61586974973358" target="_blank" rel="noopener noreferrer"><span className="material-symbols-outlined">thumb_up</span></a>
                         </div>
                     </div>
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
