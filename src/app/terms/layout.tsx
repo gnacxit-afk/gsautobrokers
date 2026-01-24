@@ -3,8 +3,8 @@
 
 import Link from 'next/link';
 
-// This layout provides a public-facing header and footer for the privacy policy page.
-export default function PrivacyLayout({
+// This layout provides a public-facing header and footer for the terms of service page.
+export default function TermsLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -38,8 +38,8 @@ export default function PrivacyLayout({
                  <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
                     <p>© 2024 GS Autobrokers. All rights reserved.</p>
                     <div className="flex gap-8">
-                        <Link className="text-primary dark:text-primary text-sm font-bold" href="/privacy">Privacy Policy</Link>
-                        <Link className="hover:underline" href="/terms">Terms of Service</Link>
+                        <Link className="hover:underline" href="/privacy">Privacy Policy</Link>
+                        <Link className="text-primary dark:text-primary text-sm font-bold" href="/terms">Terms of Service</Link>
                     </div>
                 </div>
             </div>

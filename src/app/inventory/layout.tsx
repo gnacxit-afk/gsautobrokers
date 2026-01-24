@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -39,7 +40,7 @@ export default function InventoryLayout({
                     <p>© 2024 GS Autobrokers. All rights reserved.</p>
                     <div className="flex gap-8">
                         <Link className="hover:underline" href="/privacy">Privacy Policy</Link>
-                        <a className="hover:underline" href="#">Terms of Service</a>
+                        <Link className="hover:underline" href="/terms">Terms of Service</Link>
                     </div>
                 </div>
             </div>
