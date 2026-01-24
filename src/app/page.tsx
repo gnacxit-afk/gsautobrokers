@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -266,6 +265,27 @@ function QuickInquiryForm() {
 
 export default function LandingPage() {
     const customerAvatars = PlaceHolderImages.slice(0, 3); // Get first 3 users for avatars
+    const { toast } = useToast();
+
+    const handleShare = async () => {
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: 'GS Autobrokers',
+                    text: 'Check out the amazing vehicles at GS Autobrokers!',
+                    url: window.location.href,
+                });
+            } catch (error) {
+                console.error('Error sharing:', error);
+                // User probably cancelled the share action, so no need for an error toast.
+            }
+        } else {
+            // Fallback for browsers that don't support the Share API
+            navigator.clipboard.writeText(window.location.href);
+            toast({ title: "Link Copied!", description: "The page URL has been copied to your clipboard." });
+        }
+    };
+
 
     return (
         <div className="bg-background-light dark:bg-background-dark text-[#111418] dark:text-white antialiased">
@@ -320,6 +340,7 @@ export default function LandingPage() {
                                                 src={avatar.imageUrl}
                                                 width={40}
                                                 height={40}
+                                                data-ai-hint={avatar.imageHint}
                                             />
                                         </div>
                                     ))}
@@ -436,9 +457,9 @@ export default function LandingPage() {
                             <h2 className="text-[#111418] dark:text-white text-xl font-extrabold tracking-tight">GS Autobrokers</h2>
                         </div>
                         <div className="flex items-center gap-8">
-                            <a className="text-gray-500 hover:text-primary transition-colors" href="#"><span className="material-symbols-outlined">public</span></a>
-                            <a className="text-gray-500 hover:text-primary transition-colors" href="#"><span className="material-symbols-outlined">share</span></a>
-                            <a className="text-gray-500 hover:text-primary transition-colors" href="#"><span className="material-symbols-outlined">thumb_up</span></a>
+                            <a className="text-gray-500 hover:text-primary transition-colors" href="/"><span className="material-symbols-outlined">public</span></a>
+                            <button onClick={handleShare} className="text-gray-500 hover:text-primary transition-colors"><span className="material-symbols-outlined">share</span></button>
+                            <a className="text-gray-500 hover:text-primary transition-colors" href="https://www.facebook.com" target="_blank" rel="noopener noreferrer"><span className="material-symbols-outlined">thumb_up</span></a>
                         </div>
                     </div>
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
