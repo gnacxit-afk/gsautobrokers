@@ -74,7 +74,7 @@ export default function PublicInventoryPage() {
   const { data: vehicles, loading } = useCollection<Vehicle>(inventoryQuery);
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="max-w-[1280px] mx-auto px-6 lg:px-10 py-12">
         <div className="mb-10 text-center">
             <h1 className="text-4xl font-extrabold tracking-tight">Our Inventory</h1>
             <p className="mt-2 text-lg text-muted-foreground">Browse our selection of quality pre-owned vehicles.</p>

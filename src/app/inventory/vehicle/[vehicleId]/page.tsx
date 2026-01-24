@@ -35,7 +35,7 @@ function VehicleDetailsPage() {
 
   if (loading) {
     return (
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="max-w-[1280px] mx-auto px-6 lg:px-10 py-12">
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                 <div className="lg:col-span-3 space-y-4">
                     <Skeleton className="aspect-video w-full rounded-xl" />
@@ -77,7 +77,7 @@ function VehicleDetailsPage() {
 
 
   return (
-    <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="max-w-[1280px] mx-auto px-6 lg:px-10 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
             {/* Image Gallery */}
             <div className="lg:col-span-3 space-y-4">
