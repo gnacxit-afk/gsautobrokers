@@ -3,8 +3,8 @@
 
 import Link from 'next/link';
 
-// This layout provides a public-facing header and footer for the terms of service page.
-export default function TermsLayout({
+// This layout provides a public-facing header and footer for the cookie policy page.
+export default function CookiePolicyLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -39,8 +39,8 @@ export default function TermsLayout({
                     <p>© 2024 GS Autobrokers. All rights reserved.</p>
                     <div className="flex gap-8">
                         <Link className="hover:underline" href="/privacy">Privacy Policy</Link>
-                        <Link className="text-primary dark:text-primary text-sm font-bold" href="/terms">Terms of Service</Link>
-                        <Link className="hover:underline" href="/cookie-policy">Cookie Policy</Link>
+                        <Link className="hover:underline" href="/terms">Terms of Service</Link>
+                        <Link className="text-primary dark:text-primary text-sm font-bold" href="/cookie-policy">Cookie Policy</Link>
                     </div>
                 </div>
             </div>

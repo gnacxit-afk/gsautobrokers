@@ -41,6 +41,7 @@ export default function InventoryLayout({
                     <div className="flex gap-8">
                         <Link className="hover:underline" href="/privacy">Privacy Policy</Link>
                         <Link className="hover:underline" href="/terms">Terms of Service</Link>
+                        <Link className="hover:underline" href="/cookie-policy">Cookie Policy</Link>
                     </div>
                 </div>
             </div>
