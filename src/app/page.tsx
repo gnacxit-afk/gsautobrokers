@@ -1,14 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useFirestore, useCollection } from '@/firebase';
-import { collection, query, where, orderBy, limit } from 'firebase/firestore';
-import type { Vehicle } from '@/lib/types';
+import { collection, query, where, orderBy, limit, addDoc, serverTimestamp } from 'firebase/firestore';
+import type { Vehicle, Staff, Dealership } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from 'lucide-react';
 
-// New component for the featured vehicle card
 function FeaturedVehicleCard({ vehicle }: { vehicle: Vehicle }) {
   let imageUrl = 'https://placehold.co/600x400/f0f2f4/9ca3af?text=GS+Auto';
   if (vehicle.photos && vehicle.photos.length > 0 && vehicle.photos[0]) {
@@ -117,6 +118,115 @@ function FeaturedListings() {
         </div>
     </section>
   )
+}
+
+function QuickInquiryForm() {
+    const [name, setName] = useState('');
+    const [phone, setPhone] = useState('');
+    const [interest, setInterest] = useState('Vehicle Sourcing');
+    const [message, setMessage] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { toast } = useToast();
+
+    const firestore = useFirestore();
+
+    const ownerQuery = useMemo(() => firestore ? query(collection(firestore, "staff"), where("role", "==", "Admin"), limit(1)) : null, [firestore]);
+    const { data: owners } = useCollection<Staff>(ownerQuery);
+
+    const dealershipQuery = useMemo(() => firestore ? query(collection(firestore, "dealerships"), limit(1)) : null, [firestore]);
+    const { data: dealerships } = useCollection<Dealership>(dealershipQuery);
+
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!firestore) return;
+        if (!name || !phone) {
+            toast({ title: "Missing Information", description: "Please provide your name and phone number.", variant: "destructive" });
+            return;
+        }
+
+        const defaultOwner = owners?.[0];
+        const defaultDealership = dealerships?.[0];
+
+        if (!defaultOwner || !defaultDealership) {
+            toast({ title: "System Error", description: "Default owner or dealership not configured. Cannot create lead.", variant: "destructive" });
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            const leadsCollection = collection(firestore, 'leads');
+            const newLeadData = {
+                name,
+                phone,
+                channel: 'Website Inquiry',
+                stage: 'Nuevo',
+                language: 'English',
+                ownerId: defaultOwner.id,
+                ownerName: defaultOwner.name,
+                dealershipId: defaultDealership.id,
+                dealershipName: defaultDealership.name,
+                createdAt: serverTimestamp(),
+                lastActivity: serverTimestamp(),
+            };
+
+            const newLeadRef = await addDoc(leadsCollection, newLeadData as any);
+
+            const noteHistoryRef = collection(firestore, 'leads', newLeadRef.id, 'noteHistory');
+            const initialNote = `Inquiry from website.\nInterest: ${interest}.\nMessage: ${message}`;
+
+            await addDoc(noteHistoryRef, {
+                content: initialNote,
+                author: 'System',
+                date: serverTimestamp(),
+                type: 'System',
+            });
+            
+            toast({ title: "Inquiry Sent!", description: "Thank you! A member of our team will contact you shortly." });
+            setName('');
+            setPhone('');
+            setMessage('');
+            setInterest('Vehicle Sourcing');
+
+        } catch (error) {
+            console.error(error);
+            toast({ title: "Submission Failed", description: "Could not send your inquiry. Please try again later.", variant: "destructive" });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
+    
+    return (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="flex flex-col gap-2">
+                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Name</label>
+                    <input value={name} onChange={(e) => setName(e.target.value)} className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg p-3 focus:ring-2 focus:ring-primary outline-none text-sm" placeholder="John Doe" type="text" />
+                </div>
+                <div className="flex flex-col gap-2">
+                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Phone</label>
+                    <input value={phone} onChange={(e) => setPhone(e.target.value)} className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg p-3 focus:ring-2 focus:ring-primary outline-none text-sm" placeholder="+1 (555) 000-0000" type="tel" />
+                </div>
+            </div>
+            <div className="flex flex-col gap-2">
+                <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Interested In</label>
+                <select value={interest} onChange={(e) => setInterest(e.target.value)} className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg p-3 focus:ring-2 focus:ring-primary outline-none text-sm">
+                    <option>Vehicle Sourcing</option>
+                    <option>Financing Assistance</option>
+                    <option>General Inquiry</option>
+                </select>
+            </div>
+            <div className="flex flex-col gap-2">
+                <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Message</label>
+                <textarea value={message} onChange={(e) => setMessage(e.target.value)} className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg p-3 focus:ring-2 focus:ring-primary outline-none text-sm resize-none" placeholder="Tell us about the vehicle you're looking for..." rows={4}></textarea>
+            </div>
+            <button type="submit" disabled={isSubmitting} className="bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl transition-all mt-4 flex items-center justify-center">
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting ? 'Sending...' : 'Send Message'}
+            </button>
+        </form>
+    );
 }
 
 export default function LandingPage() {
@@ -296,33 +406,7 @@ export default function LandingPage() {
                             </div>
                             <div className="bg-white dark:bg-gray-900 p-8 md:p-10 rounded-3xl shadow-sm border border-[#dbe0e6] dark:border-gray-800">
                                 <h2 className="text-2xl font-bold text-[#111418] dark:text-white mb-8">Quick Inquiry</h2>
-                                <form className="flex flex-col gap-5">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Name</label>
-                                            <input className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg p-3 focus:ring-2 focus:ring-primary outline-none text-sm" placeholder="John Doe" type="text" />
-                                        </div>
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Phone</label>
-                                            <input className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg p-3 focus:ring-2 focus:ring-primary outline-none text-sm" placeholder="+1 (555) 000-0000" type="tel" />
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Interested In</label>
-                                        <select className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg p-3 focus:ring-2 focus:ring-primary outline-none text-sm">
-                                            <option>Vehicle Sourcing</option>
-                                            <option>Financing Assistance</option>
-                                            <option>General Inquiry</option>
-                                        </select>
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Message</label>
-                                        <textarea className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg p-3 focus:ring-2 focus:ring-primary outline-none text-sm resize-none" placeholder="Tell us about the vehicle you're looking for..." rows={4}></textarea>
-                                    </div>
-                                    <button className="bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl transition-all mt-4">
-                                        Send Message
-                                    </button>
-                                </form>
+                                <QuickInquiryForm />
                             </div>
                         </div>
                     </div>
