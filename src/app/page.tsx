@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -9,6 +10,40 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from 'lucide-react';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+
+const ServiceCard = ({ icon, title, description }: { icon: string, title: string, description: string }) => (
+    <div className="group flex flex-col gap-5 rounded-2xl border border-[#dbe0e6] dark:border-gray-800 bg-white dark:bg-gray-900/50 p-8 hover:shadow-xl hover:border-primary/30 transition-all">
+        <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+            <span className="material-symbols-outlined text-3xl">{icon}</span>
+        </div>
+        <div className="flex flex-col gap-2">
+            <h2 className="text-[#111418] dark:text-white text-xl font-bold leading-tight">{title}</h2>
+            <p className="text-[#617589] dark:text-gray-400 text-base font-normal leading-relaxed">
+                {description}
+            </p>
+        </div>
+    </div>
+);
+
+const services = [
+    {
+        icon: 'search',
+        title: 'Vehicle Sourcing',
+        description: 'Access to the Houston, Texas network market to find your specific make, model, and trim level, including rare editions.'
+    },
+    {
+        icon: 'payments',
+        title: 'Financing Assistance',
+        description: 'Competitive rates and simplified paperwork handled by experts to ensure a seamless transaction.'
+    },
+    {
+        icon: 'thumb_up',
+        title: 'Great Customer Service',
+        description: 'Our team assists with vehicle availability, pricing, financing options, and appointment scheduling.'
+    }
+];
+
 
 function FeaturedVehicleCard({ vehicle }: { vehicle: Vehicle }) {
   let imageUrl = 'https://placehold.co/600x400/f0f2f4/9ca3af?text=GS+Auto';
@@ -230,6 +265,8 @@ function QuickInquiryForm() {
 }
 
 export default function LandingPage() {
+    const customerAvatars = PlaceHolderImages.slice(0, 3); // Get first 3 users for avatars
+
     return (
         <div className="bg-background-light dark:bg-background-dark text-[#111418] dark:text-white antialiased">
             <header className="sticky top-0 z-50 w-full bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-[#f0f2f4] dark:border-gray-800">
@@ -275,15 +312,17 @@ export default function LandingPage() {
                             </div>
                             <div className="flex items-center gap-6 pt-4 border-t border-gray-100 dark:border-gray-800">
                                 <div className="flex -space-x-2">
-                                    <div className="w-10 h-10 rounded-full border-2 border-white bg-gray-200 overflow-hidden">
-                                        <img className="w-full h-full object-cover" alt="client portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqeJPlc2EVr5REm4n2uagXzUXOmOnccu0n-lwTmb2rv8QehwDAXq_mqCsWcC6iAVQxC-j-QdlVIKFxBFsY2op1c29J56oyhSeOQ8-YYhGE_w-2RuJUan40OKExvQP1JupAI8jF9-hGfTUk1BbrwvkJuFrPOtQpZbCUgF04r-OADqK6UwdJ8qZT7vH2NWdG-yAaomYLTGFI4fOM_-AOHAG0XAzqiLcAn5DGjA1ZpV_JQDoxlUaQmMRoUVjcHWugFEtejFRm2YDrj7U" />
-                                    </div>
-                                    <div className="w-10 h-10 rounded-full border-2 border-white bg-gray-200 overflow-hidden">
-                                        <img className="w-full h-full object-cover" alt="client portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwlOf5moe1tn3zHpcevOxX4bo_UJt716RTLRmCReh2sbLP63jDGhZ2Fh-0CheFxkmmiExG05nnwHQlF63x-VtpLLjBMz4cjPzTb8UiM7IKjHDYeg7fbYMbFzyIv1yL6ah3eIC1_0vJKFIXDiAPuZo9skyqwVDhKtO-DpU-nmYE3yVHTbZuFT4kh5sTCf6wZqL0RoTKxk2zxvcnyUlCb5qFeRMjR3j89lRN3SK3cVt5fD6rmpeabuCfpavI7yQd68FSjoO8DiXdd-o" />
-                                    </div>
-                                    <div className="w-10 h-10 rounded-full border-2 border-white bg-gray-200 overflow-hidden">
-                                        <img className="w-full h-full object-cover" alt="client portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMhOWQ9aDnOI2McB4Uo2DJLwEKp0OZ4ayRflXGKlzc2A0LZNpEMw-6ziHs4EahngpsGdPVZgjTAnGPAb9oEyMSGyl10hhWg5LKknuIkvxva7lfjWrn5F-gKHDHI9wodeHgDLqQrTlzf5iQpJ9JmzcfIFcKy4ZYH9_ohYrdZaqri7CTOC-Xn3S7aWwcMIXBvKa5nW9g5i2uhrAXvsqBr0M5Y0rIjDq0EpkElhMe5cA2XTgiv4ovC2lrbmqtoW_9fLMTD5CVqCda9Gw" />
-                                    </div>
+                                    {customerAvatars.map((avatar, index) => (
+                                        <div key={index} className="w-10 h-10 rounded-full border-2 border-white bg-gray-200 overflow-hidden">
+                                            <Image 
+                                                className="w-full h-full object-cover" 
+                                                alt={avatar.description} 
+                                                src={avatar.imageUrl}
+                                                width={40}
+                                                height={40}
+                                            />
+                                        </div>
+                                    ))}
                                 </div>
                                 <p className="text-sm font-medium text-gray-500"><span className="text-primary font-bold">500+</span> pre-owned vehicles sourced last year</p>
                             </div>
@@ -306,39 +345,14 @@ export default function LandingPage() {
                             </p>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div className="group flex flex-col gap-5 rounded-2xl border border-[#dbe0e6] dark:border-gray-800 bg-white dark:bg-gray-900/50 p-8 hover:shadow-xl hover:border-primary/30 transition-all">
-                                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                                    <span className="material-symbols-outlined text-3xl">search</span>
-                                </div>
-                                <div className="flex flex-col gap-2">
-                                    <h2 className="text-[#111418] dark:text-white text-xl font-bold leading-tight">Vehicle Sourcing</h2>
-                                    <p className="text-[#617589] dark:text-gray-400 text-base font-normal leading-relaxed">
-                                        Access to the Houston, Texas network market to find your specific make, model, and trim level, including rare editions.
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="group flex flex-col gap-5 rounded-2xl border border-[#dbe0e6] dark:border-gray-800 bg-white dark:bg-gray-900/50 p-8 hover:shadow-xl hover:border-primary/30 transition-all">
-                                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                                    <span className="material-symbols-outlined text-3xl">payments</span>
-                                </div>
-                                <div className="flex flex-col gap-2">
-                                    <h2 className="text-[#111418] dark:text-white text-xl font-bold leading-tight">Financing Assistance</h2>
-                                    <p className="text-[#617589] dark:text-gray-400 text-base font-normal leading-relaxed">
-                                        Competitive rates and simplified paperwork handled by experts to ensure a seamless transaction.
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="group flex flex-col gap-5 rounded-2xl border border-[#dbe0e6] dark:border-gray-800 bg-white dark:bg-gray-900/50 p-8 hover:shadow-xl hover:border-primary/30 transition-all">
-                                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                                    <span className="material-symbols-outlined text-3xl">thumb_up</span>
-                                </div>
-                                <div className="flex flex-col gap-2">
-                                    <h2 className="text-[#111418] dark:text-white text-xl font-bold leading-tight">Great Customer Service</h2>
-                                    <p className="text-[#617589] dark:text-gray-400 text-base font-normal leading-relaxed">
-                                    Our team assists with vehicle availability, pricing, financing options, and appointment scheduling.
-                                    </p>
-                                </div>
-                            </div>
+                            {services.map((service, index) => (
+                                <ServiceCard
+                                    key={index}
+                                    icon={service.icon}
+                                    title={service.title}
+                                    description={service.description}
+                                />
+                            ))}
                         </div>
                     </div>
                 </section>
