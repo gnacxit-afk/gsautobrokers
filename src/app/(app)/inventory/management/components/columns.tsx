@@ -129,14 +129,27 @@ export const getColumns = (): ColumnDef<Vehicle>[] => [
     },
     {
         accessorKey: 'cashPrice',
-        header: 'Price',
+        header: 'Pricing',
         cell: ({ row }) => {
-            const price = parseFloat(row.getValue('cashPrice') as string);
-            const formatted = new Intl.NumberFormat('en-US', {
+            const vehicle = row.original;
+            const price = vehicle.cashPrice;
+            const downPayment = vehicle.downPayment;
+
+            const formattedPrice = new Intl.NumberFormat('en-US', {
                 style: 'currency',
                 currency: 'USD',
             }).format(price);
-            return <div className="font-semibold">{formatted}</div>;
+            const formattedDownPayment = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+            }).format(downPayment);
+
+            return (
+                 <div>
+                    <div className="font-semibold">{formattedPrice}</div>
+                    <div className="text-xs text-muted-foreground">Down: {formattedDownPayment}</div>
+                </div>
+            )
         }
     },
     {
