@@ -137,7 +137,7 @@ const PrivacyPolicyPage = () => {
                     <li>Opt-out of marketing communications</li>
                     <li>Limit or restrict data processing</li>
                 </ul>
-                <p>To submit a request, contact us at: <a href="mailto:privacy@gsautobrokers.com" className="text-primary hover:underline">📧 privacy@gsautobrokers.com</a></p>
+                <p>To submit a request, contact us at: <a href="mailto:privacy@esautobrokers.com" className="text-primary hover:underline">📧 privacy@esautobrokers.com</a></p>
             </div>
 
             <div>
