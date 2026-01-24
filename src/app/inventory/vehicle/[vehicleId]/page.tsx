@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useFirestore, useDoc } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { Vehicle } from '@/lib/types';
@@ -9,9 +10,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 import { Car, Gauge, GitCommitHorizontal, Palette, Wrench, Fuel, Calendar, Hash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const DetailRow = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: React.ReactNode }) => (
     <div className="flex items-center justify-between border-b py-3">
@@ -27,6 +28,7 @@ function VehicleDetailsPage() {
   const params = useParams();
   const vehicleId = params.vehicleId as string;
   const firestore = useFirestore();
+  const [selectedImage, setSelectedImage] = useState(0);
 
   const vehicleRef = useMemo(() => firestore ? doc(firestore, 'inventory', vehicleId) : null, [firestore, vehicleId]);
   const { data: vehicle, loading } = useDoc<Vehicle>(vehicleRef);
@@ -70,26 +72,34 @@ function VehicleDetailsPage() {
   if (validPhotos.length === 0) {
       validPhotos.push('https://placehold.co/600x400/f0f2f4/9ca3af?text=Image+Not+Available');
   }
+  
+  const currentImageUrl = validPhotos[selectedImage];
 
 
   return (
     <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
             {/* Image Gallery */}
-            <div className="lg:col-span-3">
-                 <Carousel className="w-full">
-                    <CarouselContent>
+            <div className="lg:col-span-3 space-y-4">
+                <div className="aspect-video relative rounded-xl overflow-hidden bg-slate-100 shadow-lg">
+                    <Image src={currentImageUrl} alt={`${vehicle.make} ${vehicle.model} image ${selectedImage + 1}`} fill className="object-cover" />
+                </div>
+                 {validPhotos.length > 1 && (
+                    <div className="grid grid-cols-5 gap-2">
                         {validPhotos.map((photo, index) => (
-                            <CarouselItem key={index}>
-                                <div className="aspect-video relative rounded-xl overflow-hidden bg-slate-100">
-                                    <Image src={photo} alt={`${vehicle.make} ${vehicle.model} image ${index + 1}`} fill className="object-cover" />
-                                </div>
-                            </CarouselItem>
+                            <button 
+                                key={index} 
+                                onClick={() => setSelectedImage(index)}
+                                className={cn(
+                                    "aspect-square relative rounded-md overflow-hidden transition-all",
+                                    selectedImage === index ? "ring-2 ring-primary ring-offset-2" : "opacity-70 hover:opacity-100"
+                                )}
+                            >
+                                <Image src={photo} alt={`Thumbnail ${index + 1}`} fill className="object-cover" />
+                            </button>
                         ))}
-                    </CarouselContent>
-                    <CarouselPrevious className="left-4" />
-                    <CarouselNext className="right-4" />
-                </Carousel>
+                    </div>
+                 )}
             </div>
 
             {/* Vehicle Details */}
