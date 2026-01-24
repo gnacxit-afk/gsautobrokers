@@ -444,7 +444,7 @@ export default function LandingPage() {
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
                         <p>© 2024 GS Autobrokers. All rights reserved.</p>
                         <div className="flex gap-8">
-                            <a className="hover:underline" href="#">Privacy Policy</a>
+                            <Link className="hover:underline" href="/privacy">Privacy Policy</Link>
                             <a className="hover:underline" href="#">Terms of Service</a>
                             <a className="hover:underline" href="#">Cookie Policy</a>
                         </div>
