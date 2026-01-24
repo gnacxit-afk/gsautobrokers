@@ -14,7 +14,6 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
   let imageUrl = 'https://placehold.co/600x400/f0f2f4/9ca3af?text=GS+Auto';
   if (vehicle.photos && vehicle.photos.length > 0 && vehicle.photos[0]) {
     try {
-      // This will throw an error for invalid URLs, which we catch.
       new URL(vehicle.photos[0]); 
       imageUrl = vehicle.photos[0];
     } catch (error) {
@@ -24,7 +23,7 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
 
   return (
     <Card className="overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col">
-      <Link href={`/inventory/vehicle/${vehicle.id}`} className="flex flex-col h-full">
+      <Link href={`/inventory/vehicle/${vehicle.id}`}>
         <div className="relative h-60 w-full overflow-hidden">
           <Image 
             src={imageUrl} 
@@ -33,26 +32,28 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
             className="object-cover group-hover:scale-105 transition-transform"
           />
         </div>
-        <CardContent className="p-4 space-y-4 flex flex-col flex-grow">
-          <div className="flex-grow">
-            <h3 className="text-lg font-bold truncate">{vehicle.year} {vehicle.make} {vehicle.model}</h3>
-            <p className="text-sm text-muted-foreground">{vehicle.trim}</p>
-          </div>
-          <div className="flex justify-between items-center text-sm border-t pt-4">
-            <div className="flex flex-col">
-              <span className="text-xs text-muted-foreground">Price</span>
-              <span className="font-bold text-primary">${vehicle.cashPrice.toLocaleString()}</span>
-            </div>
-            <div className="flex flex-col text-right">
-               <span className="text-xs text-muted-foreground">Mileage</span>
-               <span className="font-semibold">{vehicle.mileage.toLocaleString()} mi</span>
-            </div>
-          </div>
-          <Button asChild className="w-full mt-auto">
-            <Link href={`/inventory/vehicle/${vehicle.id}`}>View Details</Link>
-          </Button>
-        </CardContent>
       </Link>
+      <CardContent className="p-4 space-y-4 flex flex-col flex-grow">
+        <div className="flex-grow">
+          <Link href={`/inventory/vehicle/${vehicle.id}`}>
+            <h3 className="text-lg font-bold truncate hover:underline">{vehicle.year} {vehicle.make} {vehicle.model}</h3>
+          </Link>
+          <p className="text-sm text-muted-foreground">{vehicle.trim}</p>
+        </div>
+        <div className="flex justify-between items-center text-sm border-t pt-4">
+          <div className="flex flex-col">
+            <span className="text-xs text-muted-foreground">Price</span>
+            <span className="font-bold text-primary">${vehicle.cashPrice.toLocaleString()}</span>
+          </div>
+          <div className="flex flex-col text-right">
+             <span className="text-xs text-muted-foreground">Mileage</span>
+             <span className="font-semibold">{vehicle.mileage.toLocaleString()} mi</span>
+          </div>
+        </div>
+        <Button asChild className="w-full mt-auto">
+          <Link href={`/inventory/vehicle/${vehicle.id}`}>View Details</Link>
+        </Button>
+      </CardContent>
     </Card>
   );
 }
