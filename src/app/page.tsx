@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -330,23 +329,6 @@ export default function LandingPage() {
                                 <Link href="/inventory" className="bg-white dark:bg-gray-800 border border-[#dbe0e6] dark:border-gray-700 px-8 py-4 rounded-xl text-base font-bold hover:bg-gray-50 transition-all">
                                     View Our Inventory
                                 </Link>
-                            </div>
-                            <div className="flex items-center gap-6 pt-4 border-t border-gray-100 dark:border-gray-800">
-                                <div className="flex -space-x-2">
-                                    {customerAvatars.map((avatar, index) => (
-                                        <div key={index} className="w-10 h-10 rounded-full border-2 border-white bg-gray-200 overflow-hidden">
-                                            <Image 
-                                                className="w-full h-full object-cover" 
-                                                alt={avatar.description} 
-                                                src={avatar.imageUrl}
-                                                width={40}
-                                                height={40}
-                                                data-ai-hint={avatar.imageHint}
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                                <p className="text-sm font-medium text-gray-500"><span className="text-primary font-bold">500+</span> pre-owned vehicles sourced last year</p>
                             </div>
                         </div>
                         <div className="order-1 lg:order-2">
