@@ -63,7 +63,7 @@ export function BonusStatus({ allLeads, loading }: { allLeads: Lead[]; loading: 
                 <CardTitle className="text-xl">Your 30-Day Bonus Progress</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col items-center gap-4">
-                 <p className="text-5xl font-bold text-indigo-600">${userBonus.bonus.toLocaleString()}</p>
+                 <p className="text-5xl font-bold text-indigo-600">${userBonus.bonus.toLocaleString('en-US')}</p>
                  <div className="w-full max-w-sm text-center">
                     <ProgressBar sales={userBonus.sales} nextGoal={userBonus.nextGoal} color="from-yellow-400 to-orange-500" />
                     <div className="flex justify-between text-xs font-medium text-slate-500 mt-1.5">
@@ -72,7 +72,7 @@ export function BonusStatus({ allLeads, loading }: { allLeads: Lead[]; loading: 
                     </div>
                  </div>
                  <p className="text-sm text-slate-600">
-                    You need <span className="font-bold text-indigo-700">{userBonus.needed} more sales</span> to reach the next bonus of <span className="font-bold text-indigo-700">${calculateBonus(userBonus.nextGoal).toLocaleString()}</span>.
+                    You need <span className="font-bold text-indigo-700">{userBonus.needed} more sales</span> to reach the next bonus of <span className="font-bold text-indigo-700">${calculateBonus(userBonus.nextGoal).toLocaleString('en-US')}</span>.
                  </p>
             </CardContent>
         </Card>
@@ -99,7 +99,7 @@ export function BonusStatus({ allLeads, loading }: { allLeads: Lead[]; loading: 
             <TableRow key={b.staffId}>
               <TableCell className="font-medium">{b.staffName}</TableCell>
               <TableCell className="text-center font-bold text-lg">{b.sales}</TableCell>
-              <TableCell className="text-center font-bold text-lg text-green-600">${b.bonus.toLocaleString()}</TableCell>
+              <TableCell className="text-center font-bold text-lg text-green-600">${b.bonus.toLocaleString('en-US')}</TableCell>
               <TableCell>
                 <ProgressBar sales={b.sales} nextGoal={b.nextGoal} color="from-blue-500 to-cyan-400" />
                 <div className="flex justify-between text-xs text-muted-foreground mt-1">

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -46,11 +47,11 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
         <div className="border-t pt-4 space-y-2">
             <div className="flex justify-between items-center">
                 <span className="text-sm font-semibold">Down Payment</span>
-                <span className="text-xl font-bold text-primary">${(vehicle.downPayment || 0).toLocaleString()}</span>
+                <span className="text-xl font-bold text-primary">${(vehicle.downPayment || 0).toLocaleString('en-US')}</span>
             </div>
             <div className="flex justify-between items-center">
                 <span className="text-xs text-muted-foreground">Cash Price</span>
-                <span className="text-sm text-muted-foreground">${(vehicle.cashPrice || 0).toLocaleString()}</span>
+                <span className="text-sm text-muted-foreground">${(vehicle.cashPrice || 0).toLocaleString('en-US')}</span>
             </div>
         </div>
         <Button asChild className="w-full mt-auto">
@@ -132,8 +133,8 @@ export default function PublicInventoryPage() {
                             step={1000}
                         />
                         <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>${priceRange[0].toLocaleString()}</span>
-                            <span>${priceRange[1].toLocaleString()}</span>
+                            <span>${priceRange[0].toLocaleString('en-US')}</span>
+                            <span>${priceRange[1].toLocaleString('en-US')}</span>
                         </div>
                     </div>
                     <div className="space-y-3">
@@ -160,8 +161,8 @@ export default function PublicInventoryPage() {
                             step={5000}
                         />
                         <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>{mileageRange[0].toLocaleString()} mi</span>
-                            <span>{mileageRange[1].toLocaleString()} mi</span>
+                            <span>{mileageRange[0].toLocaleString('en-US')} mi</span>
+                            <span>{mileageRange[1].toLocaleString('en-US')} mi</span>
                         </div>
                     </div>
                 </Card>

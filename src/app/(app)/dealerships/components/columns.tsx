@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { ColumnDef } from "@tanstack/react-table";
@@ -64,7 +65,7 @@ export const getColumns = ({ onEdit, onDelete }: { onEdit: (dealership: Dealersh
     header: "Commission ($)",
     cell: ({ row }) => {
         const commission = row.original.commission;
-        return commission !== undefined ? `$${commission.toLocaleString()}` : 'N/A';
+        return commission !== undefined ? `$${commission.toLocaleString('en-US')}` : 'N/A';
     },
   },
   {

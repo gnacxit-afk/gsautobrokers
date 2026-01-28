@@ -175,21 +175,21 @@ const AdminDashboard = ({ loading, filteredLeads, allStaff, allDealerships, allV
             .sort((a,b) => b.sales - a.sales);
     }, [filteredLeads]);
     
-    const executiveSummary = `During this period, the team generated ${salesMetrics.totalLeads} leads, closing ${salesMetrics.closedSalesCount} of them. This resulted in $${salesMetrics.totalRevenue.toLocaleString()} in revenue for the company from commissions. Total payouts including broker commissions, bonuses, and supervisor overrides amount to $${totalToPay.toLocaleString()}.`;
+    const executiveSummary = `During this period, the team generated ${salesMetrics.totalLeads} leads, closing ${salesMetrics.closedSalesCount} of them. This resulted in $${salesMetrics.totalRevenue.toLocaleString('en-US')} in revenue for the company from commissions. Total payouts including broker commissions, bonuses, and supervisor overrides amount to $${totalToPay.toLocaleString('en-US')}.`;
 
     return (
         <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <StatCard title="Total Revenue" value={`$${salesMetrics.totalRevenue.toLocaleString()}`} icon={DollarSign} color="text-green-500" loading={loading} />
+                <StatCard title="Total Revenue" value={`$${salesMetrics.totalRevenue.toLocaleString('en-US')}`} icon={DollarSign} color="text-green-500" loading={loading} />
                 <StatCard title="Total Leads" value={`${salesMetrics.totalLeads}`} icon={Users} color="text-indigo-500" loading={loading} />
                 <StatCard title="Closed Sales" value={`${salesMetrics.closedSalesCount}`} icon={Target} color="text-amber-500" loading={loading} />
                 <StatCard title="Conversion Rate" value={`${salesMetrics.conversionRate.toFixed(1)}%`} icon={Percent} color="text-violet-500" loading={loading} />
             </div>
              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <StatCard title="Total Broker Commissions" value={`$${salesMetrics.totalCommissions.toLocaleString()}`} icon={TrendingUp} color="text-cyan-500" loading={loading} />
-                <StatCard title="Total Bonuses" value={`$${salesMetrics.totalBonuses.toLocaleString()}`} icon={Star} color="text-pink-500" loading={loading} />
-                <StatCard title="Total Override Payouts" value={`$${totalOverridePayouts.toLocaleString()}`} icon={TrendingUp} color="text-orange-500" loading={loading} />
-                <StatCard title="Total to Pay" value={`$${totalToPay.toLocaleString()}`} icon={DollarSign} color="text-red-500" loading={loading} />
+                <StatCard title="Total Broker Commissions" value={`$${salesMetrics.totalCommissions.toLocaleString('en-US')}`} icon={TrendingUp} color="text-cyan-500" loading={loading} />
+                <StatCard title="Total Bonuses" value={`$${salesMetrics.totalBonuses.toLocaleString('en-US')}`} icon={Star} color="text-pink-500" loading={loading} />
+                <StatCard title="Total Override Payouts" value={`$${totalOverridePayouts.toLocaleString('en-US')}`} icon={TrendingUp} color="text-orange-500" loading={loading} />
+                <StatCard title="Total to Pay" value={`$${totalToPay.toLocaleString('en-US')}`} icon={DollarSign} color="text-red-500" loading={loading} />
             </div>
 
             <Card>
@@ -342,7 +342,7 @@ const AdminDashboard = ({ loading, filteredLeads, allStaff, allDealerships, allV
                                     <TableCell className="font-medium">{s.name}</TableCell>
                                     <TableCell className="text-right">{s.personalSales}</TableCell>
                                     <TableCell className="text-right">{s.teamSales}</TableCell>
-                                    <TableCell className="text-right font-bold">${s.overrideCommission.toLocaleString()}</TableCell>
+                                    <TableCell className="text-right font-bold">${s.overrideCommission.toLocaleString('en-US')}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -380,11 +380,11 @@ const SupervisorDashboard = ({ user, loading, filteredLeads, allStaff, allVehicl
                     <CardHeader><CardTitle>Personal Sales</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
                         <StatCard title="Your Sales" value={`${personalSales.length}`} icon={Target} color="text-green-500" loading={loading} />
-                        <StatCard title="Your Commissions" value={`$${personalCommissions.toLocaleString()}`} icon={DollarSign} color="text-blue-500" loading={loading} />
-                        <StatCard title="Your Bonus" value={`$${personalBonus.toLocaleString()}`} icon={Star} color="text-yellow-500" loading={loading} />
+                        <StatCard title="Your Commissions" value={`$${personalCommissions.toLocaleString('en-US')}`} icon={DollarSign} color="text-blue-500" loading={loading} />
+                        <StatCard title="Your Bonus" value={`$${personalBonus.toLocaleString('en-US')}`} icon={Star} color="text-yellow-500" loading={loading} />
                          <div className="border-t pt-4">
                             <p className="text-sm font-medium text-slate-500">Total Personal Earnings</p>
-                            <p className="text-2xl font-bold">${personalTotalEarnings.toLocaleString()}</p>
+                            <p className="text-2xl font-bold">${personalTotalEarnings.toLocaleString('en-US')}</p>
                          </div>
                     </CardContent>
                 </Card>
@@ -399,7 +399,7 @@ const SupervisorDashboard = ({ user, loading, filteredLeads, allStaff, allVehicl
                         <div className={`p-4 rounded-lg border ${overrideUnlocked ? 'border-green-200 bg-green-50' : 'border-slate-200 bg-slate-50'}`}>
                              <h4 className="font-semibold flex items-center gap-2">{!overrideUnlocked && <Lock size={16} />} Override Commission (5%)</h4>
                              <p className="text-xs text-muted-foreground mb-2">You need 5 personal sales to unlock this commission.</p>
-                             <p className="text-3xl font-bold">${overrideCommission.toLocaleString()}</p>
+                             <p className="text-3xl font-bold">${overrideCommission.toLocaleString('en-US')}</p>
                         </div>
                     </CardContent>
                 </Card>

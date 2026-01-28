@@ -505,7 +505,7 @@ export default function LeadDetailsPage() {
                              {lead.stage === 'Ganado' && lead.brokerCommission && (
                                 <div className="space-y-2">
                                     <Label>Broker Commission</Label>
-                                    <Badge variant="outline" className="text-base py-1 text-green-600 border-green-200 bg-green-50 w-full justify-start">${lead.brokerCommission.toLocaleString()}</Badge>
+                                    <Badge variant="outline" className="text-base py-1 text-green-600 border-green-200 bg-green-50 w-full justify-start">${lead.brokerCommission.toLocaleString('en-US')}</Badge>
                                 </div>
                             )}
                         </CardContent>
@@ -522,7 +522,7 @@ export default function LeadDetailsPage() {
                                         <Image src={interestedVehicle.photos?.[0] || `https://placehold.co/80x60/f0f2f4/9ca3af?text=GS`} alt="Vehicle" width={80} height={60} className="rounded-md object-cover" />
                                         <div>
                                             <p className="font-semibold">{interestedVehicle.year} {interestedVehicle.make} {interestedVehicle.model}</p>
-                                            <p className="text-sm text-muted-foreground">${interestedVehicle.cashPrice.toLocaleString()}</p>
+                                            <p className="text-sm text-muted-foreground">${interestedVehicle.cashPrice.toLocaleString('en-US')}</p>
                                         </div>
                                     </div>
                                     {lead.stage !== 'Ganado' && (
@@ -542,7 +542,7 @@ export default function LeadDetailsPage() {
                                                 <CommandGroup>
                                                     {(inventory || []).map((vehicle) => (
                                                         <CommandItem key={vehicle.id} value={vehicle.id} onSelect={() => handleLinkVehicle(vehicle.id)}>
-                                                            {vehicle.year} {vehicle.make} {vehicle.model} - ${vehicle.cashPrice.toLocaleString()}
+                                                            {vehicle.year} {vehicle.make} {vehicle.model} - ${vehicle.cashPrice.toLocaleString('en-US')}
                                                         </CommandItem>
                                                     ))}
                                                 </CommandGroup>

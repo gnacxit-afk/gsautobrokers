@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useParams } from 'next/navigation';
@@ -109,11 +110,11 @@ function VehicleDetailsPage() {
                 <div className="mb-6 space-y-2">
                     <div>
                         <p className="text-sm text-muted-foreground">Down Payment</p>
-                        <p className="text-4xl font-bold text-primary">${(vehicle.downPayment || 0).toLocaleString()}</p>
+                        <p className="text-4xl font-bold text-primary">${(vehicle.downPayment || 0).toLocaleString('en-US')}</p>
                     </div>
                     <div>
                         <p className="text-xs text-muted-foreground">Cash Price</p>
-                        <p className="text-lg text-muted-foreground font-medium">${(vehicle.cashPrice || 0).toLocaleString()}</p>
+                        <p className="text-lg text-muted-foreground font-medium">${(vehicle.cashPrice || 0).toLocaleString('en-US')}</p>
                     </div>
                 </div>
 
@@ -122,7 +123,7 @@ function VehicleDetailsPage() {
                         <CardTitle>Vehicle Specifications</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-1">
-                        <DetailRow icon={Gauge} label="Mileage" value={`${vehicle.mileage.toLocaleString()} mi`} />
+                        <DetailRow icon={Gauge} label="Mileage" value={`${vehicle.mileage.toLocaleString('en-US')} mi`} />
                         <DetailRow icon={Car} label="Condition" value={<Badge variant="outline">{vehicle.condition}</Badge>} />
                         <DetailRow icon={GitCommitHorizontal} label="Transmission" value={vehicle.transmission} />
                         <DetailRow icon={Wrench} label="Drivetrain" value={vehicle.driveTrain} />

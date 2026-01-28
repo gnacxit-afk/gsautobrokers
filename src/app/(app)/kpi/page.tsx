@@ -306,8 +306,8 @@ function BrokerGoalsView({kpis, kpisLoading, allLeads, staff, loading}) {
             <StatCard label="Total Leads" value={brokerStats.totalLeads} color="blue" />
             <StatCard label="Ventas Cerradas" value={brokerStats.closedSales} color="green" />
             <StatCard label="Conversión" value={`${brokerStats.conversion.toFixed(1)}%`} color="indigo" />
-            <StatCard label="Comisiones" value={`$${brokerStats.totalCommissions.toLocaleString()}`} color="amber" />
-            <StatCard label="Bono" value={`$${brokerStats.brokerBonus.toLocaleString()}`} color="violet" />
+            <StatCard label="Comisiones" value={`$${brokerStats.totalCommissions.toLocaleString('en-US')}`} color="amber" />
+            <StatCard label="Bono" value={`$${brokerStats.brokerBonus.toLocaleString('en-US')}`} color="violet" />
         </div>
       </div>
       
