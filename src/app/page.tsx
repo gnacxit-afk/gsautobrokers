@@ -432,7 +432,7 @@ export default function LandingPage() {
                     </div>
                 </section>
                 
-                <section className="py-20 bg-navy-brand text-white" id="recruiting">
+                <section className="py-20 bg-gradient-to-br from-slate-800 to-slate-900 text-white" id="recruiting">
                     <div className="max-w-[1280px] mx-auto px-6 lg:px-10 text-center">
                         <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">Conviértete en Autobroker</h2>
                         <p className="text-white/90 text-lg md:text-xl font-medium max-w-[720px] mx-auto leading-relaxed mb-10">
