@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, where, orderBy, limit, addDoc, serverTimestamp } from 'firebase/firestore';
 import type { Vehicle, Staff, Dealership } from '@/lib/types';
@@ -108,6 +108,11 @@ function FeaturedVehicleCard({ vehicle }: { vehicle: Vehicle }) {
 
 function FeaturedListings() {
   const firestore = useFirestore();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const inventoryQuery = useMemo(() => {
     if (!firestore) return null;
@@ -134,7 +139,7 @@ function FeaturedListings() {
                 </Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {loading ? (
+                {loading || !isClient ? (
                     [...Array(3)].map((_, i) => (
                         <div key={i} className="space-y-4">
                             <Skeleton className="h-64 w-full rounded-2xl" />
@@ -474,7 +479,9 @@ export default function LandingPage() {
             </main>
             <footer className="bg-white dark:bg-background-dark border-t border-[#f0f2f4] dark:border-gray-800 py-12">
                 <div className="max-w-[1280px] mx-auto px-6 lg:px-10">
-                    <Logo />
+                    <div className="flex justify-center mb-8">
+                        <Logo />
+                    </div>
                     <div className="flex flex-col md:flex-row justify-between items-center gap-8 mb-12">
                         <div className="flex items-center gap-8">
                             <a className="text-gray-500 hover:text-primary transition-colors" href="/"><span className="material-symbols-outlined">public</span></a>
@@ -482,7 +489,7 @@ export default function LandingPage() {
                             <a className="text-gray-500 hover:text-primary transition-colors" href="https://www.facebook.com/profile.php?id=61586974973358" target="_blank" rel="noopener noreferrer"><span className="material-symbols-outlined">thumb_up</span></a>
                         </div>
                     </div>
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500 pt-8 border-t border-[#f0f2f4] dark:border-gray-800">
                         <p>© 2026 GS Autobrokers LLC. All rights reserved.</p>
                         <div className="flex gap-8">
                             <Link className="hover:underline" href="/privacy">Privacy Policy</Link>
