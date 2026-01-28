@@ -462,7 +462,7 @@ export default function LandingPage() {
                             </div>
                         </div>
                         <Link href="/apply" className="bg-white text-navy-brand hover:bg-gray-200 px-8 py-4 rounded-xl text-lg font-extrabold transition-all shadow-lg group flex items-center justify-center max-w-xs mx-auto">
-                            Apply
+                            Aplicar
                             <span className="material-symbols-outlined ml-2 group-hover:translate-x-1 transition-transform">arrow_forward</span>
                         </Link>
                     </div>
