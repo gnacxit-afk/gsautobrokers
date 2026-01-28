@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -32,7 +33,7 @@ const leadSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   phone: z.string().min(8, 'Please enter a valid phone number.'),
   email: z.string().email('Please enter a valid email.').optional().or(z.literal('')),
-  channel: z.enum(['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other']),
+  channel: z.enum(['FB Marketplace', 'FB Page', 'WhatsApp']),
   ownerId: z.string().min(1, 'Please select an owner.'),
   dealershipId: z.string().min(1, 'Please select a dealership.'),
   initialNotes: z.string().optional(),
@@ -65,7 +66,7 @@ export function AddLeadDialog({ isOpen, onOpenChange, onAddLead, staff, dealersh
       name: '',
       phone: '',
       email: '',
-      channel: 'Facebook',
+      channel: 'FB Marketplace',
       ownerId: defaultOwnerId,
       dealershipId: '',
       initialNotes: '',
@@ -74,7 +75,7 @@ export function AddLeadDialog({ isOpen, onOpenChange, onAddLead, staff, dealersh
   
   useEffect(() => {
     if (defaultOwnerId) {
-      reset({ ownerId: defaultOwnerId, channel: 'Facebook', dealershipId: dealerships[0]?.id || '' });
+      reset({ ownerId: defaultOwnerId, channel: 'FB Marketplace', dealershipId: dealerships[0]?.id || '' });
     }
   }, [defaultOwnerId, reset, dealerships]);
 
@@ -132,11 +133,9 @@ export function AddLeadDialog({ isOpen, onOpenChange, onAddLead, staff, dealersh
                         <SelectValue placeholder="Select channel" />
                         </SelectTrigger>
                         <SelectContent>
-                        <SelectItem value="Facebook">Facebook</SelectItem>
+                        <SelectItem value="FB Marketplace">FB Marketplace</SelectItem>
+                        <SelectItem value="FB Page">FB Page</SelectItem>
                         <SelectItem value="WhatsApp">WhatsApp</SelectItem>
-                        <SelectItem value="Call">Call</SelectItem>
-                        <SelectItem value="Visit">Visit</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
                         </SelectContent>
                     </Select>
                     )}
@@ -205,5 +204,3 @@ export function AddLeadDialog({ isOpen, onOpenChange, onAddLead, staff, dealersh
     </Dialog>
   );
 }
-
-    

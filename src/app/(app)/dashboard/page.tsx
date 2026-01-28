@@ -149,7 +149,7 @@ const AdminDashboard = ({ loading, filteredLeads, allStaff, allDealerships, allV
     }, [allStaff, filteredLeads]);
 
     const channelPerformance = useMemo(() => {
-        const channels = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
+        const channels: Lead['channel'][] = ['FB Marketplace', 'FB Page', 'WhatsApp'];
         const channelMap = new Map(channels.map(c => [c, { channel: c, leads: 0, sales: 0 }]));
         filteredLeads.forEach(lead => {
             if(channelMap.has(lead.channel)) {
@@ -466,4 +466,3 @@ export default function DashboardPage() {
         </main>
     );
 }
-

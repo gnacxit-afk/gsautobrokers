@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
@@ -33,7 +34,7 @@ import {
 import { exportToCsv } from '@/lib/utils';
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
-const leadChannels: Lead['channel'][] = ['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other'];
+const leadChannels: Lead['channel'][] = ['FB Marketplace', 'FB Page', 'WhatsApp'];
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -298,5 +299,3 @@ export function DataTable<TData, TValue>({
     </div>
   );
 }
-
-    
