@@ -204,5 +204,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

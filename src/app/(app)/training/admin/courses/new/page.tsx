@@ -1,3 +1,4 @@
+
 'use client';
 
 import { CourseForm } from '../components/course-form';
