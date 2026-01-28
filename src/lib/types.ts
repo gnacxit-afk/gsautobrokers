@@ -36,7 +36,7 @@ export type Lead = {
   stage: "Nuevo" | "Calificado" | "Citado" | "En Seguimiento" | "Ganado" | "Perdido";
   ownerId: string; // This will be the staff member's document ID
   ownerName: string;
-  channel: 'FB Marketplace' | 'FB Page' | 'WhatsApp';
+  channel: 'FB Marketplace' | 'FB Page' | 'WhatsApp' | 'Website Inquiry';
   createdAt: Timestamp | Date | string;
   language: 'English' | 'Spanish';
   lastActivity?: Timestamp | Date | string;

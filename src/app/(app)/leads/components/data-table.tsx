@@ -34,7 +34,7 @@ import {
 import { exportToCsv } from '@/lib/utils';
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
-const leadChannels: Lead['channel'][] = ['FB Marketplace', 'FB Page', 'WhatsApp'];
+const leadChannels: Lead['channel'][] = ['FB Marketplace', 'FB Page', 'WhatsApp', 'Website Inquiry'];
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];

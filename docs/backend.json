@@ -62,7 +62,7 @@
         },
         "channel": {
           "type": "string",
-          "description": "The channel through which the lead was acquired (e.g., FB Marketplace, FB Page, WhatsApp)."
+          "description": "The channel through which the lead was acquired (e.g., FB Marketplace, FB Page, WhatsApp, Website Inquiry)."
         },
         "company": {
           "type": "string",

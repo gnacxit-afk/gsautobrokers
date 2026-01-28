@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useEffect } from 'react';
@@ -33,7 +34,7 @@ const formSchema = z.object({
   taskTitle: z.string().min(3, 'Task title is required.'),
   leadName: z.string().min(2, 'Lead name is required.'),
   leadPhone: z.string().min(8, 'A valid phone number is required.'),
-  leadChannel: z.enum(['Facebook', 'WhatsApp', 'Call', 'Visit', 'Other']),
+  leadChannel: z.enum(['FB Marketplace', 'FB Page', 'WhatsApp', 'Website Inquiry']),
   ownerId: z.string().min(1, 'Please select an owner.'),
 });
 
@@ -62,14 +63,14 @@ export function NewTaskForNewLeadDialog({ isOpen, onOpenChange, allStaff }: NewT
       taskTitle: '',
       leadName: '',
       leadPhone: '',
-      leadChannel: 'Facebook',
+      leadChannel: 'FB Marketplace',
       ownerId: user?.id || '',
     },
   });
 
   useEffect(() => {
     if (user?.id) {
-      reset({ ownerId: user.id, leadChannel: 'Facebook', taskTitle: '', leadName: '', leadPhone: '' });
+      reset({ ownerId: user.id, leadChannel: 'FB Marketplace', taskTitle: '', leadName: '', leadPhone: '' });
     }
   }, [user, reset]);
   
@@ -188,11 +189,10 @@ export function NewTaskForNewLeadDialog({ isOpen, onOpenChange, allStaff }: NewT
                             <SelectValue placeholder="Select channel" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="Facebook">Facebook</SelectItem>
+                            <SelectItem value="FB Marketplace">FB Marketplace</SelectItem>
+                            <SelectItem value="FB Page">FB Page</SelectItem>
                             <SelectItem value="WhatsApp">WhatsApp</SelectItem>
-                            <SelectItem value="Call">Call</SelectItem>
-                            <SelectItem value="Visit">Visit</SelectItem>
-                            <SelectItem value="Other">Other</SelectItem>
+                            <SelectItem value="Website Inquiry">Website Inquiry</SelectItem>
                         </SelectContent>
                     </Select>
                     )}

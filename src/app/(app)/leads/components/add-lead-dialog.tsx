@@ -33,7 +33,7 @@ const leadSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   phone: z.string().min(8, 'Please enter a valid phone number.'),
   email: z.string().email('Please enter a valid email.').optional().or(z.literal('')),
-  channel: z.enum(['FB Marketplace', 'FB Page', 'WhatsApp']),
+  channel: z.enum(['FB Marketplace', 'FB Page', 'WhatsApp', 'Website Inquiry']),
   ownerId: z.string().min(1, 'Please select an owner.'),
   dealershipId: z.string().min(1, 'Please select a dealership.'),
   initialNotes: z.string().optional(),
@@ -136,6 +136,7 @@ export function AddLeadDialog({ isOpen, onOpenChange, onAddLead, staff, dealersh
                         <SelectItem value="FB Marketplace">FB Marketplace</SelectItem>
                         <SelectItem value="FB Page">FB Page</SelectItem>
                         <SelectItem value="WhatsApp">WhatsApp</SelectItem>
+                        <SelectItem value="Website Inquiry">Website Inquiry</SelectItem>
                         </SelectContent>
                     </Select>
                     )}
