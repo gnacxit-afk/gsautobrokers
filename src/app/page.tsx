@@ -11,6 +11,7 @@ import Image from 'next/image';
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { Logo } from '@/components/icons';
 
 const ServiceCard = ({ icon, title, description }: { icon: string, title: string, description: string }) => (
     <div className="group flex flex-col gap-5 rounded-2xl border border-[#dbe0e6] dark:border-gray-800 bg-white dark:bg-gray-900/50 p-8 hover:shadow-xl hover:border-primary/30 transition-all">
@@ -292,12 +293,7 @@ export default function LandingPage() {
         <div className="bg-background-light dark:bg-background-dark text-[#111418] dark:text-white antialiased">
             <header className="sticky top-0 z-50 w-full bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-[#f0f2f4] dark:border-gray-800">
                 <div className="max-w-[1280px] mx-auto px-6 lg:px-10 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="text-primary flex items-center">
-                            <span className="material-symbols-outlined text-3xl">directions_car</span>
-                        </div>
-                        <h2 className="text-[#111418] dark:text-white text-xl font-extrabold tracking-tight">GS Autobrokers</h2>
-                    </div>
+                    <Logo />
                     <nav className="hidden md:flex items-center gap-10">
                         <a className="text-[#111418] dark:text-gray-300 text-sm font-semibold hover:text-primary transition-colors" href="#">Home</a>
                         <a className="text-[#111418] dark:text-gray-300 text-sm font-semibold hover:text-primary transition-colors" href="#services">Services</a>
@@ -471,12 +467,7 @@ export default function LandingPage() {
             <footer className="bg-white dark:bg-background-dark border-t border-[#f0f2f4] dark:border-gray-800 py-12">
                 <div className="max-w-[1280px] mx-auto px-6 lg:px-10">
                     <div className="flex flex-col md:flex-row justify-between items-center gap-8 mb-12">
-                        <div className="flex items-center gap-3">
-                            <div className="text-primary flex items-center">
-                                <span className="material-symbols-outlined text-3xl">directions_car</span>
-                            </div>
-                            <h2 className="text-[#111418] dark:text-white text-xl font-extrabold tracking-tight">GS Autobrokers</h2>
-                        </div>
+                        <Logo />
                         <div className="flex items-center gap-8">
                             <a className="text-gray-500 hover:text-primary transition-colors" href="/"><span className="material-symbols-outlined">public</span></a>
                             <button onClick={handleShare} className="text-gray-500 hover:text-primary transition-colors"><span className="material-symbols-outlined">share</span></button>
