@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -330,7 +329,7 @@ export default function LandingPage() {
                         </div>
                         <div className="order-1 lg:order-2">
                             <div className="relative w-full aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl">
-                                <img className="w-full h-full object-cover" alt="Luxury black sport sedan" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAW8qwR1QFDlNtFay3FowX4CLtETin5kobnN8-sjj8jAvUlvVXgRnP87eUjXxpyOzsrxuht8hjlBeC9Tc0L5x2RxbbBgvqX2j8Hmg9faBtEAC4-d-X8pCAhn4oWz_i-oR0QHp07G5enhrkFFInps8m7hvArrVGBv2YGONKjHpzjl_qVecFKxCsSEMjGiUjj9mtFfAmBQbhIm2ctk2QxXEP3DBOTU0SilJy6gi30FmSSXDGYO-MgzDrzZ3TgwlSpFO-vxqNXKs3hCkI" />
+                                <img className="w-full h-full object-cover" alt="GS Autobrokers hero image" src="https://i.postimg.cc/ZnyYhQDY/Diseno-sin-titulo.png" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                             </div>
                         </div>
@@ -466,8 +465,8 @@ export default function LandingPage() {
             </main>
             <footer className="bg-white dark:bg-background-dark border-t border-[#f0f2f4] dark:border-gray-800 py-12">
                 <div className="max-w-[1280px] mx-auto px-6 lg:px-10">
+                    <Logo />
                     <div className="flex flex-col md:flex-row justify-between items-center gap-8 mb-12">
-                        <Logo />
                         <div className="flex items-center gap-8">
                             <a className="text-gray-500 hover:text-primary transition-colors" href="/"><span className="material-symbols-outlined">public</span></a>
                             <button onClick={handleShare} className="text-gray-500 hover:text-primary transition-colors"><span className="material-symbols-outlined">share</span></button>
