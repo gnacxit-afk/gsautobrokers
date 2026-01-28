@@ -9,20 +9,30 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function calculateBonus(sales: number): number {
-  if (sales < 5) return 0;
-  if (sales >= 5 && sales < 10) return 100;
-  
-  const baseBonusFor10 = 225;
-  if (sales >= 10) {
-     const extraSales = sales - 10;
-     return baseBonusFor10 + (extraSales * 25);
+  if (sales >= 11) {
+    return 150 + (sales - 10) * 20;
+  }
+  if (sales === 10) {
+    return 150;
+  }
+  if (sales === 9) {
+    return 115;
+  }
+  if (sales >= 6) {
+    return 70;
+  }
+  if (sales >= 3) {
+    return 30;
   }
   return 0;
 }
 
 export function getNextBonusGoal(sales: number): { nextGoal: number, needed: number } {
-  if (sales < 5) return { nextGoal: 5, needed: 5 - sales };
-  if (sales < 10) return { nextGoal: 10, needed: 10 - sales };
+  if (sales < 3) return { nextGoal: 3, needed: 3 - sales };
+  if (sales < 6) return { nextGoal: 6, needed: 6 - sales };
+  if (sales < 9) return { nextGoal: 9, needed: 9 - sales };
+  if (sales === 9) return { nextGoal: 10, needed: 1 };
+  // From 10 sales onwards, the next goal is always the next sale.
   return { nextGoal: sales + 1, needed: 1 };
 }
 
