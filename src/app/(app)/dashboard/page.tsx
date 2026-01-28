@@ -1,7 +1,6 @@
-
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import type { Lead, Staff, Dealership, Vehicle } from '@/lib/types';
@@ -50,6 +49,11 @@ const getAvatarFallback = (name: string) => {
 
 
 const AdminDashboard = ({ loading, filteredLeads, allStaff, allDealerships, allVehicles, dateRange }: { loading: boolean, filteredLeads: Lead[], allStaff: Staff[], allDealerships: Dealership[], allVehicles: Vehicle[], dateRange: { start: Date, end: Date } }) => {
+    
+    const [isClient, setIsClient] = useState(false);
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
     
     const supervisors = useMemo(() => allStaff.filter(s => s.role === 'Supervisor'), [allStaff]);
 
@@ -197,7 +201,7 @@ const AdminDashboard = ({ loading, filteredLeads, allStaff, allDealerships, allV
                     <CardTitle className="flex items-center gap-2"><Activity size={20} /> Sales & Leads Trend</CardTitle>
                 </CardHeader>
                 <CardContent>
-                     {loading ? <Skeleton className="h-72 w-full" /> : 
+                     {loading || !isClient ? <Skeleton className="h-72 w-full" /> : 
                         <ResponsiveContainer width="100%" height={300}>
                             <AreaChart data={salesAndLeadsData}>
                                 <defs>
@@ -279,7 +283,7 @@ const AdminDashboard = ({ loading, filteredLeads, allStaff, allDealerships, allV
                          <CardTitle className="flex items-center gap-2"><Share2 size={20} /> Channel Conversion</CardTitle>
                     </CardHeader>
                     <CardContent>
-                         {loading ? <Skeleton className="h-64 w-full" /> : 
+                         {loading || !isClient ? <Skeleton className="h-64 w-full" /> : 
                             <ResponsiveContainer width="100%" height={250}>
                                 <BarChart data={channelPerformance} layout="vertical" margin={{ left: 20 }}>
                                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />
@@ -299,7 +303,7 @@ const AdminDashboard = ({ loading, filteredLeads, allStaff, allDealerships, allV
                          <CardTitle className="flex items-center gap-2"><Building size={20} /> Sales by Dealership</CardTitle>
                     </CardHeader>
                     <CardContent>
-                         {loading ? <Skeleton className="h-64 w-full" /> : 
+                         {loading || !isClient ? <Skeleton className="h-64 w-full" /> : 
                             <ResponsiveContainer width="100%" height={250}>
                                 <BarChart data={dealershipSales}>
                                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -416,7 +420,7 @@ export default function DashboardPage() {
     
     const leadsQuery = useMemo(() => firestore ? query(collection(firestore, 'leads'), orderBy('createdAt', 'desc')) : null, [firestore]);
     const staffQuery = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
-    const dealershipsQuery = useMemo(() => firestore ? query(collection(firestore, 'dealerships')) : null, [firestore]);
+    const dealershipsQuery = useMemo(() => firestore ? collection(firestore, 'dealerships')) : null, [firestore]);
     const vehiclesQuery = useMemo(() => firestore ? collection(firestore, 'inventory') : null, [firestore]);
 
     const { data: leads, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
