@@ -47,6 +47,9 @@ const services = [
 
 
 function FeaturedVehicleCard({ vehicle }: { vehicle: Vehicle }) {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => { setIsClient(true); }, []);
+    
   let imageUrl = 'https://placehold.co/600x400/f0f2f4/9ca3af?text=GS+Auto';
   if (vehicle.photos && vehicle.photos.length > 0 && vehicle.photos[0]) {
     try {
@@ -79,7 +82,7 @@ function FeaturedVehicleCard({ vehicle }: { vehicle: Vehicle }) {
             <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Mileage</span>
             <div className="flex items-center gap-1 text-sm font-semibold text-[#111418] dark:text-gray-200">
               <span className="material-symbols-outlined text-xs text-primary">speed</span>
-              {vehicle.mileage.toLocaleString()} mi
+              {isClient ? vehicle.mileage.toLocaleString() : vehicle.mileage} mi
             </div>
           </div>
           <div className="flex flex-col gap-1 border-x border-gray-100 dark:border-gray-700 px-2">

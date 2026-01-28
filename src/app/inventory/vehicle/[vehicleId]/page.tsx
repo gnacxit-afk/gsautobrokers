@@ -2,7 +2,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useFirestore, useDoc } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { Vehicle } from '@/lib/types';
@@ -29,6 +29,11 @@ function VehicleDetailsPage() {
   const vehicleId = params.vehicleId as string;
   const firestore = useFirestore();
   const [selectedImage, setSelectedImage] = useState(0);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const vehicleRef = useMemo(() => firestore ? doc(firestore, 'inventory', vehicleId) : null, [firestore, vehicleId]);
   const { data: vehicle, loading } = useDoc<Vehicle>(vehicleRef);
@@ -110,11 +115,11 @@ function VehicleDetailsPage() {
                 <div className="mb-6 space-y-2">
                     <div>
                         <p className="text-sm text-muted-foreground">Down Payment</p>
-                        <p className="text-4xl font-bold text-primary">${(vehicle.downPayment || 0).toLocaleString('en-US')}</p>
+                        <p className="text-4xl font-bold text-primary">${isClient ? (vehicle.downPayment || 0).toLocaleString('en-US') : (vehicle.downPayment || 0)}</p>
                     </div>
                     <div>
                         <p className="text-xs text-muted-foreground">Cash Price</p>
-                        <p className="text-lg text-muted-foreground font-medium">${(vehicle.cashPrice || 0).toLocaleString('en-US')}</p>
+                        <p className="text-lg text-muted-foreground font-medium">${isClient ? (vehicle.cashPrice || 0).toLocaleString('en-US') : (vehicle.cashPrice || 0)}</p>
                     </div>
                 </div>
 
@@ -123,7 +128,7 @@ function VehicleDetailsPage() {
                         <CardTitle>Vehicle Specifications</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-1">
-                        <DetailRow icon={Gauge} label="Mileage" value={`${vehicle.mileage.toLocaleString('en-US')} mi`} />
+                        <DetailRow icon={Gauge} label="Mileage" value={`${isClient ? vehicle.mileage.toLocaleString('en-US') : vehicle.mileage} mi`} />
                         <DetailRow icon={Car} label="Condition" value={<Badge variant="outline">{vehicle.condition}</Badge>} />
                         <DetailRow icon={GitCommitHorizontal} label="Transmission" value={vehicle.transmission} />
                         <DetailRow icon={Wrench} label="Drivetrain" value={vehicle.driveTrain} />
