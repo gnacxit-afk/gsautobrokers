@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -420,7 +421,7 @@ export default function DashboardPage() {
     
     const leadsQuery = useMemo(() => firestore ? query(collection(firestore, 'leads'), orderBy('createdAt', 'desc')) : null, [firestore]);
     const staffQuery = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
-    const dealershipsQuery = useMemo(() => firestore ? collection(firestore, 'dealerships')) : null, [firestore]);
+    const dealershipsQuery = useMemo(() => (firestore ? collection(firestore, 'dealerships') : null), [firestore]);
     const vehiclesQuery = useMemo(() => firestore ? collection(firestore, 'inventory') : null, [firestore]);
 
     const { data: leads, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
