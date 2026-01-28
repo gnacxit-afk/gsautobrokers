@@ -145,9 +145,15 @@ function MainNav({ items, onLinkClick }: { items: NavItemGroup[], onLinkClick?: 
 
   if (!user) return null;
   
+  // Get all headings for the groups the user has access to.
+  // This will be used to keep the accordion sections open by default.
+  const defaultExpanded = items
+    .filter(group => hasAccess(user.role, group.role) && group.heading)
+    .map(group => group.heading!);
+
   return (
     <nav className="flex-1 px-4 space-y-2">
-      <Accordion type="multiple" className="w-full">
+      <Accordion type="multiple" defaultValue={defaultExpanded} className="w-full">
         {items.map((group) => (
            hasAccess(user.role, group.role) && group.heading && group.items && Array.isArray(group.items) && (
             <AccordionItem key={group.heading} value={group.heading} className="border-b-0">
