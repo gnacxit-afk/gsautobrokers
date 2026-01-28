@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from "react";
@@ -71,7 +72,7 @@ const navItems: NavItemGroup[] = [
   {
     heading: 'CRM',
     items: [
-      { href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard", role: ["Admin"] },
+      { href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard", role: ["Admin", "Supervisor"] },
       { href: "/leads", label: "Leads / CRM", icon: "PhoneCall", role: ["Admin", "Supervisor", "Broker"] },
       { href: "/appointments", label: "Appointments", icon: "Calendar", role: ["Admin", "Supervisor", "Broker"] },
       { href: "/todos", label: "Daily To-Do", icon: "CheckSquare", role: ["Admin", "Supervisor"] },
@@ -328,3 +329,4 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </div>
   );
 }
+
