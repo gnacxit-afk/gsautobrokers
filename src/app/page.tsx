@@ -115,14 +115,14 @@ function FeaturedListings() {
   }, []);
 
   const inventoryQuery = useMemo(() => {
-    if (!firestore) return null;
+    if (!firestore || !isClient) return null;
     return query(
       collection(firestore, "inventory"),
       where("status", "==", "Active"),
       orderBy("createdAt", "desc"),
       limit(3)
     );
-  }, [firestore]);
+  }, [firestore, isClient]);
 
   const { data: vehicles, loading } = useCollection<Vehicle>(inventoryQuery);
 
@@ -170,11 +170,16 @@ function QuickInquiryForm() {
     const { toast } = useToast();
 
     const firestore = useFirestore();
+    const [isClient, setIsClient] = useState(false);
 
-    const ownerQuery = useMemo(() => firestore ? query(collection(firestore, "staff"), where("role", "==", "Admin"), limit(1)) : null, [firestore]);
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    const ownerQuery = useMemo(() => isClient && firestore ? query(collection(firestore, "staff"), where("role", "==", "Admin"), limit(1)) : null, [firestore, isClient]);
     const { data: owners } = useCollection<Staff>(ownerQuery);
 
-    const dealershipQuery = useMemo(() => firestore ? query(collection(firestore, "dealerships"), limit(1)) : null, [firestore]);
+    const dealershipQuery = useMemo(() => isClient && firestore ? query(collection(firestore, "dealerships"), limit(1)) : null, [firestore, isClient]);
     const { data: dealerships } = useCollection<Dealership>(dealershipQuery);
 
 
