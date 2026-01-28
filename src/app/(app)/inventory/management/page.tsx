@@ -43,11 +43,11 @@ export default function InventoryManagementPage() {
     const [activeFilters, setActiveFilters] = useState<{key: string; value: string}[]>([]);
     const [ownerFilter, setOwnerFilter] = useState('all');
 
-    const staffQuery = useMemo(() => firestore ? query(collection(firestore, 'staff')) : null, [firestore]);
+    const staffQuery = useMemo(() => (firestore && user) ? query(collection(firestore, 'staff')) : null, [firestore, user]);
     const { data: allStaff, loading: staffLoading } = useCollection<Staff>(staffQuery);
 
     const inventoryQuery = useMemo(() => {
-        if (!firestore) return null;
+        if (!firestore || !user) return null;
         
         const constraints: QueryConstraint[] = [orderBy("createdAt", "desc")];
         activeFilters.forEach(f => {
@@ -55,7 +55,7 @@ export default function InventoryManagementPage() {
         });
 
         return query(collection(firestore, "inventory"), ...constraints);
-    }, [firestore, activeFilters]);
+    }, [firestore, user, activeFilters]);
 
     const { data: vehicles, loading: vehiclesLoading } = useCollection<Vehicle>(inventoryQuery);
     

@@ -480,13 +480,13 @@ function KpiPage() {
     setIsClient(true);
   }, []);
 
-  const kpisDocRef = useMemo(() => firestore ? doc(firestore, 'kpis', 'kpi-doc') : null, [firestore]);
+  const kpisDocRef = useMemo(() => (firestore && user) ? doc(firestore, 'kpis', 'kpi-doc') : null, [firestore, user]);
   const { data: kpisData, loading: kpisLoading } = useDoc<{list: KPI[]}>(kpisDocRef);
 
-  const leadsQuery = useMemo(() => firestore ? collection(firestore, 'leads') : null, [firestore]);
+  const leadsQuery = useMemo(() => (firestore && user) ? collection(firestore, 'leads') : null, [firestore, user]);
   const { data: leadsData, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
   
-  const staffQuery = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
+  const staffQuery = useMemo(() => (firestore && user) ? collection(firestore, 'staff') : null, [firestore, user]);
   const { data: staffData, loading: staffLoading } = useCollection<Staff>(staffQuery);
 
   const kpis = kpisData?.list || [];

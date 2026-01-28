@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -12,27 +13,27 @@ export default function ContractsPage() {
   const firestore = useFirestore();
 
   const contractsQuery = useMemo(() => 
-    firestore 
+    (firestore && user)
       ? query(collection(firestore, 'contracts'), orderBy('createdAt', 'desc')) 
       : null
-  , [firestore]);
+  , [firestore, user]);
   const { data: contracts, loading: contractsLoading } = useCollection<EmploymentContract>(contractsQuery);
 
   const activeContract = useMemo(() => contracts?.find(c => c.isActive), [contracts]);
 
   const signaturesQuery = useMemo(() =>
-    firestore && activeContract ? query(collection(firestore, 'signatures'), where('contractId', '==', activeContract.id)) : null
-  , [firestore, activeContract]);
+    firestore && user && activeContract ? query(collection(firestore, 'signatures'), where('contractId', '==', activeContract.id)) : null
+  , [firestore, user, activeContract]);
   const { data: signatures, loading: signaturesLoading } = useCollection<ContractSignature>(signaturesQuery);
 
   const staffQuery = useMemo(() =>
-    firestore ? collection(firestore, 'staff') : null
-  , [firestore]);
+    (firestore && user) ? collection(firestore, 'staff') : null
+  , [firestore, user]);
   const { data: staff, loading: staffLoading } = useCollection<Staff>(staffQuery);
 
   const eventsQuery = useMemo(() =>
-      firestore ? query(collection(firestore, 'contract_events'), orderBy('timestamp', 'desc')) : null
-  , [firestore]);
+      (firestore && user) ? query(collection(firestore, 'contract_events'), orderBy('timestamp', 'desc')) : null
+  , [firestore, user]);
   const { data: events, loading: eventsLoading } = useCollection<ContractEvent>(eventsQuery);
 
 

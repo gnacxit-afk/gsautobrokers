@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -28,9 +29,9 @@ export default function TodosPage() {
   }, [firestore, user]);
 
   const allStaffQuery = useMemo(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(collection(firestore, 'staff'));
-  }, [firestore]);
+  }, [firestore, user]);
 
   const { data: todos, loading: todosLoading } = useCollection<Todo>(todosQuery);
   const { data: userLeads, loading: leadsLoading } = useCollection<Lead>(userLeadsQuery);

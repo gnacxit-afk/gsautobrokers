@@ -424,10 +424,10 @@ export default function DashboardPage() {
         setIsClient(true);
     }, []);
     
-    const leadsQuery = useMemo(() => firestore ? query(collection(firestore, 'leads'), orderBy('createdAt', 'desc')) : null, [firestore]);
-    const staffQuery = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
-    const dealershipsQuery = useMemo(() => (firestore ? collection(firestore, 'dealerships') : null), [firestore]);
-    const vehiclesQuery = useMemo(() => firestore ? collection(firestore, 'inventory') : null, [firestore]);
+    const leadsQuery = useMemo(() => (firestore && user) ? query(collection(firestore, 'leads'), orderBy('createdAt', 'desc')) : null, [firestore, user]);
+    const staffQuery = useMemo(() => (firestore && user) ? collection(firestore, 'staff') : null, [firestore, user]);
+    const dealershipsQuery = useMemo(() => (firestore && user) ? collection(firestore, 'dealerships') : null, [firestore, user]);
+    const vehiclesQuery = useMemo(() => (firestore && user) ? collection(firestore, 'inventory') : null, [firestore, user]);
 
     const { data: leads, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
     const { data: staff, loading: staffLoading } = useCollection<Staff>(staffQuery);

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useMemo, useState, useCallback } from 'react';
@@ -23,7 +24,7 @@ export default function StaffPage() {
   const { toast } = useToast();
   const { MASTER_ADMIN_EMAIL } = useAuthContext();
   
-  const staffQuery = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
+  const staffQuery = useMemo(() => (firestore && user) ? collection(firestore, 'staff') : null, [firestore, user]);
   const { data: staff, loading } = useCollection<Staff>(staffQuery);
 
   const [sorting, setSorting] = useState<SortingState>([]);

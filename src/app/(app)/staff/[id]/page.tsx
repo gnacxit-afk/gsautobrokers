@@ -53,7 +53,7 @@ export default function StaffProfilePage() {
   const staffDocRef = useMemo(() => (firestore && staffId) ? doc(firestore, 'staff', staffId) : null, [firestore, staffId]);
   const { data: staffMember, loading: staffMemberLoading } = useDoc<Staff>(staffDocRef);
 
-  const allStaffCollectionRef = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
+  const allStaffCollectionRef = useMemo(() => (firestore && user) ? collection(firestore, 'staff') : null, [firestore, user]);
   const { data: allStaff, loading: allStaffLoading } = useCollection<Staff>(allStaffCollectionRef);
 
   const [formData, setFormData] = useState<Partial<Staff>>({});

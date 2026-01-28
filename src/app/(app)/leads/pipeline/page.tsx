@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
@@ -20,7 +21,7 @@ export default function LeadsPipelinePage() {
     const { toast } = useToast();
 
     // Data fetching
-    const staffQuery = useMemo(() => (firestore ? collection(firestore, 'staff') : null), [firestore]);
+    const staffQuery = useMemo(() => (firestore && user ? collection(firestore, 'staff') : null), [firestore, user]);
     const { data: staffData, loading: staffLoading } = useCollection<Staff>(staffQuery);
 
     const leadsQuery = useMemo(() => {
@@ -38,18 +39,10 @@ export default function LeadsPipelinePage() {
     const { data: leads, loading: leadsLoading } = useCollection<Lead>(leadsQuery);
 
     const appointmentsQuery = useMemo(() => {
-        if (!firestore || !leads) return null;
-        const leadIds = leads.map(l => l.id);
-        if (leadIds.length === 0) return null;
-        // Firestore 'in' query is limited to 30 items. We might need to chunk this if there are many leads.
-        // For now, assuming less than 30 visible leads at a time is fine for this feature.
-        const chunks = [];
-        for (let i = 0; i < leadIds.length; i += 30) {
-            chunks.push(leadIds.slice(i, i + 30));
-        }
+        if (!firestore || !user) return null;
         // This is still not quite right. A separate query for appointments is better.
         return query(collection(firestore, 'appointments'));
-    }, [firestore, leads]);
+    }, [firestore, user]);
 
     const { data: appointments, loading: appointmentsLoading } = useCollection<Appointment>(appointmentsQuery);
     

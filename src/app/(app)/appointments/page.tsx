@@ -76,14 +76,14 @@ function AppointmentsContent() {
 }, [firestore, dateFilter, ownerFilter, user]);
 
   const staffQuery = useMemo(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(collection(firestore, 'staff'), orderBy('name', 'asc'));
-  }, [firestore]);
+  }, [firestore, user]);
   
   const allLeadsQuery = useMemo(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return collection(firestore, 'leads');
-  }, [firestore]);
+  }, [firestore, user]);
 
   const { data: appointments, loading } = useCollection<Appointment>(appointmentsQuery as Query<DocumentData> | null);
   const { data: staff, loading: staffLoading } = useCollection<Staff>(staffQuery);

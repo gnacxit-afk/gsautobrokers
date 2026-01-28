@@ -59,12 +59,12 @@ function LeadsPageContent() {
 
   /* ------------------------------ data fetching ----------------------------- */
   const staffQuery = useMemo(
-    () => (firestore ? query(collection(firestore, "staff")) : null),
-    [firestore]
+    () => (firestore && user ? query(collection(firestore, "staff")) : null),
+    [firestore, user]
   );
   const dealershipsQuery = useMemo(
-    () => (firestore ? query(collection(firestore, "dealerships")) : null),
-    [firestore]
+    () => (firestore && user ? query(collection(firestore, "dealerships")) : null),
+    [firestore, user]
   );
   
   const { data: staffSnapshot, loading: staffLoading } = useCollection<Staff>(staffQuery);
