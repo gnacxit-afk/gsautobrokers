@@ -103,7 +103,7 @@ service cloud.firestore {
       * @description Controls access to staff member data.
       */
     match /staff/{staffId} {
-      allow get, list: if isSignedIn();
+      allow read: if true;
       allow create, update, delete: if isAdmin();
     }
     
@@ -166,7 +166,7 @@ service cloud.firestore {
     }
 
     match /inventory/{vehicleId} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow create, update, delete: if isAdmin() || getUserRole() == 'Supervisor';
     }
 
