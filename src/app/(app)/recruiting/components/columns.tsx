@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { ColumnDef, Row } from '@tanstack/react-table';
@@ -6,9 +5,9 @@ import type { Candidate, Application, PipelineStatus } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, ChevronsUpDown, Copy, Star, Briefcase, Trash2 } from 'lucide-react';
+import { MoreHorizontal, ChevronsUpDown, Copy, Star, Briefcase, Trash2, Rocket } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { formatDistanceToNow, isValid } from 'date-fns';
+import { formatDistanceToNow, isValid, differenceInDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser } from '@/firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -87,6 +86,7 @@ const CellActions: React.FC<{ row: Row<Candidate>; onCreateStaff: (candidate: Ca
 
     const availableOptions = statusOptions[candidate.pipelineStatus] || [];
     const canCreateProfile = candidate.pipelineStatus === 'Approved' || candidate.pipelineStatus === 'Onboarding';
+    const isApproved = candidate.pipelineStatus === 'Approved';
 
     return (
         <DropdownMenu>
@@ -123,6 +123,17 @@ const CellActions: React.FC<{ row: Row<Candidate>; onCreateStaff: (candidate: Ca
                     </DropdownMenuSubContent>
                 </DropdownMenuSub>
             )}
+
+            {isApproved && (
+                <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={() => handleStatusChange('Onboarding')} className="focus:bg-green-50 focus:text-green-700">
+                        <Rocket className="mr-2 h-4 w-4" />
+                        Mark as Ready & Start Onboarding
+                    </DropdownMenuItem>
+                </>
+            )}
+
             <DropdownMenuSeparator />
             <DropdownMenuItem
                 onSelect={() => onCreateStaff(candidate)}
@@ -226,10 +237,10 @@ export const getColumns = (onViewDetails: (candidate: Candidate) => void, onCrea
     header: 'Recruiter',
   },
   {
-    accessorKey: 'appliedDate',
-    header: 'Applied',
+    accessorKey: 'lastStatusChangeDate',
+    header: 'Last Update',
     cell: ({ row }) => {
-        const dateRaw = row.getValue("appliedDate");
+        const dateRaw = row.getValue("lastStatusChangeDate");
         if (!dateRaw) return <span className="text-xs text-slate-400">N/A</span>;
         
         const date = (dateRaw as any).toDate ? (dateRaw as any).toDate() : new Date(dateRaw as string);
@@ -238,9 +249,17 @@ export const getColumns = (onViewDetails: (candidate: Candidate) => void, onCrea
           return <div className="text-xs text-slate-500">Invalid date</div>;
         }
 
+        const isStale = differenceInDays(new Date(), date) > 2;
+        const isApproved = row.original.pipelineStatus === 'Approved';
+
         return (
-            <div className="text-xs text-slate-500">
-                {formatDistanceToNow(date, { addSuffix: true })}
+            <div className="flex flex-col gap-1">
+                <span className="text-xs text-slate-500">
+                    {formatDistanceToNow(date, { addSuffix: true })}
+                </span>
+                {isStale && isApproved && (
+                    <Badge variant="destructive" className="w-fit">NEEDS ACTION</Badge>
+                )}
             </div>
         )
     }

@@ -26,14 +26,14 @@ export default function ApprovedForOnboardingPage() {
     <main className="flex-1 space-y-6">
         <Alert>
             <Rocket className="h-4 w-4" />
-            <AlertTitle>Reglas de automatización</AlertTitle>
+            <AlertTitle>Automation Rules & Manual Actions</AlertTitle>
             <AlertDescription>
-            Los candidatos en esta etapa durante más de 48 horas sin responder 'LISTO' pasarán automáticamente a 'Inactivo'.
+              When a candidate replies 'LISTO', use the 'Start Onboarding' action to move them to the Training stage. Candidates in this stage for over 48 hours should be followed up with or moved to 'Inactive'.
             </AlertDescription>
         </Alert>
         <CandidateTable
             title="Approved Candidates"
-            description="Candidates who passed the 5-minute filter and require post-approval messaging and onboarding initiation."
+            description="Candidates who passed the interview and are ready to begin onboarding."
             candidates={candidates || []}
             isLoading={loading}
         />

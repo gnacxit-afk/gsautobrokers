@@ -36,6 +36,7 @@ const pipelineStages: { status: PipelineStatus; label: string }[] = [
   { status: 'Onboarding', label: 'Training' },
   { status: 'Active', label: 'Active' },
   { status: 'Rejected', label: 'Rejected' },
+  { status: 'Inactive', label: 'Inactive' },
 ];
 
 const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
