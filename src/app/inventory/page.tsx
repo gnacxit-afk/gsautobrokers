@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -67,9 +66,9 @@ export default function PublicInventoryPage() {
   const firestore = useFirestore();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [priceRange, setPriceRange] = useState([0, 100000]);
+  const [priceRange, setPriceRange] = useState([0, 75000]);
   const [yearRange, setYearRange] = useState([2000, new Date().getFullYear() + 1]);
-  const [mileageRange, setMileageRange] = useState([0, 200000]);
+  const [mileageRange, setMileageRange] = useState([0, 300000]);
 
   const inventoryQuery = useMemo(() => {
     if (!firestore) return null;
@@ -97,11 +96,11 @@ export default function PublicInventoryPage() {
   }, [vehicles, searchTerm, priceRange, yearRange, mileageRange]);
   
   const priceMin = 0;
-  const priceMax = useMemo(() => vehicles ? Math.max(...vehicles.map(v => v.cashPrice), 100000) : 100000, [vehicles]);
+  const priceMax = useMemo(() => vehicles ? Math.max(...vehicles.map(v => v.cashPrice), 75000) : 75000, [vehicles]);
   const yearMin = useMemo(() => vehicles ? Math.min(...vehicles.map(v => v.year), 2000) : 2000, [vehicles]);
   const yearMax = useMemo(() => vehicles ? Math.max(...vehicles.map(v => v.year), new Date().getFullYear() + 1) : new Date().getFullYear() + 1, [vehicles]);
   const mileageMin = 0;
-  const mileageMax = useMemo(() => vehicles ? Math.max(...vehicles.map(v => v.mileage), 200000) : 200000, [vehicles]);
+  const mileageMax = useMemo(() => vehicles ? Math.max(...vehicles.map(v => v.mileage), 300000) : 300000, [vehicles]);
   
 
   return (
