@@ -45,6 +45,13 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuthContext } from "@/lib/auth";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -89,7 +96,7 @@ export default function LeadDetailsPage() {
   const { toast } = useToast();
   
   const [isEditing, setIsEditing] = useState(false);
-  const [draftData, setDraftData] = useState<{name: string, phone: string}>({ name: '', phone: '' });
+  const [draftData, setDraftData] = useState<{name: string, phone: string, dealershipId: string}>({ name: '', phone: '', dealershipId: '' });
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiMessage, setAiMessage] = useState<string>("");
@@ -125,7 +132,7 @@ export default function LeadDetailsPage() {
 
   useEffect(() => {
     if (lead) {
-      setDraftData({ name: lead.name, phone: lead.phone || '' });
+      setDraftData({ name: lead.name, phone: lead.phone || '', dealershipId: lead.dealershipId });
     }
   }, [lead]);
   
@@ -153,7 +160,7 @@ export default function LeadDetailsPage() {
     if (isEditing) {
       // If canceling, reset draft data to original lead data
       if (lead) {
-        setDraftData({ name: lead.name, phone: lead.phone || '' });
+        setDraftData({ name: lead.name, phone: lead.phone || '', dealershipId: lead.dealershipId });
       }
     }
     setIsEditing(!isEditing);
@@ -165,7 +172,7 @@ export default function LeadDetailsPage() {
   };
 
   const handleSaveChanges = async () => {
-    if (!firestore || !user || !lead) return;
+    if (!firestore || !user || !lead || !dealerships) return;
 
     const batch = writeBatch(firestore);
     const leadRef = doc(firestore, 'leads', lead.id);
@@ -183,6 +190,15 @@ export default function LeadDetailsPage() {
       updates.phone = draftData.phone;
       changes.push(`Phone changed from '${lead.phone || 'N/A'}' to '${draftData.phone}'`);
     }
+    if (lead.dealershipId !== draftData.dealershipId) {
+        const newDealership = dealerships.find(d => d.id === draftData.dealershipId);
+        if (newDealership) {
+            updates.dealershipId = newDealership.id;
+            updates.dealershipName = newDealership.name;
+            changes.push(`Dealership changed from '${lead.dealershipName}' to '${newDealership.name}'`);
+        }
+    }
+
 
     if (changes.length === 0) {
       toast({ title: "No Changes", description: "No information was modified." });
@@ -206,7 +222,7 @@ export default function LeadDetailsPage() {
       const noteContent = `Lead information updated by ${user.name}: ${changes.join('. ')}.`;
       await addNoteEntry(firestore, user, lead.id, noteContent, 'System');
 
-      toast({ title: "Lead Updated", description: "The lead's information and related appointments have been saved." });
+      toast({ title: "Lead Updated", description: "The lead's information has been saved." });
       setIsEditing(false);
     } catch (error) {
       toast({ title: "Update Failed", description: "Could not save changes.", variant: "destructive" });
@@ -500,7 +516,20 @@ export default function LeadDetailsPage() {
                             </div>
                             <div className="space-y-2">
                                 <Label>Dealership</Label>
-                                <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.dealershipName}</Badge>
+                                {isEditing ? (
+                                    <Select value={draftData.dealershipId} onValueChange={(value) => setDraftData(prev => ({...prev, dealershipId: value}))}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select a dealership" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {(dealerships || []).map(d => (
+                                                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                ) : (
+                                    <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.dealershipName}</Badge>
+                                )}
                             </div>
                              {lead.stage === 'Ganado' && lead.brokerCommission && (
                                 <div className="space-y-2">
