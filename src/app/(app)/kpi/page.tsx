@@ -127,6 +127,11 @@ function BrokerGoalsView({kpis, kpisLoading, allLeads, staff, loading}) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const { dateRange } = useDateRange();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // State for To-Do List
   const [newTodo, setNewTodo] = useState('');
@@ -147,7 +152,7 @@ function BrokerGoalsView({kpis, kpisLoading, allLeads, staff, loading}) {
   const userLeads = useMemo(() => allLeads.filter(l => l.ownerId === user?.id) || [], [allLeads, user]);
   
   const brokerStats = useMemo(() => {
-    if (!user || user.role !== 'Broker' || !allLeads) {
+    if (!user || user.role !== 'Broker' || !allLeads || !isClient) {
       return null;
     }
 
@@ -192,16 +197,17 @@ function BrokerGoalsView({kpis, kpisLoading, allLeads, staff, loading}) {
       brokerBonus,
       dailyStats
     };
-  }, [user, allLeads, dateRange]);
+  }, [user, allLeads, dateRange, isClient]);
   
   const performanceLeads = useMemo(() => {
+    if (!isClient) return [];
     return allLeads.filter(l => {
         if (!l.createdAt) return false;
         const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
         if (!isValid(leadDate)) return false;
         return isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end });
     });
-  }, [allLeads, dateRange]);
+  }, [allLeads, dateRange, isClient]);
 
   const kpiProgress = useMemo(() => {
       if (!brokerStats?.dailyStats || !kpis) return {};
@@ -289,6 +295,10 @@ function BrokerGoalsView({kpis, kpisLoading, allLeads, staff, loading}) {
     });
     return { pendingTodos: pending, completedTodos: completed };
   }, [todos]);
+
+  if (!isClient) {
+    return <Skeleton className="h-screen w-full" />;
+  }
 
   if (!brokerStats) return null;
 
@@ -464,6 +474,11 @@ function KpiPage() {
   const { toast } = useToast();
   const [isInitializing, setIsInitializing] = useState(false);
   const { dateRange, setDateRange } = useDateRange();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const kpisDocRef = useMemo(() => firestore ? doc(firestore, 'kpis', 'kpi-doc') : null, [firestore]);
   const { data: kpisData, loading: kpisLoading } = useDoc<{list: KPI[]}>(kpisDocRef);
@@ -482,13 +497,14 @@ function KpiPage() {
   const loading = kpisLoading || leadsLoading || staffLoading;
 
   const performanceLeads = useMemo(() => {
+    if (!isClient) return [];
     return allLeads.filter(l => {
         if (!l.createdAt) return false;
         const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
         if (!isValid(leadDate)) return false;
         return isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end });
     });
-  }, [allLeads, dateRange]);
+  }, [allLeads, dateRange, isClient]);
   
   const handleInitializeKpis = async () => {
     if (!firestore) return;
@@ -504,6 +520,16 @@ function KpiPage() {
     }
   }
 
+  if (!isClient) {
+      return (
+        <main className="flex-1 space-y-8">
+            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-64 w-full" />
+        </main>
+      )
+  }
+
   if (user?.role === 'Broker') {
     return (
         <BrokerGoalsView 
@@ -511,7 +537,7 @@ function KpiPage() {
             kpisLoading={kpisLoading}
             allLeads={allLeads}
             staff={staff}
-            loading={loading}
+            loading={loading || !isClient}
         />
     )
   }
@@ -571,7 +597,7 @@ function KpiPage() {
             <PerformanceDashboard
                 allLeads={performanceLeads}
                 allStaff={staff}
-                loading={loading}
+                loading={loading || !isClient}
                 salesGoal={salesGoalKPI ? parseInt(salesGoalKPI.target, 10) : 1}
             />
         </div>

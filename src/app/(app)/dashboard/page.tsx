@@ -418,6 +418,11 @@ export default function DashboardPage() {
     const { user } = useAuthContext();
     const firestore = useFirestore();
     const { dateRange } = useDateRange();
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
     
     const leadsQuery = useMemo(() => firestore ? query(collection(firestore, 'leads'), orderBy('createdAt', 'desc')) : null, [firestore]);
     const staffQuery = useMemo(() => firestore ? collection(firestore, 'staff') : null, [firestore]);
@@ -432,23 +437,23 @@ export default function DashboardPage() {
     const loading = leadsLoading || staffLoading || dealershipsLoading || vehiclesLoading;
 
     const filteredLeads = useMemo(() => {
-        if (!leads) return [];
+        if (!leads || !isClient) return [];
         return leads.filter(l => {
             if (!l.createdAt) return false;
             const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
             if (!isValid(leadDate)) return false;
             return isWithinInterval(leadDate, { start: dateRange.start, end: dateRange.end });
         });
-    }, [leads, dateRange]);
+    }, [leads, dateRange, isClient]);
     
     const renderContent = () => {
-        if (!user) return <Skeleton className="h-screen w-full" />;
+        if (!user || !isClient) return <Skeleton className="h-screen w-full" />;
 
         switch (user.role) {
             case 'Admin':
-                return <AdminDashboard loading={loading} filteredLeads={filteredLeads} allStaff={staff || []} allDealerships={dealerships || []} allVehicles={vehicles || []} dateRange={dateRange} />;
+                return <AdminDashboard loading={loading || !isClient} filteredLeads={filteredLeads} allStaff={staff || []} allDealerships={dealerships || []} allVehicles={vehicles || []} dateRange={dateRange} />;
             case 'Supervisor':
-                 return <SupervisorDashboard user={user} loading={loading} filteredLeads={filteredLeads} allStaff={staff || []} allVehicles={vehicles || []} />;
+                 return <SupervisorDashboard user={user} loading={loading || !isClient} filteredLeads={filteredLeads} allStaff={staff || []} allVehicles={vehicles || []} />;
             case 'Broker':
                 // Redirect to KPI page which is the main dashboard for brokers
                 // This could be handled with a router.push in a useEffect, but for now a message is fine

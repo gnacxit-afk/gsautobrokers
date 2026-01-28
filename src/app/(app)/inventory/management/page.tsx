@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useFirestore, useUser, useCollection } from '@/firebase';
 import { collection, query, orderBy, type QueryConstraint, where } from 'firebase/firestore';
 import type { Vehicle, Staff } from '@/lib/types';
@@ -33,6 +33,11 @@ export default function InventoryManagementPage() {
     const { user } = useUser();
     const firestore = useFirestore();
     const { dateRange } = useDateRange();
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [activeFilters, setActiveFilters] = useState<{key: string; value: string}[]>([]);
@@ -57,7 +62,7 @@ export default function InventoryManagementPage() {
     const loading = vehiclesLoading || staffLoading;
 
     const filteredByDateAndOwner = useMemo(() => {
-        if (!vehicles) return [];
+        if (!vehicles || !isClient) return [];
         let filtered = vehicles;
         
         // Date range filter
@@ -73,7 +78,7 @@ export default function InventoryManagementPage() {
         }
 
         return filtered;
-    }, [vehicles, dateRange, ownerFilter, user]);
+    }, [vehicles, dateRange, ownerFilter, user, isClient]);
 
     const inventoryMetrics = useMemo(() => {
         const dataToProcess = filteredByDateAndOwner;
@@ -118,7 +123,6 @@ export default function InventoryManagementPage() {
         getFilteredRowModel: getFilteredRowModel(),
     });
 
-
     return (
         <main className="flex flex-1 flex-col gap-6">
              <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
@@ -139,16 +143,16 @@ export default function InventoryManagementPage() {
                 )}
             </div>
             <div className="grid gap-4 md:grid-cols-3">
-                <StatCard title="Total Vehicles" value={`${inventoryMetrics.total}`} icon={Car} loading={loading} />
-                <StatCard title="Active Listings" value={`${inventoryMetrics.active}`} icon={CheckCircle} loading={loading} />
+                <StatCard title="Total Vehicles" value={`${inventoryMetrics.total}`} icon={Car} loading={loading || !isClient} />
+                <StatCard title="Active Listings" value={`${inventoryMetrics.active}`} icon={CheckCircle} loading={loading || !isClient} />
                 {user?.role !== 'Broker' && (
-                    <StatCard title="Sold Vehicles" value={`${inventoryMetrics.sold}`} icon={DollarSign} loading={loading} />
+                    <StatCard title="Sold Vehicles" value={`${inventoryMetrics.sold}`} icon={DollarSign} loading={loading || !isClient} />
                 )}
             </div>
             <InventoryDataTable
                 table={table}
                 columns={columns}
-                loading={loading}
+                loading={loading || !isClient}
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
                 activeFilters={activeFilters}
