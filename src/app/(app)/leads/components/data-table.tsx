@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Search, X, Filter, Users, Tag, Share2, Download, Building } from 'lucide-react';
+import { PlusCircle, Search, X, Filter, Users, Tag, Share2, Download, Building, LayoutGrid } from 'lucide-react';
 import type { Lead, Staff, Dealership } from '@/lib/types';
 import { AddLeadDialog } from './add-lead-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -32,6 +32,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { exportToCsv } from '@/lib/utils';
+import Link from 'next/link';
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 const leadChannels: Lead['channel'][] = ['FB Marketplace', 'FB Page', 'WhatsApp', 'Website Inquiry'];
@@ -215,6 +216,9 @@ export function DataTable<TData, TValue>({
               </DropdownMenuContent>
             </DropdownMenu>
             <DateRangePicker />
+             <Button asChild variant="outline" size="sm">
+                <Link href="/leads/pipeline"><LayoutGrid className="mr-2 h-4 w-4" /> Board View</Link>
+            </Button>
             <Button onClick={handleDownload} variant="outline" size="sm">
               <Download className="mr-2 h-4 w-4" /> Download
             </Button>
