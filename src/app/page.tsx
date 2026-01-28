@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Logo } from '@/components/icons';
+import { submitInquiry } from '@/ai/flows/submit-inquiry-flow';
+
 
 const ServiceCard = ({ icon, title, description }: { icon: string, title: string, description: string }) => (
     <div className="group flex flex-col gap-5 rounded-2xl border border-[#dbe0e6] dark:border-gray-800 bg-white dark:bg-gray-900/50 p-8 hover:shadow-xl hover:border-primary/30 transition-all">
@@ -172,75 +174,30 @@ function QuickInquiryForm() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
 
-    const firestore = useFirestore();
-    const [isClient, setIsClient] = useState(false);
-
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
-
-    const ownerQuery = useMemo(() => isClient && firestore ? query(collection(firestore, "staff"), where("role", "==", "Admin"), limit(1)) : null, [firestore, isClient]);
-    const { data: owners } = useCollection<Staff>(ownerQuery);
-
-    const dealershipQuery = useMemo(() => isClient && firestore ? query(collection(firestore, "dealerships"), limit(1)) : null, [firestore, isClient]);
-    const { data: dealerships } = useCollection<Dealership>(dealershipQuery);
-
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!firestore) return;
         if (!name || !phone) {
             toast({ title: "Missing Information", description: "Please provide your name and phone number.", variant: "destructive" });
-            return;
-        }
-
-        const defaultOwner = owners?.[0];
-        const defaultDealership = dealerships?.[0];
-
-        if (!defaultOwner || !defaultDealership) {
-            toast({ title: "System Error", description: "Default owner or dealership not configured. Cannot create lead.", variant: "destructive" });
             return;
         }
 
         setIsSubmitting(true);
 
         try {
-            const leadsCollection = collection(firestore, 'leads');
-            const newLeadData = {
-                name,
-                phone,
-                channel: 'Website Inquiry',
-                stage: 'Nuevo',
-                language: 'English',
-                ownerId: defaultOwner.id,
-                ownerName: defaultOwner.name,
-                dealershipId: defaultDealership.id,
-                dealershipName: defaultDealership.name,
-                createdAt: serverTimestamp(),
-                lastActivity: serverTimestamp(),
-            };
+            const result = await submitInquiry({ name, phone, interest, message });
 
-            const newLeadRef = await addDoc(leadsCollection, newLeadData as any);
-
-            const noteHistoryRef = collection(firestore, 'leads', newLeadRef.id, 'noteHistory');
-            const initialNote = `Inquiry from website.\nInterest: ${interest}.\nMessage: ${message}`;
-
-            await addDoc(noteHistoryRef, {
-                content: initialNote,
-                author: 'System',
-                date: serverTimestamp(),
-                type: 'System',
-            });
-            
-            toast({ title: "Inquiry Sent!", description: "Thank you! A member of our team will contact you shortly." });
-            setName('');
-            setPhone('');
-            setMessage('');
-            setInterest('Vehicle Sourcing');
-
-        } catch (error) {
+            if (result.success) {
+                toast({ title: "Inquiry Sent!", description: "Thank you! A member of our team will contact you shortly." });
+                setName('');
+                setPhone('');
+                setMessage('');
+                setInterest('Vehicle Sourcing');
+            } else {
+                throw new Error(result.message);
+            }
+        } catch (error: any) {
             console.error(error);
-            toast({ title: "Submission Failed", description: "Could not send your inquiry. Please try again later.", variant: "destructive" });
+            toast({ title: "Submission Failed", description: error.message || "Could not send your inquiry. Please try again later.", variant: "destructive" });
         } finally {
             setIsSubmitting(false);
         }
