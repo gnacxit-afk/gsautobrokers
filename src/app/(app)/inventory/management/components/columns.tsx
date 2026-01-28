@@ -132,8 +132,8 @@ export const getColumns = (): ColumnDef<Vehicle>[] => [
         header: 'Pricing',
         cell: ({ row }) => {
             const vehicle = row.original;
-            const price = vehicle.cashPrice;
-            const downPayment = vehicle.downPayment;
+            const price = vehicle.cashPrice || 0;
+            const downPayment = vehicle.downPayment || 0;
 
             const formattedPrice = new Intl.NumberFormat('en-US', {
                 style: 'currency',
@@ -146,8 +146,8 @@ export const getColumns = (): ColumnDef<Vehicle>[] => [
 
             return (
                  <div>
-                    <div className="font-semibold">{formattedPrice}</div>
-                    <div className="text-xs text-muted-foreground">Down: {formattedDownPayment}</div>
+                    <div className="font-semibold">Down: {formattedDownPayment}</div>
+                    <div className="text-xs text-muted-foreground">Cash: {formattedPrice}</div>
                 </div>
             )
         }

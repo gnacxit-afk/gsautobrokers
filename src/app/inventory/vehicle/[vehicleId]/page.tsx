@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useParams } from 'next/navigation';
@@ -106,8 +105,16 @@ function VehicleDetailsPage() {
             <div className="lg:col-span-2">
                 <h1 className="text-3xl font-extrabold tracking-tight mb-1">{vehicle.year} {vehicle.make} {vehicle.model}</h1>
                 <p className="text-muted-foreground text-lg mb-4">{vehicle.trim}</p>
-                <div className="mb-6">
-                    <span className="text-4xl font-bold text-primary">${vehicle.cashPrice.toLocaleString()}</span>
+                
+                <div className="mb-6 space-y-2">
+                    <div>
+                        <p className="text-sm text-muted-foreground">Down Payment</p>
+                        <p className="text-4xl font-bold text-primary">${(vehicle.downPayment || 0).toLocaleString()}</p>
+                    </div>
+                    <div>
+                        <p className="text-xs text-muted-foreground">Cash Price</p>
+                        <p className="text-lg text-muted-foreground font-medium">${(vehicle.cashPrice || 0).toLocaleString()}</p>
+                    </div>
                 </div>
 
                 <Card>
