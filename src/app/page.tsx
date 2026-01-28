@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -415,6 +416,14 @@ export default function LandingPage() {
                                         </p>
                                         <p className="text-sm text-[#617589] dark:text-gray-400 leading-relaxed">
                                             Your information is used strictly for vehicle sourcing and financing purposes. We never sell your data to third parties. Our full privacy policy is available upon request.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-[#111418] dark:text-white mb-4">For Dealerships</h2>
+                                    <div className="bg-white dark:bg-gray-900 border border-[#dbe0e6] dark:border-gray-800 p-6 rounded-2xl">
+                                        <p className="text-sm text-[#617589] dark:text-gray-400 leading-relaxed">
+                                            Digital marketing, lead generation and growth consulting services for automotive dealership support.
                                         </p>
                                     </div>
                                 </div>
