@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser } from '@/firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
+import { sendWhatsappMessage } from '@/ai/flows/send-whatsapp-flow';
 
 const getAvatarFallback = (name: string) => {
     if (!name) return 'U';
@@ -55,7 +56,7 @@ const CellActions: React.FC<{ row: Row<Candidate>; onCreateStaff: (candidate: Ca
     };
 
     const handleStatusChange = async (newStatus: PipelineStatus) => {
-        if (!firestore) return;
+        if (!firestore || !user) return;
 
         try {
             const candidateRef = doc(firestore, 'candidates', candidate.id);
@@ -65,9 +66,21 @@ const CellActions: React.FC<{ row: Row<Candidate>; onCreateStaff: (candidate: Ca
             });
             
             toast({ title: 'Status Updated', description: `${candidate.fullName}'s status changed to ${newStatus}.` });
+
+            // --- AUTOMATION ---
+            if (newStatus === 'Interviews') {
+                const message = `Hola ${candidate.fullName}, te saluda ${user.name} de GS Auto Brokers. Vimos tu postulación y nos gustaría coordinar una breve llamada de 5 minutos para conversar sobre tu perfil. ¿Qué día y hora te quedaría bien?`;
+                await sendWhatsappMessage({ to: candidate.whatsappNumber, text: message });
+                toast({ title: 'WhatsApp Sent', description: `Invitation sent to ${candidate.fullName}.` });
+            } else if (newStatus === 'Approved') {
+                const message = `¡Felicidades, ${candidate.fullName}! Has sido aprobado para la siguiente fase en GS Auto Brokers. El próximo paso es nuestro onboarding digital. Responde 'LISTO' a este mensaje para recibir el enlace a nuestra plataforma de capacitación y comenzar tu camino para convertirte en un broker de éxito.`;
+                await sendWhatsappMessage({ to: candidate.whatsappNumber, text: message });
+                toast({ title: 'WhatsApp Sent', description: `Onboarding instructions sent to ${candidate.fullName}.` });
+            }
+
         } catch (error) {
-            console.error("Error updating status:", error);
-            toast({ title: 'Update Failed', description: 'Could not update candidate status.', variant: 'destructive' });
+            console.error("Error updating status or sending message:", error);
+            toast({ title: 'Update Failed', description: 'Could not update candidate status or send message.', variant: 'destructive' });
         }
     };
 
