@@ -10,7 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import ReactPlayer from 'react-player';
+import dynamic from 'next/dynamic';
+const ReactPlayer = dynamic(() => import('react-player'), { ssr: false });
 import { v4 as uuidv4 } from 'uuid';
 import {
   Dialog,
@@ -446,3 +447,5 @@ export default function LessonPage() {
     </main>
   );
 }
+
+    
