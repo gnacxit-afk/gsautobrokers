@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -483,7 +484,7 @@ export default function LandingPage() {
                         </div>
                     </div>
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
-                        <p>© 2024 GS Autobrokers. All rights reserved.</p>
+                        <p>© 2026 GS Autobrokers LLC. All rights reserved.</p>
                         <div className="flex gap-8">
                             <Link className="hover:underline" href="/privacy">Privacy Policy</Link>
                             <Link className="hover:underline" href="/terms">Terms of Service</Link>
