@@ -8,7 +8,7 @@ import type { Lead, Staff, Dealership, Vehicle } from '@/lib/types';
 import { useDateRange } from '@/hooks/use-date-range';
 import { useAuthContext } from '@/lib/auth';
 import { isWithinInterval, isValid, differenceInDays, format, getISOWeek, getMonth, getYear, parseISO, startOfDay, endOfDay } from 'date-fns';
-import { calculateBonus } from '@/lib/utils';
+import { calculateBonus, calculateSupervisorBonus } from '@/lib/utils';
 import { DateRangePicker } from '@/components/layout/date-range-picker';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -22,8 +22,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, DollarSign, Users, Target, Percent, Star, Trophy, Building, Lock, Briefcase, FileText, Share2, Activity } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Users, Target, Percent, Star, Trophy, Building, Lock, Briefcase, FileText, Share2, Activity, Unlock } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
 
 
 const StatCard = ({ title, value, change, icon: Icon, color, loading }: { title: string, value: string, change?: string, icon: React.ElementType, color: string, loading: boolean }) => (
@@ -86,31 +88,25 @@ const AdminDashboard = ({ loading, filteredLeads, allStaff, allDealerships, allV
 
     const supervisorPerformance = useMemo(() => {
         return supervisors.map(supervisor => {
-            const teamMembers = allStaff.filter(s => s.supervisorId === supervisor.id);
-            const teamIds = teamMembers.map(s => s.id);
-            const supervisorSales = filteredLeads.filter(l => l.stage === 'Ganado' && l.ownerId === supervisor.id).length;
-            const teamSales = filteredLeads.filter(l => l.stage === 'Ganado' && teamIds.includes(l.ownerId));
-            
-            let overrideCommission = 0;
-            if (supervisorSales >= 5) {
-                overrideCommission = teamSales.reduce((acc, lead) => {
-                    const vehicle = allVehicles.find(v => v.id === lead.interestedVehicleId);
-                    return acc + ((vehicle?.commission || 0) * 0.05);
-                }, 0);
-            }
+            const teamMemberIds = allStaff.filter(s => s.supervisorId === supervisor.id).map(s => s.id);
+            const personalSales = filteredLeads.filter(l => l.stage === 'Ganado' && l.ownerId === supervisor.id).length;
+            const teamSalesOnTeam = filteredLeads.filter(l => l.stage === 'Ganado' && teamMemberIds.includes(l.ownerId)).length;
+            const totalTeamSales = personalSales + teamSalesOnTeam;
+
+            const bonus = calculateSupervisorBonus(personalSales, totalTeamSales);
 
             return {
                 id: supervisor.id,
                 name: supervisor.name,
-                personalSales: supervisorSales,
-                teamSales: teamSales.length,
-                overrideCommission
+                personalSales,
+                teamSales: totalTeamSales,
+                bonus
             };
         });
-    }, [supervisors, allStaff, filteredLeads, allVehicles]);
+    }, [supervisors, allStaff, filteredLeads]);
 
-    const totalOverridePayouts = useMemo(() => supervisorPerformance.reduce((acc, s) => acc + s.overrideCommission, 0), [supervisorPerformance]);
-    const totalToPay = useMemo(() => salesMetrics.totalCommissions + salesMetrics.totalBonuses + totalOverridePayouts, [salesMetrics, totalOverridePayouts]);
+    const totalSupervisorBonuses = useMemo(() => supervisorPerformance.reduce((acc, s) => acc + s.bonus, 0), [supervisorPerformance]);
+    const totalToPay = useMemo(() => salesMetrics.totalCommissions + salesMetrics.totalBonuses + totalSupervisorBonuses, [salesMetrics, totalSupervisorBonuses]);
 
     const salesAndLeadsData = useMemo(() => {
         const days = differenceInDays(dateRange.end, dateRange.start);
@@ -180,7 +176,7 @@ const AdminDashboard = ({ loading, filteredLeads, allStaff, allDealerships, allV
             .sort((a,b) => b.sales - a.sales);
     }, [filteredLeads]);
     
-    const executiveSummary = `During this period, the team generated ${salesMetrics.totalLeads} leads, closing ${salesMetrics.closedSalesCount} of them. This resulted in $${salesMetrics.totalRevenue.toLocaleString('en-US')} in revenue for the company from commissions. Total payouts including broker commissions, bonuses, and supervisor overrides amount to $${totalToPay.toLocaleString('en-US')}.`;
+    const executiveSummary = `During this period, the team generated ${salesMetrics.totalLeads} leads, closing ${salesMetrics.closedSalesCount} of them. This resulted in $${salesMetrics.totalRevenue.toLocaleString('en-US')} in revenue for the company from commissions. Total payouts including broker commissions, broker bonuses, and supervisor bonuses amount to $${totalToPay.toLocaleString('en-US')}.`;
 
     return (
         <div className="space-y-6">
@@ -192,8 +188,8 @@ const AdminDashboard = ({ loading, filteredLeads, allStaff, allDealerships, allV
             </div>
              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <StatCard title="Total Broker Commissions" value={`$${salesMetrics.totalCommissions.toLocaleString('en-US')}`} icon={TrendingUp} color="text-cyan-500" loading={loading} />
-                <StatCard title="Total Bonuses" value={`$${salesMetrics.totalBonuses.toLocaleString('en-US')}`} icon={Star} color="text-pink-500" loading={loading} />
-                <StatCard title="Total Override Payouts" value={`$${totalOverridePayouts.toLocaleString('en-US')}`} icon={TrendingUp} color="text-orange-500" loading={loading} />
+                <StatCard title="Total Broker Bonuses" value={`$${salesMetrics.totalBonuses.toLocaleString('en-US')}`} icon={Star} color="text-pink-500" loading={loading} />
+                <StatCard title="Total Supervisor Bonuses" value={`$${totalSupervisorBonuses.toLocaleString('en-US')}`} icon={Trophy} color="text-orange-500" loading={loading} />
                 <StatCard title="Total to Pay" value={`$${totalToPay.toLocaleString('en-US')}`} icon={DollarSign} color="text-red-500" loading={loading} />
             </div>
 
@@ -321,8 +317,8 @@ const AdminDashboard = ({ loading, filteredLeads, allStaff, allDealerships, allV
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Supervisor Performance</CardTitle>
-                    <CardDescription>Performance metrics for supervisors and their teams.</CardDescription>
+                    <CardTitle>Supervisor Bonus Performance</CardTitle>
+                    <CardDescription>Bonus metrics for supervisors and their teams.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>
@@ -331,7 +327,7 @@ const AdminDashboard = ({ loading, filteredLeads, allStaff, allDealerships, allV
                                 <TableHead>Supervisor</TableHead>
                                 <TableHead className="text-right">Personal Sales</TableHead>
                                 <TableHead className="text-right">Team Sales</TableHead>
-                                <TableHead className="text-right">5% Override Commission</TableHead>
+                                <TableHead className="text-right">Generated Bonus</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -345,9 +341,9 @@ const AdminDashboard = ({ loading, filteredLeads, allStaff, allDealerships, allV
                             )) : supervisorPerformance.map(s => (
                                 <TableRow key={s.id}>
                                     <TableCell className="font-medium">{s.name}</TableCell>
-                                    <TableCell className="text-right">{s.personalSales}</TableCell>
+                                    <TableCell className="text-right">{s.personalSales} / 3</TableCell>
                                     <TableCell className="text-right">{s.teamSales}</TableCell>
-                                    <TableCell className="text-right font-bold">${s.overrideCommission.toLocaleString('en-US')}</TableCell>
+                                    <TableCell className="text-right font-bold">${s.bonus.toLocaleString('en-US')}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -364,48 +360,102 @@ const SupervisorDashboard = ({ user, loading, filteredLeads, allStaff, allVehicl
 
     const personalSales = useMemo(() => filteredLeads.filter(l => l.stage === 'Ganado' && l.ownerId === user.id), [filteredLeads, user]);
     const teamSales = useMemo(() => filteredLeads.filter(l => l.stage === 'Ganado' && teamIds.includes(l.ownerId)), [filteredLeads, teamIds]);
+    
+    const totalTeamSales = personalSales.length + teamSales.length;
+    const supervisorTeamBonus = calculateSupervisorBonus(personalSales.length, totalTeamSales);
+    
+    const isBonusUnlocked = personalSales.length >= 3;
+    const salesNeededToUnlock = Math.max(0, 3 - personalSales.length);
+
+    const getNextMilestone = () => {
+        if (totalTeamSales < 10) return { name: "Team Bonus", salesNeeded: 10 - totalTeamSales, bonus: "$20" };
+        if (totalTeamSales < 30) return { name: "Milestone Bonus", salesNeeded: 30 - totalTeamSales, bonus: "$100" };
+        if (totalTeamSales < 40) return { name: "Top-Tier Bonus", salesNeeded: 40 - totalTeamSales, bonus: "$250" };
+        return { name: "Recurring Bonus", salesNeeded: 5 - ((totalTeamSales - 10) % 5), bonus: "$25" };
+    };
+    const nextMilestone = getNextMilestone();
 
     const personalCommissions = useMemo(() => personalSales.reduce((acc, lead) => acc + (lead.brokerCommission || 0), 0), [personalSales]);
-    const personalBonus = useMemo(() => calculateBonus(personalSales.length), [personalSales]);
-    const personalTotalEarnings = personalCommissions + personalBonus;
-    
-    const overrideUnlocked = personalSales.length >= 5;
-    const overrideCommission = useMemo(() => {
-        if (!overrideUnlocked) return 0;
-        return teamSales.reduce((acc, lead) => {
-            const vehicle = allVehicles.find(v => v.id === lead.interestedVehicleId);
-            return acc + ((vehicle?.commission || 0) * 0.05);
-        }, 0);
-    }, [teamSales, overrideUnlocked, allVehicles]);
+    const personalBrokerBonus = useMemo(() => calculateBonus(personalSales.length), [personalSales]);
+    const personalTotalEarnings = personalCommissions + personalBrokerBonus;
     
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Personal Performance Card */}
                 <Card>
-                    <CardHeader><CardTitle>Personal Sales</CardTitle></CardHeader>
+                    <CardHeader>
+                        <CardTitle>Personal Performance</CardTitle>
+                        <CardDescription>Your individual sales and earnings.</CardDescription>
+                    </CardHeader>
                     <CardContent className="space-y-4">
                         <StatCard title="Your Sales" value={`${personalSales.length}`} icon={Target} color="text-green-500" loading={loading} />
                         <StatCard title="Your Commissions" value={`$${personalCommissions.toLocaleString('en-US')}`} icon={DollarSign} color="text-blue-500" loading={loading} />
-                        <StatCard title="Your Bonus" value={`$${personalBonus.toLocaleString('en-US')}`} icon={Star} color="text-yellow-500" loading={loading} />
+                        <StatCard title="Your Broker Bonus" value={`$${personalBrokerBonus.toLocaleString('en-US')}`} icon={Star} color="text-yellow-500" loading={loading} />
                          <div className="border-t pt-4">
                             <p className="text-sm font-medium text-slate-500">Total Personal Earnings</p>
                             <p className="text-2xl font-bold">${personalTotalEarnings.toLocaleString('en-US')}</p>
                          </div>
                     </CardContent>
                 </Card>
+
+                {/* Team Performance Cards */}
                  <Card className="lg:col-span-2">
                     <CardHeader>
-                        <CardTitle>Team Performance</CardTitle>
-                        <CardDescription>Metrics for the brokers you supervise.</CardDescription>
+                        <CardTitle>Team Bonus Dashboard</CardTitle>
+                        <CardDescription>Track your team's progress and your unlocked bonuses.</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <StatCard title="Team Sales" value={`${teamSales.length}`} icon={Users} color="text-indigo-500" loading={loading} />
-                        
-                        <div className={`p-4 rounded-lg border ${overrideUnlocked ? 'border-green-200 bg-green-50' : 'border-slate-200 bg-slate-50'}`}>
-                             <h4 className="font-semibold flex items-center gap-2">{!overrideUnlocked && <Lock size={16} />} Override Commission (5%)</h4>
-                             <p className="text-xs text-muted-foreground mb-2">You need 5 personal sales to unlock this commission.</p>
-                             <p className="text-3xl font-bold">${overrideCommission.toLocaleString('en-US')}</p>
-                        </div>
+                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Unlock Card */}
+                        <Card className={isBonusUnlocked ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
+                             <CardHeader>
+                                <CardTitle className={cn("flex items-center gap-2", isBonusUnlocked ? "text-green-700" : "text-red-700")}>
+                                   {isBonusUnlocked ? <Unlock size={18}/> : <Lock size={18}/>}
+                                   Bonus Status: {isBonusUnlocked ? 'Unlocked' : 'Locked'}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {isBonusUnlocked ? (
+                                    <p className="text-sm text-green-600">You've met the personal sales requirement. Team bonuses are active!</p>
+                                ) : (
+                                    <p className="text-sm text-red-600">You need <span className="font-bold">{salesNeededToUnlock} more personal sales</span> to unlock team bonuses.</p>
+                                )}
+                                <div className="mt-4">
+                                     <Progress value={(personalSales.length / 3) * 100} />
+                                     <p className="text-xs text-center mt-1 font-medium text-slate-500">{personalSales.length} / 3 Personal Sales</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                        {/* Team Progress Card */}
+                        <Card>
+                             <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                   <Users size={18} />
+                                   Team Progress
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    <div className="text-center">
+                                        <p className="text-sm text-muted-foreground">Total Team Bonus</p>
+                                        <p className={cn("text-4xl font-bold", isBonusUnlocked ? "text-primary" : "text-slate-400")}>
+                                            ${supervisorTeamBonus.toLocaleString('en-US')}
+                                        </p>
+                                        {!isBonusUnlocked && <p className="text-xs text-red-500">(Currently Locked)</p>}
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-sm text-muted-foreground">Next Milestone: {nextMilestone.name} ({nextMilestone.bonus})</p>
+                                         <p className="text-sm text-slate-600 font-medium">
+                                            {nextMilestone.salesNeeded} more team sales needed.
+                                        </p>
+                                    </div>
+                                    <div className="space-y-2">
+                                         <Progress value={(totalTeamSales / (totalTeamSales + nextMilestone.salesNeeded)) * 100} />
+                                         <p className="text-xs text-center mt-1 font-medium text-slate-500">{totalTeamSales} Total Team Sales</p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
                     </CardContent>
                 </Card>
             </div>

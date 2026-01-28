@@ -36,6 +36,35 @@ export function getNextBonusGoal(sales: number): { nextGoal: number, needed: num
   return { nextGoal: sales + 1, needed: 1 };
 }
 
+export function calculateSupervisorBonus(personalSales: number, teamSales: number): number {
+  // 1. Check if the bonus is unlocked by personal sales
+  if (personalSales < 3) {
+    return 0;
+  }
+
+  let totalBonus = 0;
+
+  // 2. Add milestone bonuses
+  if (teamSales >= 10) {
+    totalBonus += 20;
+  }
+  if (teamSales >= 30) {
+    totalBonus += 100;
+  }
+  if (teamSales >= 40) {
+    totalBonus += 250;
+  }
+
+  // 3. Add recurring bonus for sales chunks *after* the 10th sale
+  if (teamSales > 10) {
+    const additionalSales = teamSales - 10;
+    const recurringBonusChunks = Math.floor(additionalSales / 5);
+    totalBonus += recurringBonusChunks * 25;
+  }
+
+  return totalBonus;
+}
+
 export const addNoteEntry = async (
     firestore: Firestore, 
     user: User, 
