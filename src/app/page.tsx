@@ -434,7 +434,7 @@ export default function LandingPage() {
                 
                 <section className="py-20 bg-navy-brand text-white" id="recruiting">
                     <div className="max-w-[1280px] mx-auto px-6 lg:px-10 text-center">
-                        <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">Conviértete en un Broker de Éxito con GS Autobrokers</h2>
+                        <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">Conviértete en Autobroker</h2>
                         <p className="text-white/90 text-lg md:text-xl font-medium max-w-[720px] mx-auto leading-relaxed mb-10">
                             ¿Te apasionan los autos y tienes hambre de éxito? En GS Autobrokers, te ofrecemos la plataforma para que te conviertas en un broker independiente. Olvídate de los horarios fijos y los límites de sueldo. Nuestro modelo es 100% basado en comisiones: <strong>tus ganancias dependen directamente de tu rendimiento y tu capacidad para cerrar ventas.</strong> Nosotros te proporcionamos el inventario, las herramientas y el soporte; tú pones la ambición y el talento.
                         </p>
@@ -462,7 +462,7 @@ export default function LandingPage() {
                             </div>
                         </div>
                         <Link href="/apply" className="bg-white text-navy-brand hover:bg-gray-200 px-8 py-4 rounded-xl text-lg font-extrabold transition-all shadow-lg group flex items-center justify-center max-w-xs mx-auto">
-                            Postula Ahora y Acelera tu Carrera
+                            Apply
                             <span className="material-symbols-outlined ml-2 group-hover:translate-x-1 transition-transform">arrow_forward</span>
                         </Link>
                     </div>
