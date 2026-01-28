@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { useMemo, useState, useEffect } from 'react';
 import { useFirestore, useCollection } from '@/firebase';
-import { collection, query, where, orderBy, limit, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
 import type { Vehicle, Staff, Dealership } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
@@ -113,23 +113,36 @@ function FeaturedVehicleCard({ vehicle }: { vehicle: Vehicle }) {
 
 function FeaturedListings() {
   const firestore = useFirestore();
-  const [isClient, setIsClient] = useState(false);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setIsClient(true);
-  }, []);
+    const fetchVehicles = async () => {
+      if (!firestore) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const inventoryQuery = query(
+          collection(firestore, "inventory"),
+          where("status", "==", "Active"),
+          orderBy("createdAt", "desc"),
+          limit(3)
+        );
+        const snapshot = await getDocs(inventoryQuery);
+        const fetchedVehicles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Vehicle));
+        setVehicles(fetchedVehicles);
+      } catch (err) {
+        console.error("Error loading featured inventory:", err);
+        setError("Could not load featured vehicles at this time.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchVehicles();
+  }, [firestore]);
 
-  const inventoryQuery = useMemo(() => {
-    if (!firestore || !isClient) return null;
-    return query(
-      collection(firestore, "inventory"),
-      where("status", "==", "Active"),
-      orderBy("createdAt", "desc"),
-      limit(3)
-    );
-  }, [firestore, isClient]);
-
-  const { data: vehicles, loading } = useCollection<Vehicle>(inventoryQuery);
 
   return (
     <section className="bg-[#f8f9fb] dark:bg-gray-900/40 py-20" id="listings">
@@ -144,7 +157,7 @@ function FeaturedListings() {
                 </Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {loading || !isClient ? (
+                {loading ? (
                     [...Array(3)].map((_, i) => (
                         <div key={i} className="space-y-4">
                             <Skeleton className="h-64 w-full rounded-2xl" />
@@ -153,6 +166,8 @@ function FeaturedListings() {
                             <Skeleton className="h-10 w-full" />
                         </div>
                     ))
+                ) : error ? (
+                  <p className="col-span-3 text-center text-red-500">{error}</p>
                 ) : vehicles && vehicles.length > 0 ? (
                     vehicles.map(vehicle => (
                         <FeaturedVehicleCard key={vehicle.id} vehicle={vehicle} />
