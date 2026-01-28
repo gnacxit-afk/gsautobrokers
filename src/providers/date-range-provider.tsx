@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useState, useMemo, useCallback } from 'react';
+import React, { createContext, useState, useMemo, useCallback, useEffect } from 'react';
 import { startOfMonth, endOfMonth } from 'date-fns';
 
 export interface DateRange {
@@ -28,7 +28,27 @@ interface DateRangeProviderProps {
 }
 
 export function DateRangeProvider({ children, initialDateRange, onDateChange }: DateRangeProviderProps) {
-  const [dateRange, setDateRangeState] = useState<DateRange>(initialDateRange || getDefaultDateRange());
+  // 1. Initialize state with a static, hardcoded value to ensure server and client renders match.
+  const [dateRange, setDateRangeState] = useState<DateRange>(() => {
+    if (initialDateRange) {
+      return initialDateRange;
+    }
+    // This static date is a placeholder to prevent hydration errors.
+    // It will be immediately updated by the useEffect on the client.
+    return {
+        start: new Date(2024, 0, 1),
+        end: new Date(2024, 0, 31)
+    };
+  });
+
+  // 2. This effect runs only on the client, after the initial render.
+  // It safely updates the state to the correct, dynamic date range.
+  useEffect(() => {
+    if (!initialDateRange) {
+      setDateRangeState(getDefaultDateRange());
+    }
+  }, [initialDateRange]);
+
 
   const setDateRange = useCallback((newRange: React.SetStateAction<DateRange>) => {
     const resolvedRange = typeof newRange === 'function' ? newRange(dateRange) : newRange;
