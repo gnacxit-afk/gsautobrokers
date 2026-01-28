@@ -31,7 +31,10 @@ export default function TermsLayout({
         </main>
         <footer className="bg-white dark:bg-background-dark border-t border-[#f0f2f4] dark:border-gray-800 py-12">
             <div className="max-w-[1280px] mx-auto px-6 lg:px-10">
-                 <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
+                <div className="flex justify-center mb-8">
+                    <Logo />
+                </div>
+                 <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500 pt-8 border-t border-[#f0f2f4] dark:border-gray-800">
                     <p>© 2026 GS Autobrokers LLC. All rights reserved.</p>
                     <div className="flex gap-8">
                         <Link className="hover:underline" href="/privacy">Privacy Policy</Link>
