@@ -31,19 +31,19 @@ const ServiceCard = ({ icon, title, description }: { icon: string, title: string
 
 const services = [
     {
-        icon: 'search',
-        title: 'Vehicle Sourcing',
-        description: 'Access to the Houston, Texas network market to find your specific make, model, and trim level, including rare editions.'
+        icon: 'storefront',
+        title: 'Facebook Marketplace Management',
+        description: 'Expert management of your inventory on Facebook Marketplace to maximize visibility and generate high-intent leads.'
     },
     {
-        icon: 'payments',
-        title: 'Financing Assistance',
-        description: 'Competitive rates and simplified paperwork handled by experts to ensure a seamless transaction.'
+        icon: 'person_search',
+        title: 'Buyer Pre-qualification',
+        description: 'Our team rigorously pre-qualifies every lead, ensuring you only spend time with customers ready to buy.'
     },
     {
-        icon: 'thumb_up',
-        title: 'Great Customer Service',
-        description: 'Our team assists with vehicle availability, pricing, financing options, and appointment scheduling.'
+        icon: 'calendar_month',
+        title: 'Appointment Setting',
+        description: 'We handle the follow-up and schedule confirmed appointments directly into your CRM, streamlining your sales process.'
     }
 ];
 
@@ -184,7 +184,7 @@ function FeaturedListings() {
 function QuickInquiryForm() {
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
-    const [interest, setInterest] = useState('Vehicle Sourcing');
+    const [interest, setInterest] = useState('Lead Generation Services');
     const [message, setMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
@@ -206,7 +206,7 @@ function QuickInquiryForm() {
                 setName('');
                 setPhone('');
                 setMessage('');
-                setInterest('Vehicle Sourcing');
+                setInterest('Lead Generation Services');
             } else {
                 throw new Error(result.message);
             }
@@ -233,14 +233,14 @@ function QuickInquiryForm() {
             <div className="flex flex-col gap-2">
                 <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Interested In</label>
                 <select value={interest} onChange={(e) => setInterest(e.target.value)} className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg p-3 focus:ring-2 focus:ring-primary outline-none text-sm">
-                    <option>Vehicle Sourcing</option>
-                    <option>Financing Assistance</option>
-                    <option>General Inquiry</option>
+                    <option>Lead Generation Services</option>
+                    <option>Partnership Inquiry</option>
+                    <option>General Question</option>
                 </select>
             </div>
             <div className="flex flex-col gap-2">
                 <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Message</label>
-                <textarea value={message} onChange={(e) => setMessage(e.target.value)} className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg p-3 focus:ring-2 focus:ring-primary outline-none text-sm resize-none" placeholder="Tell us about the vehicle you're looking for..." rows={4}></textarea>
+                <textarea value={message} onChange={(e) => setMessage(e.target.value)} className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg p-3 focus:ring-2 focus:ring-primary outline-none text-sm resize-none" placeholder="Tell us about your dealership and your growth goals..." rows={4}></textarea>
             </div>
             <button type="submit" disabled={isSubmitting} className="bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl transition-all mt-4 flex items-center justify-center">
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -298,15 +298,15 @@ export default function LandingPage() {
                         <div className="order-2 lg:order-1 flex flex-col gap-8">
                             <div className="flex flex-col gap-4">
                                 <h1 className="text-[#111418] dark:text-white text-5xl md:text-6xl font-extrabold leading-[1.1] tracking-tight">
-                                    Vehicle Brokerage <span className="text-primary">Made Simple</span>
+                                    Your Growth Partner for <span className="text-primary">Auto Sales</span>
                                 </h1>
                                 <p className="text-[#617589] dark:text-gray-400 text-lg md:text-xl font-normal leading-relaxed max-w-[540px]">
-                                    We handle the sourcing, negotiation, and financing according to our customers´ needs and budget.
+                                    We provide performance marketing and qualified leads to help dealerships in the Houston area sell more inventory.
                                 </p>
                             </div>
                             <div className="flex flex-wrap gap-4">
                                 <a href="#contact" className="bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-xl text-base font-bold transition-all shadow-lg shadow-primary/20">
-                                    Schedule a Testdrive
+                                    Become a Partner
                                 </a>
                                 <Link href="/inventory" className="bg-white dark:bg-gray-800 border border-[#dbe0e6] dark:border-gray-700 px-8 py-4 rounded-xl text-base font-bold hover:bg-gray-50 transition-all">
                                     View Our Inventory
@@ -324,10 +324,10 @@ export default function LandingPage() {
                 <section className="bg-white dark:bg-background-dark py-20" id="services">
                     <div className="max-w-[1280px] mx-auto px-6 lg:px-10">
                         <div className="flex flex-col gap-4 mb-12">
-                            <h2 className="text-primary text-sm font-bold uppercase tracking-widest">Expertise</h2>
-                            <h1 className="text-[#111418] dark:text-white text-4xl font-extrabold tracking-tight">Our Services</h1>
+                            <h2 className="text-primary text-sm font-bold uppercase tracking-widest">DEALERSHIP SERVICES</h2>
+                            <h1 className="text-[#111418] dark:text-white text-4xl font-extrabold tracking-tight">Inventory Performance & Lead Generation</h1>
                             <p className="text-[#617589] dark:text-gray-400 text-lg max-w-[720px]">
-                                Streamlining every step of your vehicle acquisition journey with white-glove service.
+                                We provide a suite of services designed to increase your sales velocity and dealership revenue.
                             </p>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -341,6 +341,18 @@ export default function LandingPage() {
                             ))}
                         </div>
                     </div>
+                </section>
+
+                <section className="py-20" id="about-us">
+                     <div className="max-w-[1280px] mx-auto px-6 lg:px-10">
+                          <div className="max-w-3xl mx-auto text-center">
+                                <h2 className="text-primary text-sm font-bold uppercase tracking-widest">About Us</h2>
+                                <h1 className="text-[#111418] dark:text-white text-4xl font-extrabold tracking-tight mt-4">Who We Are</h1>
+                                <p className="text-[#617589] dark:text-gray-400 text-lg max-w-[720px] mx-auto mt-4">
+                                    GS Autobrokers LLC is an Automotive Marketing Agency based in New Mexico, serving the Houston, Texas market. We specialize in providing high-quality, pre-qualified leads and inventory performance management to help our dealership partners thrive.
+                                </p>
+                          </div>
+                     </div>
                 </section>
                 
                 <FeaturedListings />
@@ -394,27 +406,21 @@ export default function LandingPage() {
                                     </div>
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl font-bold text-[#111418] dark:text-white mb-4">Compliance &amp; Privacy</h2>
-                                    <div className="bg-white dark:bg-gray-900 border border-[#dbe0e6] dark:border-gray-800 p-6 rounded-2xl">
-                                        <p className="text-sm text-[#617589] dark:text-gray-400 leading-relaxed mb-4">
-                                            GS Autobrokers LLC is committed to protecting your privacy and ensuring the security of your personal data. We comply with all relevant automotive brokerage regulations.
-                                        </p>
-                                        <p className="text-sm text-[#617589] dark:text-gray-400 leading-relaxed">
-                                            Your information is used strictly for vehicle sourcing and financing purposes. We never sell your data to third parties. Our full privacy policy is available upon request.
-                                        </p>
-                                    </div>
-                                </div>
-                                <div>
                                     <h2 className="text-2xl font-bold text-[#111418] dark:text-white mb-4">For Dealerships</h2>
                                     <div className="bg-white dark:bg-gray-900 border border-[#dbe0e6] dark:border-gray-800 p-6 rounded-2xl">
-                                        <p className="text-sm text-[#617589] dark:text-gray-400 leading-relaxed">
-                                            Digital marketing, lead generation and growth consulting services for automotive dealership support.
+                                        <p className="text-sm text-[#617589] dark:text-gray-400 leading-relaxed font-semibold">
+                                            We offer a complete suite of services to boost your sales:
                                         </p>
+                                        <ul className="text-sm text-[#617589] dark:text-gray-400 list-disc pl-5 mt-2 space-y-1">
+                                            <li>Facebook Marketplace Management</li>
+                                            <li>Pre-qualification of buyers</li>
+                                            <li>Appointment Setting</li>
+                                        </ul>
                                     </div>
                                 </div>
                             </div>
                             <div className="bg-white dark:bg-gray-900 p-8 md:p-10 rounded-3xl shadow-sm border border-[#dbe0e6] dark:border-gray-800">
-                                <h2 className="text-2xl font-bold text-[#111418] dark:text-white mb-8">Quick Inquiry</h2>
+                                <h2 className="text-2xl font-bold text-[#111418] dark:text-white mb-8">Partnership Inquiry</h2>
                                 <QuickInquiryForm />
                             </div>
                         </div>
@@ -481,4 +487,5 @@ export default function LandingPage() {
             </footer>
         </div>
     );
-}
+
+    
