@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 const PrivacyPolicyPage = () => {
@@ -151,23 +152,35 @@ const PrivacyPolicyPage = () => {
                 <p>We will not discriminate against individuals who exercise privacy rights.</p>
             </div>
             
+            <section>
+              <h2 className="font-bold text-2xl mt-8 mb-4 text-[#111418] dark:text-white">10. Marketing Communications & Consent</h2>
+              <p>By using our Services, you consent to receiving:</p>
+              <ul className="list-disc pl-6 space-y-1">
+                <li>Email notifications</li>
+                <li>SMS and WhatsApp communications</li>
+                <li>Phone calls, including automated systems (where legally permitted)</li>
+              </ul>
+              <p className="mt-2">You may opt-out at any time, subject to applicable laws.</p>
+              <p className="mt-2 font-semibold">No mobile information will be shared with third parties/affiliates for marketing/promotional purposes. All other categories exclude text messaging originator opt-in data and consent; this information will not be shared with any third parties.</p>
+            </section>
+            
             <div>
-                <h2 className="font-bold text-2xl mt-8 mb-4 text-[#111418] dark:text-white">10. Children’s Privacy</h2>
+                <h2 className="font-bold text-2xl mt-8 mb-4 text-[#111418] dark:text-white">11. Children’s Privacy</h2>
                 <p>Our Services are not directed to individuals under age 13. We do not knowingly collect children’s personal information.</p>
             </div>
             
             <div>
-                <h2 className="font-bold text-2xl mt-8 mb-4 text-[#111418] dark:text-white">11. Third-Party Links</h2>
+                <h2 className="font-bold text-2xl mt-8 mb-4 text-[#111418] dark:text-white">12. Third-Party Links</h2>
                 <p>Our website may link to third-party sites. We are not responsible for the privacy practices or content of those external websites.</p>
             </div>
             
             <div>
-                <h2 className="font-bold text-2xl mt-8 mb-4 text-[#111418] dark:text-white">12. Updates to This Privacy Policy</h2>
+                <h2 className="font-bold text-2xl mt-8 mb-4 text-[#111418] dark:text-white">13. Updates to This Privacy Policy</h2>
                 <p>We may update this Privacy Policy periodically. Any changes will be posted on this page with a revised effective date.</p>
             </div>
             
             <div>
-                <h2 className="font-bold text-2xl mt-8 mb-4 text-[#111418] dark:text-white">13. Contact Information</h2>
+                <h2 className="font-bold text-2xl mt-8 mb-4 text-[#111418] dark:text-white">14. Contact Information</h2>
                 <address className="not-italic space-y-1">
                 <p>GS Autobrokers LLC</p>
                 <p>📍 Business Operations — United States</p>
