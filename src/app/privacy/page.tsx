@@ -161,7 +161,9 @@ const PrivacyPolicyPage = () => {
                 <li>Phone calls, including automated systems (where legally permitted)</li>
               </ul>
               <p className="mt-2">You may opt-out at any time, subject to applicable laws.</p>
-              <p className="mt-2 font-semibold">No mobile information will be shared with third parties/affiliates for marketing/promotional purposes. All other categories exclude text messaging originator opt-in data and consent; this information will not be shared with any third parties.</p>
+              <p className="mt-4 p-4 border-l-4 border-yellow-500 bg-yellow-50 text-yellow-900 dark:bg-yellow-900/30 dark:text-yellow-200">
+                <strong>No mobile information will be shared with third parties/affiliates for marketing/promotional purposes.</strong> All other categories exclude text messaging originator opt-in data and consent; this information will not be shared with any third parties.
+              </p>
             </section>
             
             <div>
