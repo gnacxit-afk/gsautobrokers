@@ -429,30 +429,32 @@ export default function LandingPage() {
                 
                 <section className="py-20 bg-gradient-to-br from-slate-800 to-slate-900 text-white" id="recruiting">
                     <div className="max-w-[1280px] mx-auto px-6 lg:px-10 text-center">
-                        <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">Conviértete en Autobroker</h2>
-                        <p className="text-white/90 text-lg md:text-xl font-medium max-w-[720px] mx-auto leading-relaxed mb-10">
-                            ¿Te apasionan los autos y tienes hambre de éxito? En GS Autobrokers LLC, te ofrecemos la plataforma para que te conviertas en un broker independiente. Olvídate de los horarios fijos y los límites de sueldo. Nuestro modelo es 100% basado en comisiones: <strong>tus ganancias dependen directamente de tu rendimiento y tu capacidad para cerrar ventas.</strong> Nosotros te proporcionamos el inventario, las herramientas y el soporte; tú pones la ambición y el talento.
+                        <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">Strategic Partnership & Independent Consulting Network</h2>
+                        <p className="text-white/90 text-lg md:text-xl font-medium max-w-3xl mx-auto leading-relaxed mb-10">
+                            ¿Te apasiona el sector automotriz y buscas una oportunidad profesional sólida? En GS Autobrokers LLC, estamos expandiendo nuestra red de consultores estratégicos. No somos un concesionario; somos una plataforma de crecimiento tecnológico.
+                            <br/><br/>
+                            Ofrecemos a profesionales ambiciosos la infraestructura, las herramientas de marketing digital y el soporte logístico para operar como consultores independientes de adquisición de clientes.
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto mb-12 text-left">
                             <div className="flex items-start gap-4">
                                 <div className="bg-white/10 p-3 rounded-xl text-primary"><span className="material-symbols-outlined">payments</span></div>
                                 <div>
-                                    <h3 className="font-bold">Gana sin límites</h3>
-                                    <p className="text-sm text-white/80">Comisiones atractivas por cada vehículo vendido.</p>
+                                    <h3 className="font-bold">Infraestructura Digital</h3>
+                                    <p className="text-sm text-white/80">Acceso a nuestras herramientas de gestión de leads y presencia en el mercado de Houston.</p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-4">
                                 <div className="bg-white/10 p-3 rounded-xl text-primary"><span className="material-symbols-outlined">event_seat</span></div>
                                 <div>
-                                    <h3 className="font-bold">Sé tu propio jefe</h3>
-                                    <p className="text-sm text-white/80">Total flexibilidad para manejar tu tiempo y tus clientes.</p>
+                                    <h3 className="font-bold">Modelo Basado en Resultados</h3>
+                                    <p className="text-sm text-white/80">Tu éxito crece proporcionalmente al valor que generas para los concesionarios de nuestra red.</p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-4">
                                 <div className="bg-white/10 p-3 rounded-xl text-primary"><span className="material-symbols-outlined">directions_car</span></div>
                                 <div>
-                                    <h3 className="font-bold">Acceso a inventario exclusivo</h3>
-                                    <p className="text-sm text-white/80">Vende los mejores autos del mercado de Houston.</p>
+                                    <h3 className="font-bold">Soporte B2B</h3>
+                                    <p className="text-sm text-white/80">Nosotros gestionamos el soporte técnico; tú te enfocas en la consultoría y el cierre de citas.</p>
                                 </div>
                             </div>
                         </div>
@@ -489,3 +491,4 @@ export default function LandingPage() {
     );
 
     
+}
