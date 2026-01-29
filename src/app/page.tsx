@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import Link from 'next/link';
@@ -317,7 +316,7 @@ export default function LandingPage() {
                     </nav>
                     <div className="flex items-center gap-4">
                         <Link href="/login" className="bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-lg text-sm font-bold transition-all shadow-sm">
-                            Broker Access
+                            Partner Access
                         </Link>
                     </div>
                 </div>
