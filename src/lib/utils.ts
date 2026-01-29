@@ -9,17 +9,16 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function calculateBonus(sales: number): number {
-  if (sales >= 11) {
-    return 150 + (sales - 10) * 20;
-  }
-  if (sales === 10) {
-    return 150;
+  if (sales >= 10) {
+    // At 10 sales, this is 105 + (10 - 9) * 20 = 125
+    // At 11 sales, this is 105 + (11 - 9) * 20 = 145
+    return 105 + (sales - 9) * 20;
   }
   if (sales === 9) {
-    return 115;
+    return 105;
   }
   if (sales >= 6) {
-    return 70;
+    return 65;
   }
   if (sales >= 3) {
     return 30;
@@ -31,8 +30,7 @@ export function getNextBonusGoal(sales: number): { nextGoal: number, needed: num
   if (sales < 3) return { nextGoal: 3, needed: 3 - sales };
   if (sales < 6) return { nextGoal: 6, needed: 6 - sales };
   if (sales < 9) return { nextGoal: 9, needed: 9 - sales };
-  if (sales === 9) return { nextGoal: 10, needed: 1 };
-  // From 10 sales onwards, the next goal is always the next sale.
+  // From 9 sales onwards, the next goal is the next sale since each sale from 10+ adds to the bonus.
   return { nextGoal: sales + 1, needed: 1 };
 }
 
@@ -70,7 +68,7 @@ export const addNoteEntry = async (
     user: User, 
     leadId: string, 
     content: string, 
-    type: 'Manual' | 'Stage Change' | 'Owner Change' | 'System' | 'AI Analysis' | 'Dealership Change'
+    type: 'Manual' | 'Stage Change' | 'Owner Change' | 'System' | 'AI Analysis' | 'Dealership Change' | 'Vehicle Link'
 ) => {
     if (!firestore || !user) return;
     
