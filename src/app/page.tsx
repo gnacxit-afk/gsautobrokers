@@ -315,7 +315,7 @@ export default function LandingPage() {
                         </div>
                         <div className="order-1 lg:order-2">
                             <div className="relative w-full aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl">
-                                <img className="w-full h-full object-cover" alt="GS Autobrokers hero image" src="https://i.postimg.cc/ZnyYhQDY/Diseno-sin-titulo.png" />
+                                <img className="w-full h-full object-cover" alt="GS Autobrokers LLC hero image" src="https://i.postimg.cc/YqHJPbZG/GSAUTOLLC.png" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                             </div>
                         </div>

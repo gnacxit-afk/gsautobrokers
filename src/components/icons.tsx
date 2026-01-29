@@ -10,8 +10,8 @@ export function Logo({ className, width = 180, height = 50, ...props }: { classN
       {...props}
     >
       <img
-        src="https://i.postimg.cc/90HtG6Tq/Copia-de-gs.png"
-        alt="GS Autobrokers Logo"
+        src="https://i.postimg.cc/YqHJPbZG/GSAUTOLLC.png"
+        alt="GS Autobrokers LLC Logo"
         style={{
             display: 'block',
             maxWidth: '100%',
