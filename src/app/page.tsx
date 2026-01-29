@@ -353,7 +353,7 @@ export default function LandingPage() {
                         <div className="relative z-10 flex flex-col items-center gap-8">
                             <div className="flex flex-col gap-4">
                                 <h2 className="text-3xl md:text-5xl font-black tracking-tight">Connect via WhatsApp</h2>
-                                <p className="text-white/90 text-lg md:text-xl font-medium max-w-[640px] leading-relaxed">
+                                <p className="text-white/90 text-lg md:text-xl font-medium max-w-[640px] mx-auto leading-relaxed">
                                     Real-time updates and expert advice at your fingertips. Chat with us for a personalized experience and instant car availability checks.
                                 </p>
                             </div>
@@ -470,7 +470,7 @@ export default function LandingPage() {
                         </div>
                     </div>
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500 pt-8 border-t border-[#f0f2f4] dark:border-gray-800">
-                        <p>© 2026 GS Autobrokers LLC. All rights reserved.</p>
+                        <p className="text-center md:text-left">© 2026 GS Autobrokers LLC. All rights reserved. Registered in New Mexico. | Address: 1209 Mountain Road PL NE #10654, Albuquerque, NM 87110</p>
                         <div className="flex gap-8">
                             <Link className="hover:underline" href="/privacy">Privacy Policy</Link>
                             <Link className="hover:underline" href="/terms">Terms of Service</Link>

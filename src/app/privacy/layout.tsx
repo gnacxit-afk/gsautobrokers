@@ -35,7 +35,7 @@ export default function PrivacyLayout({
                     <Logo />
                 </div>
                  <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500 pt-8 border-t border-[#f0f2f4] dark:border-gray-800">
-                    <p>© 2026 GS Autobrokers LLC. All rights reserved.</p>
+                    <p className="text-center md:text-left">© 2026 GS Autobrokers LLC. All rights reserved. Registered in New Mexico. | Address: 1209 Mountain Road PL NE #10654, Albuquerque, NM 87110</p>
                     <div className="flex gap-8">
                         <Link className="text-primary dark:text-primary text-sm font-bold" href="/privacy">Privacy Policy</Link>
                         <Link className="hover:underline" href="/terms">Terms of Service</Link>
