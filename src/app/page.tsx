@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -186,7 +187,7 @@ function FeaturedListings() {
 function QuickInquiryForm() {
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
-    const [interest, setInterest] = useState('Lead Generation Services');
+    const [interest, setInterest] = useState('Vehicle Information');
     const [message, setMessage] = useState('');
     const [smsOptIn, setSmsOptIn] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -241,6 +242,10 @@ function QuickInquiryForm() {
             <div className="flex flex-col gap-2">
                 <Label className="text-sm font-bold text-gray-700 dark:text-gray-300">Interested In</Label>
                 <select value={interest} onChange={(e) => setInterest(e.target.value)} className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg p-3 focus:ring-2 focus:ring-primary outline-none text-sm">
+                    <option>Vehicle Information</option>
+                    <option>Financing Options</option>
+                    <option>Set an Appointment</option>
+                    <option>Schedule a Testdrive</option>
                     <option>Lead Generation Services</option>
                     <option>Partnership Inquiry</option>
                     <option>General Question</option>
