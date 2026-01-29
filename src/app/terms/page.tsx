@@ -7,13 +7,13 @@ const TermsOfServicePage = () => {
       <div className="max-w-4xl mx-auto px-6 lg:px-8 text-slate-700 dark:text-slate-300">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-extrabold tracking-tight text-[#111418] dark:text-white">Terms of Service</h1>
-          <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">GS Autobrokers</p>
+          <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">GS Autobrokers LLC</p>
           <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">Effective Date: January 23, 2026</p>
         </div>
 
         <div className="space-y-8 prose prose-slate dark:prose-invert max-w-none">
           <p>
-            Welcome to GS Autobrokers (“GS Autobrokers,” “Company,” “we,” “us,” or “our”). These Terms of Service (“Terms”) govern your access to and use of our website, digital platforms, communications, and vehicle brokerage services (collectively, the “Services”).
+            Welcome to GS Autobrokers LLC (“GS Autobrokers,” “Company,” “we,” “us,” or “our”). These Terms of Service (“Terms”) govern your access to and use of our website, digital platforms, communications, and vehicle brokerage services (collectively, the “Services”).
           </p>
           <p>
             By accessing or using our Services, you agree to be bound by these Terms. If you do not agree, you must not use our Services.
@@ -21,7 +21,7 @@ const TermsOfServicePage = () => {
 
           <section>
             <h2 className="font-bold text-2xl mt-8 mb-4 text-[#111418] dark:text-white">1. Scope of Services</h2>
-            <p>GS Autobrokers provides services including but not limited to:</p>
+            <p>GS Autobrokers LLC provides services including but not limited to:</p>
             <ul className="list-disc pl-6 space-y-1">
               <li>Vehicle brokerage and sourcing</li>
               <li>Lead generation and customer matching</li>
@@ -31,7 +31,7 @@ const TermsOfServicePage = () => {
               <li>Customer communications and support</li>
               <li>Educational and certification-related content (where applicable)</li>
             </ul>
-            <p className="mt-2">GS Autobrokers acts as a broker and intermediary, not a manufacturer or lender, unless explicitly stated otherwise.</p>
+            <p className="mt-2">GS Autobrokers LLC acts as a broker and intermediary, not a manufacturer or lender, unless explicitly stated otherwise.</p>
           </section>
           
           <section>
@@ -71,7 +71,7 @@ const TermsOfServicePage = () => {
           
           <section>
             <h2 className="font-bold text-2xl mt-8 mb-4 text-[#111418] dark:text-white">5. Brokerage Role & No Guarantee Clause</h2>
-            <p>GS Autobrokers:</p>
+            <p>GS Autobrokers LLC:</p>
             <ul className="list-disc pl-6 space-y-1">
                 <li>Does not guarantee vehicle availability</li>
                 <li>Does not guarantee financing approval</li>
@@ -87,7 +87,7 @@ const TermsOfServicePage = () => {
             <ul className="list-disc pl-6 space-y-1">
                 <li>You authorize us to share your information with lenders and credit bureaus</li>
                 <li>Loan approvals are determined solely by financial institutions</li>
-                <li>GS Autobrokers is not responsible for lender decisions</li>
+                <li>GS Autobrokers LLC is not responsible for lender decisions</li>
                 <li>You certify that all submitted information is accurate and truthful</li>
             </ul>
             <p className="mt-2">Providing false information may result in service termination and legal action.</p>
@@ -113,7 +113,7 @@ const TermsOfServicePage = () => {
           <section>
             <h2 className="font-bold text-2xl mt-8 mb-4 text-[#111418] dark:text-white">8. Vehicle Condition & Inspection Disclaimer</h2>
             <p>Vehicles may be sourced from dealers, auctions, or third-party sellers.</p>
-            <p>GS Autobrokers:</p>
+            <p>GS Autobrokers LLC:</p>
              <ul className="list-disc pl-6 space-y-1">
                 <li>Does not manufacture vehicles</li>
                 <li>Does not provide mechanical guarantees unless explicitly stated</li>
@@ -147,7 +147,7 @@ const TermsOfServicePage = () => {
 
            <section>
             <h2 className="font-bold text-2xl mt-8 mb-4 text-[#111418] dark:text-white">11. Intellectual Property</h2>
-            <p>All website content, branding, designs, text, software, logos, training materials, and media are the exclusive property of GS Autobrokers.</p>
+            <p>All website content, branding, designs, text, software, logos, training materials, and media are the exclusive property of GS Autobrokers LLC.</p>
             <p className="mt-2">You may not copy, reproduce, distribute, or exploit any content without written permission.</p>
           </section>
           
@@ -168,7 +168,7 @@ const TermsOfServicePage = () => {
             <h2 className="font-bold text-2xl mt-8 mb-4 text-[#111418] dark:text-white">13. Limitation of Liability</h2>
             <p>To the fullest extent permitted by law:</p>
             <ul className="list-disc pl-6 space-y-1">
-                <li>GS Autobrokers shall not be liable for indirect, incidental, or consequential damages</li>
+                <li>GS Autobrokers LLC shall not be liable for indirect, incidental, or consequential damages</li>
                 <li>We are not responsible for third-party actions, lenders, or dealerships</li>
                 <li>Total liability shall not exceed fees paid by the user in the preceding six months</li>
             </ul>
@@ -176,7 +176,7 @@ const TermsOfServicePage = () => {
 
           <section>
             <h2 className="font-bold text-2xl mt-8 mb-4 text-[#111418] dark:text-white">14. Indemnification</h2>
-            <p>You agree to indemnify and hold harmless GS Autobrokers from claims arising from:</p>
+            <p>You agree to indemnify and hold harmless GS Autobrokers LLC from claims arising from:</p>
             <ul className="list-disc pl-6 space-y-1">
                 <li>Your misuse of Services</li>
                 <li>False information provided</li>
@@ -187,7 +187,7 @@ const TermsOfServicePage = () => {
           <section>
             <h2 className="font-bold text-2xl mt-8 mb-4 text-[#111418] dark:text-white">15. Third-Party Services & Links</h2>
             <p>Our Services may include links or integrations with third-party platforms (dealers, lenders, CRMs, messaging providers).</p>
-            <p className="mt-2">GS Autobrokers is not responsible for third-party practices or content.</p>
+            <p className="mt-2">GS Autobrokers LLC is not responsible for third-party practices or content.</p>
           </section>
 
           <section>
@@ -202,7 +202,7 @@ const TermsOfServicePage = () => {
 
           <section>
             <h2 className="font-bold text-2xl mt-8 mb-4 text-[#111418] dark:text-white">17. Governing Law & Dispute Resolution</h2>
-            <p>These Terms shall be governed by the laws of the United States and the State where GS Autobrokers is registered.</p>
+            <p>These Terms shall be governed by the laws of the United States and the State where GS Autobrokers LLC is registered.</p>
             <p>Any disputes shall be resolved through:</p>
             <ul className="list-disc pl-6 space-y-1">
                 <li>Negotiation</li>
@@ -224,7 +224,7 @@ const TermsOfServicePage = () => {
           <section>
             <h2 className="font-bold text-2xl mt-8 mb-4 text-[#111418] dark:text-white">20. Contact Information</h2>
             <address className="not-italic space-y-1">
-              <p>GS Autobrokers</p>
+              <p>GS Autobrokers LLC</p>
               <p>📧 legal@esautobrokers.com</p>
               <p>📞 +1 (832) 400-5373</p>
               <p>📍 United States</p>

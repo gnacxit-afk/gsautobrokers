@@ -258,8 +258,8 @@ export default function LandingPage() {
         if (navigator.share) {
             try {
                 await navigator.share({
-                    title: 'GS Autobrokers',
-                    text: 'Check out the amazing vehicles at GS Autobrokers!',
+                    title: 'GS Autobrokers LLC',
+                    text: 'Check out the amazing vehicles at GS Autobrokers LLC!',
                     url: window.location.href,
                 });
             } catch (error) {
@@ -397,7 +397,7 @@ export default function LandingPage() {
                                     <h2 className="text-2xl font-bold text-[#111418] dark:text-white mb-4">Compliance &amp; Privacy</h2>
                                     <div className="bg-white dark:bg-gray-900 border border-[#dbe0e6] dark:border-gray-800 p-6 rounded-2xl">
                                         <p className="text-sm text-[#617589] dark:text-gray-400 leading-relaxed mb-4">
-                                            GS Autobrokers is committed to protecting your privacy and ensuring the security of your personal data. We comply with all relevant automotive brokerage regulations.
+                                            GS Autobrokers LLC is committed to protecting your privacy and ensuring the security of your personal data. We comply with all relevant automotive brokerage regulations.
                                         </p>
                                         <p className="text-sm text-[#617589] dark:text-gray-400 leading-relaxed">
                                             Your information is used strictly for vehicle sourcing and financing purposes. We never sell your data to third parties. Our full privacy policy is available upon request.
@@ -425,7 +425,7 @@ export default function LandingPage() {
                     <div className="max-w-[1280px] mx-auto px-6 lg:px-10 text-center">
                         <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">Conviértete en Autobroker</h2>
                         <p className="text-white/90 text-lg md:text-xl font-medium max-w-[720px] mx-auto leading-relaxed mb-10">
-                            ¿Te apasionan los autos y tienes hambre de éxito? En GS Autobrokers, te ofrecemos la plataforma para que te conviertas en un broker independiente. Olvídate de los horarios fijos y los límites de sueldo. Nuestro modelo es 100% basado en comisiones: <strong>tus ganancias dependen directamente de tu rendimiento y tu capacidad para cerrar ventas.</strong> Nosotros te proporcionamos el inventario, las herramientas y el soporte; tú pones la ambición y el talento.
+                            ¿Te apasionan los autos y tienes hambre de éxito? En GS Autobrokers LLC, te ofrecemos la plataforma para que te conviertas en un broker independiente. Olvídate de los horarios fijos y los límites de sueldo. Nuestro modelo es 100% basado en comisiones: <strong>tus ganancias dependen directamente de tu rendimiento y tu capacidad para cerrar ventas.</strong> Nosotros te proporcionamos el inventario, las herramientas y el soporte; tú pones la ambición y el talento.
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto mb-12 text-left">
                             <div className="flex items-start gap-4">

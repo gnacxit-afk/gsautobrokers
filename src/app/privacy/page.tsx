@@ -6,13 +6,13 @@ const PrivacyPolicyPage = () => {
       <div className="max-w-4xl mx-auto px-6 lg:px-8 text-slate-700 dark:text-slate-300">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-extrabold tracking-tight text-[#111418] dark:text-white">Privacy Policy</h1>
-          <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">GS Autobrokers</p>
+          <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">GS Autobrokers LLC</p>
           <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">Effective Date: January 23, 2026</p>
         </div>
 
         <div className="space-y-6">
             <p>
-            GS Autobrokers (“GS Autobrokers,” “we,” “us,” or “our”) respects your privacy and is committed to protecting the personal information you share with us. This Privacy Policy explains how we collect, use, disclose, store, and safeguard your information when you visit our website, contact us, request vehicle brokerage services, apply for financing, or otherwise interact with our services (collectively, the “Services”).
+            GS Autobrokers LLC (“GS Autobrokers,” “we,” “us,” or “our”) respects your privacy and is committed to protecting the personal information you share with us. This Privacy Policy explains how we collect, use, disclose, store, and safeguard your information when you visit our website, contact us, request vehicle brokerage services, apply for financing, or otherwise interact with our services (collectively, the “Services”).
             </p>
             <p>
             By using our website or Services, you acknowledge that you have read and understood this Privacy Policy. If you do not agree with our policies and practices, please do not use our Services.
@@ -82,7 +82,7 @@ const PrivacyPolicyPage = () => {
                 <p>When required by law, subpoena, or governmental request.</p>
 
                 <h4 className="font-semibold text-lg mt-4 mb-2 text-[#111418] dark:text-white">E. Business Transfers</h4>
-                <p>If GS Autobrokers merges, sells assets, or undergoes corporate restructuring.</p>
+                <p>If GS Autobrokers LLC merges, sells assets, or undergoes corporate restructuring.</p>
                 <p className="mt-2">We do not sell personal information for unauthorized commercial resale.</p>
             </div>
             
@@ -169,7 +169,7 @@ const PrivacyPolicyPage = () => {
             <div>
                 <h2 className="font-bold text-2xl mt-8 mb-4 text-[#111418] dark:text-white">13. Contact Information</h2>
                 <address className="not-italic space-y-1">
-                <p>GS Autobrokers</p>
+                <p>GS Autobrokers LLC</p>
                 <p>📍 Business Operations — United States</p>
                 <p><a href="mailto:privacy@esautobrokers.com" className="text-primary hover:underline">📧 privacy@esautobrokers.com</a></p>
                 <p>📞 +1 (832) 400-5373</p>

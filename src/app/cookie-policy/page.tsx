@@ -7,13 +7,13 @@ const CookiePolicyPage = () => {
       <div className="max-w-4xl mx-auto px-6 lg:px-8 text-slate-700 dark:text-slate-300">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-extrabold tracking-tight text-[#111418] dark:text-white">Cookie Policy</h1>
-          <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">GS Autobrokers</p>
+          <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">GS Autobrokers LLC</p>
           <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">Effective Date: January 23, 2026</p>
         </div>
 
         <div className="space-y-8 prose prose-slate dark:prose-invert max-w-none">
           <p>
-            This Cookie Policy explains how GS Autobrokers (“GS Autobrokers,” “we,” “us,” or “our”) uses cookies and similar tracking technologies on our website and digital platforms (collectively, the “Website”). This policy should be read together with our Privacy Policy.
+            This Cookie Policy explains how GS Autobrokers LLC (“GS Autobrokers,” “we,” “us,” or “our”) uses cookies and similar tracking technologies on our website and digital platforms (collectively, the “Website”). This policy should be read together with our Privacy Policy.
           </p>
           <p>
             By continuing to browse or use our Website, you agree to the use of cookies as described in this policy, unless you disable them through your browser or consent settings.
@@ -180,7 +180,7 @@ const CookiePolicyPage = () => {
           <section>
             <h2 className="font-bold text-2xl mt-8 mb-4 text-[#111418] dark:text-white">10. Contact Us</h2>
             <address className="not-italic space-y-1">
-              <p>GS Autobrokers</p>
+              <p>GS Autobrokers LLC</p>
               <p><a href="mailto:privacy@esautobrokers.com" className="text-primary hover:underline">📧 privacy@esautobrokers.com</a></p>
               <p><a href="mailto:legal@esautobrokers.com" className="text-primary hover:underline">📧 legal@esautobrokers.com</a></p>
               <p>📍 United States</p>
