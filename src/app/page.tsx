@@ -12,6 +12,8 @@ import { Loader2 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Logo } from '@/components/icons';
 import { submitInquiry } from '@/ai/flows/submit-inquiry-flow';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 
 const ServiceCard = ({ icon, title, description }: { icon: string, title: string, description: string }) => (
@@ -185,6 +187,7 @@ function QuickInquiryForm() {
     const [phone, setPhone] = useState('');
     const [interest, setInterest] = useState('Lead Generation Services');
     const [message, setMessage] = useState('');
+    const [smsOptIn, setSmsOptIn] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
 
@@ -192,6 +195,10 @@ function QuickInquiryForm() {
         e.preventDefault();
         if (!name || !phone) {
             toast({ title: "Missing Information", description: "Please provide your name and phone number.", variant: "destructive" });
+            return;
+        }
+        if (!smsOptIn) {
+            toast({ title: "Consent Required", description: "Please agree to receive SMS communications to proceed.", variant: "destructive" });
             return;
         }
 
@@ -206,6 +213,7 @@ function QuickInquiryForm() {
                 setPhone('');
                 setMessage('');
                 setInterest('Lead Generation Services');
+                setSmsOptIn(false);
             } else {
                 throw new Error(result.message);
             }
@@ -221,16 +229,16 @@ function QuickInquiryForm() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="flex flex-col gap-2">
-                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Name</label>
+                    <Label className="text-sm font-bold text-gray-700 dark:text-gray-300">Name</Label>
                     <input value={name} onChange={(e) => setName(e.target.value)} className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg p-3 focus:ring-2 focus:ring-primary outline-none text-sm" placeholder="John Doe" type="text" />
                 </div>
                 <div className="flex flex-col gap-2">
-                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Phone</label>
+                    <Label className="text-sm font-bold text-gray-700 dark:text-gray-300">Phone</Label>
                     <input value={phone} onChange={(e) => setPhone(e.target.value)} className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg p-3 focus:ring-2 focus:ring-primary outline-none text-sm" placeholder="+1 (555) 000-0000" type="tel" />
                 </div>
             </div>
             <div className="flex flex-col gap-2">
-                <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Interested In</label>
+                <Label className="text-sm font-bold text-gray-700 dark:text-gray-300">Interested In</Label>
                 <select value={interest} onChange={(e) => setInterest(e.target.value)} className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg p-3 focus:ring-2 focus:ring-primary outline-none text-sm">
                     <option>Lead Generation Services</option>
                     <option>Partnership Inquiry</option>
@@ -238,8 +246,22 @@ function QuickInquiryForm() {
                 </select>
             </div>
             <div className="flex flex-col gap-2">
-                <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Message</label>
+                <Label className="text-sm font-bold text-gray-700 dark:text-gray-300">Message</Label>
                 <textarea value={message} onChange={(e) => setMessage(e.target.value)} className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg p-3 focus:ring-2 focus:ring-primary outline-none text-sm resize-none" placeholder="Tell us about your dealership and your growth goals..." rows={4}></textarea>
+            </div>
+            <div className="flex items-start space-x-3">
+                <Checkbox id="smsOptIn" checked={smsOptIn} onCheckedChange={(checked: boolean | 'indeterminate') => setSmsOptIn(checked === true)} />
+                <div className="grid gap-1.5 leading-none">
+                    <Label
+                        htmlFor="smsOptIn"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                        I agree to receive SMS messages from GS Autobrokers LLC.
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                        By checking this box, you consent to be contacted via text message. Message and data rates may apply.
+                    </p>
+                </div>
             </div>
             <button type="submit" disabled={isSubmitting} className="bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl transition-all mt-4 flex items-center justify-center">
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
