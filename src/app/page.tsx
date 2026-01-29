@@ -428,7 +428,7 @@ export default function LandingPage() {
                 
                 <section className="py-20 bg-gradient-to-br from-slate-800 to-slate-900 text-white" id="recruiting">
                     <div className="max-w-[1280px] mx-auto px-6 lg:px-10 text-center">
-                        <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">Strategic Partnership & Independent Consulting Network</h2>
+                        <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">Strategic Partnership</h2>
                         <p className="text-white/90 text-lg md:text-xl font-medium max-w-3xl mx-auto leading-relaxed mb-10">
                             ¿Te apasiona el sector automotriz y buscas una oportunidad profesional sólida? En GS Autobrokers LLC, estamos expandiendo nuestra red de consultores estratégicos. No somos un concesionario; somos una plataforma de crecimiento tecnológico.
                             <br/><br/>
