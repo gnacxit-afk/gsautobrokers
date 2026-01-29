@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -263,6 +264,9 @@ function QuickInquiryForm() {
                     </p>
                 </div>
             </div>
+            <p className="text-xs text-muted-foreground -mt-2">
+                By clicking 'Send', I agree to receive text messages from GS Autobrokers LLC at the number provided. I understand these messages may be for appointment reminders or vehicle availability updates. Consent is not a condition of purchase. Msg & data rates may apply. Reply STOP to opt-out. See our <Link href="/privacy" className="underline">Privacy Policy</Link> and <Link href="/terms" className="underline">Terms of Service</Link>.
+            </p>
             <button type="submit" disabled={isSubmitting} className="bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl transition-all mt-4 flex items-center justify-center">
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isSubmitting ? 'Sending...' : 'Send Message'}
