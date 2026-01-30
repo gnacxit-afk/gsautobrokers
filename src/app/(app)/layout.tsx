@@ -44,6 +44,7 @@ import { ContractSigningBanner } from '@/components/contracts/contract-signing-b
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Dialer } from "@/components/voice/dialer";
 
 const icons: { [key: string]: LucideIcon } = {
   LayoutDashboard,
@@ -330,6 +331,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex-1 overflow-y-auto p-4 md:p-8 relative">
              <ContractSigningBanner />
             {children}
+            <Dialer />
           </div>
         </main>
       </div>

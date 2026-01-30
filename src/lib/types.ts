@@ -1,4 +1,5 @@
 
+
 import type { LucideIcon } from "lucide-react";
 import type { Timestamp } from "firebase/firestore";
 import { z } from 'zod';
@@ -327,4 +328,15 @@ export type Vehicle = {
   commission: number;
   soldBy?: string; // UID of the staff member who sold it
   soldAt?: Timestamp; // Timestamp of when it was sold
+};
+
+export type CallRecord = {
+  id: string;
+  agentId: string;
+  startTime: Timestamp;
+  endTime?: Timestamp;
+  durationInSeconds?: number;
+  status: 'initiated' | 'completed' | 'no-answer' | 'failed';
+  recordingUrl?: string;
+  notes?: string;
 };

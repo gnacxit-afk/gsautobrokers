@@ -2,7 +2,7 @@
 "use client";
 
 import type { ColumnDef, Row } from "@tanstack/react-table";
-import { MoreHorizontal, Trash2, Users, ChevronsUpDown, FileText, Bot, Calendar, Building, MessageSquare } from "lucide-react";
+import { MoreHorizontal, Trash2, Users, ChevronsUpDown, FileText, Bot, Calendar, Building, MessageSquare, Phone } from "lucide-react";
 import { format, formatDistanceToNow, isValid } from "date-fns";
 import { useRouter } from "next/navigation";
 import React from "react";
@@ -28,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuthContext } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useVoice } from "@/providers/voice-provider";
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
 
@@ -56,6 +57,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDeleteL
   const { toast } = useToast();
   const { user } = useAuthContext();
   const router = useRouter();
+  const { makeCall, callState } = useVoice();
   
   const handleStageUpdate = (newStage: Lead['stage']) => {
     onUpdateStage(lead.id, lead.stage, newStage);
@@ -94,6 +96,11 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDeleteL
           <DropdownMenuItem onSelect={() => router.push(`/leads/${lead.id}/notes`)}>
               <FileText className="mr-2 h-4 w-4" />
               <span>Details / Notes</span>
+          </DropdownMenuItem>
+          
+          <DropdownMenuItem onSelect={() => makeCall(lead.phone)} disabled={callState !== 'idle'}>
+              <Phone className="mr-2 h-4 w-4" />
+              <span>Call</span>
           </DropdownMenuItem>
 
           <DropdownMenuItem onSelect={() => onSendWhatsapp(lead)}>
