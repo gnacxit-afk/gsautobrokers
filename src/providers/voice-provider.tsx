@@ -112,8 +112,10 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     }
 
     setCallState('connecting');
+    setError(null);
     try {
-        // Pass the destination number as a 'To' parameter to the backend webhook.
+        // Critical: Pass the destination number as the 'To' parameter.
+        // The backend webhook will receive this and know it's an outbound call.
         const call = await device.connect({ params: { To: phoneNumber } });
         setCurrentCall(call);
 
