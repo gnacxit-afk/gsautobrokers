@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 
 function xmlResponse(body: string, status = 200) {
@@ -19,25 +18,33 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
 
-    // ¡Clave! Twilio envía 'Direction' con mayúscula D, y para outbound desde SDK es 'outbound-api'
     const direction = formData.get('Direction') as string | null;
+    const to = formData.get('To') as string | null;
+    const from = formData.get('From') as string | null;
 
-    console.log('Twilio params recibidos:', Object.fromEntries(formData)); // ← agrega esto para debug
+    // Log para debug (revisa en Vercel/Netlify logs después de una llamada)
+    console.log('Twilio webhook params:', {
+      Direction: direction,
+      To: to,
+      From: from,
+      // Agrega más si necesitas: CallSid: formData.get('CallSid'), etc.
+    });
 
-    // OUTBOUND desde tu web app (device.connect)
-    if (direction === 'outbound-api') {
-      const to = formData.get('To') as string | null;
+    const MY_TWILIO_NUMBER = '+18324005373'; // ← CAMBIA ESTO si tu número es diferente (o ponlo en .env)
 
-      if (!to) {
+    // Lógica para outbound desde web app: To NO es tu número Twilio y NO empieza con 'client:'
+    if (to && to !== MY_TWILIO_NUMBER && !to.startsWith('client:')) {
+      // Validación básica del número destino
+      if (!to.startsWith('+') || to.length < 10) {
         return xmlResponse(`
-          <Say voice="alice">Error: No se proporcionó número de destino.</Say>
+          <Say voice="alice">Error: Número de destino inválido.</Say>
           <Hangup/>
         `);
       }
 
       const body = `
         <Dial 
-          callerId="+18324005373" 
+          callerId="${MY_TWILIO_NUMBER}" 
           action="/api/twilio/voice/after-call" 
           method="POST"
           record="record-from-answer"
@@ -49,7 +56,7 @@ export async function POST(req: NextRequest) {
       return xmlResponse(body);
     }
 
-    // Si NO es outbound-api → trata como inbound (tu IVR actual)
+    // Si llega aquí: es inbound real (llamada entrante a tu Twilio number) → IVR
     const body = `
       <Gather input="speech dtmf" timeout="5" numDigits="1" action="/api/twilio/voice/handle-gather" method="POST">
         <Say voice="alice">
@@ -60,6 +67,7 @@ export async function POST(req: NextRequest) {
       <Hangup/>
     `;
     return xmlResponse(body);
+
   } catch (error) {
     console.error('Error procesando Twilio webhook:', error);
     return xmlResponse(`
@@ -69,7 +77,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Elimina o bloquea GET para evitar el mensaje de prueba
 export async function GET() {
   return new NextResponse('Este endpoint solo acepta POST de Twilio.', {
     status: 405,
