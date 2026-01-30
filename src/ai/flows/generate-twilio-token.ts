@@ -43,11 +43,13 @@ const generateTokenFlow = ai.defineFlow(
       throw new Error('Twilio credentials are not configured on the server. Please check your .env file.');
     }
 
-    // Create a new Access Token
-    const accessToken = new AccessToken(accountSid, apiKey, apiSecret);
-
-    // Set the identity of the token
-    accessToken.identity = identity;
+    // Create a new Access Token with the identity in the constructor
+    const accessToken = new AccessToken(
+      accountSid,
+      apiKey,
+      apiSecret,
+      { identity: identity }
+    );
 
     // Create a VoiceGrant for the token
     const voiceGrant = new VoiceGrant({
