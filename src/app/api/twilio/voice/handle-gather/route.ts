@@ -6,38 +6,33 @@ function xmlResponse(body: string) {
 <Response>
 ${body}
 </Response>`,
-    {
-      headers: { "Content-Type": "text/xml" },
-    }
+    { headers: { "Content-Type": "text/xml" } }
   );
 }
 
-export async function POST(req: NextRequest) {
-  const formData = await req.formData();
-  const digits = formData.get('Digits');
-
-  let body = '';
-
-  switch (digits) {
-    case '1':
-      body = `
-        <Say voice="alice">Your appointment is confirmed. Thank you for calling. Goodbye.</Say>
-        <Hangup/>
-      `;
-      break;
-    case '2':
-      body = `
-        <Say voice="alice">Connecting you to the next available agent. Please hold.</Say>
-        <Dial>+18324005373</Dial>
-      `;
-      break;
-    default:
-      body = `
-        <Say voice="alice">Sorry, I didn't understand that choice. Redirecting you to the main menu.</Say>
-        <Redirect method="POST">/api/twilio/voice</Redirect>
-      `;
-      break;
+export async function POST(request: Request) {
+  const data = await request.formData();
+  const digits = data.get('Digits')?.toString() || '';
+  
+  if (digits === '1') {
+    return xmlResponse(`
+      <Say voice="alice">Thank you! Your appointment is confirmed.</Say>
+      <Hangup/>
+    `);
   }
 
-  return xmlResponse(body);
+  if (digits === '2') {
+    return xmlResponse(`
+      <Say voice="alice">Connecting you to an agent.</Say>
+      <Dial action="/api/twilio/voice/after-call" record="record-from-answer" callerId="+18324005373">
+        <Client>AGENT_ID</Client>
+      </Dial>
+    `);
+  }
+
+  // Opción inválida
+  return xmlResponse(`
+    <Say voice="alice">Invalid input. Goodbye.</Say>
+    <Hangup/>
+  `);
 }
