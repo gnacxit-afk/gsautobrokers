@@ -1,3 +1,4 @@
+
 import { NextRequest } from 'next/server';
 
 function xmlResponse(body: string) {
@@ -12,27 +13,36 @@ ${body}
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
-
-  // Check for our custom 'direction' parameter to distinguish call types
-  const direction = formData.get('direction');
   
-  // OUTBOUND call initiated from the browser client
-  if (direction === 'outbound') {
-    const to = formData.get('To');
+  // Twilio sends 'Direction' with a capital 'D'.
+  // For calls initiated from the SDK, it's 'outbound-api'.
+  const direction = formData.get('Direction');
+
+  if (direction === 'outbound-api') {
+    const to = formData.get('To') as string | null;
+
+    if (!to) {
+      return xmlResponse('<Say>Error: No destination number provided.</Say><Hangup/>');
+    }
+
     const body = `
-      <Dial callerId="+18324005373" action="/api/twilio/voice/after-call" record="record-from-answer">
+      <Dial 
+        callerId="+18324005373" 
+        action="/api/twilio/voice/after-call" 
+        method="POST"
+        record="record-from-answer"
+      >
         <Number>${to}</Number>
       </Dial>
     `;
     return xmlResponse(body);
   }
-  
-  // INBOUND call from an external number
+
+  // INBOUND call from an external number (or any other case)
   const body = `
+    <Say voice="alice">Welcome to GS Autobrokers.</Say>
     <Gather input="speech dtmf" timeout="5" numDigits="1" action="/api/twilio/voice/handle-gather" method="POST">
-      <Say voice="alice">
-        Welcome to GS Autobrokers. Press 1 to confirm your appointment. Press 2 to speak to an agent.
-      </Say>
+      <Say voice="alice">Press 1 to confirm your appointment. Press 2 to speak to an agent.</Say>
     </Gather>
     <Say voice="alice">We did not receive any input. Goodbye.</Say>
     <Hangup/>
@@ -40,6 +50,10 @@ export async function POST(req: NextRequest) {
   return xmlResponse(body);
 }
 
+
 export async function GET() {
-  return xmlResponse('<Say voice="alice">Twilio voice endpoint is working.</Say>');
+  return new Response('This endpoint only accepts POST requests for Twilio webhooks.', {
+    status: 405,  // Method Not Allowed
+    headers: { 'Content-Type': 'text/plain' }
+  });
 }
