@@ -57,7 +57,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDeleteL
   const { toast } = useToast();
   const { user } = useAuthContext();
   const router = useRouter();
-  const { makeCall, callState } = useVoice();
+  const { initiateCall, callState } = useVoice();
   
   const handleStageUpdate = (newStage: Lead['stage']) => {
     onUpdateStage(lead.id, lead.stage, newStage);
@@ -98,7 +98,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDeleteL
               <span>Details / Notes</span>
           </DropdownMenuItem>
           
-          <DropdownMenuItem onSelect={() => makeCall(lead.phone)} disabled={callState !== 'idle'}>
+          <DropdownMenuItem onSelect={() => initiateCall(lead.phone)} disabled={callState !== 'idle'}>
               <Phone className="mr-2 h-4 w-4" />
               <span>Call</span>
           </DropdownMenuItem>

@@ -108,7 +108,7 @@ export default function LeadDetailsPage() {
   const { user } = useUser();
   const { user: authUser } = useAuthContext();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const { makeCall, callState } = useVoice();
+  const { initiateCall, callState } = useVoice();
 
   const leadDocRef = useMemo(() => firestore && leadId ? doc(firestore, 'leads', leadId) : null, [firestore, leadId]);
   const {data: lead, loading: leadLoading} = useDoc<Lead>(leadDocRef);
@@ -502,7 +502,7 @@ export default function LeadDetailsPage() {
                                             <Button
                                                 size="icon"
                                                 variant="outline"
-                                                onClick={() => makeCall(lead.phone)}
+                                                onClick={() => initiateCall(lead.phone)}
                                                 disabled={callState !== 'idle'}
                                                 className="shrink-0"
                                             >

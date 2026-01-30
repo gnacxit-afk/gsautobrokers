@@ -4,14 +4,18 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { Device } from '@twilio/voice-sdk';
 import { useUser } from '@/firebase';
 import { generateTwilioToken } from '@/ai/flows/generate-twilio-token';
+import { useToast } from '@/hooks/use-toast';
 
 interface VoiceContextType {
   isReady: boolean;
   callState: 'idle' | 'connecting' | 'ringing' | 'connected' | 'error';
   error: string | null;
-  makeCall: (phoneNumber: string) => void;
+  initiateCall: (phoneNumber: string) => void;
+  connectCall: () => void;
   hangupCall: () => void;
-  currentCall: any | null; // Twilio Call object
+  currentCall: any | null;
+  showDialer: boolean;
+  numberToDial: string | null;
 }
 
 const VoiceContext = createContext<VoiceContextType | undefined>(undefined);
@@ -26,15 +30,21 @@ export const useVoice = () => {
 
 export function VoiceProvider({ children }: { children: ReactNode }) {
   const { user } = useUser();
+  const { toast } = useToast();
   const [device, setDevice] = useState<Device | null>(null);
   const [currentCall, setCurrentCall] = useState<any | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [callState, setCallState] = useState<'idle' | 'connecting' | 'ringing' | 'connected' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
+  
+  const [showDialer, setShowDialer] = useState(false);
+  const [numberToDial, setNumberToDial] = useState<string | null>(null);
 
   const cleanupCall = useCallback(() => {
     setCurrentCall(null);
     setCallState('idle');
+    setShowDialer(false);
+    setNumberToDial(null);
   }, []);
   
   useEffect(() => {
@@ -103,17 +113,34 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   }, [user?.id]);
 
 
-  const makeCall = useCallback(async (phoneNumber: string) => {
-    if (!device || !isReady) {
-        setError('Phone is not ready. Please wait or refresh the page.');
+  const initiateCall = useCallback((phoneNumber: string) => {
+    const phoneRegex = /^\+1\d{10}$/;
+    if (!phoneNumber || !phoneRegex.test(phoneNumber)) {
+        toast({
+            title: "Invalid Number",
+            description: "Phone number must be in the format +1XXXXXXXXXX for US calls.",
+            variant: "destructive",
+        });
+        return;
+    }
+    setNumberToDial(phoneNumber);
+    setShowDialer(true);
+    setCallState('idle');
+    setError(null);
+  }, [toast]);
+
+  const connectCall = useCallback(async () => {
+    if (!device || !isReady || !numberToDial) {
+        setError('Phone is not ready or number is missing.');
         setCallState('error');
+        setShowDialer(true);
         return;
     }
 
     setCallState('connecting');
     setError(null);
     try {
-        const call = await device.connect({ params: { To: phoneNumber } });
+        const call = await device.connect({ params: { To: numberToDial } });
         setCurrentCall(call);
 
         call.on('ringing', () => setCallState('ringing'));
@@ -123,31 +150,32 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         call.on('error', (err) => {
             setError(err.message);
             setCallState('error');
-            cleanupCall();
         });
 
     } catch (err: any) {
         console.error('Call failed to connect:', err);
         setError(err.message);
         setCallState('error');
-        cleanupCall();
     }
-  }, [device, isReady, cleanupCall]);
+  }, [device, isReady, numberToDial, cleanupCall]);
 
   const hangupCall = useCallback(() => {
     if (currentCall) {
       currentCall.disconnect();
-      cleanupCall();
     }
+    cleanupCall();
   }, [currentCall, cleanupCall]);
 
   const value = {
     isReady,
     callState,
     error,
-    makeCall,
+    initiateCall,
+    connectCall,
     hangupCall,
-    currentCall
+    currentCall,
+    showDialer,
+    numberToDial,
   };
 
   return (
