@@ -64,7 +64,6 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     if (!user || !user.id || device) return;
     try {
       const token = await generateTwilioToken(user.id);
-      alert('Token: ' + token); // Temporary debug alert
       await setupDevice(token);
     } catch (err: any) {
       console.error('Error getting Twilio token or setting up device:', err);
