@@ -8,7 +8,6 @@ export async function generateTwilioToken(identity: string) {
   const accountSid = process.env.TWILIO_ACCOUNT_SID!;
   const apiKey = process.env.TWILIO_API_KEY!;
   const apiSecret = process.env.TWILIO_API_SECRET!;
-  const twimlAppSid = process.env.TWIML_APP_SID!;
 
   if (!identity) {
     throw new Error('Identity is required to generate Twilio token');
@@ -26,7 +25,7 @@ export async function generateTwilioToken(identity: string) {
   );
 
   const voiceGrant = new VoiceGrant({
-    outgoingApplicationSid: twimlAppSid,
+    outgoingApplicationSid: "AP9de90a223f976accab6f90e5e637be19",
     incomingAllow: true,
   });
 
