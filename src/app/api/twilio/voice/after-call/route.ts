@@ -28,14 +28,29 @@ export async function POST(request: Request) {
   console.log('Call ended:', callData);
 
   try {
-    const fromNumber = callData.From as string;
-    const agentIdentity = (callData.To as string)?.replace('client:', '');
-    const callStatus = callData.DialCallStatus as string;
+    const from = callData.From as string;
+    const to = callData.To as string;
+    const dialCallTo = callData.DialCallTo as string;
     
-    if (fromNumber && agentIdentity && callStatus === 'completed') {
-        // Find lead by phone number
+    let leadPhoneNumber: string;
+    let agentIdentity: string;
+
+    // Distinguish between inbound and outbound calls
+    if (from.startsWith('client:')) {
+        // OUTBOUND: Agent called a customer. Parent call `From` is the agent's client ID.
+        agentIdentity = from.replace('client:', '');
+        leadPhoneNumber = to; // The 'To' field in the main request is the customer number
+    } else {
+        // INBOUND: Customer called and was connected to an agent. Parent call `From` is the customer.
+        leadPhoneNumber = from;
+        agentIdentity = dialCallTo?.replace('client:', ''); // The agent was the destination of the <Dial>
+    }
+    
+    const callStatus = callData.DialCallStatus as string;
+
+    if (leadPhoneNumber && agentIdentity && callStatus === 'completed') {
         const leadsRef = db.collection('leads');
-        const q = leadsRef.where('phone', '==', fromNumber).limit(1);
+        const q = leadsRef.where('phone', '==', leadPhoneNumber).limit(1);
         const snapshot = await q.get();
 
         if (!snapshot.empty) {
@@ -43,26 +58,24 @@ export async function POST(request: Request) {
             const leadId = leadDoc.id;
             const leadData = leadDoc.data();
             
-            // Log the call to the lead's subcollection
             const callLogRef = db.collection('leads').doc(leadId).collection('calls');
             await callLogRef.add({
                 leadId: leadId,
                 leadName: leadData.name,
                 agentId: agentIdentity,
-                startTime: new Date(), // This is actually end time, but it's the best we have from this webhook
-                durationInSeconds: parseInt(callData.DialCallDuration as string, 10),
+                startTime: new Date(),
+                durationInSeconds: parseInt(callData.DialCallDuration as string, 10) || 0,
                 status: callData.DialCallStatus,
                 recordingUrl: callData.RecordingUrl,
-                notes: 'Call logged from Twilio webhook.'
+                notes: 'Call automatically logged from Twilio.'
             });
         } else {
-             console.log(`No lead found for phone number: ${fromNumber}`);
+             console.log(`No lead found for phone number: ${leadPhoneNumber}`);
         }
     }
 
   } catch (error) {
       console.error("Error logging call to Firestore:", error);
-      // Don't let a logging error break the TwiML response
   }
 
 
