@@ -1,4 +1,5 @@
 
+import { NextRequest, NextResponse } from 'next/server';
 import { initializeApp, getApps, App, applicationDefault } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
@@ -12,43 +13,32 @@ if (!getApps().length) {
 const db = getFirestore(adminApp);
 
 
-function xmlResponse(body: string) {
-  return new Response(
-`<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-${body}
-</Response>`,
-    { headers: { "Content-Type": "text/xml" } }
-  );
-}
-
-export async function POST(request: Request) {
-  const data = await request.formData();
-  const callData = Object.fromEntries(data.entries());
-  console.log('Call ended:', callData);
-
+export async function POST(req: NextRequest) {
   try {
+    const formData = await req.formData();
+    const callData = Object.fromEntries(formData.entries());
+    console.log('After-call callback recibido:', callData);
+
     const from = callData.From as string;
     const to = callData.To as string;
-    const dialCallTo = callData.DialCallTo as string;
-    
-    let leadPhoneNumber: string;
-    let agentIdentity: string;
+    const dialCallTo = callData.DialCallTo as string; // This is present on inbound calls that are dialed to a client
+    const callStatus = callData.DialCallStatus as string; // e.g., 'completed', 'busy', 'no-answer'
+
+    let leadPhoneNumber: string | undefined;
+    let agentIdentity: string | undefined;
 
     // Distinguish between inbound and outbound calls
-    if (from.startsWith('client:')) {
-        // OUTBOUND: Agent called a customer. Parent call `From` is the agent's client ID.
+    if (from && from.startsWith('client:')) {
+        // This is an OUTBOUND call initiated by an agent from the app
         agentIdentity = from.replace('client:', '');
-        leadPhoneNumber = to; // The 'To' field in the main request is the customer number
-    } else {
-        // INBOUND: Customer called and was connected to an agent. Parent call `From` is the customer.
+        leadPhoneNumber = to;
+    } else if (dialCallTo && dialCallTo.startsWith('client:')) {
+        // This is an INBOUND call that was successfully dialed to an agent
         leadPhoneNumber = from;
-        agentIdentity = dialCallTo?.replace('client:', ''); // The agent was the destination of the <Dial>
+        agentIdentity = dialCallTo.replace('client:', '');
     }
-    
-    const callStatus = callData.DialCallStatus as string;
 
-    if (leadPhoneNumber && agentIdentity && callStatus === 'completed') {
+    if (leadPhoneNumber && agentIdentity && callStatus === 'completed' && callData.RecordingUrl) {
         const leadsRef = db.collection('leads');
         const q = leadsRef.where('phone', '==', leadPhoneNumber).limit(1);
         const snapshot = await q.get();
@@ -63,24 +53,25 @@ export async function POST(request: Request) {
                 leadId: leadId,
                 leadName: leadData.name,
                 agentId: agentIdentity,
-                startTime: new Date(),
+                startTime: new Date(), // This is the end time, but close enough for logging
                 durationInSeconds: parseInt(callData.DialCallDuration as string, 10) || 0,
-                status: callData.DialCallStatus,
+                status: callStatus,
                 recordingUrl: callData.RecordingUrl,
                 notes: 'Call automatically logged from Twilio.'
             });
+            console.log(`Call logged for lead ${leadId}`);
         } else {
              console.log(`No lead found for phone number: ${leadPhoneNumber}`);
         }
+    } else {
+        console.log('Call not logged. Conditions not met:', { leadPhoneNumber, agentIdentity, callStatus });
     }
 
+    // Acknowledge the callback to Twilio successfully.
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
-      console.error("Error logging call to Firestore:", error);
+    console.error('Error en after-call:', error);
+    // Still respond with 204 to prevent Twilio from logging a warning.
+    return new NextResponse(null, { status: 204 });
   }
-
-
-  return xmlResponse(`
-    <Say voice="alice">Thank you for calling GS Autobrokers. Goodbye!</Say>
-    <Hangup/>
-  `);
 }
