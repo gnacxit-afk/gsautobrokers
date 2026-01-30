@@ -113,8 +113,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
 
     setCallState('connecting');
     try {
-        // Pass the destination number as a 'to' parameter to the backend webhook.
-        const call = await device.connect({ params: { to: phoneNumber } });
+        // Pass the destination number as a 'To' parameter to the backend webhook.
+        const call = await device.connect({ params: { To: phoneNumber } });
         setCurrentCall(call);
 
         call.on('ringing', () => setCallState('ringing'));

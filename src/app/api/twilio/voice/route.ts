@@ -18,21 +18,38 @@ ${body.trim()}
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
+
+    // These are the standard parameters sent by Twilio
+    const twilioDirection = formData.get('Direction') as string | null;
+    const twilioTo = formData.get('To') as string | null;
+    const twilioFrom = formData.get('From') as string | null;
+
+    // This is our *custom* parameter passed from the client-side SDK
+    const customTo = formData.get('To') as string | null;
+
+    console.log('Twilio webhook params:', {
+      Direction: twilioDirection,
+      To: twilioTo, // Twilio's To
+      From: twilioFrom,
+      CustomTo: customTo // Our custom param
+    });
     
-    // Check for the custom 'to' parameter passed from the client-side SDK
-    const customTo = formData.get('to') as string | null;
+    // This is your Twilio number
+    const MY_TWILIO_NUMBER = '+18324005373'; 
 
-    console.log('Twilio webhook params:', Object.fromEntries(formData));
-
-    // If a 'to' parameter exists, it's an outbound call initiated by our app.
-    if (customTo) {
+    // Logic for OUTBOUND call from web app:
+    // A custom 'To' parameter will be present.
+    if (customTo && customTo !== MY_TWILIO_NUMBER) {
       if (!customTo.startsWith('+') || customTo.length < 10) {
-        return xmlResponse(`<Say voice="alice">Error: Invalid destination number.</Say><Hangup/>`);
+        return xmlResponse(`
+          <Say voice="alice">Error: Invalid destination number provided.</Say>
+          <Hangup/>
+        `);
       }
 
       const body = `
         <Dial 
-          callerId="+18324005373" 
+          callerId="${MY_TWILIO_NUMBER}" 
           action="/api/twilio/voice/after-call" 
           method="POST"
           record="record-from-answer"
@@ -44,7 +61,8 @@ export async function POST(req: NextRequest) {
       return xmlResponse(body);
     }
 
-    // If no 'to' parameter, it's a standard inbound call. Present the IVR.
+    // If it's not an outbound call, it's an INBOUND call to your Twilio number.
+    // Show the IVR menu.
     const body = `
       <Gather input="speech dtmf" timeout="5" numDigits="1" action="/api/twilio/voice/handle-gather" method="POST">
         <Say voice="alice">
