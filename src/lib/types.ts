@@ -333,8 +333,9 @@ export type Vehicle = {
 export type CallRecord = {
   id: string;
   agentId: string;
+  leadId: string;
+  leadName: string;
   startTime: Timestamp;
-  endTime?: Timestamp;
   durationInSeconds?: number;
   status: 'initiated' | 'completed' | 'no-answer' | 'failed';
   recordingUrl?: string;

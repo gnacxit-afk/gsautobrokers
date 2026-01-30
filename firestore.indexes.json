@@ -175,6 +175,13 @@
         { "fieldPath": "make", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "calls",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "startTime", "order": "DESCENDING" }
+      ]
     }
   ]
 }

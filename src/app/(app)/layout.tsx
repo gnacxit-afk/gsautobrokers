@@ -75,6 +75,7 @@ const navItems: NavItemGroup[] = [
     items: [
       { href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard", role: ["Admin", "Supervisor"] },
       { href: "/leads", label: "Leads / CRM", icon: "PhoneCall", role: ["Admin", "Supervisor", "Broker"] },
+      { href: "/calls", label: "Call Logs", icon: "PhoneCall", role: ["Admin", "Supervisor"] },
       { href: "/appointments", label: "Appointments", icon: "Calendar", role: ["Admin", "Supervisor", "Broker"] },
       { href: "/todos", label: "Daily To-Do", icon: "CheckSquare", role: ["Admin", "Supervisor"] },
       { href: "/kpi", label: "KPI's & Performance", icon: "TrendingUp", role: ["Admin", "Supervisor", "Broker"] },

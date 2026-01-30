@@ -97,6 +97,12 @@ service cloud.firestore {
           allow update: if false;
           allow delete: if false;
         }
+        
+        match /calls/{callId} {
+            allow read, list: if isAdmin() || getUserRole() == 'Supervisor';
+            allow create: if true; // Only server can create
+            allow update, delete: if isAdmin();
+        }
     }
 
     /**
