@@ -25,7 +25,7 @@ export const useVoice = () => {
 };
 
 export function VoiceProvider({ children }: { children: ReactNode }) {
-  const { user } = useUser();
+  const { user, loading: userLoading } = useUser();
   const [device, setDevice] = useState<Device | null>(null);
   const [currentCall, setCurrentCall] = useState<any | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -61,7 +61,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   }, []);
   
   const getTokenAndSetupDevice = useCallback(async () => {
-    if (!user || device) return;
+    if (!user || !user.id || device) return;
     try {
       const result = await generateTwilioToken({ identity: user.id });
       if ('error' in result) {
@@ -77,7 +77,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   }, [user, device, setupDevice]);
 
   useEffect(() => {
-    if (user && !device) {
+    // Only attempt to set up the device if we are done loading the user,
+    // a user object exists, and the device hasn't been set up yet.
+    if (!userLoading && user && !device) {
       getTokenAndSetupDevice();
     }
     
@@ -87,7 +89,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       setDevice(null);
       setIsReady(false);
     };
-  }, [user, device, getTokenAndSetupDevice]);
+  }, [user, userLoading, device, getTokenAndSetupDevice]);
   
    const cleanupCall = useCallback(() => {
     setCurrentCall(null);
