@@ -140,7 +140,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     setCallState('connecting');
     setError(null);
     try {
-        const call = await device.connect({ params: { lead_phone: numberToDial } });
+        const call = await device.connect({ params: { To: numberToDial } });
         setCurrentCall(call);
 
         call.on('ringing', () => setCallState('ringing'));
