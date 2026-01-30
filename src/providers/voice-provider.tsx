@@ -25,7 +25,7 @@ export const useVoice = () => {
 };
 
 export function VoiceProvider({ children }: { children: ReactNode }) {
-  const { user, loading: userLoading } = useUser();
+  const { user } = useUser();
   const [device, setDevice] = useState<Device | null>(null);
   const [currentCall, setCurrentCall] = useState<any | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -66,23 +66,21 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     });
     
     newDevice.on('disconnect', () => {
-        console.log('Twilio device transport disconnected. Attempting to reconnect...');
-        setIsReady(false); // The device is not ready during disconnect
+        console.log('Twilio device transport disconnected.');
+        setIsReady(false);
     });
 
     newDevice.register();
     return newDevice;
-  }, []); // Dependencies are state setters, so this is stable.
+  }, []);
 
-
-  // This effect handles the lifecycle of the device: creation and destruction.
   useEffect(() => {
-    let deviceInstance: Device | null = null;
-    
-    const initialize = async () => {
-      if (user?.id) {
+    if (user?.id) {
+      // User is logged in, set up device.
+      let deviceInstance: Device | null = null;
+      const initialize = async () => {
         try {
-          const token = await generateTwilioToken(user.id);
+          const token = await generateTwilioToken(user.id!);
           deviceInstance = setupDevice(token);
           setDevice(deviceInstance);
         } catch (err: any) {
@@ -90,24 +88,21 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
           setError(err.message || 'Could not initialize phone. Please refresh.');
           setCallState('error');
         }
-      }
-    };
-    
-    if (!userLoading && user && !device) {
+      };
+      
       initialize();
-    }
 
-    return () => {
-      if (deviceInstance) {
-        deviceInstance.destroy();
-        setDevice(null);
-        setIsReady(false);
-        setCallState('idle');
-      }
-    };
-  // Removing 'device' from the dependency array is critical to prevent the infinite loop.
+      return () => {
+        if (deviceInstance) {
+          deviceInstance.destroy();
+          setDevice(null);
+          setIsReady(false);
+          setCallState('idle');
+        }
+      };
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, userLoading]);
+  }, [user?.id, setupDevice]);
 
   const makeCall = useCallback(async (phoneNumber: string) => {
     if (!device || !isReady) {
