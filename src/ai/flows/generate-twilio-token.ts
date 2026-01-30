@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Generates a Twilio Voice Access Token for an authenticated agent.
@@ -11,7 +12,7 @@ const { AccessToken } = twilio.jwt;
 const { VoiceGrant } = AccessToken;
 
 const GenerateTokenInputSchema = z.object({
-  identity: z.string().describe('The unique identity of the agent, typically their user ID.'),
+  identity: z.string().min(1, { message: "Identity cannot be empty." }).describe('The unique identity of the agent, typically their user ID.'),
 });
 export type GenerateTokenInput = z.infer<typeof GenerateTokenInputSchema>;
 
@@ -49,9 +50,9 @@ const generateTokenFlow = ai.defineFlow(
       throw new Error('Twilio credentials are not configured on the server. Please check the .env file.');
     }
 
-    const accessToken = new AccessToken(accountSid, apiKey, apiSecret);
-    
-    accessToken.identity = identity;
+    const accessToken = new AccessToken(accountSid, apiKey, apiSecret, {
+      identity: identity,
+    });
 
     const voiceGrant = new VoiceGrant({
       outgoingApplicationSid: twimlAppSid,
