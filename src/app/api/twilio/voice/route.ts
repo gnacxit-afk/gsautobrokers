@@ -1,35 +1,29 @@
-'use server';
+import { NextRequest, NextResponse } from 'next/server';
 
-import { NextResponse } from 'next/server';
-import { twiml } from 'twilio';
+export async function POST(req: NextRequest) {
+  const formData = await req.formData();
 
-/**
- * This route handles POST requests from Twilio when an outbound call is initiated.
- * It generates TwiML instructions to dial the specified phone number.
- */
-export async function POST(request: Request) {
-  const formData = await request.formData();
-  const to = formData.get('To') as string;
+  const to = formData.get('To');
+  const from = formData.get('From');
 
-  const twilioNumber = process.env.TWILIO_CALLER_ID;
+  let twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>`;
 
-  if (!twilioNumber) {
-    console.error("CRITICAL: TWILIO_CALLER_ID is not set in .env file.");
-    const errorResponse = new twiml.VoiceResponse();
-    errorResponse.say('Your application is not configured for outbound calls. The Caller ID is missing.');
-    return new NextResponse(errorResponse.toString(), {
-      status: 500,
-      headers: { 'Content-Type': 'application/xml' },
-    });
+  // OUTBOUND: agente llamando a cliente
+  if (to && to.toString().startsWith('+')) {
+    twiml += `
+      <Dial callerId="+18324005373">
+        <Number>${to}</Number>
+      </Dial>
+    `;
   }
 
-  const response = new twiml.VoiceResponse();
-  const dial = response.dial({
-    callerId: twilioNumber,
-  });
-  dial.number(to);
+  // FALLBACK seguro
+  twiml += `
+    <Hangup/>
+  </Response>`;
 
-  return new NextResponse(response.toString(), {
-    headers: { 'Content-Type': 'application/xml' },
+  return new NextResponse(twiml, {
+    headers: { 'Content-Type': 'text/xml' },
   });
 }
