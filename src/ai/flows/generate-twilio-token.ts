@@ -21,17 +21,12 @@ const GenerateTokenOutputSchema = z.object({
 });
 export type GenerateTokenOutput = z.infer<typeof GenerateTokenOutputSchema>;
 
-export async function generateTwilioToken(input: GenerateTokenInput): Promise<GenerateTokenOutput | { error: string }> {
-    try {
-        const result = await generateTokenFlow(input);
-        if (!result) {
-            throw new Error("The token generation flow returned an empty result.");
-        }
-        return result;
-    } catch (error: any) {
-      console.error("[Twilio Token Flow Error]:", error);
-      return { error: error.message || 'An unknown server error occurred while generating the token.' };
-    }
+/**
+ * Generates a Twilio Access Token. This function is a simple wrapper around the Genkit flow.
+ * It will throw an error if the flow fails, which should be caught by the caller.
+ */
+export async function generateTwilioToken(input: GenerateTokenInput): Promise<GenerateTokenOutput> {
+  return generateTokenFlow(input);
 }
 
 const generateTokenFlow = ai.defineFlow(
@@ -52,6 +47,7 @@ const generateTokenFlow = ai.defineFlow(
 
     const accessToken = new AccessToken(accountSid, apiKey, apiSecret, {
       identity: identity,
+      ttl: 3600, // Explicitly set Time-To-Live to 1 hour (3600 seconds)
     });
 
     const voiceGrant = new VoiceGrant({
