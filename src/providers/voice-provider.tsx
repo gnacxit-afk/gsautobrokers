@@ -32,7 +32,12 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [callState, setCallState] = useState<'idle' | 'connecting' | 'ringing' | 'connected' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
 
-  const setupDevice = useCallback(async (token: string) => {
+  const cleanupCall = useCallback(() => {
+    setCurrentCall(null);
+    setCallState('idle');
+  }, []);
+  
+  const setupDevice = useCallback((token: string) => {
     const newDevice = new Device(token, {
       logLevel: 1,
       codecPreferences: ['opus', 'pcmu'],
@@ -51,51 +56,58 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       console.error('Twilio Device Error:', err);
     });
     
+    // IMPORTANT: On disconnect, we just mark as not ready, but don't destroy the device instance here.
+    // This prevents the setup useEffect from re-triggering in a loop.
     newDevice.on('disconnect', () => {
+        console.log('Twilio device transport disconnected.');
         setIsReady(false);
-        setDevice(null);
     });
 
-    await newDevice.register();
-    setDevice(newDevice);
-  }, []);
-  
-  const getTokenAndSetupDevice = useCallback(async () => {
-    if (!user || !user.id || device) return;
-    try {
-      const token = await generateTwilioToken(user.id);
-      await setupDevice(token);
-    } catch (err: any) {
-      console.error('Error getting Twilio token or setting up device:', err);
-      setError(err.message || 'Could not initialize phone. Please refresh.');
-      setCallState('error');
-    }
-  }, [user, device, setupDevice]);
+    newDevice.register();
+    return newDevice;
+  }, []); // Dependencies are state setters, so this is stable.
 
+
+  // This effect handles the lifecycle of the device: creation and destruction.
   useEffect(() => {
-    // Only attempt to set up the device if we are done loading the user,
-    // a user object exists, and the device hasn't been set up yet.
-    if (!userLoading && user && !device) {
-      getTokenAndSetupDevice();
-    }
+    // This variable will hold the device instance for the scope of this effect
+    let deviceInstance: Device | null = null;
     
-    return () => {
-      device?.disconnectAll();
-      device?.destroy();
-      setDevice(null);
-      setIsReady(false);
+    const initialize = async () => {
+      if (user?.id) {
+        try {
+          const token = await generateTwilioToken(user.id);
+          deviceInstance = setupDevice(token);
+          setDevice(deviceInstance);
+        } catch (err: any) {
+          console.error('Error setting up Twilio Device:', err);
+          setError(err.message || 'Could not initialize phone. Please refresh.');
+          setCallState('error');
+        }
+      }
     };
-  }, [user, userLoading, device, getTokenAndSetupDevice]);
-  
-   const cleanupCall = useCallback(() => {
-    setCurrentCall(null);
-    setCallState('idle');
-  }, []);
+    
+    // Only initialize when user is loaded and we haven't created a device yet.
+    if (!userLoading && user && !device) {
+      initialize();
+    }
+
+    // The cleanup function will be called when the component unmounts or when the dependencies (user, userLoading) change.
+    return () => {
+      if (deviceInstance) {
+        deviceInstance.destroy();
+        setDevice(null);
+        setIsReady(false);
+        setCallState('idle');
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, userLoading]);
 
   const makeCall = useCallback(async (phoneNumber: string) => {
     if (!device || !isReady) {
-        setError('Phone is not ready. Trying to reconnect...');
-        await getTokenAndSetupDevice(); // Attempt to re-establish connection
+        setError('Phone is not ready. Please wait or refresh the page.');
+        setCallState('error');
         return;
     }
 
@@ -120,7 +132,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         setCallState('error');
         cleanupCall();
     }
-  }, [device, isReady, cleanupCall, getTokenAndSetupDevice]);
+  }, [device, isReady, cleanupCall]);
 
   const hangupCall = useCallback(() => {
     if (currentCall) {
