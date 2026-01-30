@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
@@ -112,7 +113,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
 
     setCallState('connecting');
     try {
-        const call = await device.connect({ params: { To: phoneNumber, direction: 'outbound' } });
+        // Pass the destination number as a 'to' parameter to the backend webhook.
+        const call = await device.connect({ params: { to: phoneNumber } });
         setCurrentCall(call);
 
         call.on('ringing', () => setCallState('ringing'));
