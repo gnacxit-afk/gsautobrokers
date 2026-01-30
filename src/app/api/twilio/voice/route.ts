@@ -20,43 +20,31 @@ export async function POST(req: NextRequest) {
     const To = formData.get('To') as string | null;
     const From = formData.get('From') as string | null;
     
-    // Log para un debug más fácil y completo
-    console.log('Twilio webhook request received:', {
-        To,
-        From,
-        Direction: formData.get('Direction'),
-        CallStatus: formData.get('CallStatus'),
-        CallSid: formData.get('CallSid')
-    });
+    console.log('Twilio webhook request received:', Object.fromEntries(formData));
 
-    const MY_TWILIO_NUMBER = process.env.TWILIO_PHONE_NUMBER || '+18324005373';
-
-    // Lógica para outbound: si la llamada va a un número que NO es nuestro número de Twilio,
-    // es una llamada saliente iniciada desde nuestra app.
-    if (To && To !== MY_TWILIO_NUMBER && !To.startsWith('client:')) {
-      // Validación básica del número de destino
-      if (!To.startsWith('+') || To.length < 10) {
-        return xmlResponse(`
-          <Say voice="alice">Error: Invalid destination number.</Say>
-          <Hangup/>
-        `);
+    // DETECT OUTBOUND CALL FROM BROWSER SDK
+    // The `From` parameter will be `client:user_id`
+    if (From && From.startsWith('client:')) {
+      // This is an outbound call initiated from our app.
+      // The number to dial is in the 'To' parameter we passed in device.connect()
+      if (!To) {
+        return xmlResponse(`<Say voice="alice">Error: Destination number not provided for outbound call.</Say><Hangup/>`);
       }
 
       const dialBody = `
         <Dial 
-          callerId="${MY_TWILIO_NUMBER}" 
+          callerId="${process.env.TWILIO_PHONE_NUMBER || '+18324005373'}" 
           action="/api/twilio/voice/after-call" 
           method="POST"
           record="record-from-answer"
-          timeout="30"
         >
           <Number>${To}</Number>
         </Dial>
       `;
       return xmlResponse(dialBody);
     }
-    
-    // Lógica para inbound: si la llamada es A nuestro número de Twilio, presentamos el IVR.
+
+    // --- All other calls are treated as INBOUND to our Twilio number ---
     const ivrBody = `
       <Gather input="speech dtmf" timeout="5" numDigits="1" action="/api/twilio/voice/handle-gather" method="POST">
         <Say voice="alice">
