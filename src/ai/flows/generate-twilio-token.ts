@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Generates a Twilio Voice Access Token for an authenticated agent.
@@ -23,7 +22,6 @@ export type GenerateTokenOutput = z.infer<typeof GenerateTokenOutputSchema>;
 
 /**
  * Generates a Twilio Access Token. This function is a simple wrapper around the Genkit flow.
- * It will throw an error if the flow fails, which should be caught by the caller.
  */
 export async function generateTwilioToken(input: GenerateTokenInput): Promise<GenerateTokenOutput> {
   return generateTokenFlow(input);
@@ -42,21 +40,25 @@ const generateTokenFlow = ai.defineFlow(
     const twimlAppSid = process.env.TWIML_APP_SID;
 
     if (!accountSid || !apiKey || !apiSecret || !twimlAppSid) {
-      throw new Error('Twilio credentials are not configured on the server. Please check the .env file.');
+      throw new Error('Twilio credentials are not configured on the server. Please check your .env file.');
     }
 
-    const accessToken = new AccessToken(accountSid, apiKey, apiSecret, {
-      identity: identity,
-      ttl: 3600, // Explicitly set Time-To-Live to 1 hour (3600 seconds)
-    });
+    // Create a new Access Token
+    const accessToken = new AccessToken(accountSid, apiKey, apiSecret);
 
+    // Set the identity of the token
+    accessToken.identity = identity;
+
+    // Create a VoiceGrant for the token
     const voiceGrant = new VoiceGrant({
       outgoingApplicationSid: twimlAppSid,
       incomingAllow: true, // Allow incoming calls
     });
 
+    // Add the grant to the token
     accessToken.addGrant(voiceGrant);
     
+    // Serialize the token to a JWT and return it
     return {
       token: accessToken.toJwt(),
     };
