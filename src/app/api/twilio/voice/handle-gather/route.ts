@@ -1,12 +1,10 @@
-'use client';
-import { initializeApp, getApps, App } from 'firebase-admin/app';
+import { initializeApp, getApps, App, applicationDefault } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
 // Initialize Firebase Admin SDK
 let adminApp: App;
 if (!getApps().length) {
-  // This will use the default service account credentials in the App Hosting environment
-  adminApp = initializeApp();
+  adminApp = initializeApp({ credential: applicationDefault() });
 } else {
   adminApp = getApps()[0];
 }
