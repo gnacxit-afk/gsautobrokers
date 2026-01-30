@@ -37,72 +37,71 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     setCallState('idle');
   }, []);
   
-  const setupDevice = useCallback((token: string) => {
-    const newDevice = new Device(token, {
-      logLevel: 1,
-      codecPreferences: ['opus', 'pcmu'],
-    });
-
-    newDevice.on('registered', () => {
-      setIsReady(true);
-      setCallState('idle');
-      console.log('Twilio Device is registered and ready.');
-    });
-
-    newDevice.on('registering', () => {
-        console.log('Twilio Device is registering...');
-    });
-    
-    newDevice.on('unregistered', () => {
-        console.log('Twilio Device is unregistered.');
-        setIsReady(false);
-    });
-
-    newDevice.on('error', (err) => {
-      setIsReady(false);
-      setCallState('error');
-      setError(err.message);
-      console.error('Twilio Device Error:', err);
-    });
-    
-    newDevice.on('disconnect', () => {
-        console.log('Twilio device transport disconnected.');
-        setIsReady(false);
-    });
-
-    newDevice.register();
-    return newDevice;
-  }, []);
-
   useEffect(() => {
+    let deviceInstance: Device | null = null;
+    
     if (user?.id) {
-      // User is logged in, set up device.
-      let deviceInstance: Device | null = null;
-      const initialize = async () => {
-        try {
-          const token = await generateTwilioToken(user.id!);
-          deviceInstance = setupDevice(token);
-          setDevice(deviceInstance);
-        } catch (err: any) {
-          console.error('Error setting up Twilio Device:', err);
-          setError(err.message || 'Could not initialize phone. Please refresh.');
-          setCallState('error');
-        }
-      };
-      
-      initialize();
+        const initialize = async () => {
+            try {
+                const token = await generateTwilioToken(user.id);
+                deviceInstance = new Device(token, {
+                    logLevel: 1,
+                    codecPreferences: ['opus', 'pcmu'],
+                });
 
-      return () => {
-        if (deviceInstance) {
-          deviceInstance.destroy();
-          setDevice(null);
-          setIsReady(false);
-          setCallState('idle');
-        }
-      };
+                deviceInstance.on('registered', () => {
+                    setIsReady(true);
+                    setCallState('idle');
+                    console.log('Twilio Device is registered and ready.');
+                });
+
+                deviceInstance.on('registering', () => {
+                    console.log('Twilio Device is registering...');
+                });
+
+                deviceInstance.on('unregistered', () => {
+                    console.log('Twilio Device is unregistered.');
+                    if (deviceInstance) {
+                        deviceInstance.destroy();
+                    }
+                    setIsReady(false);
+                });
+
+                deviceInstance.on('error', (err) => {
+                    setIsReady(false);
+                    setCallState('error');
+                    setError(err.message);
+                    console.error('Twilio Device Error:', err);
+                });
+                
+                deviceInstance.on('disconnect', () => {
+                    console.log('Twilio device transport disconnected.');
+                    setIsReady(false);
+                });
+
+                deviceInstance.register();
+                setDevice(deviceInstance);
+
+            } catch (err: any) {
+                console.error('Error setting up Twilio Device:', err);
+                setError(err.message || 'Could not initialize phone. Please refresh.');
+                setCallState('error');
+            }
+        };
+        
+        initialize();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, setupDevice]);
+
+    return () => {
+      if (deviceInstance) {
+        deviceInstance.destroy();
+        setDevice(null);
+        setIsReady(false);
+        setCallState('idle');
+      }
+    };
+  }, [user?.id]);
+
 
   const makeCall = useCallback(async (phoneNumber: string) => {
     if (!device || !isReady) {
@@ -113,7 +112,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
 
     setCallState('connecting');
     try {
-        const call = await device.connect({ params: { To: phoneNumber } });
+        const call = await device.connect({ params: { To: phoneNumber, direction: 'outbound' } });
         setCurrentCall(call);
 
         call.on('ringing', () => setCallState('ringing'));

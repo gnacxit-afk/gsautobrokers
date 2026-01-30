@@ -11,22 +11,23 @@ ${body}
 }
 
 export async function POST(req: NextRequest) {
-  // Twilio envía x-www-form-urlencoded
-  const formData = await req.formData().catch(() => null);
-  const from = formData?.get('From')?.toString() || '';
-  const to = formData?.get('To')?.toString() || '';
+  const formData = await req.formData();
 
-  // Outbound calls from browser client
-  if (from.startsWith('client:') && to) {
+  // Check for our custom 'direction' parameter to distinguish call types
+  const direction = formData.get('direction');
+  
+  // OUTBOUND call initiated from the browser client
+  if (direction === 'outbound') {
+    const to = formData.get('To');
     const body = `
-      <Dial callerId="+18324005373" record="record-from-answer">
+      <Dial callerId="+18324005373" action="/api/twilio/voice/after-call" record="record-from-answer">
         <Number>${to}</Number>
       </Dial>
     `;
     return xmlResponse(body);
   }
-
-  // Incoming calls
+  
+  // INBOUND call from an external number
   const body = `
     <Gather input="speech dtmf" timeout="5" numDigits="1" action="/api/twilio/voice/handle-gather" method="POST">
       <Say voice="alice">
@@ -42,4 +43,3 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   return xmlResponse('<Say voice="alice">Twilio voice endpoint is working.</Say>');
 }
-
