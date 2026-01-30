@@ -49,7 +49,7 @@ const generateTokenFlow = ai.defineFlow(
       throw new Error('Twilio credentials are not configured on the server. Please check the .env file.');
     }
 
-    const accessToken = new AccessToken(accountSid, apiKey, apiSecret, { identity });
+    const accessToken = new AccessToken(accountSid, apiKey, apiSecret);
     
     accessToken.identity = identity;
 
