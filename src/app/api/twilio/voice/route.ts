@@ -17,20 +17,17 @@ ${body.trim()}
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-    const To = formData.get('To') as string | null;
-    const From = formData.get('From') as string | null;
     
-    console.log('Twilio webhook request received:', Object.fromEntries(formData));
+    // Log all received parameters for easier debugging
+    console.log('Twilio Webhook Payload:', Object.fromEntries(formData));
 
-    // DETECT OUTBOUND CALL FROM BROWSER SDK
-    // The `From` parameter will be `client:user_id`
-    if (From && From.startsWith('client:')) {
-      // This is an outbound call initiated from our app.
-      // The number to dial is in the 'To' parameter we passed in device.connect()
-      if (!To) {
-        return xmlResponse(`<Say voice="alice">Error: Destination number not provided for outbound call.</Say><Hangup/>`);
-      }
+    // --- OUTBOUND CALLS (Initiated from our application via SDK) ---
+    // The most reliable way to check for an outbound call made from the SDK
+    // is to look for our custom parameter.
+    const leadPhone = formData.get('lead_phone') as string | null;
 
+    if (leadPhone) {
+      console.log(`Detected outbound call to: ${leadPhone}`);
       const dialBody = `
         <Dial 
           callerId="${process.env.TWILIO_PHONE_NUMBER || '+18324005373'}" 
@@ -38,13 +35,15 @@ export async function POST(req: NextRequest) {
           method="POST"
           record="record-from-answer"
         >
-          <Number>${To}</Number>
+          <Number>${leadPhone}</Number>
         </Dial>
       `;
       return xmlResponse(dialBody);
     }
-
-    // --- All other calls are treated as INBOUND to our Twilio number ---
+    
+    // --- INBOUND CALLS (A customer calls our Twilio number) ---
+    // If it's not an outbound call with our custom parameter, treat it as inbound.
+    console.log('Detected inbound call.');
     const ivrBody = `
       <Gather input="speech dtmf" timeout="5" numDigits="1" action="/api/twilio/voice/handle-gather" method="POST">
         <Say voice="alice">
