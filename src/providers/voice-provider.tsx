@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
@@ -114,9 +113,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     setCallState('connecting');
     setError(null);
     try {
-        // Critical: Pass the destination number as the 'To' parameter.
-        // The backend webhook will receive this and know it's an outbound call.
-        const call = await device.connect({ params: { To: phoneNumber } });
+        // Critical: Pass the destination number as a custom parameter 'lead_phone'
+        // to avoid collision with Twilio's standard 'To' parameter.
+        const call = await device.connect({ params: { lead_phone: phoneNumber } });
         setCurrentCall(call);
 
         call.on('ringing', () => setCallState('ringing'));
