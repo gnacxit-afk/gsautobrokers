@@ -43,10 +43,19 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       codecPreferences: ['opus', 'pcmu'],
     });
 
-    newDevice.on('ready', () => {
+    newDevice.on('registered', () => {
       setIsReady(true);
       setCallState('idle');
-      console.log('Twilio Device is ready.');
+      console.log('Twilio Device is registered and ready.');
+    });
+
+    newDevice.on('registering', () => {
+        console.log('Twilio Device is registering...');
+    });
+    
+    newDevice.on('unregistered', () => {
+        console.log('Twilio Device is unregistered.');
+        setIsReady(false);
     });
 
     newDevice.on('error', (err) => {
@@ -56,11 +65,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       console.error('Twilio Device Error:', err);
     });
     
-    // IMPORTANT: On disconnect, we just mark as not ready, but don't destroy the device instance here.
-    // This prevents the setup useEffect from re-triggering in a loop.
     newDevice.on('disconnect', () => {
-        console.log('Twilio device transport disconnected.');
-        setIsReady(false);
+        console.log('Twilio device transport disconnected. Attempting to reconnect...');
+        setIsReady(false); // The device is not ready during disconnect
     });
 
     newDevice.register();
@@ -70,7 +77,6 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
 
   // This effect handles the lifecycle of the device: creation and destruction.
   useEffect(() => {
-    // This variable will hold the device instance for the scope of this effect
     let deviceInstance: Device | null = null;
     
     const initialize = async () => {
@@ -87,12 +93,10 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       }
     };
     
-    // Only initialize when user is loaded and we haven't created a device yet.
     if (!userLoading && user && !device) {
       initialize();
     }
 
-    // The cleanup function will be called when the component unmounts or when the dependencies (user, userLoading) change.
     return () => {
       if (deviceInstance) {
         deviceInstance.destroy();
@@ -101,6 +105,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         setCallState('idle');
       }
     };
+  // Removing 'device' from the dependency array is critical to prevent the infinite loop.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, userLoading]);
 
