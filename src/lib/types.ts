@@ -18,6 +18,7 @@ export type User = {
   enrolledCourses?: string[];
   certificates?: string[];
   commission?: number;
+  canReceiveIncomingCalls?: boolean;
 };
 
 export type NoteEntry = {
@@ -83,6 +84,7 @@ export type Staff = {
   enrolledCourses?: string[];
   certificates?: string[];
   commission?: number;
+  canReceiveIncomingCalls?: boolean;
 };
 
 export type NavItem = {

@@ -114,6 +114,7 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
         role: data.role,
         dui: data.dui,
         commission: data.commission,
+        canReceiveIncomingCalls: data.role === 'Admin', // Only admins can receive calls by default
         createdAt: serverTimestamp(),
         hireDate: serverTimestamp(),
         avatarUrl: '',

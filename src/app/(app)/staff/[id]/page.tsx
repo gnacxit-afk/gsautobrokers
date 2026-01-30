@@ -28,6 +28,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
+
 
 const roles: Role[] = ["Admin", "Supervisor", "Broker"];
 
@@ -136,6 +138,10 @@ export default function StaffProfilePage() {
 
    const handleSupervisorChange = (supervisorId: string) => {
     setFormData(prev => ({ ...prev, supervisorId }));
+  };
+
+  const handleCanReceiveCallsChange = (checked: boolean) => {
+    setFormData(prev => ({ ...prev, canReceiveIncomingCalls: checked }));
   };
 
   const handleSaveChanges = async () => {
@@ -304,6 +310,22 @@ export default function StaffProfilePage() {
                             </Select>
                         </div>
                     )}
+                </div>
+                 <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                        <Label htmlFor="canReceiveIncomingCalls" className="text-base">
+                            Receive Incoming Calls
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                            Allow this user to receive inbound calls from customers.
+                        </p>
+                    </div>
+                    <Switch
+                        id="canReceiveIncomingCalls"
+                        checked={formData.canReceiveIncomingCalls || false}
+                        onCheckedChange={handleCanReceiveCallsChange}
+                        disabled={isEditingMasterAdmin && formData.role !== 'Admin'}
+                    />
                 </div>
             </CardContent>
              <CardFooter className="flex justify-end">

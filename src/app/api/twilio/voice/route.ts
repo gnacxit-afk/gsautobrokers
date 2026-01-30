@@ -1,4 +1,17 @@
+
 import { NextRequest, NextResponse } from 'next/server';
+import { initializeApp, getApps, App, applicationDefault } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+
+// Initialize Firebase Admin SDK
+let adminApp: App;
+if (!getApps().length) {
+  adminApp = initializeApp({ credential: applicationDefault() });
+} else {
+  adminApp = getApps()[0];
+}
+const db = getFirestore(adminApp);
+
 
 function xmlResponse(body: string, status = 200) {
   const fullXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -18,12 +31,8 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     
-    // Log all received parameters for easier debugging
     console.log('Twilio Webhook Payload:', Object.fromEntries(formData));
 
-    // --- OUTBOUND CALLS (Initiated from our application via SDK) ---
-    // The most reliable way to check for an outbound call made from the SDK
-    // is to look for our custom parameter.
     const leadPhone = formData.get('lead_phone') as string | null;
 
     if (leadPhone) {
@@ -41,19 +50,31 @@ export async function POST(req: NextRequest) {
       return xmlResponse(dialBody);
     }
     
-    // --- INBOUND CALLS (A customer calls our Twilio number) ---
-    // If it's not an outbound call with our custom parameter, treat it as inbound.
     console.log('Detected inbound call.');
-    const ivrBody = `
-      <Gather input="speech dtmf" timeout="5" numDigits="1" action="/api/twilio/voice/handle-gather" method="POST">
-        <Say voice="alice">
-          Welcome to GS Autobrokers. Press 1 to confirm your appointment. Press 2 to speak to an agent.
-        </Say>
-      </Gather>
-      <Say voice="alice">We did not receive any input. Goodbye.</Say>
-      <Hangup/>
-    `;
-    return xmlResponse(ivrBody);
+    
+    try {
+        const agentsSnapshot = await db.collection('staff')
+            .where('canReceiveIncomingCalls', '==', true)
+            .limit(1)
+            .get();
+
+        if (agentsSnapshot.empty) {
+            return xmlResponse(`<Say>We're sorry, but no agents are available at the moment. Please try again later.</Say><Hangup/>`);
+        }
+
+        const agent = agentsSnapshot.docs[0];
+        const agentId = agent.id;
+
+        return xmlResponse(`
+            <Dial action="/api/twilio/voice/after-call" record="record-from-answer">
+                <Client>${agentId}</Client>
+            </Dial>
+        `);
+
+    } catch (error) {
+        console.error("Error routing inbound call:", error);
+        return xmlResponse(`<Say>We are sorry, but there was an error connecting your call.</Say><Hangup/>`, 500);
+    }
 
   } catch (error) {
     console.error('Error processing Twilio webhook:', error);
