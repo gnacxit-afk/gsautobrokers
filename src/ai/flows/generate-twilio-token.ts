@@ -20,8 +20,17 @@ const GenerateTokenOutputSchema = z.object({
 });
 export type GenerateTokenOutput = z.infer<typeof GenerateTokenOutputSchema>;
 
-export async function generateTwilioToken(input: GenerateTokenInput): Promise<GenerateTokenOutput> {
-    return generateTokenFlow(input);
+export async function generateTwilioToken(input: GenerateTokenInput): Promise<GenerateTokenOutput | { error: string }> {
+    try {
+        const result = await generateTokenFlow(input);
+        if (!result) {
+            throw new Error("The token generation flow returned an empty result.");
+        }
+        return result;
+    } catch (error: any) {
+      console.error("[Twilio Token Flow Error]:", error);
+      return { error: error.message || 'An unknown server error occurred while generating the token.' };
+    }
 }
 
 const generateTokenFlow = ai.defineFlow(
@@ -37,7 +46,7 @@ const generateTokenFlow = ai.defineFlow(
     const twimlAppSid = process.env.TWIML_APP_SID;
 
     if (!accountSid || !apiKey || !apiSecret || !twimlAppSid) {
-      throw new Error('Twilio credentials are not configured on the server.');
+      throw new Error('Twilio credentials are not configured on the server. Please check the .env file.');
     }
 
     const accessToken = new AccessToken(accountSid, apiKey, apiSecret, { identity });

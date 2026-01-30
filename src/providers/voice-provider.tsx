@@ -63,11 +63,15 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const getTokenAndSetupDevice = useCallback(async () => {
     if (!user || device) return;
     try {
-      const { token } = await generateTwilioToken({ identity: user.id });
-      await setupDevice(token);
+      const result = await generateTwilioToken({ identity: user.id });
+      if ('error' in result) {
+        throw new Error(result.error);
+      }
+      
+      await setupDevice(result.token);
     } catch (err: any) {
-      console.error('Error getting Twilio token:', err);
-      setError('Could not initialize phone. Please refresh.');
+      console.error('Error setting up Twilio device:', err);
+      setError(err.message || 'Could not initialize phone. Please refresh.');
       setCallState('error');
     }
   }, [user, device, setupDevice]);
