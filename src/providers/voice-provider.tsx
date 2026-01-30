@@ -113,9 +113,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     setCallState('connecting');
     setError(null);
     try {
-        // Critical: Pass the destination number as a custom parameter 'lead_phone'
-        // to avoid collision with Twilio's standard 'To' parameter.
-        const call = await device.connect({ params: { lead_phone: phoneNumber } });
+        const call = await device.connect({ params: { To: phoneNumber } });
         setCurrentCall(call);
 
         call.on('ringing', () => setCallState('ringing'));

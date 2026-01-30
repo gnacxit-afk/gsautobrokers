@@ -20,39 +20,39 @@ export async function POST(req: NextRequest) {
     const body = Object.fromEntries(formData);
 
     // Log para un debug más fácil y completo
-    console.log('Twilio webhook request received:', {
-      method: req.method,
-      params: body
-    });
+    console.log('Twilio webhook request received:', body);
     
-    const direction = body.Direction as string | null;
+    const from = body.From as string | null;
+    const to = body.To as string | null;
+    
+    const MY_TWILIO_NUMBER = process.env.TWILIO_PHONE_NUMBER || '+18324005373';
 
-    if (direction === 'outbound-api') {
-      // For outbound calls, the destination number is in our custom 'lead_phone' parameter.
-      const to = body.lead_phone as string | null;
-      
-      if (!to) {
-        return xmlResponse(`
-          <Say voice="alice">Error: No se proporcionó un número de destino para la llamada saliente.</Say>
-          <Hangup/>
-        `);
+    // Lógica para outbound: si la llamada viene de un 'client' (nuestra app)
+    if (from?.startsWith('client:')) {
+      const dialTo = body.lead_phone as string | null;
+
+      if (!dialTo) {
+          return xmlResponse(`
+            <Say voice="alice">Error: No se proporcionó un número de destino para la llamada saliente.</Say>
+            <Hangup/>
+          `);
       }
       
       const dialBody = `
         <Dial 
-          callerId="+18324005373" 
+          callerId="${MY_TWILIO_NUMBER}" 
           action="/api/twilio/voice/after-call" 
           method="POST"
           record="record-from-answer"
           timeout="30"
         >
-          <Number>${to}</Number>
+          <Number>${dialTo}</Number>
         </Dial>
       `;
       return xmlResponse(dialBody);
     }
     
-    // If not 'outbound-api', treat it as an inbound call and show the IVR.
+    // Si llega aquí, es una llamada entrante a nuestro número de Twilio.
     const ivrBody = `
       <Gather input="speech dtmf" timeout="5" numDigits="1" action="/api/twilio/voice/handle-gather" method="POST">
         <Say voice="alice">
