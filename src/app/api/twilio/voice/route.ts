@@ -1,3 +1,4 @@
+
 'use server';
 import { NextRequest, NextResponse } from 'next/server';
 import { initializeApp, getApps, App, applicationDefault } from 'firebase-admin/app';
@@ -25,9 +26,8 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const direction = formData.get('Direction') as string;
     
-    // For calls initiated from the Twilio SDK (e.g., from our app)
-    // The direction will be "outbound-dial"
-    if (direction && direction.includes('outbound')) {
+    // Scenario 1: Outbound call initiated from our web application via Twilio.Device
+    if (direction === 'outbound-dial') {
       const to = formData.get('To') as string;
       const MY_TWILIO_NUMBER = process.env.TWILIO_PHONE_NUMBER;
 
@@ -41,8 +41,10 @@ export async function POST(req: NextRequest) {
         return xmlResponse('<Say>Error: Destination number is missing.</Say>');
       }
 
-      console.log(`OUTBOUND call detected. Routing to: ${to}`);
+      console.log(`OUTBOUND call detected. Routing to PSTN number: ${to}`);
       
+      // Use <Dial> with a <Number> noun to connect to a real phone number.
+      // The 'callerId' is your Twilio number.
       const dial = `
         <Dial 
           callerId="${MY_TWILIO_NUMBER}"
@@ -55,33 +57,38 @@ export async function POST(req: NextRequest) {
       `;
       return xmlResponse(dial);
     }
+    // Scenario 2: Inbound call from a customer to our Twilio number
+    else if (direction === 'inbound') {
+      console.log(`INBOUND call detected. Finding an available agent.`);
 
-    // --- For INBOUND calls to your Twilio number ---
-    // The direction will be "inbound"
-    const from = formData.get('From') as string;
-    console.log(`INBOUND call detected from: ${from}. Finding an available agent.`);
+      const agentsSnapshot = await db.collection('staff')
+          .where('canReceiveIncomingCalls', '==', true)
+          .limit(1)
+          .get();
 
-    const agentsSnapshot = await db.collection('staff')
-        .where('canReceiveIncomingCalls', '==', true)
-        .limit(1)
-        .get();
+      if (agentsSnapshot.empty) {
+          console.log('INBOUND HANDLER: No agents available. Hanging up.');
+          const say = `<Say>We're sorry, but no agents are available at the moment. Please try again later.</Say><Hangup/>`;
+          return xmlResponse(say);
+      }
 
-    if (agentsSnapshot.empty) {
-        console.log('INBOUND HANDLER: No agents available. Hanging up.');
-        const say = `<Say>We're sorry, but no agents are available at the moment. Please try again later.</Say><Hangup/>`;
-        return xmlResponse(say);
+      const agent = agentsSnapshot.docs[0];
+      const agentId = agent.id;
+      console.log(`INBOUND HANDLER: Routing call to agent client: ${agentId}`);
+
+      // Use <Dial> with a <Client> noun to connect to our web app softphone.
+      const dialToAgent = `
+          <Dial action="/api/twilio/voice/after-call" record="record-from-answer">
+              <Client>${agentId}</Client>
+          </Dial>
+      `;
+      return xmlResponse(dialToAgent);
     }
-
-    const agent = agentsSnapshot.docs[0];
-    const agentId = agent.id;
-    console.log(`INBOUND HANDLER: Routing call to agent: ${agentId}`);
-
-    const dialToAgent = `
-        <Dial action="/api/twilio/voice/after-call" record="record-from-answer">
-            <Client>${agentId}</Client>
-        </Dial>
-    `;
-    return xmlResponse(dialToAgent);
+    // Fallback Scenario: Should not happen in normal operation
+    else {
+        console.warn(`Unhandled call direction: ${direction}. Hanging up.`);
+        return xmlResponse('<Say>Could not determine call direction. Goodbye.</Say><Hangup/>');
+    }
 
   } catch (error) {
     console.error('CRITICAL ERROR in Twilio voice webhook:', error);
