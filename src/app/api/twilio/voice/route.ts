@@ -14,65 +14,50 @@ export async function POST(req: NextRequest) {
   const twiml = new VoiceResponse();
   const formData = await req.formData();
 
-  // Get parameters from Twilio's request
-  const Direction = formData.get('Direction') as string;
   const From = formData.get('From') as string;
   const To = formData.get('To') as string;
-
+  const Direction = formData.get('Direction') as string;
+  
   console.log('Twilio Voice Request Received:', { Direction, From, To });
 
-  // =======================================================
-  // 📤 OUTBOUND CALL: Initiated from the CRM web client
-  // =======================================================
-  // This is the correct way to identify an outbound call from the Voice SDK.
+  // ============================
+  // 📤 OUTBOUND DESDE WEB APP
+  // ============================
+  // Si la llamada viene de un `client:` (nuestra web app), es una llamada SALIENTE.
   if (From && From.startsWith('client:')) {
     console.log('Handling OUTBOUND call to:', To);
 
     const dial = twiml.dial({
-      // Use your actual Twilio number from environment variables
-      callerId: process.env.TWILIO_PHONE_NUMBER || '+18324005373',
-      // The action webhook will be called after the outbound call ends.
-      action: "/api/twilio/voice/after-call", 
-      method: "POST"
+      callerId: process.env.TWILIO_PHONE_NUMBER || '+18324005373', // Tu número Twilio
+      record: 'record-from-answer-dual' // Grabar la llamada
     });
-    
-    // The 'To' field contains the lead's phone number.
-    // We use <Number> for a real PSTN call.
-    dial.number(To);
+
+    // Marcamos al número de teléfono real del lead.
+    dial.number({}, To);
 
     return xmlResponse(twiml);
   }
+  
+  // ============================
+  // 📥 INBOUND REAL (PSTN)
+  // ============================
+  // Si no viene de un `client:`, es una llamada ENTRANTE de un cliente.
+  console.log('Handling INBOUND call from:', From);
+  
+  const gather = twiml.gather({
+    input: 'speech dtmf',
+    timeout: 5,
+    numDigits: 1,
+    action: '/api/twilio/voice/handle-gather',
+    method: 'POST'
+  });
 
-  // =======================================================
-  // 📥 INBOUND CALL: A customer calls your Twilio number
-  // =======================================================
-  if (Direction === 'inbound') {
-    console.log('Handling INBOUND call from:', From);
-    
-    const gather = twiml.gather({
-      input: 'speech dtmf',
-      timeout: 5,
-      numDigits: 1,
-      action: '/api/twilio/voice/handle-gather', // Separate endpoint to handle user input
-      method: 'POST'
-    });
+  gather.say({ voice: 'alice' },
+    'Welcome to GS Autobrokers. Press 1 to confirm your appointment. Press 2 to speak to an agent.'
+  );
 
-    gather.say({ voice: 'alice' },
-      'Welcome to GS Autobrokers. Press 1 to confirm your appointment. Press 2 to speak to an agent.'
-    );
-
-    // If the user doesn't enter anything, say this and hang up.
-    twiml.say({ voice: 'alice' }, 'We did not receive any input. Goodbye.');
-    twiml.hangup();
-
-    return xmlResponse(twiml);
-  }
-
-  // =======================================================
-  // 🧯 SAFETY FALLBACK: Should not be reached in normal operation
-  // =======================================================
-  console.log('Call did not match any flow. Hanging up.');
-  twiml.say('An application error has occurred. Goodbye.');
+  // Si el usuario no ingresa nada, esto se ejecuta.
+  twiml.say({ voice: 'alice' }, 'We did not receive any input. Goodbye.');
   twiml.hangup();
 
   return xmlResponse(twiml);
