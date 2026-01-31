@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
@@ -33,7 +32,10 @@ export const useVoice = () => {
 export function VoiceProvider({ children }: { children: ReactNode }) {
   const { user } = useUser();
   const { toast } = useToast();
-  const [device, setDevice] = useState<Device | null>(null);
+  
+  // Use a ref to hold the device instance. This will persist across re-renders.
+  const deviceRef = useRef<Device | null>(null);
+
   const [currentCall, setCurrentCall] = useState<Call | null>(null);
   const [incomingCall, setIncomingCall] = useState<Call | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -54,6 +56,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     setCallState('idle');
     setShowDialer(false);
     setNumberToDial(null);
+    setError(null);
   }, []);
 
   const handleTracks = useCallback((call: Call) => {
@@ -67,24 +70,30 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   }, []);
   
   useEffect(() => {
-    let deviceInstance: Device | null = null;
-    
-    const initialize = async () => {
-        if (!user?.id) return;
+    const initializeDevice = async () => {
+        if (!user?.id || deviceRef.current) return;
+
         try {
             const token = await generateTwilioToken(user.id);
-            deviceInstance = new Device(token, {
+            const device = new Device(token, {
                 logLevel: 1,
                 codecPreferences: ['opus', 'pcmu'] as Call.Codec[],
+                edge: ['ashburn', 'dublin'], // Helps with network traversal
             });
 
-            deviceInstance.on('registered', () => {
+            device.on('registered', () => {
                 setIsReady(true);
                 setCallState('idle');
                 console.log('Twilio Device is registered and ready.');
             });
+
+            device.on('tokenWillExpire', async (deviceInstance) => {
+              console.log('Twilio token is about to expire. Fetching a new one.');
+              const newToken = await generateTwilioToken(user.id);
+              deviceInstance.updateToken(newToken);
+            });
             
-            deviceInstance.on('incoming', (incCall) => {
+            device.on('incoming', (incCall) => {
                 console.log('Incoming call from', incCall.parameters.From);
                 toast({
                   title: "Incoming Call",
@@ -100,26 +109,24 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
                 incCall.on('cancel', cleanupCall);
             });
 
-            deviceInstance.on('registering', () => console.log('Twilio Device is registering...'));
-            deviceInstance.on('unregistered', () => {
+            device.on('registering', () => console.log('Twilio Device is registering...'));
+            device.on('unregistered', () => {
                 console.log('Twilio Device is unregistered.');
-                if (deviceInstance) deviceInstance.destroy();
+                if (deviceRef.current) deviceRef.current.destroy();
+                deviceRef.current = null;
                 setIsReady(false);
             });
-            deviceInstance.on('error', (err) => {
+
+            device.on('error', (err) => {
                 setIsReady(false);
                 setCallState('error');
                 setError(err.message);
                 console.error('Twilio Device Error:', err);
                 setShowDialer(true);
             });
-            deviceInstance.on('disconnect', () => {
-                console.log('Twilio device transport disconnected.');
-                setIsReady(false);
-            });
-
-            deviceInstance.register();
-            setDevice(deviceInstance);
+            
+            await device.register();
+            deviceRef.current = device;
         } catch (err: any) {
             console.error('Error setting up Twilio Device:', err);
             setError(err.message || 'Could not initialize phone. Please refresh.');
@@ -128,27 +135,25 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         }
     };
     
-    initialize();
+    initializeDevice();
 
     return () => {
-      if (deviceInstance) {
-        deviceInstance.destroy();
-        setDevice(null);
-        setIsReady(false);
-        setCallState('idle');
+      if (deviceRef.current) {
+        deviceRef.current.destroy();
+        deviceRef.current = null;
       }
+      setIsReady(false);
+      setCallState('idle');
     };
   }, [user?.id, toast, cleanupCall]);
 
   const initiateCall = useCallback(async (phoneNumber: string) => {
-    // Automatically format the number to E.164 for US calls if no country code is present.
     let numberToCall = phoneNumber;
     if (!numberToCall.startsWith('+')) {
         const digitsOnly = numberToCall.replace(/\D/g, '');
         numberToCall = `+1${digitsOnly}`;
     }
 
-    // 1. Explicitly request permissions on user action
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (err: any) {
@@ -159,8 +164,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // 2. Check if device is ready after getting permissions
-    if (!device || !isReady) {
+    if (!deviceRef.current || !isReady) {
         setError('Phone is not ready. Please refresh the page and try again.');
         setCallState('error');
         setShowDialer(true);
@@ -172,9 +176,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     setCallState('connecting');
     setError(null);
 
-    // 3. Proceed with the call
     try {
-        const call = await device.connect({ params: { To: numberToCall } });
+        const call = await deviceRef.current.connect({ params: { To: numberToCall } });
         setCurrentCall(call);
         handleTracks(call);
         
@@ -193,7 +196,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         setCallState('error');
         setShowDialer(true);
     }
-  }, [device, isReady, cleanupCall, handleTracks]);
+  }, [isReady, cleanupCall, handleTracks]);
   
   const acceptCall = useCallback(async () => {
     if (!incomingCall) return;
@@ -225,6 +228,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const hangupCall = useCallback(() => {
     if (currentCall) {
       currentCall.disconnect();
+    }
+    if (deviceRef.current) {
+        deviceRef.current.disconnectAll();
     }
     cleanupCall();
   }, [currentCall, cleanupCall]);
