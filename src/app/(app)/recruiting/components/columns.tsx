@@ -69,12 +69,20 @@ const CellActions: React.FC<{ row: Row<Candidate>; onCreateStaff: (candidate: Ca
             // --- AUTOMATION ---
             if (newStatus === 'Interviews') {
                 const message = `Hola ${candidate.fullName}, te saluda ${user.name} de GS Auto Brokers. Vimos tu postulación y nos gustaría coordinar una breve llamada de 5 minutos para conversar sobre tu perfil. ¿Qué día y hora te quedaría bien?`;
-                await sendWhatsappMessage({ to: candidate.whatsappNumber, text: message });
-                toast({ title: 'WhatsApp Sent', description: `Invitation sent to ${candidate.fullName}.` });
+                const result = await sendWhatsappMessage({ to: candidate.whatsappNumber, text: message });
+                if (result.success) {
+                    toast({ title: 'WhatsApp Sent', description: `Invitation sent to ${candidate.fullName}.` });
+                } else {
+                    toast({ title: 'WhatsApp Failed', description: result.message, variant: 'destructive' });
+                }
             } else if (newStatus === 'Approved') {
                 const message = `¡Felicidades, ${candidate.fullName}! Has sido aprobado para la siguiente fase en GS Auto Brokers. El próximo paso es nuestro onboarding digital. Responde 'LISTO' a este mensaje para recibir el enlace a nuestra plataforma de capacitación y comenzar tu camino para convertirte en un broker de éxito.`;
-                await sendWhatsappMessage({ to: candidate.whatsappNumber, text: message });
-                toast({ title: 'WhatsApp Sent', description: `Onboarding instructions sent to ${candidate.fullName}.` });
+                const result = await sendWhatsappMessage({ to: candidate.whatsappNumber, text: message });
+                 if (result.success) {
+                    toast({ title: 'WhatsApp Sent', description: `Onboarding instructions sent to ${candidate.fullName}.` });
+                } else {
+                    toast({ title: 'WhatsApp Failed', description: result.message, variant: 'destructive' });
+                }
             }
 
         } catch (error) {
