@@ -1,15 +1,15 @@
 'use server';
 import { NextRequest, NextResponse } from 'next/server';
 
-function xmlResponse(body: string) {
+function xmlResponse(body: string, status: number = 200) {
   const fullXml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response>${body.trim()}</Response>`;
   return new NextResponse(fullXml, {
-    status: 200,
+    status,
     headers: { 'Content-Type': 'text/xml' },
   });
 }
 
-const MY_TWILIO_NUMBER = process.env.TWILIO_PHONE_NUMBER || '+18324005373';
+const MY_TWILIO_NUMBER = process.env.TWILIO_PHONE_NUMBER;
 
 /**
  * This webhook is specifically for handling OUTGOING calls initiated from the client-side SDK.
@@ -20,12 +20,18 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const to = formData.get('To') as string;
 
+    if (!MY_TWILIO_NUMBER) {
+        console.error('CRITICAL: TWILIO_PHONE_NUMBER environment variable is not set.');
+        const say = `<Say>We are sorry, an application error has occurred. The system is missing a valid caller ID. Please contact your administrator.</Say>`;
+        return xmlResponse(say);
+    }
+
     if (!to) {
       console.error('Outbound webhook called without a "To" parameter.');
       return xmlResponse('<Say>We could not process your call, the destination number is missing.</Say>');
     }
 
-    console.log(`OUTBOUND HANDLER: Creating call to: ${to}`);
+    console.log(`OUTBOUND HANDLER: Creating call from ${MY_TWILIO_NUMBER} to: ${to}`);
 
     // This TwiML dials the number passed from the client SDK.
     const dial = `
