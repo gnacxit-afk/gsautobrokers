@@ -70,7 +70,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     if (user?.id) {
         const initialize = async () => {
             try {
-                await navigator.mediaDevices.getUserMedia({ audio: true });
+                // We no longer request permissions here. We will request them on-demand.
                 const token = await generateTwilioToken(user.id);
                 deviceInstance = new Device(token, {
                     logLevel: 1,
@@ -120,11 +120,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
                 setDevice(deviceInstance);
             } catch (err: any) {
                 console.error('Error setting up Twilio Device:', err);
-                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                    setError('Microphone access denied. Please enable microphone permissions in your browser settings to make calls.');
-                } else {
-                    setError(err.message || 'Could not initialize phone. Please refresh.');
-                }
+                setError(err.message || 'Could not initialize phone. Please refresh.');
                 setCallState('error');
                 setShowDialer(true);
             }
@@ -149,9 +145,21 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         toast({ title: "Invalid Number Format", description: "Phone number must be in E.164 format for US calls (e.g., +1XXXXXXXXXX).", variant: "destructive" });
         return;
     }
+    
+    // 1. Explicitly request permissions on user action
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err: any) {
+      console.error("Microphone permission was not granted.", err);
+      setError('Microphone access denied. Please enable microphone permissions in your browser settings to make calls.');
+      setCallState('error');
+      setShowDialer(true);
+      return;
+    }
 
+    // 2. Check if device is ready after getting permissions
     if (!device || !isReady) {
-        setError('Phone is not ready. Please refresh and grant microphone permissions.');
+        setError('Phone is not ready. Please refresh the page and try again.');
         setCallState('error');
         setShowDialer(true);
         return;
@@ -162,6 +170,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     setCallState('connecting');
     setError(null);
 
+    // 3. Proceed with the call
     try {
         const call = await device.connect({ params: { To: phoneNumber } });
         setCurrentCall(call);
