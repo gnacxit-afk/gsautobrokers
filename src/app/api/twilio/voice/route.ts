@@ -11,40 +11,39 @@ function xmlResponse(twiml: twilio.twiml.VoiceResponse) {
 
 /**
  * This is the unified voice endpoint for handling both inbound and outbound calls.
+ * It follows the logic provided to distinguish between call flows.
  */
 export async function POST(req: NextRequest) {
   const twiml = new twilio.twiml.VoiceResponse();
   const formData = await req.formData();
 
   const From = formData.get('From') as string;
-  const To = formData.get('To') as string; // For outbound calls from client
+  const To = formData.get('To') as string;
 
   console.log('Unified Twilio Voice Request:', { From, To });
 
-  // ===============================================
-  // 📤 OUTBOUND Call from Web App (via Client SDK)
-  // ===============================================
-  // If the 'From' parameter is a client identity, it's an outbound call.
+  // 🔹 LLAMADA SALIENTE DESDE EL BROWSER (Agente marca)
+  // When calling from the client SDK, `From` is the client identity and `To` is the PSTN number being dialed.
   if (From?.startsWith('client:')) {
     const dial = twiml.dial({
       callerId: process.env.TWILIO_PHONE_NUMBER || '+18324005373',
       record: 'record-from-answer-dual',
     });
 
-    // The 'To' parameter is passed from device.connect({ params: { To: number }})
-    if (To) {
-      dial.number(To);
+    // The `To` parameter for an outbound call is passed in the request body from Twilio,
+    // which it gets from the `device.connect({ params: { To: number }})` call.
+    if (To && To.startsWith('+')) {
+        dial.number(To);
     } else {
-      twiml.say("Sorry, no number was provided to dial.");
+        twiml.say('Invalid number format for outbound call.');
     }
-
+    
     return xmlResponse(twiml);
   }
 
-  // ===============================================
-  // 📥 INBOUND Call from PSTN (customer calls you)
-  // ===============================================
-  // Otherwise, treat it as an inbound call and start the IVR.
+  // 🔹 LLAMADA ENTRANTE REAL (cliente)
+  // For inbound calls, `From` is the customer's number and `To` is your Twilio number.
+  // This block will execute as the fallback.
   const gather = twiml.gather({
     input: 'speech dtmf',
     timeout: 5,
@@ -52,13 +51,13 @@ export async function POST(req: NextRequest) {
     action: '/api/twilio/voice/handle-gather',
     method: 'POST',
   });
-  
+
   gather.say(
     { voice: 'alice' },
     'Welcome to GS Autobrokers. Press 1 to confirm your appointment. Press 2 to speak to an agent.'
   );
-  
-  // If the user provides no input, Twilio will execute the TwiML below.
+
+  // If the user provides no input after the gather, Twilio will continue here.
   twiml.say({ voice: 'alice' }, 'We did not receive any input. Goodbye.');
   twiml.hangup();
 
