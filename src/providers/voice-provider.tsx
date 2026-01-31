@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
@@ -8,10 +9,12 @@ import { useToast } from '@/hooks/use-toast';
 
 interface VoiceContextType {
   isReady: boolean;
-  callState: 'idle' | 'connecting' | 'ringing' | 'connected' | 'error';
+  callState: 'idle' | 'connecting' | 'ringing' | 'connected' | 'incoming' | 'error';
   error: string | null;
   initiateCall: (phoneNumber: string) => void;
   connectCall: () => void;
+  acceptCall: () => void;
+  rejectCall: () => void;
   hangupCall: () => void;
   currentCall: any | null;
   showDialer: boolean;
@@ -33,8 +36,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const [device, setDevice] = useState<Device | null>(null);
   const [currentCall, setCurrentCall] = useState<Call | null>(null);
+  const [incomingCall, setIncomingCall] = useState<Call | null>(null);
   const [isReady, setIsReady] = useState(false);
-  const [callState, setCallState] = useState<'idle' | 'connecting' | 'ringing' | 'connected' | 'error'>('idle');
+  const [callState, setCallState] = useState<'idle' | 'connecting' | 'ringing' | 'connected' | 'incoming' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
   
   const [showDialer, setShowDialer] = useState(false);
@@ -47,6 +51,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         audioRef.current.srcObject = null;
     }
     setCurrentCall(null);
+    setIncomingCall(null);
     setCallState('idle');
     setShowDialer(false);
     setNumberToDial(null);
@@ -74,25 +79,20 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
                     console.log('Twilio Device is registered and ready.');
                 });
                 
-                deviceInstance.on('incoming', (incomingCall) => {
-                    console.log('Incoming call from', incomingCall.parameters.From);
+                deviceInstance.on('incoming', (incCall) => {
+                    console.log('Incoming call from', incCall.parameters.From);
                     toast({
                       title: "Incoming Call",
-                      description: `From: ${incomingCall.parameters.From}`,
+                      description: `From: ${incCall.parameters.From}`,
                     });
 
-                    incomingCall.accept();
-                    setCurrentCall(incomingCall);
-                    setCallState('connected');
+                    setIncomingCall(incCall);
+                    setCallState('incoming');
                     setShowDialer(true);
-                    setNumberToDial(incomingCall.parameters.From);
+                    setNumberToDial(incCall.parameters.From);
 
-                    if (audioRef.current && incomingCall.remoteStream) {
-                      audioRef.current.srcObject = incomingCall.remoteStream;
-                    }
-
-                    incomingCall.on('disconnect', cleanupCall);
-                    incomingCall.on('cancel', cleanupCall);
+                    incCall.on('disconnect', cleanupCall);
+                    incCall.on('cancel', cleanupCall);
                 });
 
                 deviceInstance.on('registering', () => {
@@ -206,6 +206,26 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         setCallState('error');
     }
   }, [device, isReady, numberToDial, cleanupCall]);
+  
+  const acceptCall = useCallback(() => {
+    if (!incomingCall) return;
+
+    incomingCall.accept();
+    setCurrentCall(incomingCall);
+    setCallState('connected');
+    setIncomingCall(null); // The call is now active, not incoming
+
+    if (audioRef.current && incomingCall.remoteStream) {
+      audioRef.current.srcObject = incomingCall.remoteStream;
+    }
+  }, [incomingCall]);
+
+  const rejectCall = useCallback(() => {
+    if (incomingCall) {
+      incomingCall.reject();
+    }
+    cleanupCall();
+  }, [incomingCall, cleanupCall]);
 
   const hangupCall = useCallback(() => {
     if (currentCall) {
@@ -220,6 +240,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     error,
     initiateCall,
     connectCall,
+    acceptCall,
+    rejectCall,
     hangupCall,
     currentCall,
     showDialer,

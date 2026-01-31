@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useVoice } from '@/providers/voice-provider';
@@ -13,7 +14,9 @@ export function Dialer() {
     numberToDial, 
     callState, 
     hangupCall, 
-    connectCall, 
+    connectCall,
+    acceptCall,
+    rejectCall, 
     error,
   } = useVoice();
 
@@ -29,14 +32,19 @@ export function Dialer() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
              {callState === 'idle' && <PhoneCall className="text-gray-500" />}
+             {callState === 'incoming' && <PhoneCall className="text-blue-500 animate-pulse" />}
              {callState === 'connected' && <Phone className="text-green-500 animate-pulse" />}
              {callState === 'connecting' && <Phone className="text-blue-500 animate-pulse" />}
              {callState === 'ringing' && <Phone className="text-yellow-500 animate-pulse" />}
              {callState === 'error' && <AlertTriangle className="text-red-500" />}
-             <span>{callState === 'idle' ? 'Ready to Call' : 'Call in Progress'}</span>
+             <span>
+                {callState === 'idle' && 'Ready to Call'}
+                {callState === 'incoming' && 'Incoming Call'}
+                {callState !== 'idle' && callState !== 'incoming' && 'Call in Progress'}
+             </span>
           </CardTitle>
           <CardDescription>
-            {numberToDial ? `Dialing: ${numberToDial}` : 'No number selected'}
+            {numberToDial ? `${callState === 'incoming' ? 'From' : 'Dialing'}: ${numberToDial}` : 'No number selected'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -52,6 +60,17 @@ export function Dialer() {
                     <Button variant="outline" className="w-full" onClick={hangupCall}>
                         Dismiss
                     </Button>
+                </div>
+            ) : callState === 'incoming' ? (
+                 <div className="space-y-4">
+                    <div className="flex gap-2">
+                        <Button variant="destructive" className="w-full" onClick={rejectCall}>
+                            <PhoneOff className="mr-2 h-4 w-4" /> Reject
+                        </Button>
+                        <Button className="w-full bg-green-600 hover:bg-green-700" onClick={acceptCall}>
+                            <PhoneCall className="mr-2 h-4 w-4" /> Accept
+                        </Button>
+                    </div>
                 </div>
             ) : isIdle ? (
                 <div className="space-y-4">

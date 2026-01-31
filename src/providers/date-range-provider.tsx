@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect } from 'react';
@@ -10,7 +11,7 @@ export interface DateRange {
 
 interface DateRangeContextType {
   dateRange: DateRange;
-  setDateRange: (newRange: DateRange) => void;
+  setDateRange: React.Dispatch<React.SetStateAction<DateRange>>;
   resetDateRange: () => void;
 }
 
@@ -66,7 +67,7 @@ export function DateRangeProvider({ children, initialDateRange, onDateChange }: 
     }
   }, [onDateChange]);
 
-  const value = useMemo(() => ({ dateRange, setDateRange: setDateRange as any, resetDateRange }), [dateRange, setDateRange, resetDateRange]);
+  const value = useMemo(() => ({ dateRange, setDateRange, resetDateRange }), [dateRange, setDateRange, resetDateRange]);
 
   return (
     <DateRangeContext.Provider value={value}>
