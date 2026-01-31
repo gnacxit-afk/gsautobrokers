@@ -26,21 +26,21 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const To = formData.get('To') as string;
     const From = formData.get('From') as string;
-    const Direction = formData.get('Direction') as string;
     
-    // Detailed logging
+    // Detailed logging for every request
     console.log('Twilio Webhook Received:', {
       To,
       From,
-      Direction,
       CallStatus: formData.get('CallStatus'),
+      Direction: formData.get('Direction'),
+      ClientIdentity: formData.get('From')?.toString().startsWith('client:') ? formData.get('From') : 'N/A (PSTN Call)',
+      IsClientCall: formData.get('From')?.toString().startsWith('client:')
     });
 
-    // --- OUTBOUND CALL: From SDK to an external number ---
-    // The `To` parameter is passed from device.connect() and is the customer's number.
-    // The `From` is the client identity (e.g., 'client:user_xyz').
-    if (To && To !== MY_TWILIO_NUMBER && From?.startsWith('client:')) {
-      console.log(`Handling OUTBOUND call to: ${To}`);
+    // If the 'From' parameter starts with 'client:', it's an outbound call from our app.
+    if (From?.startsWith('client:')) {
+      console.log(`OUTBOUND LOGIC: Initiating call from agent ${From} to ${To}`);
+      
       const dial = `
         <Dial 
           callerId="${MY_TWILIO_NUMBER}"
@@ -54,10 +54,8 @@ export async function POST(req: NextRequest) {
       return xmlResponse(dial);
     }
     
-    // --- INBOUND CALL: From an external number to our Twilio number ---
-    // The `To` is our Twilio number.
-    // The `From` is the customer's number.
-    console.log(`Handling INBOUND call from: ${From}`);
+    // Otherwise, it's an inbound call from an external number to our Twilio number.
+    console.log(`INBOUND LOGIC: Receiving call from ${From} to ${To}`);
     
     const agentsSnapshot = await db.collection('staff')
         .where('canReceiveIncomingCalls', '==', true)
@@ -65,31 +63,31 @@ export async function POST(req: NextRequest) {
         .get();
 
     if (agentsSnapshot.empty) {
-        console.log('No agents available for inbound call.');
+        console.log('INBOUND LOGIC: No agents available. Hanging up.');
         const say = `<Say>We're sorry, but no agents are available at the moment. Please try again later.</Say><Hangup/>`;
         return xmlResponse(say);
     }
 
     const agent = agentsSnapshot.docs[0];
     const agentId = agent.id;
-    console.log(`Routing inbound call to agent: ${agentId}`);
+    console.log(`INBOUND LOGIC: Routing call to available agent: ${agentId}`);
 
-    const dial = `
+    const dialToAgent = `
         <Dial action="/api/twilio/voice/after-call" record="record-from-answer">
             <Client>${agentId}</Client>
         </Dial>
     `;
-    return xmlResponse(dial);
+    return xmlResponse(dialToAgent);
 
   } catch (error) {
-    console.error('Error in Twilio voice webhook:', error);
+    console.error('CRITICAL ERROR in Twilio voice webhook:', error);
     const say = `<Say>We are sorry, but an internal error occurred.</Say><Hangup/>`;
     return xmlResponse(say, 500);
   }
 }
 
 export async function GET(req: NextRequest) {
-  return new NextResponse('This endpoint only accepts POST from Twilio.', {
+  return new NextResponse('This endpoint only accepts POST requests from Twilio.', {
     status: 405,
     headers: { 'Content-Type': 'text/plain' },
   });
