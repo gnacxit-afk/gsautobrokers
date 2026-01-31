@@ -1,7 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { Device } from '@twilio/voice-sdk';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
+import { Device, Call } from '@twilio/voice-sdk';
 import { useUser } from '@/firebase';
 import { generateTwilioToken } from '@/ai/flows/generate-twilio-token';
 import { useToast } from '@/hooks/use-toast';
@@ -32,15 +32,20 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const { user } = useUser();
   const { toast } = useToast();
   const [device, setDevice] = useState<Device | null>(null);
-  const [currentCall, setCurrentCall] = useState<any | null>(null);
+  const [currentCall, setCurrentCall] = useState<Call | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [callState, setCallState] = useState<'idle' | 'connecting' | 'ringing' | 'connected' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
   
   const [showDialer, setShowDialer] = useState(false);
   const [numberToDial, setNumberToDial] = useState<string | null>(null);
+  
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const cleanupCall = useCallback(() => {
+    if (audioRef.current) {
+        audioRef.current.srcObject = null;
+    }
     setCurrentCall(null);
     setCallState('idle');
     setShowDialer(false);
@@ -63,6 +68,28 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
                     setIsReady(true);
                     setCallState('idle');
                     console.log('Twilio Device is registered and ready.');
+                });
+                
+                deviceInstance.on('incoming', (incomingCall) => {
+                    console.log('Incoming call from', incomingCall.parameters.From);
+                    toast({
+                      title: "Incoming Call",
+                      description: `From: ${incomingCall.parameters.From}`,
+                    });
+
+                    // For now, auto-accept. In a real app, show UI to accept/reject.
+                    incomingCall.accept();
+                    setCurrentCall(incomingCall);
+                    setCallState('connected'); // Go straight to connected
+                    setShowDialer(true);
+                    setNumberToDial(incomingCall.parameters.From);
+
+                    if (audioRef.current && incomingCall.remoteStream) {
+                      audioRef.current.srcObject = incomingCall.remoteStream;
+                    }
+
+                    incomingCall.on('disconnect', cleanupCall);
+                    incomingCall.on('cancel', cleanupCall);
                 });
 
                 deviceInstance.on('registering', () => {
@@ -110,7 +137,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         setCallState('idle');
       }
     };
-  }, [user?.id]);
+  }, [user?.id, toast, cleanupCall]);
 
 
   const initiateCall = useCallback((phoneNumber: string) => {
@@ -144,7 +171,12 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         setCurrentCall(call);
 
         call.on('ringing', () => setCallState('ringing'));
-        call.on('accept', () => setCallState('connected'));
+        call.on('accept', (acceptedCall) => {
+            setCallState('connected');
+             if (audioRef.current && acceptedCall.remoteStream) {
+              audioRef.current.srcObject = acceptedCall.remoteStream;
+            }
+        });
         call.on('disconnect', cleanupCall);
         call.on('cancel', cleanupCall);
         call.on('error', (err) => {
@@ -181,6 +213,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   return (
     <VoiceContext.Provider value={value}>
       {children}
+      <audio ref={audioRef} style={{ display: 'none' }} />
     </VoiceContext.Provider>
   );
 }
