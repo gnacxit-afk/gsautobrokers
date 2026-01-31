@@ -2,6 +2,18 @@
 'use server';
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
+import { initializeApp, getApps, App, applicationDefault } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+
+// Initialize Firebase Admin
+let adminApp: App;
+if (!getApps().length) {
+  adminApp = initializeApp({ credential: applicationDefault() });
+} else {
+  adminApp = getApps()[0];
+}
+const db = getFirestore(adminApp);
+
 
 // Helper function to create an XML response
 function xmlResponse(twiml: twilio.twiml.VoiceResponse) {
@@ -25,11 +37,25 @@ export async function POST(req: NextRequest) {
     To
   });
 
-  // =========================
-  // 📥 INBOUND REAL CALL
-  // =========================
-  if (Direction === 'inbound' && !From.startsWith('client:')) {
+  // ===============================================
+  // 📤 OUTBOUND CALL (From CRM client to a number)
+  // ===============================================
+  if (From && From.startsWith('client:')) {
+    const dial = twiml.dial({
+      callerId: process.env.TWILIO_PHONE_NUMBER || '+18324005373',
+      action: "/api/twilio/voice/after-call",
+      method: "POST"
+    });
+    // The 'To' field will contain the lead's number passed from the client
+    dial.number({}, To);
 
+    return xmlResponse(twiml);
+  }
+
+  // =======================================================
+  // 📥 INBOUND CALL (From external number to Twilio number)
+  // =======================================================
+  if (Direction === 'inbound') {
     const gather = twiml.gather({
       input: 'speech dtmf',
       timeout: 5,
@@ -42,6 +68,7 @@ export async function POST(req: NextRequest) {
       'Welcome to GS Autobrokers. Press 1 to confirm your appointment. Press 2 to speak to an agent.'
     );
 
+    // If the user doesn't enter anything, loop or hang up.
     twiml.say({ voice: 'alice' }, 'We did not receive any input. Goodbye.');
     twiml.hangup();
 
@@ -49,26 +76,11 @@ export async function POST(req: NextRequest) {
   }
 
   // =========================
-  // 📤 OUTBOUND REAL CALL
+  // 🧯 SAFETY FALLBACK
   // =========================
-  if (From.startsWith('client:')) {
-
-    const dial = twiml.dial({
-      callerId: process.env.TWILIO_PHONE_NUMBER || '+18324005373', // Your Twilio number
-      action: "/api/twilio/voice/after-call",
-      method: "POST"
-    });
-
-    dial.number(To);
-
-    return xmlResponse(twiml);
-  }
-
-  // =========================
-  // 🧯 FALLBACK DE SEGURIDAD
-  // =========================
-  twiml.say('Invalid call flow.');
+  twiml.say('An application error has occurred. Goodbye.');
   twiml.hangup();
 
   return xmlResponse(twiml);
 };
+
