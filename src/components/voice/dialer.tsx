@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useVoice } from '@/providers/voice-provider';
@@ -5,6 +6,7 @@ import { Phone, PhoneCall, PhoneOff, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { usePathname } from 'next/navigation';
 
 
 export function Dialer() {
@@ -17,8 +19,10 @@ export function Dialer() {
     rejectCall, 
     error,
   } = useVoice();
+  const pathname = usePathname();
 
-  if (!showDialer) {
+  // Do not show this floating dialer on the main call logs page
+  if (!showDialer || pathname === '/calls') {
     return null;
   }
   

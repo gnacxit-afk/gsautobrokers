@@ -6,12 +6,13 @@ import { useFirestore, useUser, useCollection } from '@/firebase';
 import { collectionGroup, query, orderBy, collection } from 'firebase/firestore';
 import type { CallRecord, Staff } from '@/lib/types';
 import { AccessDenied } from '@/components/access-denied';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { PlayCircle } from 'lucide-react';
 import Link from 'next/link';
+import { DialerPad } from './components/dialer-pad';
 
 export default function CallLogsPage() {
   const { user, loading: userLoading } = useUser();
@@ -19,7 +20,6 @@ export default function CallLogsPage() {
 
   const callsQuery = useMemo(() => {
     if (!firestore) return null;
-    // Use a collectionGroup query to get all 'calls' across all 'leads'
     return query(collectionGroup(firestore, 'calls'), orderBy('startTime', 'desc'));
   }, [firestore]);
 
@@ -43,32 +43,42 @@ export default function CallLogsPage() {
   return (
     <main className="flex-1">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Call Logs</h1>
-        <p className="text-muted-foreground">A record of all inbound and outbound calls.</p>
+        <h1 className="text-2xl font-bold">Call Center</h1>
+        <p className="text-muted-foreground">Make calls and review the history of all communications.</p>
       </div>
-      <Card>
-          <CardContent>
-               <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Lead</TableHead>
-                      <TableHead>Agent</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Duration</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Recording</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                     {loading ? (
-                        [...Array(5)].map((_, i) => (
-                            <TableRow key={i}>
-                                <TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell>
-                            </TableRow>
-                        ))
-                     ) : calls && calls.length > 0 ? (
-                        calls.map(call => (
-                             <TableRow key={call.id}>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <div className="lg:col-span-1">
+            <DialerPad />
+        </div>
+        <div className="lg:col-span-2">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Call History</CardTitle>
+                    <CardDescription>A record of all inbound and outbound calls.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                        <TableRow>
+                            <TableHead>Lead</TableHead>
+                            <TableHead>Agent</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Duration</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Recording</TableHead>
+                        </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {loading ? (
+                            [...Array(5)].map((_, i) => (
+                                <TableRow key={i}>
+                                    <TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell>
+                                </TableRow>
+                            ))
+                            ) : calls && calls.length > 0 ? (
+                            calls.map(call => (
+                                <TableRow key={call.id}>
                                 <TableCell className="font-medium">
                                     <Link href={`/leads/${call.leadId}/notes`} className="hover:underline text-primary">
                                         {call.leadName || 'Unknown Lead'}
@@ -86,16 +96,18 @@ export default function CallLogsPage() {
                                     ) : 'N/A'}
                                 </TableCell>
                             </TableRow>
-                        ))
-                     ) : (
-                        <TableRow>
-                            <TableCell colSpan={6} className="h-24 text-center">No call records found.</TableCell>
-                        </TableRow>
-                     )}
-                  </TableBody>
-               </Table>
-          </CardContent>
-      </Card>
+                            ))
+                            ) : (
+                            <TableRow>
+                                <TableCell colSpan={6} className="h-24 text-center">No call records found.</TableCell>
+                            </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        </div>
+      </div>
     </main>
   );
 }
