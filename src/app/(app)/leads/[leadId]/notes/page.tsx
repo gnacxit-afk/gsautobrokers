@@ -322,7 +322,7 @@ export default function LeadDetailsPage() {
     try {
         await updateDoc(leadRef, { interestedVehicleId: vehicleId });
         const noteContent = `Vehicle "${vehicle.year} ${vehicle.make} ${vehicle.model}" linked by ${user.name}.`;
-        await addNoteEntry(firestore, user, lead.id, noteContent, 'Vehicle Link');
+        await addNoteEntry(firestore, user, leadId, noteContent, 'Vehicle Link');
         toast({ title: 'Vehicle Linked' });
     } catch (error) {
          toast({ title: 'Error', description: 'Could not link vehicle.', variant: 'destructive' });
@@ -335,7 +335,7 @@ export default function LeadDetailsPage() {
     try {
         await updateDoc(leadRef, { interestedVehicleId: null });
         const noteContent = `Vehicle unlinked by ${user.name}.`;
-        await addNoteEntry(firestore, user, lead.id, noteContent, 'Vehicle Link');
+        await addNoteEntry(firestore, user, leadId, noteContent, 'Vehicle Link');
         toast({ title: 'Vehicle Unlinked' });
     } catch (error) {
          toast({ title: 'Error', description: 'Could not unlink vehicle.', variant: 'destructive' });
@@ -503,7 +503,7 @@ export default function LeadDetailsPage() {
                                                 size="icon"
                                                 variant="outline"
                                                 onClick={() => initiateCall(lead.phone)}
-                                                disabled={callState !== 'idle'}
+                                                disabled={['connecting', 'ringing', 'connected'].includes(callState)}
                                                 className="shrink-0"
                                             >
                                                 <Phone size={16} />

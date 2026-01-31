@@ -98,7 +98,7 @@ const CellActions: React.FC<CellActionsProps> = ({ row, onUpdateStage, onDeleteL
               <span>Details / Notes</span>
           </DropdownMenuItem>
           
-          <DropdownMenuItem onSelect={() => initiateCall(lead.phone)} disabled={callState !== 'idle'}>
+          <DropdownMenuItem onSelect={() => initiateCall(lead.phone)} disabled={['connecting', 'ringing', 'connected'].includes(callState)}>
               <Phone className="mr-2 h-4 w-4" />
               <span>Call</span>
           </DropdownMenuItem>
