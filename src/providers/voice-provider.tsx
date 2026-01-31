@@ -92,8 +92,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
 
           deviceSingleton.on('tokenWillExpire', async (deviceInstance) => {
             console.log('Twilio token is about to expire. Fetching a new one.');
-            if (user?.id) {
-              const newToken = await generateTwilioToken(user.id);
+            const identity = deviceInstance.identity;
+            if (identity) {
+              const newToken = await generateTwilioToken(identity);
               deviceInstance.updateToken(newToken);
             }
           });
