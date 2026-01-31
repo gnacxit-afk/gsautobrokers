@@ -20,16 +20,37 @@ function xmlResponse(body: string, status = 200) {
 }
 
 /**
- * This webhook is for INBOUND calls to your Twilio number.
- * It finds an available agent and routes the call to them.
+ * This webhook is for ALL voice calls.
+ * It handles both INBOUND calls to your Twilio number
+ * and OUTBOUND calls from your web client.
  */
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-    console.log('Inbound Webhook Received:', Object.fromEntries(formData));
-    
-    console.log(`INBOUND LOGIC: Receiving call from ${formData.get('From')} to ${formData.get('To')}`);
-    
+    const from = formData.get('From') as string;
+    const to = formData.get('To') as string;
+
+    // CHECK IF THIS IS AN OUTBOUND CALL FROM ONE OF OUR AGENTS
+    if (from && from.startsWith('client:')) {
+        // This is an outbound call from the browser client.
+        // 'to' is the PSTN number we want to dial.
+        const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+        
+        if (!twilioPhoneNumber) {
+            console.error('CRITICAL: TWILIO_PHONE_NUMBER environment variable is not set for outbound call.');
+            return xmlResponse('<Say>We are sorry, an application error has occurred. The system is missing a valid caller ID.</Say>');
+        }
+        
+        const dial = `
+            <Dial callerId="${twilioPhoneNumber}" action="/api/twilio/voice/after-call" record="record-from-answer">
+                <Number>${to}</Number>
+            </Dial>
+        `;
+        return xmlResponse(dial);
+    }
+
+    // --- IF NOT OUTBOUND, IT'S AN INBOUND CALL ---
+    // Find an available agent and route the call to them.
     const agentsSnapshot = await db.collection('staff')
         .where('canReceiveIncomingCalls', '==', true)
         .limit(1)
@@ -43,7 +64,7 @@ export async function POST(req: NextRequest) {
 
     const agent = agentsSnapshot.docs[0];
     const agentId = agent.id;
-    console.log(`INBOUND LOGIC: Routing call to available agent: ${agentId}`);
+    console.log(`INBOUND LOGIC: Routing call from ${from} to available agent: ${agentId}`);
 
     const dialToAgent = `
         <Dial action="/api/twilio/voice/after-call" record="record-from-answer">
@@ -53,7 +74,7 @@ export async function POST(req: NextRequest) {
     return xmlResponse(dialToAgent);
 
   } catch (error) {
-    console.error('CRITICAL ERROR in Twilio inbound voice webhook:', error);
+    console.error('CRITICAL ERROR in Twilio voice webhook:', error);
     const say = `<Say>We are sorry, but an internal error occurred.</Say><Hangup/>`;
     return xmlResponse(say, 500);
   }
