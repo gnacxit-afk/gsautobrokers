@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
@@ -60,6 +61,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       if (audioRef.current && track.kind === 'audio') {
         const remoteStream = new MediaStream([track.mediaStreamTrack]);
         audioRef.current.srcObject = remoteStream;
+        audioRef.current.play().catch(e => console.error("Audio play failed", e));
       }
     });
   }, []);
@@ -67,67 +69,66 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let deviceInstance: Device | null = null;
     
-    if (user?.id) {
-        const initialize = async () => {
-            try {
-                // We no longer request permissions here. We will request them on-demand.
-                const token = await generateTwilioToken(user.id);
-                deviceInstance = new Device(token, {
-                    logLevel: 1,
-                    codecPreferences: ['opus', 'pcmu'] as Call.Codec[],
+    const initialize = async () => {
+        if (!user?.id) return;
+        try {
+            const token = await generateTwilioToken(user.id);
+            deviceInstance = new Device(token, {
+                logLevel: 1,
+                codecPreferences: ['opus', 'pcmu'] as Call.Codec[],
+            });
+
+            deviceInstance.on('registered', () => {
+                setIsReady(true);
+                setCallState('idle');
+                console.log('Twilio Device is registered and ready.');
+            });
+            
+            deviceInstance.on('incoming', (incCall) => {
+                console.log('Incoming call from', incCall.parameters.From);
+                toast({
+                  title: "Incoming Call",
+                  description: `From: ${incCall.parameters.From}`,
                 });
 
-                deviceInstance.on('registered', () => {
-                    setIsReady(true);
-                    setCallState('idle');
-                    console.log('Twilio Device is registered and ready.');
-                });
-                
-                deviceInstance.on('incoming', (incCall) => {
-                    console.log('Incoming call from', incCall.parameters.From);
-                    toast({
-                      title: "Incoming Call",
-                      description: `From: ${incCall.parameters.From}`,
-                    });
-
-                    setIncomingCall(incCall);
-                    setCallState('incoming');
-                    setShowDialer(true);
-                    setNumberToDial(incCall.parameters.From);
-
-                    incCall.on('disconnect', cleanupCall);
-                    incCall.on('cancel', cleanupCall);
-                });
-
-                deviceInstance.on('registering', () => console.log('Twilio Device is registering...'));
-                deviceInstance.on('unregistered', () => {
-                    console.log('Twilio Device is unregistered.');
-                    if (deviceInstance) deviceInstance.destroy();
-                    setIsReady(false);
-                });
-                deviceInstance.on('error', (err) => {
-                    setIsReady(false);
-                    setCallState('error');
-                    setError(err.message);
-                    console.error('Twilio Device Error:', err);
-                });
-                deviceInstance.on('disconnect', () => {
-                    console.log('Twilio device transport disconnected.');
-                    setIsReady(false);
-                });
-
-                deviceInstance.register();
-                setDevice(deviceInstance);
-            } catch (err: any) {
-                console.error('Error setting up Twilio Device:', err);
-                setError(err.message || 'Could not initialize phone. Please refresh.');
-                setCallState('error');
+                setIncomingCall(incCall);
+                setCallState('incoming');
                 setShowDialer(true);
-            }
-        };
-        
-        initialize();
-    }
+                setNumberToDial(incCall.parameters.From);
+
+                incCall.on('disconnect', cleanupCall);
+                incCall.on('cancel', cleanupCall);
+            });
+
+            deviceInstance.on('registering', () => console.log('Twilio Device is registering...'));
+            deviceInstance.on('unregistered', () => {
+                console.log('Twilio Device is unregistered.');
+                if (deviceInstance) deviceInstance.destroy();
+                setIsReady(false);
+            });
+            deviceInstance.on('error', (err) => {
+                setIsReady(false);
+                setCallState('error');
+                setError(err.message);
+                console.error('Twilio Device Error:', err);
+                setShowDialer(true);
+            });
+            deviceInstance.on('disconnect', () => {
+                console.log('Twilio device transport disconnected.');
+                setIsReady(false);
+            });
+
+            deviceInstance.register();
+            setDevice(deviceInstance);
+        } catch (err: any) {
+            console.error('Error setting up Twilio Device:', err);
+            setError(err.message || 'Could not initialize phone. Please refresh.');
+            setCallState('error');
+            setShowDialer(true);
+        }
+    };
+    
+    initialize();
 
     return () => {
       if (deviceInstance) {
@@ -140,12 +141,13 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   }, [user?.id, toast, cleanupCall]);
 
   const initiateCall = useCallback(async (phoneNumber: string) => {
-    const phoneRegex = /^\+1\d{10}$/;
-    if (!phoneNumber || !phoneRegex.test(phoneNumber)) {
-        toast({ title: "Invalid Number Format", description: "Phone number must be in E.164 format for US calls (e.g., +1XXXXXXXXXX).", variant: "destructive" });
-        return;
+    // Automatically format the number to E.164 for US calls if no country code is present.
+    let numberToCall = phoneNumber;
+    if (!numberToCall.startsWith('+')) {
+        const digitsOnly = numberToCall.replace(/\D/g, '');
+        numberToCall = `+1${digitsOnly}`;
     }
-    
+
     // 1. Explicitly request permissions on user action
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -165,14 +167,14 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         return;
     }
     
-    setNumberToDial(phoneNumber);
+    setNumberToDial(numberToCall);
     setShowDialer(true);
     setCallState('connecting');
     setError(null);
 
     // 3. Proceed with the call
     try {
-        const call = await device.connect({ params: { To: phoneNumber } });
+        const call = await device.connect({ params: { To: numberToCall } });
         setCurrentCall(call);
         handleTracks(call);
         
@@ -191,17 +193,27 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         setCallState('error');
         setShowDialer(true);
     }
-  }, [device, isReady, toast, cleanupCall, handleTracks]);
+  }, [device, isReady, cleanupCall, handleTracks]);
   
-  const acceptCall = useCallback(() => {
+  const acceptCall = useCallback(async () => {
     if (!incomingCall) return;
-
-    incomingCall.accept();
-    setCurrentCall(incomingCall);
-    setCallState('connected');
-    handleTracks(incomingCall);
-    setIncomingCall(null);
-  }, [incomingCall, handleTracks]);
+    
+    try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        incomingCall.accept();
+        setCurrentCall(incomingCall);
+        setCallState('connected');
+        handleTracks(incomingCall);
+        setIncomingCall(null);
+    } catch(err) {
+        console.error("Microphone permission was not granted for incoming call.", err);
+        setError('Microphone access denied. Please enable microphone permissions to receive calls.');
+        setCallState('error');
+        setShowDialer(true);
+        incomingCall.reject();
+        cleanupCall();
+    }
+  }, [incomingCall, handleTracks, cleanupCall]);
 
   const rejectCall = useCallback(() => {
     if (incomingCall) {
