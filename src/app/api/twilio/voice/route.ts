@@ -19,43 +19,16 @@ function xmlResponse(body: string, status = 200) {
   });
 }
 
-const MY_TWILIO_NUMBER = process.env.TWILIO_PHONE_NUMBER || '+18324005373';
-
+/**
+ * This webhook is for INBOUND calls to your Twilio number.
+ * It finds an available agent and routes the call to them.
+ */
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-    const To = formData.get('To') as string;
-    const From = formData.get('From') as string;
+    console.log('Inbound Webhook Received:', Object.fromEntries(formData));
     
-    // Detailed logging for every request
-    console.log('Twilio Webhook Received:', {
-      To,
-      From,
-      CallStatus: formData.get('CallStatus'),
-      Direction: formData.get('Direction'),
-      ClientIdentity: formData.get('From')?.toString().startsWith('client:') ? formData.get('From') : 'N/A (PSTN Call)',
-      IsClientCall: formData.get('From')?.toString().startsWith('client:')
-    });
-
-    // If the 'From' parameter starts with 'client:', it's an outbound call from our app.
-    if (From?.startsWith('client:')) {
-      console.log(`OUTBOUND LOGIC: Initiating call from agent ${From} to ${To}`);
-      
-      const dial = `
-        <Dial 
-          callerId="${MY_TWILIO_NUMBER}"
-          action="/api/twilio/voice/after-call" 
-          method="POST"
-          record="record-from-answer"
-        >
-          <Number>${To}</Number>
-        </Dial>
-      `;
-      return xmlResponse(dial);
-    }
-    
-    // Otherwise, it's an inbound call from an external number to our Twilio number.
-    console.log(`INBOUND LOGIC: Receiving call from ${From} to ${To}`);
+    console.log(`INBOUND LOGIC: Receiving call from ${formData.get('From')} to ${formData.get('To')}`);
     
     const agentsSnapshot = await db.collection('staff')
         .where('canReceiveIncomingCalls', '==', true)
@@ -80,7 +53,7 @@ export async function POST(req: NextRequest) {
     return xmlResponse(dialToAgent);
 
   } catch (error) {
-    console.error('CRITICAL ERROR in Twilio voice webhook:', error);
+    console.error('CRITICAL ERROR in Twilio inbound voice webhook:', error);
     const say = `<Say>We are sorry, but an internal error occurred.</Say><Hangup/>`;
     return xmlResponse(say, 500);
   }
