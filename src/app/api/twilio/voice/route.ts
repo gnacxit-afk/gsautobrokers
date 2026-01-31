@@ -9,40 +9,20 @@ function xmlResponse(twiml: twilio.twiml.VoiceResponse) {
   });
 }
 
+/**
+ * This endpoint ONLY handles INBOUND calls from the PSTN (customers calling you).
+ * It initiates the IVR flow.
+ */
 export async function POST(req: NextRequest) {
   const VoiceResponse = twilio.twiml.VoiceResponse;
   const twiml = new VoiceResponse();
   const formData = await req.formData();
 
   const From = formData.get('From') as string;
-  const To = formData.get('To') as string;
   
-  console.log('Twilio Voice Request Received:', { From, To });
+  console.log('INBOUND Call Request from PSTN:', { From });
 
-  // ============================
-  // 📤 OUTBOUND FROM WEB APP
-  // ============================
-  // If the call comes from a 'client:' (our web app) and is going TO a real number ('+...')
-  if (From && From.startsWith('client:')) {
-    console.log('Handling OUTBOUND call to PSTN:', To);
-    
-    const dial = twiml.dial({
-      callerId: process.env.TWILIO_PHONE_NUMBER || '+18324005373',
-      record: 'record-from-answer-dual',
-    });
-
-    // We only need to dial a number here, not a client.
-    dial.number({}, To);
-    
-    return xmlResponse(twiml);
-  }
-  
-  // ============================
-  // 📥 INBOUND FROM REAL PHONE (PSTN)
-  // ============================
-  // Any other call pattern is treated as an inbound call from a customer.
-  console.log('Handling INBOUND call from PSTN:', From);
-  
+  // This is the IVR logic for incoming calls.
   const gather = twiml.gather({
     input: 'speech dtmf',
     timeout: 5,
