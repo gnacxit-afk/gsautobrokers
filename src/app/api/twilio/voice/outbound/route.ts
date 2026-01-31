@@ -1,4 +1,3 @@
-
 'use server';
 import { NextResponse } from 'next/server';
 import Twilio from 'twilio';
@@ -35,7 +34,7 @@ export async function POST(req: Request) {
 
   // 📞 REAL DIAL
   const dial = twiml.dial({
-    callerId: process.env.TWILIO_PHONE_NUMBER || '+18324005373',
+    callerId: process.env.TWILIO_PHONE_NUMBER,
     record: 'record-from-answer-dual',
     answerOnBridge: true,
   });
