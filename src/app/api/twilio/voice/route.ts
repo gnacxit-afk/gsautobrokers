@@ -16,33 +16,32 @@ export async function POST(req: NextRequest) {
 
   const From = formData.get('From') as string;
   const To = formData.get('To') as string;
-  const Direction = formData.get('Direction') as string;
   
-  console.log('Twilio Voice Request Received:', { Direction, From, To });
+  console.log('Twilio Voice Request Received:', { From, To });
 
   // ============================
-  // 📤 OUTBOUND DESDE WEB APP
+  // 📤 OUTBOUND FROM WEB APP
   // ============================
-  // Si la llamada viene de un `client:` (nuestra web app), es una llamada SALIENTE.
+  // If the call comes from a 'client:' (our web app) and is going TO a real number ('+...')
   if (From && From.startsWith('client:')) {
-    console.log('Handling OUTBOUND call to:', To);
-
+    console.log('Handling OUTBOUND call to PSTN:', To);
+    
     const dial = twiml.dial({
-      callerId: process.env.TWILIO_PHONE_NUMBER || '+18324005373', // Tu número Twilio
-      record: 'record-from-answer-dual' // Grabar la llamada
+      callerId: process.env.TWILIO_PHONE_NUMBER || '+18324005373',
+      record: 'record-from-answer-dual',
     });
 
-    // Marcamos al número de teléfono real del lead.
+    // We only need to dial a number here, not a client.
     dial.number({}, To);
-
+    
     return xmlResponse(twiml);
   }
   
   // ============================
-  // 📥 INBOUND REAL (PSTN)
+  // 📥 INBOUND FROM REAL PHONE (PSTN)
   // ============================
-  // Si no viene de un `client:`, es una llamada ENTRANTE de un cliente.
-  console.log('Handling INBOUND call from:', From);
+  // Any other call pattern is treated as an inbound call from a customer.
+  console.log('Handling INBOUND call from PSTN:', From);
   
   const gather = twiml.gather({
     input: 'speech dtmf',
@@ -56,7 +55,7 @@ export async function POST(req: NextRequest) {
     'Welcome to GS Autobrokers. Press 1 to confirm your appointment. Press 2 to speak to an agent.'
   );
 
-  // Si el usuario no ingresa nada, esto se ejecuta.
+  // If the user does not enter anything, this will be executed.
   twiml.say({ voice: 'alice' }, 'We did not receive any input. Goodbye.');
   twiml.hangup();
 
