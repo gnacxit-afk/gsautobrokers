@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
@@ -33,7 +34,6 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const { user } = useUser();
   const { toast } = useToast();
   
-  // Use a ref to hold the device instance. This will persist across re-renders.
   const deviceRef = useRef<Device | null>(null);
 
   const [currentCall, setCurrentCall] = useState<Call | null>(null);
@@ -78,7 +78,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
             const device = new Device(token, {
                 logLevel: 1,
                 codecPreferences: ['opus', 'pcmu'] as Call.Codec[],
-                edge: ['ashburn', 'dublin'], // Helps with network traversal
+                edge: ['ashburn', 'dublin'],
             });
 
             device.on('registered', () => {
@@ -148,10 +148,14 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   }, [user?.id, toast, cleanupCall]);
 
   const initiateCall = useCallback(async (phoneNumber: string) => {
-    let numberToCall = phoneNumber;
-    if (!numberToCall.startsWith('+')) {
-        const digitsOnly = numberToCall.replace(/\D/g, '');
-        numberToCall = `+1${digitsOnly}`;
+    const numberToCall = phoneNumber;
+
+    if (!numberToCall || !numberToCall.startsWith('+')) {
+        console.error("Dialer Error: Phone number must be in E.164 format (e.g., +15551234567).");
+        setError("Invalid number format. Phone number must start with a '+' and country code.");
+        setCallState('error');
+        setShowDialer(true);
+        return;
     }
 
     try {
