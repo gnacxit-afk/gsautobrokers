@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
@@ -78,7 +77,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
                 const token = await generateTwilioToken(user.id);
                 deviceInstance = new Device(token, {
                     logLevel: 1,
-                    codecPreferences: ['opus', 'pcmu'],
+                    codecPreferences: ['opus', 'pcmu'] as Call.Codec[],
                 });
 
                 deviceInstance.on('registered', () => {
@@ -177,10 +176,11 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         const call = await device.connect({ params: { To: numberToDial } });
         setCurrentCall(call);
 
+        handleTracks(call);
+        
         call.on('ringing', () => setCallState('ringing'));
         call.on('accept', () => {
             setCallState('connected');
-            handleTracks(call); 
         });
         call.on('disconnect', cleanupCall);
         call.on('cancel', cleanupCall);
