@@ -503,7 +503,7 @@ export default function LeadDetailsPage() {
                                                 size="icon"
                                                 variant="outline"
                                                 onClick={() => initiateCall(lead.phone)}
-                                                disabled={['connecting', 'ringing', 'connected'].includes(callState)}
+                                                disabled={callState !== 'idle'}
                                                 className="shrink-0"
                                             >
                                                 <Phone size={16} />

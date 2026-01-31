@@ -58,6 +58,10 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     if (user?.id) {
         const initialize = async () => {
             try {
+                // Step 1: Get microphone permissions first.
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                // Step 2: If permission is granted, proceed to get token and set up device.
                 const token = await generateTwilioToken(user.id);
                 deviceInstance = new Device(token, {
                     logLevel: 1,
@@ -77,10 +81,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
                       description: `From: ${incomingCall.parameters.From}`,
                     });
 
-                    // For now, auto-accept. In a real app, show UI to accept/reject.
                     incomingCall.accept();
                     setCurrentCall(incomingCall);
-                    setCallState('connected'); // Go straight to connected
+                    setCallState('connected');
                     setShowDialer(true);
                     setNumberToDial(incomingCall.parameters.From);
 
@@ -121,8 +124,13 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
 
             } catch (err: any) {
                 console.error('Error setting up Twilio Device:', err);
-                setError(err.message || 'Could not initialize phone. Please refresh.');
+                 if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    setError('Microphone access denied. Please enable microphone permissions in your browser settings to make calls.');
+                } else {
+                    setError(err.message || 'Could not initialize phone. Please refresh.');
+                }
                 setCallState('error');
+                setShowDialer(true); // Show dialer to display the error
             }
         };
         
@@ -142,9 +150,17 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
 
   const initiateCall = useCallback((phoneNumber: string) => {
     const phoneRegex = /^\+1\d{10}$/;
-    if (!phoneNumber || !phoneRegex.test(phoneNumber)) {
-        toast({
+    if (!phoneNumber) {
+         toast({
             title: "Invalid Number",
+            description: "This lead does not have a phone number.",
+            variant: "destructive",
+        });
+        return;
+    }
+    if (!phoneRegex.test(phoneNumber)) {
+        toast({
+            title: "Invalid Number Format",
             description: "Phone number must be in the format +1XXXXXXXXXX for US calls.",
             variant: "destructive",
         });
@@ -158,7 +174,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
 
   const connectCall = useCallback(async () => {
     if (!device || !isReady || !numberToDial) {
-        setError('Phone is not ready or number is missing.');
+        setError('Phone is not ready or number is missing. Please refresh the page and grant microphone permissions.');
         setCallState('error');
         setShowDialer(true);
         return;
@@ -213,7 +229,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   return (
     <VoiceContext.Provider value={value}>
       {children}
-      <audio ref={audioRef} style={{ display: 'none' }} />
+      <audio ref={audioRef} autoPlay style={{ display: 'none' }} />
     </VoiceContext.Provider>
   );
 }
