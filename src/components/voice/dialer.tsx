@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useVoice } from '@/providers/voice-provider';
@@ -13,8 +12,7 @@ export function Dialer() {
     showDialer, 
     numberToDial, 
     callState, 
-    hangupCall, 
-    connectCall,
+    hangupCall,
     acceptCall,
     rejectCall, 
     error,
@@ -23,8 +21,6 @@ export function Dialer() {
   if (!showDialer) {
     return null;
   }
-
-  const isIdle = callState === 'idle';
   
   return (
     <div className="fixed bottom-8 right-8 z-50">
@@ -38,13 +34,13 @@ export function Dialer() {
              {callState === 'ringing' && <Phone className="text-yellow-500 animate-pulse" />}
              {callState === 'error' && <AlertTriangle className="text-red-500" />}
              <span>
-                {callState === 'idle' && 'Ready to Call'}
+                {callState === 'idle' && 'Call Ended'}
                 {callState === 'incoming' && 'Incoming Call'}
                 {callState !== 'idle' && callState !== 'incoming' && 'Call in Progress'}
              </span>
           </CardTitle>
           <CardDescription>
-            {numberToDial ? `${callState === 'incoming' ? 'From' : 'Dialing'}: ${numberToDial}` : 'No number selected'}
+            {numberToDial ? `${callState === 'incoming' ? 'From' : 'Calling'}: ${numberToDial}` : 'No number selected'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -72,25 +68,13 @@ export function Dialer() {
                         </Button>
                     </div>
                 </div>
-            ) : isIdle ? (
-                <div className="space-y-4">
-                    <p className="text-sm text-center text-muted-foreground">Click "Dial" to start the call.</p>
-                    <div className="flex gap-2">
-                        <Button variant="outline" className="w-full" onClick={hangupCall}>
-                            Cancel
-                        </Button>
-                        <Button className="w-full" onClick={connectCall}>
-                            <PhoneCall className="mr-2 h-4 w-4" /> Dial
-                        </Button>
-                    </div>
-                </div>
             ) : (
                  <div className="space-y-4">
                     <div className="text-center">
                         <p className="text-sm font-medium capitalize">{callState}</p>
                     </div>
                     <Button variant="destructive" className="w-full" onClick={hangupCall}>
-                        <PhoneOff className="mr-2 h-4 w-4" /> Hang Up
+                        <PhoneOff className="mr-2 h-4 w-4" /> {callState === 'idle' ? 'Close' : 'Hang Up'}
                     </Button>
                 </div>
             )}

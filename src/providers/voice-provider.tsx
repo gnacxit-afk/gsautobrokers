@@ -11,7 +11,6 @@ interface VoiceContextType {
   callState: 'idle' | 'connecting' | 'ringing' | 'connected' | 'incoming' | 'error';
   error: string | null;
   initiateCall: (phoneNumber: string) => void;
-  connectCall: () => void;
   acceptCall: () => void;
   rejectCall: () => void;
   hangupCall: () => void;
@@ -57,14 +56,12 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const handleTracks = useCallback((call: Call) => {
-    if (audioRef.current) {
-      call.on('track', (track) => {
-        if (audioRef.current && track.kind === 'audio') {
-          const remoteStream = new MediaStream([track.mediaStreamTrack]);
-          audioRef.current.srcObject = remoteStream;
-        }
-      });
-    }
+    call.on('track', (track) => {
+      if (audioRef.current && track.kind === 'audio') {
+        const remoteStream = new MediaStream([track.mediaStreamTrack]);
+        audioRef.current.srcObject = remoteStream;
+      }
+    });
   }, []);
   
   useEffect(() => {
@@ -146,54 +143,46 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     };
   }, [user?.id, toast, cleanupCall]);
 
-  const initiateCall = useCallback((phoneNumber: string) => {
+  const initiateCall = useCallback(async (phoneNumber: string) => {
     const phoneRegex = /^\+1\d{10}$/;
-    if (!phoneNumber) {
-         toast({ title: "Invalid Number", description: "This lead does not have a valid phone number.", variant: "destructive" });
+    if (!phoneNumber || !phoneRegex.test(phoneNumber)) {
+        toast({ title: "Invalid Number Format", description: "Phone number must be in E.164 format for US calls (e.g., +1XXXXXXXXXX).", variant: "destructive" });
         return;
     }
-    if (!phoneRegex.test(phoneNumber)) {
-        toast({ title: "Invalid Number Format", description: "Phone number must be in the format +1XXXXXXXXXX for US calls.", variant: "destructive" });
-        return;
-    }
-    setNumberToDial(phoneNumber);
-    setShowDialer(true);
-    setCallState('idle');
-    setError(null);
-  }, [toast]);
 
-  const connectCall = useCallback(async () => {
-    if (!device || !isReady || !numberToDial) {
-        setError('Phone is not ready or number is missing. Please refresh the page and grant microphone permissions.');
+    if (!device || !isReady) {
+        setError('Phone is not ready. Please refresh and grant microphone permissions.');
         setCallState('error');
         setShowDialer(true);
         return;
     }
-
+    
+    setNumberToDial(phoneNumber);
+    setShowDialer(true);
     setCallState('connecting');
     setError(null);
-    try {
-        const call = await device.connect({ params: { To: numberToDial } });
-        setCurrentCall(call);
 
+    try {
+        const call = await device.connect({ params: { To: phoneNumber } });
+        setCurrentCall(call);
         handleTracks(call);
         
         call.on('ringing', () => setCallState('ringing'));
-        call.on('accept', () => {
-            setCallState('connected');
-        });
+        call.on('accept', () => setCallState('connected'));
         call.on('disconnect', cleanupCall);
         call.on('cancel', cleanupCall);
         call.on('error', (err) => {
             setError(err.message);
             setCallState('error');
+            setShowDialer(true);
         });
     } catch (err: any) {
         console.error('Call failed to connect:', err);
         setError(err.message);
         setCallState('error');
+        setShowDialer(true);
     }
-  }, [device, isReady, numberToDial, cleanupCall, handleTracks]);
+  }, [device, isReady, toast, cleanupCall, handleTracks]);
   
   const acceptCall = useCallback(() => {
     if (!incomingCall) return;
@@ -224,7 +213,6 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     callState,
     error,
     initiateCall,
-    connectCall,
     acceptCall,
     rejectCall,
     hangupCall,
