@@ -1,49 +1,55 @@
+import { NextRequest, NextResponse } from "next/server";
+import { twiml } from "twilio";
 
-import { NextResponse } from 'next/server';
-import Twilio from 'twilio';
+export async function POST(req: NextRequest) {
+  const response = new twiml.VoiceResponse();
 
-function xml(twiml: Twilio.twiml.VoiceResponse) {
-  return new NextResponse(twiml.toString(), {
-    status: 200,
-    headers: { 'Content-Type': 'text/xml' },
-  });
-}
-
-export async function POST(req: Request) {
-  const body = await req.text();
-  const params = new URLSearchParams(body);
-
-  const From = params.get('From');
-  const twiml = new Twilio.twiml.VoiceResponse();
-
-  // Hard validation: This endpoint is ONLY for inbound calls from real numbers
-  if (!From || From.startsWith('client:')) {
-    twiml.say({ language: 'es-MX' }, 'Llamada entrante no válida.');
-    twiml.hangup();
-    return xml(twiml);
-  }
-
-  twiml.say(
-    { voice: 'alice', language: 'es-MX' },
-    'Gracias por llamar a GS Autobrokers.'
+  /**
+   * 🎙️ MENSAJE INICIAL
+   */
+  response.say(
+    { language: "es-MX", voice: "alice" },
+    "Gracias por llamar a G S Auto Brokers."
   );
 
-  // IVR to gather user input
-  const gather = twiml.gather({
-    input: 'dtmf',
+  response.say(
+    { language: "es-MX", voice: "alice" },
+    "Por favor seleccione una de las siguientes opciones."
+  );
+
+  /**
+   * ⌨️ IVR - GATHER
+   */
+  const gather = response.gather({
+    input: "dtmf",
     numDigits: 1,
     timeout: 5,
-    action: '/api/twilio/inbound/handle-gather',
-    method: 'POST',
+    action: "/api/twilio/inbound/handle-gather",
+    method: "POST",
   });
+
   gather.say(
-    { voice: 'alice', language: 'es-MX' },
-    'Presione 1 para ventas. Presione 2 para soporte.'
+    { language: "es-MX", voice: "alice" },
+    "Para ventas, presione uno. Para seguimiento, presione dos. Para conocer nuestro horario, presione tres."
   );
 
-  // Fallback if no input is received
-  twiml.say({ voice: 'alice', language: 'es-MX' }, 'No recibimos su selección. Adiós.');
-  twiml.hangup();
+  /**
+   * ⚠️ FALLBACK SI NO PRESIONA NADA
+   * Twilio continúa el flujo si Gather no recibe input
+   */
+  response.say(
+    { language: "es-MX", voice: "alice" },
+    "No hemos recibido ninguna selección."
+  );
 
-  return xml(twiml);
+  response.redirect(
+    { method: "POST" },
+    "/api/twilio/inbound"
+  );
+
+  return new NextResponse(response.toString(), {
+    headers: {
+      "Content-Type": "text/xml",
+    },
+  });
 }
