@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     input: 'dtmf',
     numDigits: 1,
     timeout: 5,
-    action: '/api/twilio/voice/inbound/handle-gather',
+    action: '/api/twilio/handle-gather',
     method: 'POST',
   });
   gather.say(

@@ -41,7 +41,7 @@ export async function POST(req: Request) {
 
   dial.number({
     statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
-    statusCallback: '/api/twilio/voice/call-events',
+    statusCallback: '/api/twilio/call-events',
     statusCallbackMethod: 'POST',
   }, To);
 

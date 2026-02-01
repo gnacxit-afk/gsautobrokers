@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     return new NextResponse(null, { status: 200 });
   } catch (error) {
-    console.error('Error in /api/twilio/voice/call-events:', error);
+    console.error('Error in /api/twilio/call-events:', error);
     // Respond with 200 to prevent Twilio from retrying, even if our processing fails.
     return new NextResponse(null, { status: 200 });
   }

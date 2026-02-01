@@ -42,7 +42,7 @@ export async function POST(req: Request) {
 
   // Dial the hardcoded agent identity for the selected department
   dial.client({
-    statusCallback: '/api/twilio/voice/call-events',
+    statusCallback: '/api/twilio/call-events',
     statusCallbackMethod: 'POST',
     statusCallbackEvent: ['answered', 'completed'],
   }, agentIdentity);
