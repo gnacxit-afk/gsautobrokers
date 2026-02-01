@@ -1,10 +1,6 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import Twilio from "twilio";
-
-const client = Twilio(
-  process.env.TWILIO_ACCOUNT_SID!,
-  process.env.TWILIO_AUTH_TOKEN!
-);
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -31,6 +27,12 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Initialize the client inside the handler
+    const client = Twilio(
+      process.env.TWILIO_ACCOUNT_SID!,
+      process.env.TWILIO_AUTH_TOKEN!
+    );
+    
     const call = await client.calls.create({
       to,
       from: process.env.TWILIO_PHONE_NUMBER!,
