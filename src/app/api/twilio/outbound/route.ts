@@ -22,14 +22,22 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!siteUrl) {
+    return NextResponse.json(
+      { error: "Site URL is not configured." },
+      { status: 500 }
+    );
+  }
+
   try {
     const call = await client.calls.create({
       to,
       from: process.env.TWILIO_PHONE_NUMBER!,
-      url: "https://TU_DOMINIO/api/twilio/voice?direction=outbound",
+      url: `${siteUrl}/api/twilio/voice?direction=outbound`,
       method: "POST",
 
-      statusCallback: "https://TU_DOMINIO/api/twilio/call-events",
+      statusCallback: `${siteUrl}/api/twilio/call-events`,
       statusCallbackMethod: "POST",
       statusCallbackEvent: [
         "initiated",

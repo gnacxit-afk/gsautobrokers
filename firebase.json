@@ -12,5 +12,9 @@
         "apphosting": "gs-auto-brokers"
       }
     ]
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
   }
 }
