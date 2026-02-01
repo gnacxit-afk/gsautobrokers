@@ -45,7 +45,7 @@ export async function generateTwilioToken(identity: string) {
   );
 
   const voiceGrant = new VoiceGrant({
-    outgoingApplicationSid: "AP8d06eece366c206ca69621555bb44a7e",
+    outgoingApplicationSid: process.env.TWILIO_TWIML_APP_SID!,
     incomingAllow: canReceiveCalls,
   });
 
