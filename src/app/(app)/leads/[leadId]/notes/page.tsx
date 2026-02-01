@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
@@ -14,7 +12,7 @@ import type { Lead, NoteEntry, Staff, Dealership, Vehicle } from "@/lib/types";
 import { collection, orderBy, query, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, getDocs, writeBatch } from "firebase/firestore";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, User, Edit, ArrowLeft, MoreHorizontal, Users, ChevronsUpDown, Trash2, Edit2, Save, X, Calendar, Building, Car, Link2, XCircle, Wand2, Loader2, Phone } from "lucide-react";
+import { Bot, User, Edit, ArrowLeft, MoreHorizontal, Users, ChevronsUpDown, Trash2, Edit2, Save, X, Calendar, Building, Car, Link2, XCircle, Wand2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -58,7 +56,6 @@ import { Input } from "@/components/ui/input";
 import { addNoteEntry } from "@/lib/utils";
 import { generateFollowup } from "@/ai/flows/generate-followup-flow";
 import { SendWhatsappDialog } from "../../components/send-whatsapp-dialog";
-import { useVoice } from "@/providers/voice-provider";
 
 
 const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
@@ -108,7 +105,6 @@ export default function LeadDetailsPage() {
   const { user } = useUser();
   const { user: authUser } = useAuthContext();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const { initiateCall, callState } = useVoice();
 
   const leadDocRef = useMemo(() => firestore && leadId ? doc(firestore, 'leads', leadId) : null, [firestore, leadId]);
   const {data: lead, loading: leadLoading} = useDoc<Lead>(leadDocRef);
@@ -498,17 +494,6 @@ export default function LeadDetailsPage() {
                                 ) : (
                                     <div className="flex items-center gap-2">
                                         <Badge variant="outline" className="text-base py-1 text-primary border-primary/50 bg-primary/10 w-full justify-start">{lead.phone || 'N/A'}</Badge>
-                                        {lead.phone && (
-                                            <Button
-                                                size="icon"
-                                                variant="outline"
-                                                onClick={() => initiateCall(lead.phone)}
-                                                disabled={callState !== 'idle'}
-                                                className="shrink-0"
-                                            >
-                                                <Phone size={16} />
-                                            </Button>
-                                        )}
                                     </div>
                                 )}
                             </div>
