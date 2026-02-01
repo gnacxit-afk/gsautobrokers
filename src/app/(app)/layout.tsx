@@ -10,7 +10,6 @@ import {
   BookOpen,
   LogOut,
   PanelLeft,
-  PhoneCall,
   UserCircle2,
   TrendingUp,
   CheckSquare,
@@ -44,11 +43,9 @@ import { ContractSigningBanner } from '@/components/contracts/contract-signing-b
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Dialer } from "@/components/voice/dialer";
 
 const icons: { [key: string]: LucideIcon } = {
   LayoutDashboard,
-  PhoneCall,
   Calendar,
   CheckSquare,
   TrendingUp,
@@ -74,8 +71,7 @@ const navItems: NavItemGroup[] = [
     heading: 'CRM',
     items: [
       { href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard", role: ["Admin", "Supervisor"] },
-      { href: "/leads", label: "Leads / CRM", icon: "PhoneCall", role: ["Admin", "Supervisor", "Broker"] },
-      { href: "/calls", label: "Call Logs", icon: "PhoneCall", role: ["Admin", "Supervisor"] },
+      { href: "/leads", label: "Leads / CRM", icon: "Users", role: ["Admin", "Supervisor", "Broker"] },
       { href: "/appointments", label: "Appointments", icon: "Calendar", role: ["Admin", "Supervisor", "Broker"] },
       { href: "/todos", label: "Daily To-Do", icon: "CheckSquare", role: ["Admin", "Supervisor"] },
       { href: "/kpi", label: "KPI's & Performance", icon: "TrendingUp", role: ["Admin", "Supervisor", "Broker"] },
@@ -147,8 +143,6 @@ function MainNav({ items, onLinkClick }: { items: NavItemGroup[], onLinkClick?: 
 
   if (!user) return null;
   
-  // Get all headings for the groups the user has access to.
-  // This will be used to keep the accordion sections open by default.
   const defaultExpanded = items
     .filter(group => hasAccess(user.role, group.role) && group.heading)
     .map(group => group.heading!);
@@ -332,7 +326,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex-1 overflow-y-auto p-4 md:p-8 relative">
              <ContractSigningBanner />
             {children}
-            <Dialer />
           </div>
         </main>
       </div>
