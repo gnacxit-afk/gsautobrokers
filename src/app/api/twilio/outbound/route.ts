@@ -1,49 +1,58 @@
-'use server';
-import { NextResponse } from 'next/server';
-import Twilio from 'twilio';
+import { NextRequest, NextResponse } from "next/server";
+import Twilio from "twilio";
 
-// helper
-function xml(twiml: Twilio.twiml.VoiceResponse) {
-  return new NextResponse(twiml.toString(), {
-    status: 200,
-    headers: { 'Content-Type': 'text/xml' },
-  });
-}
+const client = Twilio(
+  process.env.TWILIO_ACCOUNT_SID!,
+  process.env.TWILIO_AUTH_TOKEN!
+);
 
-export async function POST(req: Request) {
-  const body = await req.text();
-  const params = new URLSearchParams(body);
+export async function POST(req: NextRequest) {
+  const body = await req.json();
 
-  const From = params.get('From');
-  const To = params.get('To');
+  const {
+    to,              // Número del cliente
+    agentNumber,     // Número del agente (opcional)
+    metadata,        // Lead ID, campaign, etc
+  } = body;
 
-  const twiml = new Twilio.twiml.VoiceResponse();
-
-  // 🔒 HARD VALIDATIONS (non-negotiable)
-  if (!From?.startsWith('client:')) {
-    twiml.say('Invalid outbound caller.');
-    twiml.hangup();
-    return xml(twiml);
+  if (!to) {
+    return NextResponse.json(
+      { error: "Missing destination number" },
+      { status: 400 }
+    );
   }
 
-  if (!To || !To.startsWith('+')) {
-    twiml.say('Invalid destination number.');
-    twiml.hangup();
-    return xml(twiml);
+  try {
+    const call = await client.calls.create({
+      to,
+      from: process.env.TWILIO_PHONE_NUMBER!,
+      url: "https://TU_DOMINIO/api/twilio/voice?direction=outbound",
+      method: "POST",
+
+      statusCallback: "https://TU_DOMINIO/api/twilio/call-events",
+      statusCallbackMethod: "POST",
+      statusCallbackEvent: [
+        "initiated",
+        "ringing",
+        "answered",
+        "completed",
+      ],
+
+      // Opcional pero recomendable
+      record: true,
+    });
+
+    return NextResponse.json({
+      success: true,
+      callSid: call.sid,
+    });
+
+  } catch (error: any) {
+    console.error("OUTBOUND ERROR", error);
+
+    return NextResponse.json(
+      { error: "Failed to create outbound call" },
+      { status: 500 }
+    );
   }
-
-  // 📞 REAL DIAL
-  const dial = twiml.dial({
-    callerId: process.env.TWILIO_PHONE_NUMBER,
-    record: 'record-from-answer-dual',
-    answerOnBridge: true,
-  });
-
-  dial.number({
-    statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
-    statusCallback: '/api/twilio/call-events',
-    statusCallbackMethod: 'POST',
-  }, To);
-
-  return xml(twiml);
 }
