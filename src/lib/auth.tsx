@@ -90,11 +90,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
     }
 
-    const isPublicPath = PUBLIC_PATHS.includes(pathname) || pathname.startsWith('/inventory/vehicle') || pathname.startsWith('/training/certificate');
+    const isPublicPath = PUBLIC_PATHS.some(path => pathname === path || (path !== '/' && pathname.startsWith(path))) || pathname.startsWith('/inventory/vehicle') || pathname.startsWith('/training/certificate');
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      // If on a public path, don't show a loader while checking auth.
-      // The page will render, and if the user is logged in, a redirect will happen later.
       if (isPublicPath) {
         setLoading(false);
       } else {
@@ -107,6 +105,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (userProfile) {
             setUser(userProfile);
             setAuthError(null);
+            if (isPublicPath) {
+              router.push('/dashboard');
+            }
           } else {
             setUser(null);
             setAuthError("Your user profile could not be found.");
@@ -117,19 +118,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
           setAuthError(error.message || "An error occurred fetching your profile.");
           await signOut(auth);
+          setLoading(false); // Ensure loading is false on profile fetch error
         }
       } else {
         setUser(null);
       }
 
-      // Finally, set loading to false for protected routes after check is complete.
       if (!isPublicPath) {
         setLoading(false);
       }
     });
 
     return () => unsubscribe();
-  }, [auth, firestore, fetchAppUser, pathname]);
+  }, [auth, firestore, fetchAppUser, pathname, router]);
+
 
   const login = useCallback(async (email: string, pass: string): Promise<void> => {
     if (!auth) {
@@ -140,6 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthError(null);
     try {
         await signInWithEmailAndPassword(auth, email, pass);
+        // On success, the onAuthStateChanged listener will handle setting user and loading state.
     } catch (error: any) {
         let friendlyMessage = "An unexpected error occurred.";
         switch (error.code) {
