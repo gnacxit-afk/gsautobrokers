@@ -66,6 +66,7 @@ export type Article = {
   date: Timestamp | Date | string;
   tags: string[];
   category: string;
+  version?: string;
   align?: 'left' | 'center' | 'right';
 };
 
