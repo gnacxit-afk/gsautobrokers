@@ -1,17 +1,16 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import type { DailyChecklist, ChecklistTask } from '@/lib/types';
 import { useFirestore, useUser } from '@/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, type Timestamp } from 'firebase/firestore';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, CheckCircle } from 'lucide-react';
 
@@ -71,6 +70,20 @@ interface DailyChecklistProps {
   loading: boolean;
 }
 
+// Helper function to safely get a Date object from a Firestore Timestamp or other value
+const getJsDate = (timestamp: any): Date | null => {
+    if (!timestamp) return null;
+    // Check if it's a Firestore Timestamp
+    if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+        return timestamp.toDate();
+    }
+    // If it's already a JS Date
+    if (timestamp instanceof Date) {
+        return timestamp;
+    }
+    return null;
+};
+
 export function DailyChecklistComponent({ checklistData, loading }: DailyChecklistProps) {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -96,7 +109,7 @@ export function DailyChecklistComponent({ checklistData, loading }: DailyCheckli
 
     const task = tasks[taskId];
     if (task.completed) {
-      const completionTime = (task.timestamp as any)?.toDate();
+      const completionTime = getJsDate(task.timestamp);
       if (completionTime && (new Date().getTime() - completionTime.getTime()) > 5 * 60 * 1000) {
         alert("No se puede desmarcar una tarea después de 5 minutos.");
         return;
@@ -141,6 +154,8 @@ export function DailyChecklistComponent({ checklistData, loading }: DailyCheckli
         <AccordionContent className="space-y-3 pl-2">
           {section.tasks.map(task => {
             const taskState = tasks[task.id];
+            const completionDate = getJsDate(taskState?.timestamp);
+
             return (
               <TooltipProvider key={task.id}>
                 <Tooltip>
@@ -156,9 +171,9 @@ export function DailyChecklistComponent({ checklistData, loading }: DailyCheckli
                       </Label>
                     </div>
                   </TooltipTrigger>
-                  {taskState?.completed && taskState.timestamp && (
+                  {taskState?.completed && (
                     <TooltipContent>
-                      <p>Completed at: {format((taskState.timestamp as any).toDate(), 'pp')}</p>
+                      <p>Completed at: {completionDate ? format(completionDate, 'pp') : 'Just now'}</p>
                     </TooltipContent>
                   )}
                 </Tooltip>
