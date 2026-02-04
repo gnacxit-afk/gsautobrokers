@@ -3,13 +3,14 @@
 
 import { useState } from 'react';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, writeBatch, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
+import { collection, writeBatch, getDocs, query, where, serverTimestamp, doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { articlesToSeed } from '@/lib/knowledge-base-seeder-data';
 import { Loader2, BookCheck } from 'lucide-react';
 import { AccessDenied } from '@/components/access-denied';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SeederPage() {
   const { user } = useUser();
@@ -40,7 +41,7 @@ export default function SeederPage() {
   });
 
   const handleSeed = async () => {
-    if (!firestore) {
+    if (!firestore || !user) {
       toast({ title: 'Error', description: 'Firestore is not available.', variant: 'destructive' });
       return;
     }
