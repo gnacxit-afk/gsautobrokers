@@ -112,6 +112,13 @@ const navItems: NavItemGroup[] = [
       { href: '/training/admin/progress', label: 'User Progress', icon: 'LineChart', role: ["Admin", "Supervisor"] },
     ]
   },
+  {
+    heading: 'Admin',
+    role: ["Admin"],
+    items: [
+        { href: '/admin/seeder', label: 'Content Seeder', icon: 'Archive' },
+    ]
+  },
 ];
 
 
@@ -291,6 +298,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     if (pathname.startsWith('/inventory/management')) return 'Inventory Management';
     if (pathname.startsWith('/training/admin/courses/new')) return 'New Course';
     if (pathname.startsWith('/training/admin/courses/edit')) return 'Edit Course';
+    if (pathname.startsWith('/admin/seeder')) return 'Content Seeder';
 
 
     return 'Dashboard';
