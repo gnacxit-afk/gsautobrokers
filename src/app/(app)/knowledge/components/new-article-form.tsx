@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm, Controller } from 'react-hook-form';
@@ -17,12 +16,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import type { Article } from '@/lib/types';
-import { useEffect, useState } from 'react';
-import { MarkdownRenderer } from '@/components/markdown-renderer';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { useEffect } from 'react';
+import MDEditor from '@uiw/react-md-editor';
 
 const articleSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters.'),
@@ -43,29 +40,18 @@ export function NewArticleForm({ onArticleCreated, editingArticle, onArticleUpda
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
-  const [contentPreview, setContentPreview] = useState('');
   
   const isEditing = !!editingArticle;
 
   const {
     register,
     handleSubmit,
+    control,
     reset,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<ArticleFormValues>({
     resolver: zodResolver(articleSchema),
   });
-
-  const watchedContent = watch('content');
-
-  useEffect(() => {
-    if (watchedContent) {
-        setContentPreview(watchedContent);
-    } else {
-        setContentPreview('');
-    }
-  }, [watchedContent]);
 
   useEffect(() => {
     if (isEditing && editingArticle) {
@@ -74,10 +60,8 @@ export function NewArticleForm({ onArticleCreated, editingArticle, onArticleUpda
             category: editingArticle.category,
             content: editingArticle.content,
         });
-        setContentPreview(editingArticle.content);
     } else {
         reset({ title: '', category: '', content: '' });
-        setContentPreview('');
     }
   }, [isEditing, editingArticle, reset]);
 
@@ -146,37 +130,34 @@ export function NewArticleForm({ onArticleCreated, editingArticle, onArticleUpda
             {isEditing ? `You are editing "${editingArticle?.title}".` : 'Author a new knowledge base article. Use Markdown for formatting.'}
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Editor Side */}
-            <div className="space-y-6">
-                <div className="space-y-2">
-                    <Label htmlFor="title">Article Title</Label>
-                    <Input id="title" {...register('title')} placeholder="e.g., How to Handle Objections" />
-                    {errors.title && <p className="text-xs text-red-500">{errors.title.message}</p>}
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="category">Category</Label>
-                    <Input id="category" {...register('category')} placeholder="e.g., Sales, Products" />
-                    {errors.category && <p className="text-xs text-red-500">{errors.category.message}</p>}
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="content">Content (Markdown)</Label>
-                    <Textarea
-                    id="content"
-                    {...register('content')}
-                    placeholder="Use Markdown for formatting, e.g., # Heading, - List item..."
-                    rows={15}
-                    />
-                    {errors.content && <p className="text-xs text-red-500">{errors.content.message}</p>}
-                </div>
-            </div>
-
-            {/* Preview Side */}
+        <CardContent className="space-y-6">
             <div className="space-y-2">
-                <Label>Live Preview</Label>
-                <ScrollArea className="h-[460px] w-full rounded-md border p-4 bg-slate-50">
-                    <MarkdownRenderer content={contentPreview} />
-                </ScrollArea>
+                <Label htmlFor="title">Article Title</Label>
+                <Input id="title" {...register('title')} placeholder="e.g., How to Handle Objections" />
+                {errors.title && <p className="text-xs text-red-500">{errors.title.message}</p>}
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <Input id="category" {...register('category')} placeholder="e.g., Sales, Products" />
+                {errors.category && <p className="text-xs text-red-500">{errors.category.message}</p>}
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="content">Content (Markdown)</Label>
+                <div data-color-mode="light" className="mt-2">
+                   <Controller
+                      name="content"
+                      control={control}
+                      render={({ field }) => (
+                          <MDEditor
+                              height={400}
+                              value={field.value}
+                              onChange={field.onChange}
+                              preview="live"
+                          />
+                      )}
+                    />
+                </div>
+                {errors.content && <p className="text-xs text-red-500 mt-1">{errors.content.message}</p>}
             </div>
         </CardContent>
         <CardFooter className="flex justify-end gap-2">
