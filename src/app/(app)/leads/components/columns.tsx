@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import type { ColumnDef, Row } from "@tanstack/react-table";
@@ -304,3 +303,4 @@ export const getColumns = (
     },
   },
 ];
+    
