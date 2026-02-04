@@ -14,7 +14,6 @@ import {
 } from "firebase/auth";
 
 export const MASTER_ADMIN_EMAIL = "gnacxit@gmail.com";
-const PUBLIC_ROUTES = ['/login', '/apply', '/'];
 
 interface AuthContextType {
   user: User | null;
@@ -38,7 +37,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const auth = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
   
   const fetchAppUser = useCallback(async (fbUser: FirebaseUser): Promise<User | null> => {
     if (!firestore) throw new Error("Firestore not initialized");
@@ -93,8 +91,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(true); 
         return;
     }
-    
-    const isPublicRoute = PUBLIC_ROUTES.some(route => pathname.startsWith(route));
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
@@ -104,38 +100,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (userProfile) {
             setUser(userProfile);
             setAuthError(null);
-            
-            if (pathname === '/login') {
-                if (userProfile.role === 'Admin' || userProfile.role === 'Supervisor') {
-                    router.replace('/dashboard');
-                } else {
-                    router.replace('/kpi');
-                }
-            }
           } else {
             setUser(null);
             setAuthError("Your user profile could not be found.");
             await signOut(auth);
-            if (!isPublicRoute) router.replace('/login');
           }
         } catch (error: any) {
           console.error("Failed to fetch app user profile:", error);
           setUser(null);
           setAuthError(error.message || "An error occurred fetching your profile.");
           await signOut(auth);
-          if (!isPublicRoute) router.replace('/login');
         }
       } else {
         setUser(null);
-         if (!isPublicRoute) {
-            router.replace('/login');
-         }
       }
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [auth, firestore, fetchAppUser, router, pathname]);
+  }, [auth, firestore, fetchAppUser]);
 
   const login = useCallback(async (email: string, pass: string): Promise<void> => {
     if (!auth) {

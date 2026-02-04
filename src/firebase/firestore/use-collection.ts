@@ -62,7 +62,7 @@ export function useCollection<T>(q: Query<DocumentData> | null) {
 
     return () => unsubscribe();
     // The effect should ONLY re-run if the stringified query key changes.
-  }, [queryKey]);
+  }, [queryKey, q]);
 
   return { data, loading, error };
 }
