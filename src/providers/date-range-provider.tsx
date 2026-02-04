@@ -11,7 +11,7 @@ export interface DateRange {
 
 interface DateRangeContextType {
   dateRange: DateRange;
-  setDateRange: React.Dispatch<React.SetStateAction<DateRange>>;
+  setDateRange: (newRange: Partial<DateRange>) => void;
   resetDateRange: () => void;
 }
 
@@ -29,21 +29,18 @@ interface DateRangeProviderProps {
 }
 
 export function DateRangeProvider({ children, initialDateRange, onDateChange }: DateRangeProviderProps) {
-  // 1. Initialize state with a static, hardcoded value to ensure server and client renders match.
   const [dateRange, setDateRangeState] = useState<DateRange>(() => {
     if (initialDateRange) {
       return initialDateRange;
     }
-    // This static date is a placeholder to prevent hydration errors.
-    // It will be immediately updated by the useEffect on the client.
+    // Use a static date for the initial render to prevent hydration mismatch.
     return {
         start: new Date(2024, 0, 1),
         end: new Date(2024, 0, 31)
     };
   });
 
-  // 2. This effect runs only on the client, after the initial render.
-  // It safely updates the state to the correct, dynamic date range.
+  // This effect runs only on the client to set the correct dynamic default date range.
   useEffect(() => {
     if (!initialDateRange) {
       setDateRangeState(getDefaultDateRange());
@@ -51,13 +48,15 @@ export function DateRangeProvider({ children, initialDateRange, onDateChange }: 
   }, [initialDateRange]);
 
 
-  const setDateRange = useCallback((newRange: React.SetStateAction<DateRange>) => {
-    const resolvedRange = typeof newRange === 'function' ? newRange(dateRange) : newRange;
-    setDateRangeState(resolvedRange);
-    if (onDateChange) {
-      onDateChange(resolvedRange);
-    }
-  }, [dateRange, onDateChange]);
+  const setDateRange = useCallback((newRange: Partial<DateRange>) => {
+    setDateRangeState(prev => {
+        const resolvedRange = { ...prev, ...newRange };
+        if (onDateChange) {
+            onDateChange(resolvedRange);
+        }
+        return resolvedRange;
+    });
+  }, [onDateChange]);
 
   const resetDateRange = useCallback(() => {
     const defaultRange = getDefaultDateRange();

@@ -29,6 +29,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const PUBLIC_PATHS = ['/login', '/apply', '/inventory', '/privacy', '/terms', '/cookie-policy', '/'];
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -37,11 +39,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const auth = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   
   const fetchAppUser = useCallback(async (fbUser: FirebaseUser): Promise<User | null> => {
     if (!firestore) throw new Error("Firestore not initialized");
 
-    // 1. Primary, most efficient fetch: by direct document ID (UID)
     const staffDocRef = doc(firestore, 'staff', fbUser.uid);
     const staffDocSnap = await getDoc(staffDocRef);
 
@@ -53,7 +55,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } as User;
     }
 
-    // 2. Secondary fetch: query by `authUid` field for legacy data
     const staffCollection = collection(firestore, 'staff');
     const q = query(staffCollection, where("authUid", "==", fbUser.uid));
     const querySnapshot = await getDocs(q);
@@ -63,7 +64,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { id: userDoc.id, ...userDoc.data() } as User;
     }
     
-    // 3. Special case: Create Master Admin profile if it doesn't exist
     if (fbUser.email === MASTER_ADMIN_EMAIL) {
         console.log("Master Admin profile not found, creating it...");
         const newAdminProfile: Omit<Staff, 'id'> = {
@@ -76,12 +76,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             avatarUrl: '',
             dui: "04451625-5",
         };
-        // Use the UID as the document ID for consistency
         await setDoc(doc(firestore, 'staff', fbUser.uid), newAdminProfile);
         return { id: fbUser.uid, ...newAdminProfile } as User;
     }
     
-    // If no profile is found after all checks, the user is not a valid staff member.
     console.error("User profile not found in 'staff' collection for UID:", fbUser.uid);
     return null;
   }, [firestore]);
@@ -92,8 +90,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
     }
 
+    const isPublicPath = PUBLIC_PATHS.includes(pathname) || pathname.startsWith('/inventory/vehicle') || pathname.startsWith('/training/certificate');
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setLoading(true);
+      // If on a public path, don't show a loader while checking auth.
+      // The page will render, and if the user is logged in, a redirect will happen later.
+      if (isPublicPath) {
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+
       if (firebaseUser) {
         try {
           const userProfile = await fetchAppUser(firebaseUser);
@@ -114,11 +121,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setUser(null);
       }
-      setLoading(false);
+
+      // Finally, set loading to false for protected routes after check is complete.
+      if (!isPublicPath) {
+        setLoading(false);
+      }
     });
 
     return () => unsubscribe();
-  }, [auth, firestore, fetchAppUser]);
+  }, [auth, firestore, fetchAppUser, pathname]);
 
   const login = useCallback(async (email: string, pass: string): Promise<void> => {
     if (!auth) {
@@ -129,7 +140,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthError(null);
     try {
         await signInWithEmailAndPassword(auth, email, pass);
-        // onAuthStateChanged will handle the rest, including redirection.
     } catch (error: any) {
         let friendlyMessage = "An unexpected error occurred.";
         switch (error.code) {
