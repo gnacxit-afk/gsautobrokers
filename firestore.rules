@@ -1,4 +1,5 @@
 
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -207,6 +208,12 @@ service cloud.firestore {
       allow create: if isOwner(request.resource.data.userId);
       // Only Admins can modify or delete certificates
       allow update, delete: if isAdmin();
+    }
+    
+    // Daily Checklist Rules
+    match /checklists/{userId}/{date} {
+      allow read: if isOwner(userId) || isAdmin() || getUserRole() == 'Supervisor';
+      allow create, update: if isOwner(userId);
     }
   }
 }

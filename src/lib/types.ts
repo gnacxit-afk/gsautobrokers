@@ -344,3 +344,19 @@ export type CallRecord = {
   recordingUrl?: string;
   notes?: string;
 };
+
+export type ChecklistTask = {
+  id: string;
+  label: string;
+  completed: boolean;
+  timestamp: Timestamp | null;
+};
+
+export type DailyChecklist = {
+    id?: string; // YYYY-MM-DD
+    userId: string;
+    tasks: { [taskId: string]: { completed: boolean; timestamp: Timestamp | null } };
+    metadata: {
+        lastUpdated: Timestamp;
+    }
+};
