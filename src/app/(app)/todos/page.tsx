@@ -40,7 +40,8 @@ export default function TodosPage() {
 
   const checklistDocRef = useMemo(() => {
       if (!firestore || !user) return null;
-      return doc(firestore, `checklists/${user.id}/${today}`);
+      const checklistId = `${user.id}_${today}`;
+      return doc(firestore, `checklists`, checklistId);
   }, [firestore, user, today]);
 
   const { data: todos, loading: todosLoading } = useCollection<Todo>(todosQuery);

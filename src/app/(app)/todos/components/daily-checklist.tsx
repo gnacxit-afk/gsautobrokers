@@ -112,9 +112,11 @@ export function DailyChecklistComponent({ checklistData, loading }: DailyCheckli
     };
     setTasks(newTasks);
 
-    const checklistRef = doc(firestore, `checklists/${user.id}/${today}`);
+    const checklistId = `${user.id}_${today}`;
+    const checklistRef = doc(firestore, 'checklists', checklistId);
     await setDoc(checklistRef, {
         userId: user.id,
+        date: today,
         tasks: newTasks,
         metadata: {
             lastUpdated: serverTimestamp()
@@ -220,4 +222,3 @@ export function DailyChecklistComponent({ checklistData, loading }: DailyCheckli
     </Card>
   );
 }
-

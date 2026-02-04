@@ -56,6 +56,11 @@ service cloud.firestore {
       return isSignedIn() && getUserRole() == 'Admin';
     }
 
+    function getUserIdFromChecklistId(checklistId) {
+      // Assumes format is "userId_YYYY-MM-DD"
+      return checklistId.split('_')[0];
+    }
+
 
     // ----------------------------------------------------------------------
     // Application Rules (Authenticated Routes)
@@ -206,9 +211,9 @@ service cloud.firestore {
     }
     
     // Daily Checklist Rules
-    match /checklists/{userId}/{date} {
-      allow read: if isOwner(userId) || isAdmin() || getUserRole() == 'Supervisor';
-      allow create, update: if isOwner(userId);
+    match /checklists/{checklistId} {
+      allow read: if isOwner(getUserIdFromChecklistId(checklistId)) || isAdmin() || getUserRole() == 'Supervisor';
+      allow create, update: if request.resource.data.userId == request.auth.uid;
     }
   }
 }
