@@ -220,10 +220,6 @@
         "commission": {
           "type": "number",
           "description": "The fixed commission amount per vehicle sold by this staff member."
-        },
-        "canReceiveIncomingCalls": {
-            "type": "boolean",
-            "description": "If true, this user is able to receive incoming calls routed by the system."
         }
       },
       "required": [
@@ -577,22 +573,6 @@
         "soldAt": { "type": "string", "format": "date-time", "description": "The timestamp when the vehicle was marked as sold." }
       },
       "required": ["status", "createdAt", "dealershipId", "dealershipCode", "commission"]
-    },
-    "CallRecord": {
-      "title": "CallRecord",
-      "type": "object",
-      "description": "Represents a call log entry associated with a lead.",
-      "properties": {
-        "leadId": { "type": "string" },
-        "leadName": { "type": "string" },
-        "agentId": { "type": "string" },
-        "startTime": { "type": "string", "format": "date-time" },
-        "durationInSeconds": { "type": "number" },
-        "status": { "type": "string", "enum": ["initiated", "completed", "no-answer", "failed"] },
-        "recordingUrl": { "type": "string" },
-        "notes": { "type": "string" }
-      },
-      "required": ["agentId", "leadId", "leadName", "startTime", "status"]
     }
   },
   "auth": {
@@ -671,26 +651,6 @@
             {
                 "name": "noteId",
                 "description": "The unique note ID."
-            }
-          ]
-        }
-      },
-      {
-        "path": "leads/{leadId}/calls/{callId}",
-        "definition": {
-          "entityName": "CallRecord",
-          "schema": {
-            "$ref": "#/backend/entities/CallRecord"
-          },
-          "description": "Stores call history for a lead.",
-          "params": [
-            {
-              "name": "leadId",
-              "description": "The unique lead ID."
-            },
-            {
-              "name": "callId",
-              "description": "The unique call ID."
             }
           ]
         }

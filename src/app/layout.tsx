@@ -7,7 +7,6 @@ import { FirebaseClientProvider } from "@/firebase/client-provider";
 import { AuthProvider } from "@/lib/auth";
 import { Suspense } from "react";
 import { DateRangeProvider } from "@/providers/date-range-provider";
-import { VoiceProvider } from "@/providers/voice-provider";
 
 
 const manrope = Manrope({ subsets: ["latin"], weight: ['400', '500', '700', '800'], variable: "--font-sans" });
@@ -40,9 +39,7 @@ export default function RootLayout({
           <FirebaseClientProvider>
             <AuthProvider>
               <DateRangeProvider>
-                <VoiceProvider>
-                  {children}
-                </VoiceProvider>
+                {children}
               </DateRangeProvider>
             </AuthProvider>
           </FirebaseClientProvider>
