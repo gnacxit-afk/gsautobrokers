@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -53,32 +52,59 @@ export function BonusStatus({ allLeads, loading }: { allLeads: Lead[]; loading: 
     return <Card><CardContent><Skeleton className="h-64 w-full" /></CardContent></Card>;
   }
 
-  const userBonus = staffBonuses.find(b => b.staffId === user?.id);
+  if (user?.role === 'Broker') {
+    const userBonus = staffBonuses.find(b => b.staffId === user?.id);
 
-  if (user?.role === 'Broker' && userBonus) {
-     return (
-        <Card className="bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-100">
+    if (userBonus) {
+        return (
+            <Card className="bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-100">
+                <CardHeader className="text-center">
+                    <Trophy className="mx-auto h-10 w-10 text-yellow-500 mb-2" />
+                    <CardTitle className="text-xl">Your 30-Day Bonus Progress</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col items-center gap-4">
+                    <p className="text-5xl font-bold text-indigo-600">${userBonus.bonus.toLocaleString('en-US')}</p>
+                    <div className="w-full max-w-sm text-center">
+                        <ProgressBar sales={userBonus.sales} nextGoal={userBonus.nextGoal} color="from-yellow-400 to-orange-500" />
+                        <div className="flex justify-between text-xs font-medium text-slate-500 mt-1.5">
+                            <span>{userBonus.sales} Sales</span>
+                            <span>Goal: {userBonus.nextGoal}</span>
+                        </div>
+                    </div>
+                    <p className="text-sm text-slate-600">
+                        You need <span className="font-bold text-indigo-700">{userBonus.needed} more sales</span> to reach the next bonus of <span className="font-bold text-indigo-700">${calculateBonus(userBonus.nextGoal).toLocaleString('en-US')}</span>.
+                    </p>
+                </CardContent>
+            </Card>
+        );
+    }
+    
+    // If broker has no sales, show a personalized card with 0 sales.
+    const { nextGoal, needed } = getNextBonusGoal(0);
+    return (
+        <Card className="bg-gradient-to-br from-slate-50 to-gray-100 border-slate-200">
             <CardHeader className="text-center">
-                <Trophy className="mx-auto h-10 w-10 text-yellow-500 mb-2" />
+                <Trophy className="mx-auto h-10 w-10 text-slate-400 mb-2" />
                 <CardTitle className="text-xl">Your 30-Day Bonus Progress</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col items-center gap-4">
-                 <p className="text-5xl font-bold text-indigo-600">${userBonus.bonus.toLocaleString('en-US')}</p>
-                 <div className="w-full max-w-sm text-center">
-                    <ProgressBar sales={userBonus.sales} nextGoal={userBonus.nextGoal} color="from-yellow-400 to-orange-500" />
+                <p className="text-5xl font-bold text-slate-500">$0</p>
+                <div className="w-full max-w-sm text-center">
+                    <ProgressBar sales={0} nextGoal={nextGoal} color="from-slate-300 to-slate-400" />
                     <div className="flex justify-between text-xs font-medium text-slate-500 mt-1.5">
-                        <span>{userBonus.sales} Sales</span>
-                        <span>Goal: {userBonus.nextGoal}</span>
+                        <span>0 Sales</span>
+                        <span>Goal: {nextGoal}</span>
                     </div>
-                 </div>
-                 <p className="text-sm text-slate-600">
-                    You need <span className="font-bold text-indigo-700">{userBonus.needed} more sales</span> to reach the next bonus of <span className="font-bold text-indigo-700">${calculateBonus(userBonus.nextGoal).toLocaleString('en-US')}</span>.
-                 </p>
+                </div>
+                <p className="text-sm text-slate-600">
+                    You need <span className="font-bold text-primary">{needed} sales</span> to reach your first bonus of <span className="font-bold text-primary">${calculateBonus(nextGoal).toLocaleString('en-US')}</span>.
+                </p>
             </CardContent>
         </Card>
-     )
+    );
   }
 
+  // Admin and Supervisor View
   return (
     <Card>
       <Table>
