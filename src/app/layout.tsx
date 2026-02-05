@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
 import { Suspense } from "react";
+import { Providers } from "./providers";
 
 const manrope = Manrope({ subsets: ["latin"], weight: ['400', '500', '700', '800'], variable: "--font-sans" });
 
@@ -32,7 +33,9 @@ export default function RootLayout({
         )}
       >
         <Suspense>
-          {children}
+          <Providers>
+            {children}
+          </Providers>
         </Suspense>
         <Toaster />
       </body>

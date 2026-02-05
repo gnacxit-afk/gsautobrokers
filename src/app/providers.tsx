@@ -2,15 +2,13 @@
 
 import { FirebaseClientProvider } from "@/firebase/client-provider";
 import { AuthProvider } from "@/lib/auth";
-import { DateRangeProvider } from "@/providers/date-range-provider";
 
+// These are the top-level providers that wrap the entire application.
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <FirebaseClientProvider>
       <AuthProvider>
-        <DateRangeProvider>
-            {children}
-        </DateRangeProvider>
+        {children}
       </AuthProvider>
     </FirebaseClientProvider>
   );
