@@ -29,6 +29,7 @@ import {
   UserX,
   Archive,
   UploadCloud,
+  Car,
   type LucideIcon,
 } from "lucide-react";
 
@@ -68,6 +69,7 @@ const icons: { [key: string]: LucideIcon } = {
   UserX,
   Archive,
   UploadCloud,
+  Car,
 };
 
 const navItems: NavItemGroup[] = [
@@ -80,6 +82,13 @@ const navItems: NavItemGroup[] = [
       { href: "/todos", label: "Daily To-Do", icon: "CheckSquare", role: ["Admin", "Supervisor", "Broker"] },
       { href: "/kpi", label: "KPI's & Performance", icon: "TrendingUp", role: ["Admin", "Supervisor", "Broker"] },
       { href: "/knowledge", label: "Knowledge Base", icon: "BookOpen", role: ["Admin", "Supervisor", "Broker"] },
+    ]
+  },
+   {
+    heading: 'Inventory',
+    role: ["Admin", "Supervisor", "Broker"],
+    items: [
+      { href: "/inventory/management", label: "Vehicle Inventory", icon: "Car", role: ["Admin", "Supervisor", "Broker"] },
     ]
   },
   {
@@ -149,7 +158,7 @@ function MainNav({ items, onLinkClick }: { items: NavItemGroup[], onLinkClick?: 
   
   return (
     <nav className="flex-1 px-4 space-y-2">
-      <Accordion type="multiple" defaultValue={['CRM', 'Recruiting', 'Training', 'Admin']} className="w-full">
+      <Accordion type="multiple" defaultValue={['CRM', 'Inventory', 'Recruiting', 'Training', 'Admin']} className="w-full">
         {items.map((group) => (
            hasAccess(user.role, group.role) && group.heading && group.items && Array.isArray(group.items) && (
             <AccordionItem key={group.heading} value={group.heading} className="border-b-0">
@@ -259,7 +268,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
     if (user && pathname === '/login') {
       // If user is logged in and tries to go to login page, redirect to dashboard
-      router.replace('/dashboard');
+      router.replace('/leads');
     } else if (!user && !isPublicPath) {
       // If user is not logged in and not on a public path, redirect to login
       router.replace('/login');
