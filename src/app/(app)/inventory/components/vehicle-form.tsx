@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm, Controller } from 'react-hook-form';
@@ -78,10 +79,9 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
         if (vehicle.photos) {
           setImagePreviews(vehicle.photos);
         }
-    } else if (!isEditing && dealerships) {
-        const defaultDealership = dealerships.find(d => d.name === "USA Auto Brokers");
+    } else if (!isEditing) {
         reset({
-            dealershipId: defaultDealership?.id || '',
+            dealershipId: '',
             downPayment: 1500,
             condition: 'Used',
             transmission: 'Automatic',
@@ -94,7 +94,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
             mileage: 0,
         });
     }
-  }, [isEditing, vehicle, reset, dealerships]);
+  }, [isEditing, vehicle, reset]);
 
   const watchedDealershipId = watch('dealershipId');
 
