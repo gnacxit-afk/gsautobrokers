@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
-import type { Candidate } from '@/lib/types';
+import type { Candidate, Staff } from '@/lib/types';
 import { CandidateTable } from '../../components/candidate-table';
 
 export default function NewApplicantsPage() {
@@ -19,7 +19,13 @@ export default function NewApplicantsPage() {
     );
   }, [firestore]);
 
-  const { data: candidates, loading } = useCollection<Candidate>(applicationsQuery);
+  const { data: candidates, loading: candidatesLoading } = useCollection<Candidate>(applicationsQuery);
+
+  const staffQuery = useMemo(() => {
+      if (!firestore) return null;
+      return query(collection(firestore, 'staff'));
+  }, [firestore]);
+  const { data: staff, loading: staffLoading } = useCollection<Staff>(staffQuery);
 
   return (
     <main className="flex-1 space-y-6">
@@ -27,7 +33,8 @@ export default function NewApplicantsPage() {
         title="New Applicants"
         description="Candidates who have applied and passed the initial AI scoring filter."
         candidates={candidates || []}
-        isLoading={loading}
+        isLoading={candidatesLoading || staffLoading}
+        allStaff={staff || []}
       />
     </main>
   );

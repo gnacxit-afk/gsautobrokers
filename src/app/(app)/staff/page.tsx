@@ -126,7 +126,7 @@ export default function StaffPage() {
             </Button>
           </SendNotificationDialog>
           {user.role === 'Admin' && (
-            <NewStaffDialog>
+            <NewStaffDialog allStaff={staff || []}>
               <Button className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-200">
                 <UserPlus size={18} /> Register Employee
               </Button>

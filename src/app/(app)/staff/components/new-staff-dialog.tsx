@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -58,16 +57,13 @@ interface NewStaffDialogProps {
   candidate?: Candidate | null;
   onStaffCreated?: (candidateId: string) => void;
   children?: React.ReactNode;
+  allStaff: Staff[];
 }
 
-export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated, children }: NewStaffDialogProps) {
+export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated, children, allStaff }: NewStaffDialogProps) {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
-
-  const { data: allStaff, loading: staffLoading } = useCollection<Staff>(
-    firestore ? collection(firestore, 'staff') : null
-  );
 
   const supervisors = useMemo(() => allStaff?.filter(s => s.role === 'Supervisor') || [], [allStaff]);
   const admins = useMemo(() => allStaff?.filter(s => s.role === 'Admin') || [], [allStaff]);
@@ -438,5 +434,3 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
     </Dialog>
   );
 }
-
-    

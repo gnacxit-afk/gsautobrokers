@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
-import type { Candidate } from '@/lib/types';
+import type { Candidate, Staff } from '@/lib/types';
 import { CandidateTable } from '../components/candidate-table';
 
 export default function InactiveCandidatesPage() {
@@ -18,7 +18,13 @@ export default function InactiveCandidatesPage() {
     );
   }, [firestore]);
 
-  const { data: candidates, loading } = useCollection<Candidate>(candidatesQuery);
+  const { data: candidates, loading: candidatesLoading } = useCollection<Candidate>(candidatesQuery);
+
+  const staffQuery = useMemo(() => {
+      if (!firestore) return null;
+      return query(collection(firestore, 'staff'));
+  }, [firestore]);
+  const { data: staff, loading: staffLoading } = useCollection<Staff>(staffQuery);
 
   return (
     <main className="flex-1 space-y-6">
@@ -26,7 +32,8 @@ export default function InactiveCandidatesPage() {
         title="Inactive Candidates"
         description="Candidates who have been marked as inactive."
         candidates={candidates || []}
-        isLoading={loading}
+        isLoading={candidatesLoading || staffLoading}
+        allStaff={staff || []}
       />
     </main>
   );

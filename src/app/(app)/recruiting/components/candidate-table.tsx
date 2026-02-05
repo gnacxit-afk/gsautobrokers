@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState, useCallback } from 'react';
@@ -8,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { flexRender } from '@tanstack/react-table';
-import type { Candidate } from '@/lib/types';
+import type { Candidate, Staff } from '@/lib/types';
 import { CandidateDetailsDialog } from './candidate-details-dialog';
 import { NewStaffDialog } from '@/app/(app)/staff/components/new-staff-dialog';
 import { useFirestore } from '@/firebase';
@@ -20,9 +19,10 @@ interface CandidateTableProps {
   description: string;
   candidates: Candidate[];
   isLoading: boolean;
+  allStaff: Staff[];
 }
 
-export function CandidateTable({ title, description, candidates, isLoading }: CandidateTableProps) {
+export function CandidateTable({ title, description, candidates, isLoading, allStaff }: CandidateTableProps) {
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [candidateToConvert, setCandidateToConvert] = useState<Candidate | null>(null);
   const firestore = useFirestore();
@@ -140,6 +140,7 @@ export function CandidateTable({ title, description, candidates, isLoading }: Ca
         onOpenChange={(isOpen) => !isOpen && setCandidateToConvert(null)}
         candidate={candidateToConvert}
         onStaffCreated={onStaffCreated}
+        allStaff={allStaff}
       />
     </>
   );
