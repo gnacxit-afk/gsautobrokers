@@ -35,7 +35,7 @@ import { AppointmentActions } from './components/appointment-actions';
 import { addNoteEntry } from '@/lib/utils';
 import { createNotification } from '@/lib/utils';
 
-const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
+const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido", "No Show"];
 
 function AppointmentsContent() {
   const { user } = useAuthContext();

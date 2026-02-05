@@ -70,7 +70,8 @@
         },
         "stage": {
           "type": "string",
-          "description": "The current stage of the lead (e.g., active, closed)."
+          "description": "The current stage of the lead.",
+          "enum": ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido", "No Show"]
         },
         "createdAt": {
           "type": "string",
@@ -308,7 +309,7 @@
         "stage": {
             "type": "string",
             "description": "The stage of the lead at the time of booking, synced with the lead's stage.",
-            "enum": ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"]
+            "enum": ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido", "No Show"]
         }
       },
       "required": ["leadId", "leadName", "startTime", "endTime", "ownerId", "stage"]

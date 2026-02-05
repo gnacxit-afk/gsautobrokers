@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
@@ -58,7 +59,7 @@ import { generateFollowup } from "@/ai/flows/generate-followup-flow";
 import { SendWhatsappDialog } from "../../components/send-whatsapp-dialog";
 
 
-const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
+const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido", "No Show"];
 
 const getIconForType = (type: NoteEntry['type']) => {
     switch (type) {

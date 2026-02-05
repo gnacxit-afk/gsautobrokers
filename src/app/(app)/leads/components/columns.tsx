@@ -29,7 +29,7 @@ import { useAuthContext } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
+const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido", "No Show"];
 
 const stageColors: Record<Lead['stage'], string> = {
   "Nuevo": "bg-gray-100 text-gray-800 border-gray-200",
@@ -38,6 +38,7 @@ const stageColors: Record<Lead['stage'], string> = {
   "En Seguimiento": "bg-orange-100 text-orange-800 border-orange-200",
   "Ganado": "bg-green-100 text-green-800 border-green-200",
   "Perdido": "bg-red-100 text-red-800 border-red-200",
+  "No Show": "bg-slate-100 text-slate-800 border-slate-200",
 };
 
 interface CellActionsProps {

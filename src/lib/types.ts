@@ -1,5 +1,4 @@
 
-
 import type { LucideIcon } from "lucide-react";
 import type { Timestamp } from "firebase/firestore";
 import { z } from 'zod';
@@ -35,7 +34,7 @@ export type Lead = {
   email?: string;
   phone: string;
   company?: string;
-  stage: "Nuevo" | "Calificado" | "Citado" | "En Seguimiento" | "Ganado" | "Perdido";
+  stage: "Nuevo" | "Calificado" | "Citado" | "En Seguimiento" | "Ganado" | "Perdido" | "No Show";
   ownerId: string; // This will be the staff member's document ID
   ownerName: string;
   channel: 'FB Marketplace' | 'FB Page' | 'WhatsApp' | 'Website Inquiry';
@@ -55,7 +54,7 @@ export type Appointment = {
   startTime: Timestamp;
   endTime: Timestamp;
   ownerId: string;
-  stage: "Nuevo" | "Calificado" | "Citado" | "En Seguimiento" | "Ganado" | "Perdido";
+  stage: "Nuevo" | "Calificado" | "Citado" | "En Seguimiento" | "Ganado" | "Perdido" | "No Show";
 };
 
 export type Article = {

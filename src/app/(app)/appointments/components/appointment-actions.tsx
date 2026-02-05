@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal, Edit, Trash2, Users, ChevronsUpDown } from 'lucide-react';
 
-const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
+const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido", "No Show"];
 
 interface AppointmentActionsProps {
   appointment: Appointment;
