@@ -87,10 +87,8 @@ const navItems: NavItemGroup[] = [
     items: [
       { href: '/recruiting/dashboard', label: 'Recruiting Dashboard', icon: 'LayoutDashboard' },
       { href: '/recruiting/pipeline/new', label: 'New Applicants', icon: 'UserPlus' },
-      { href: '/recruiting/pipeline/pre-filter-approved', label: 'Pre-Filter Approved', icon: 'Filter' },
-      { href: '/recruiting/pipeline/5-minute-filter', label: '5-Minute Filter', icon: 'Clock5' },
+      { href: '/recruiting/pipeline/interviews', label: 'Interviews', icon: 'Clock5' },
       { href: '/recruiting/onboarding/approved', label: 'Approved for Onboarding', icon: 'UserCheck' },
-      { href: '/recruiting/onboarding/onboarding', label: 'Onboarding', icon: 'Rocket' },
       { href: '/recruiting/rejected', label: 'Rejected', icon: 'UserX' },
       { href: '/recruiting/inactive', label: 'Inactive', icon: 'Archive' },
       { href: '/apply', label: 'Public Application Form', icon: 'Briefcase', target: '_blank' },
@@ -307,5 +305,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
   );
 }
-
-    
