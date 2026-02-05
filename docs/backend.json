@@ -217,10 +217,6 @@
             "type": "array",
             "description": "Array of certificate IDs the user has earned.",
             "items": { "type": "string" }
-        },
-        "commission": {
-          "type": "number",
-          "description": "The fixed commission amount per vehicle sold by this staff member."
         }
       },
       "required": [

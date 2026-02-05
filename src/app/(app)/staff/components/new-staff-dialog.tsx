@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useCollection } from '@/firebase';
 import {
   collection,
   doc,
@@ -47,7 +47,7 @@ const staffSchema = z.object({
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
   role: z.enum(roles, { required_error: 'Please select a role.' }),
   dui: z.string().optional(),
-  commission: z.coerce.number().min(0, "Commission cannot be negative.").default(COMMISSION_PER_VEHICLE),
+  supervisorId: z.string().optional(),
 });
 
 type StaffFormValues = z.infer<typeof staffSchema>;
@@ -64,19 +64,27 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
+
+  const { data: allStaff, loading: staffLoading } = useCollection<Staff>(
+    firestore ? collection(firestore, 'staff') : null
+  );
+
+  const supervisors = useMemo(() => allStaff?.filter(s => s.role === 'Supervisor') || [], [allStaff]);
+  const admins = useMemo(() => allStaff?.filter(s => s.role === 'Admin') || [], [allStaff]);
+  const managers = useMemo(() => [...(supervisors || []), ...(admins || [])], [supervisors, admins]);
   
   const {
     register,
     handleSubmit,
     control,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<StaffFormValues>({
     resolver: zodResolver(staffSchema),
-    defaultValues: {
-        commission: COMMISSION_PER_VEHICLE
-    }
   });
+
+  const watchedRole = watch('role');
 
   useEffect(() => {
     if (isOpen && candidate) {
@@ -86,10 +94,9 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
         password: '',
         role: 'Broker', // Default role for new candidates
         dui: '',
-        commission: COMMISSION_PER_VEHICLE,
       });
     } else if (!isOpen) {
-      reset({ name: '', email: '', password: '', role: undefined, dui: '', commission: COMMISSION_PER_VEHICLE });
+      reset({ name: '', email: '', password: '', role: undefined, dui: '' });
     }
   }, [isOpen, candidate, reset]);
 
@@ -113,8 +120,9 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
         email: data.email,
         role: data.role,
         dui: data.dui,
-        commission: data.commission,
-        canReceiveIncomingCalls: data.role === 'Admin', // Only admins can receive calls by default
+        supervisorId: data.supervisorId,
+        commission: COMMISSION_PER_VEHICLE,
+        canReceiveIncomingCalls: data.role === 'Admin',
         createdAt: serverTimestamp(),
         hireDate: serverTimestamp(),
         avatarUrl: '',
@@ -128,7 +136,6 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
         await onStaffCreated(candidate.id);
       }
       
-      // Auto-enrollment logic
       try {
         const coursesRef = collection(firestore, 'courses');
         const q = query(coursesRef, where('isDefaultOnboarding', '==', true), limit(1));
@@ -228,34 +235,70 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
 
             <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                <Label htmlFor="role">Role</Label>
-                <Controller
-                    control={control}
-                    name="role"
-                    render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger id="role">
-                        <SelectValue placeholder="Select role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                        {roles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                    )}
-                />
-                {errors.role && <p className="text-xs text-red-500">{errors.role.message}</p>}
+                    <Label htmlFor="role">Role</Label>
+                    <Controller
+                        control={control}
+                        name="role"
+                        render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger id="role">
+                            <SelectValue placeholder="Select role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                            {roles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        )}
+                    />
+                    {errors.role && <p className="text-xs text-red-500">{errors.role.message}</p>}
                 </div>
-                <div className="grid gap-2">
+                 <div className="grid gap-2">
                     <Label htmlFor="dui">DUI (Optional)</Label>
                     <Input id="dui" {...register('dui')} />
                 </div>
             </div>
-            
-            <div className="grid gap-2">
-                <Label htmlFor="commission">Commission per Sale ($)</Label>
-                <Input id="commission" type="number" {...register('commission')} />
-                {errors.commission && <p className="text-xs text-red-500">{errors.commission.message}</p>}
-            </div>
+
+            {watchedRole === 'Broker' && (
+                <div className="grid gap-2">
+                    <Label htmlFor="supervisorId">Supervisor / Admin</Label>
+                    <Controller
+                        control={control}
+                        name="supervisorId"
+                        render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger id="supervisorId">
+                                <SelectValue placeholder="Select a manager" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {managers.map(s => <SelectItem key={s.id} value={s.id}>{s.name} ({s.role})</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        )}
+                    />
+                    {errors.supervisorId && <p className="text-xs text-red-500">{errors.supervisorId.message}</p>}
+                </div>
+            )}
+
+            {watchedRole === 'Supervisor' && (
+                <div className="grid gap-2">
+                    <Label htmlFor="supervisorId">Reports To (Admin)</Label>
+                     <Controller
+                        control={control}
+                        name="supervisorId"
+                        render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger id="supervisorId">
+                                <SelectValue placeholder="Select an admin" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {admins.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        )}
+                    />
+                    {errors.supervisorId && <p className="text-xs text-red-500">{errors.supervisorId.message}</p>}
+                </div>
+            )}
 
             <DialogFooter>
                 <Button type="submit" disabled={isSubmitting}>
@@ -331,13 +374,49 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
                     <Input id="dui" {...register('dui')} />
                 </div>
             </div>
-            
-             <div className="grid gap-2">
-                <Label htmlFor="commission">Commission per Sale ($)</Label>
-                <Input id="commission" type="number" {...register('commission')} />
-                {errors.commission && <p className="text-xs text-red-500">{errors.commission.message}</p>}
-            </div>
 
+            {watchedRole === 'Broker' && (
+                <div className="grid gap-2">
+                    <Label htmlFor="supervisorId">Supervisor / Admin</Label>
+                    <Controller
+                        control={control}
+                        name="supervisorId"
+                        render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger id="supervisorId">
+                                <SelectValue placeholder="Select a manager" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {managers.map(s => <SelectItem key={s.id} value={s.id}>{s.name} ({s.role})</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        )}
+                    />
+                    {errors.supervisorId && <p className="text-xs text-red-500">{errors.supervisorId.message}</p>}
+                </div>
+            )}
+
+            {watchedRole === 'Supervisor' && (
+                <div className="grid gap-2">
+                    <Label htmlFor="supervisorId">Reports To (Admin)</Label>
+                     <Controller
+                        control={control}
+                        name="supervisorId"
+                        render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger id="supervisorId">
+                                <SelectValue placeholder="Select an admin" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {admins.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        )}
+                    />
+                    {errors.supervisorId && <p className="text-xs text-red-500">{errors.supervisorId.message}</p>}
+                </div>
+            )}
+            
             <DialogFooter>
                 <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Registering...' : 'Register Employee'}

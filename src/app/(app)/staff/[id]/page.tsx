@@ -133,7 +133,7 @@ export default function StaffProfilePage() {
         toast({ title: "Action Forbidden", description: "The Master Admin's role cannot be changed.", variant: "destructive" });
         return;
     }
-    setFormData(prev => ({ ...prev, role }));
+    setFormData(prev => ({ ...prev, role, supervisorId: '' })); // Reset supervisor on role change
   };
 
    const handleSupervisorChange = (supervisorId: string) => {
@@ -144,9 +144,9 @@ export default function StaffProfilePage() {
     if (!firestore || !staffId) return;
     const staffDocRef = doc(firestore, 'staff', staffId);
     try {
-        const { password, id, authUid, createdAt, hireDate, email, ...updateData } = formData;
+        const { password, id, authUid, createdAt, hireDate, email, commission, ...updateData } = formData;
         
-        await updateDoc(staffDocRef, { ...updateData, commission: Number(updateData.commission) });
+        await updateDoc(staffDocRef, { ...updateData });
         
         toast({
             title: "Profile Updated",
@@ -268,11 +268,6 @@ export default function StaffProfilePage() {
                                 ))}
                             </SelectContent>
                         </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="commission">Commission per Sale ($)</Label>
-                        <Input id="commission" type="number" value={formData.commission || ''} onChange={handleChange} />
                     </div>
 
                     {formData.role === 'Broker' && (
