@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from "react";
@@ -27,6 +28,7 @@ import {
   Loader2,
   UserX,
   Archive,
+  UploadCloud,
   type LucideIcon,
 } from "lucide-react";
 
@@ -63,6 +65,7 @@ const icons: { [key: string]: LucideIcon } = {
   LineChart,
   UserX,
   Archive,
+  UploadCloud,
 };
 
 const navItems: NavItemGroup[] = [
@@ -108,6 +111,7 @@ const navItems: NavItemGroup[] = [
       { href: "/staff", label: "Staff", icon: "Users", role: ["Admin", "Supervisor"] },
       { href: "/dealerships", label: "Dealerships", icon: "Building", role: ["Admin"] },
       { href: "/contracts", label: "Contracts", icon: "FileText", role: ["Admin"] },
+      { href: "/admin/seeder", label: "Content Seeder", icon: "UploadCloud", role: ["Admin"] },
     ]
   },
 ];
@@ -178,7 +182,7 @@ const getAvatarFallback = (name: string) => {
     if (!name) return 'U';
     const parts = name.split(' ');
     if (parts.length > 1) {
-        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+        return `${''}${parts[0][0]}${parts[1][0]}`.toUpperCase();
     }
     return name.substring(0, 2).toUpperCase();
 }
