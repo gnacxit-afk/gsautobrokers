@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
@@ -28,6 +29,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import Link from 'next/link';
 import { NewTaskForNewLeadDialog } from '../todos/components/new-task-for-new-lead-dialog';
 import { Separator } from '@/components/ui/separator';
+import { COMMISSION_PER_VEHICLE } from '@/lib/mock-data';
 
 const DEFAULT_KPIS: KPI[] = [
     { id: 'leads_recibidos', label: 'Leads recibidos', target: 'informativo', description: 'Total de leads que ingresan al sistema.' },
@@ -167,7 +169,7 @@ function BrokerGoalsView({kpis, kpisLoading, allLeads, staff, loading}) {
     const closedSales = closedLeads.length;
     const conversion = totalLeads > 0 ? (closedSales / totalLeads) * 100 : 0;
     
-    const totalCommissions = closedLeads.reduce((acc, lead) => acc + (lead.brokerCommission || 0), 0);
+    const totalCommissions = closedSales * COMMISSION_PER_VEHICLE;
     const brokerBonus = calculateBonus(closedSales);
 
     // Daily stats
