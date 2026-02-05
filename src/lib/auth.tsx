@@ -125,6 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (userProfile) {
         setUser(userProfile);
+        router.push('/leads');
       } else {
         await signOut(auth);
         setUser(null);
@@ -147,7 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [auth, firestore, fetchAppUser]);
+  }, [auth, firestore, fetchAppUser, router]);
 
   const logout = useCallback(async () => {
     if (!auth) return;
