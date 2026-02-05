@@ -246,7 +246,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
          <Card>
             <CardHeader><CardTitle>Dealership</CardTitle></CardHeader>
             <CardContent>
-                 <div className="space-y-2 max-w-xs"><Label>Dealership</Label><Controller name="dealershipId" control={control} render={({field}) => (<Select onValueChange={field.onChange} value={field.value} disabled={dealershipsLoading}><SelectTrigger><SelectValue placeholder="Select a Dealership"/></SelectTrigger><SelectContent>{dealerships?.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent></Select>)}/>{errors.dealershipId && <p className="text-xs text-destructive">{errors.dealershipId.message}</p>}</div>
+                 <div className="space-y-2 max-w-xs"><Label>Dealership</Label><Controller name="dealershipId" control={control} render={({field}) => (<Select onValueChange={field.onChange} value={field.value} disabled={isEditing || dealershipsLoading}><SelectTrigger><SelectValue placeholder="Select a Dealership"/></SelectTrigger><SelectContent>{dealerships?.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent></Select>)}/>{errors.dealershipId && <p className="text-xs text-destructive">{errors.dealershipId.message}</p>}</div>
             </CardContent>
         </Card>
 
