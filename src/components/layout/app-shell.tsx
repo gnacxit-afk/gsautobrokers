@@ -197,7 +197,7 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
 
     return (
         <>
-            <div className="p-6 border-b border-slate-800 h-16 flex items-center shrink-0">
+            <div className="p-6 border-b border-slate-200 h-16 flex items-center shrink-0 bg-white">
                 <Logo className="text-white text-lg" />
             </div>
 
