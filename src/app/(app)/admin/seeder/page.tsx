@@ -95,6 +95,7 @@ export default function SeederPage() {
           title: 'Knowledge Base is Up to Date',
           description: 'All articles are already synced.',
         });
+        setIsSeeding(false);
         return;
       }
 
@@ -233,6 +234,15 @@ export default function SeederPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="mb-6 space-y-2 rounded-lg border bg-slate-50 p-4">
+            <h4 className="font-semibold">How to Update the Manual</h4>
+            <p className="text-sm text-muted-foreground">
+              All training manual content is located in a single file: <code className="font-mono text-xs bg-slate-200 p-1 rounded">src/lib/knowledge-base-seeder-data.ts</code>.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              To update an article, open that file, find the article, and edit its content. It's crucial to also update the <code className="font-mono text-xs bg-slate-200 p-1 rounded">version</code> field to a new number (e.g., from "2.0" to "2.1") for this tool to detect the change.
+            </p>
+          </div>
           {renderContent()}
         </CardContent>
       </Card>
