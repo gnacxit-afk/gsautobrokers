@@ -1,4 +1,5 @@
 
+
 import type { LucideIcon } from "lucide-react";
 import type { Timestamp } from "firebase/firestore";
 import { z } from 'zod';
@@ -18,6 +19,7 @@ export type User = {
   certificates?: string[];
   commission?: number;
   canReceiveIncomingCalls?: boolean;
+  fcmTokens?: string[];
 };
 
 export type NoteEntry = {
@@ -85,6 +87,7 @@ export type Staff = {
   certificates?: string[];
   commission?: number;
   canReceiveIncomingCalls?: boolean;
+  fcmTokens?: string[];
 };
 
 export type NavItem = {
@@ -281,7 +284,7 @@ export type Quiz = {
 };
 
 export type UserProgress = {
-  id: string; // e.g., `${userId}_${courseId}`
+  id: string; // e.g., `${'${userId}'}_${'${courseId}'}`
   userId: string;
   courseId: string;
   lessonProgress: {

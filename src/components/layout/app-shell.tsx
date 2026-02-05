@@ -42,6 +42,7 @@ import { RoleSwitcher } from "./role-switcher";
 import { Logo } from "../icons";
 import { Notifications } from "./notifications";
 import { ContractSigningBanner } from '@/components/contracts/contract-signing-banner';
+import { NotificationPermissionBanner } from './notification-permission-banner';
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { ScrollArea } from "../ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -206,7 +207,7 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
 
     return (
         <>
-            <div className="p-6 border-b border-slate-200 h-16 flex items-center shrink-0 bg-white">
+            <div className="p-6 border-b border-slate-800 h-16 flex items-center shrink-0 bg-slate-900">
                 <Logo className="text-white text-lg" />
             </div>
 
@@ -341,6 +342,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <div className="flex-1 overflow-y-auto p-4 md:p-8 relative">
              <ContractSigningBanner />
+             <NotificationPermissionBanner />
             {children}
           </div>
         </main>
