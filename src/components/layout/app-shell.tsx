@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from "react";
@@ -89,6 +88,7 @@ const navItems: NavItemGroup[] = [
       { href: '/recruiting/pipeline/new', label: 'New Applicants', icon: 'UserPlus' },
       { href: '/recruiting/pipeline/interviews', label: 'Interviews', icon: 'Clock5' },
       { href: '/recruiting/onboarding/approved', label: 'Approved for Onboarding', icon: 'UserCheck' },
+      { href: '/recruiting/onboarding/training', label: 'Training', icon: 'Rocket' },
       { href: '/recruiting/active', label: 'Active', icon: 'Target' },
       { href: '/recruiting/rejected', label: 'Rejected', icon: 'UserX' },
       { href: '/recruiting/inactive', label: 'Inactive', icon: 'Archive' },
