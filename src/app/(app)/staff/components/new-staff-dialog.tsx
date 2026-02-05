@@ -101,9 +101,20 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
   }, [isOpen, candidate, reset]);
 
   const onSubmit = async (data: StaffFormValues) => {
-    if (!firestore) {
+    if (!firestore || !allStaff) {
       toast({ title: "Error", description: "Database service not available.", variant: "destructive" });
       return;
+    }
+
+    // Proactively check if email exists in the staff collection
+    if (allStaff.some(staff => staff.email.toLowerCase() === data.email.toLowerCase())) {
+        toast({
+            title: 'Email Already Exists',
+            description: 'A staff member with this email is already registered. Please use a different email or manage the duplicate profile.',
+            variant: 'destructive',
+            duration: 7000,
+        });
+        return; // Stop submission
     }
 
     const tempAppName = `user-creation-${Date.now()}`;
@@ -183,7 +194,7 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
       toast({
         title: 'Registration Failed',
         description: error.code === 'auth/email-already-in-use' 
-            ? 'This email is already registered.' 
+            ? 'This email is already in use in Firebase Authentication. An admin may need to resolve this manually.' 
             : error.message,
         variant: 'destructive',
       });
@@ -212,7 +223,7 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
 
             <div className="grid gap-2">
                 <Label htmlFor="email">Email Address</Label>
-                <Input id="email" type="email" {...register('email')} disabled={!!candidate} />
+                <Input id="email" type="email" {...register('email')} />
                 {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
             </div>
             
@@ -329,7 +340,7 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
 
             <div className="grid gap-2">
                 <Label htmlFor="email">Email Address</Label>
-                <Input id="email" type="email" {...register('email')} disabled={!!candidate} />
+                <Input id="email" type="email" {...register('email')} />
                 {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
             </div>
             
@@ -427,3 +438,5 @@ export function NewStaffDialog({ isOpen, onOpenChange, candidate, onStaffCreated
     </Dialog>
   );
 }
+
+    
