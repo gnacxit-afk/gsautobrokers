@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useParams } from 'next/navigation';
@@ -13,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Car, Gauge, GitCommitHorizontal, Palette, Wrench, Fuel, Calendar, Hash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 const DetailRow = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: React.ReactNode }) => (
     <div className="flex items-center justify-between border-b py-3">
@@ -148,4 +148,10 @@ function VehicleDetailsPage() {
   );
 }
 
-export default VehicleDetailsPage;
+export default function VehicleDetailsPageWithProvider() {
+    return (
+        <FirebaseClientProvider>
+            <VehicleDetailsPage />
+        </FirebaseClientProvider>
+    )
+}

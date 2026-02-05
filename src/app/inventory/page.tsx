@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
   let imageUrl = 'https://placehold.co/600x400/f0f2f4/9ca3af?text=GS+Auto';
@@ -62,7 +63,7 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
 }
 
 
-export default function PublicInventoryPage() {
+function PublicInventoryPage() {
   const firestore = useFirestore();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -192,4 +193,12 @@ export default function PublicInventoryPage() {
         </div>
     </div>
   );
+}
+
+export default function InventoryPageWithProvider() {
+    return (
+        <FirebaseClientProvider>
+            <PublicInventoryPage />
+        </FirebaseClientProvider>
+    )
 }

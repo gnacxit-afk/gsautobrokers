@@ -15,6 +15,7 @@ import { Logo } from '@/components/icons';
 import { submitInquiry } from '@/ai/flows/submit-inquiry-flow';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 
 const ServiceCard = ({ icon, title, description }: { icon: string, title: string, description: string }) => (
@@ -79,7 +80,7 @@ function FeaturedVehicleCard({ vehicle }: { vehicle: Vehicle }) {
       </Link>
       <div className="p-6">
         <Link href={`/inventory/vehicle/${vehicle.id}`}>
-            <h3 className="text-xl font-extrabold text-[#111418] dark:text-white mb-4 hover:text-primary transition-colors">{vehicle.year} {vehicle.make} {vehicle.model}</h3>
+            <h3 className="text-xl font-extrabold text-[#111418] dark:text-white mb-4 hover:text-primary transition-colors">{vehicle.year} ${vehicle.make} ${vehicle.model}</h3>
         </Link>
         <div className="grid grid-cols-3 gap-2 mb-6">
           <div className="flex flex-col gap-1">
@@ -279,7 +280,7 @@ function QuickInquiryForm() {
     );
 }
 
-export default function LandingPage() {
+function LandingPage() {
     const customerAvatars = PlaceHolderImages.slice(0, 3); // Get first 3 users for avatars
     const { toast } = useToast();
 
@@ -518,6 +519,12 @@ export default function LandingPage() {
             </footer>
         </div>
     );
+}
 
-    
+export default function LandingPageWithProvider() {
+    return (
+        <FirebaseClientProvider>
+            <LandingPage />
+        </FirebaseClientProvider>
+    )
 }

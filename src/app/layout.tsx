@@ -3,11 +3,7 @@ import { Manrope } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
-import { FirebaseClientProvider } from "@/firebase/client-provider";
-import { AuthProvider } from "@/lib/auth";
 import { Suspense } from "react";
-import { DateRangeProvider } from "@/providers/date-range-provider";
-
 
 const manrope = Manrope({ subsets: ["latin"], weight: ['400', '500', '700', '800'], variable: "--font-sans" });
 
@@ -36,13 +32,7 @@ export default function RootLayout({
         )}
       >
         <Suspense>
-          <FirebaseClientProvider>
-            <AuthProvider>
-              <DateRangeProvider>
-                {children}
-              </DateRangeProvider>
-            </AuthProvider>
-          </FirebaseClientProvider>
+          {children}
         </Suspense>
         <Toaster />
       </body>
