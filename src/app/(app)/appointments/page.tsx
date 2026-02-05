@@ -47,23 +47,28 @@ function AppointmentsContent() {
   const [dateFilter, setDateFilter] = useState('all');
   const [ownerFilter, setOwnerFilter] = useState('all');
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const [clientNow, setClientNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    // Set the current time on the client after hydration
+    setClientNow(new Date());
+  }, []);
   
   const preselectedLeadId = searchParams.get('leadId');
 
   const appointmentsQuery = useMemo(() => {
-    if (!firestore || !user) return null;
+    if (!firestore || !user || !clientNow) return null;
 
     const baseQuery = collection(firestore, 'appointments');
     const constraints = [orderBy('startTime', 'asc')];
-    const now = new Date();
-
+    
     if (dateFilter === 'today') {
-      const start = startOfDay(now);
-      const end = endOfDay(now);
+      const start = startOfDay(clientNow);
+      const end = endOfDay(clientNow);
       constraints.unshift(where('startTime', '<=', end));
       constraints.unshift(where('startTime', '>=', start));
     } else if (dateFilter === 'upcoming') {
-       constraints.unshift(where('startTime', '>=', now));
+       constraints.unshift(where('startTime', '>=', clientNow));
     }
 
     if (user.role === 'Broker') {
@@ -73,7 +78,7 @@ function AppointmentsContent() {
     }
 
     return query(baseQuery, ...constraints);
-}, [firestore, dateFilter, ownerFilter, user]);
+}, [firestore, dateFilter, ownerFilter, user, clientNow]);
 
   const staffQuery = useMemo(() => {
     if (!firestore || !user) return null;

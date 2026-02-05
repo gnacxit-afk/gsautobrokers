@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { Staff, Lead, BonusInfo } from '@/lib/types';
 import { useUser, useCollection } from '@/firebase';
 import { calculateBonus, getNextBonusGoal } from '@/lib/utils';
@@ -22,16 +23,20 @@ const ProgressBar = ({ sales, nextGoal, color }: { sales: number; nextGoal: numb
 
 export function BonusStatus({ allLeads, loading }: { allLeads: Lead[]; loading: boolean }) {
   const { user } = useUser();
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
 
-  const staffBonuses: (BonusInfo & { staffId: string; staffName: string })[] = useMemo(() => {
-    if (!allLeads) return [];
-
+  useEffect(() => {
     const end = new Date();
     const start = subDays(end, 30);
-    
+    setDateRange({ start, end });
+  }, []);
+
+  const staffBonuses: (BonusInfo & { staffId: string; staffName: string })[] = useMemo(() => {
+    if (!allLeads || !dateRange) return [];
+
     const leadsInWindow = allLeads.filter(l => {
         const leadDate = (l.createdAt as any).toDate ? (l.createdAt as any).toDate() : new Date(l.createdAt as string);
-        return l.stage === 'Ganado' && isWithinInterval(leadDate, { start, end });
+        return l.stage === 'Ganado' && isWithinInterval(leadDate, dateRange);
     });
 
     const salesByOwner = leadsInWindow.reduce((acc, lead) => {
@@ -46,9 +51,9 @@ export function BonusStatus({ allLeads, loading }: { allLeads: Lead[]; loading: 
       return { staffId, staffName: ownerName, sales, bonus, nextGoal, needed };
     }).sort((a, b) => b.sales - a.sales);
 
-  }, [allLeads]);
+  }, [allLeads, dateRange]);
   
-  if (loading) {
+  if (loading || !dateRange) {
     return <Card><CardContent><Skeleton className="h-64 w-full" /></CardContent></Card>;
   }
 
