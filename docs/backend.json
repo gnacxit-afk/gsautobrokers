@@ -217,6 +217,14 @@
             "type": "array",
             "description": "Array of certificate IDs the user has earned.",
             "items": { "type": "string" }
+        },
+        "commission": {
+          "type": "number",
+          "description": "The fixed commission amount per vehicle sold by this staff member."
+        },
+        "canReceiveIncomingCalls": {
+            "type": "boolean",
+            "description": "If true, this user is able to receive incoming calls routed by the system."
         }
       },
       "required": [
@@ -259,36 +267,6 @@
             "leadName": { "type": "string", "description": "Optional. The name of the lead related to this to-do." }
         },
         "required": ["id", "title", "completed", "createdAt", "userId"]
-    },
-    "DailyChecklist": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "DailyChecklist",
-        "type": "object",
-        "description": "Represents a broker's daily checklist for a specific day.",
-        "properties": {
-            "userId": { "type": "string" },
-            "date": { "type": "string", "format": "date" },
-            "tasks": {
-                "type": "object",
-                "description": "A map of task IDs to their completion status and timestamp.",
-                "additionalProperties": {
-                    "type": "object",
-                    "properties": {
-                        "completed": { "type": "boolean" },
-                        "timestamp": { "type": "string", "format": "date-time" }
-                    },
-                    "required": ["completed"]
-                }
-            },
-            "metadata": {
-                "type": "object",
-                "properties": {
-                    "lastUpdated": { "type": "string", "format": "date-time" }
-                },
-                "required": ["lastUpdated"]
-            }
-        },
-        "required": ["userId", "date", "tasks", "metadata"]
     },
     "Appointment": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -570,6 +548,22 @@
         "soldAt": { "type": "string", "format": "date-time", "description": "The timestamp when the vehicle was marked as sold." }
       },
       "required": ["status", "createdAt", "dealershipId", "dealershipCode", "commission"]
+    },
+    "CallRecord": {
+      "title": "CallRecord",
+      "type": "object",
+      "description": "Represents a call log entry associated with a lead.",
+      "properties": {
+        "leadId": { "type": "string" },
+        "leadName": { "type": "string" },
+        "agentId": { "type": "string" },
+        "startTime": { "type": "string", "format": "date-time" },
+        "durationInSeconds": { "type": "number" },
+        "status": { "type": "string", "enum": ["initiated", "completed", "no-answer", "failed"] },
+        "recordingUrl": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["agentId", "leadId", "leadName", "startTime", "status"]
     }
   },
   "auth": {
@@ -653,6 +647,26 @@
         }
       },
       {
+        "path": "leads/{leadId}/calls/{callId}",
+        "definition": {
+          "entityName": "CallRecord",
+          "schema": {
+            "$ref": "#/backend/entities/CallRecord"
+          },
+          "description": "Stores call history for a lead.",
+          "params": [
+            {
+              "name": "leadId",
+              "description": "The unique lead ID."
+            },
+            {
+              "name": "callId",
+              "description": "The unique call ID."
+            }
+          ]
+        }
+      },
+      {
         "path": "articles/{articleId}",
         "definition": {
           "entityName": "KnowledgeBaseArticle",
@@ -714,22 +728,6 @@
                     "description": "The unique to-do ID."
                 }
             ]
-        }
-      },
-      {
-        "path": "checklists/{checklistId}",
-        "definition": {
-          "entityName": "DailyChecklist",
-          "schema": {
-            "$ref": "#/backend/entities/DailyChecklist"
-          },
-          "description": "Stores the daily checklist for each broker.",
-          "params": [
-            {
-              "name": "checklistId",
-              "description": "The composite ID for the checklist, in the format '{userId}_{YYYY-MM-DD}'."
-            }
-          ]
         }
       },
       {
@@ -871,3 +869,4 @@
     "reasoning": "This Firestore structure is designed to support the AutoSales AI application, prioritizing authorization independence, clarity, and scalability. It leverages structural segregation and denormalization to simplify security rules and ensure efficient data access. The root of the database is segmented by `artifacts/{appId}`, where `appId` allows the application to be instantiated in multiple environments without conflicting documents.\\n\\n**Authorization Independence (CRITICAL):**\\n\\n*   Leads: The `leads` collection, located at `artifacts/{appId}/public/data/leads`, includes the `ownerId` (auto-generated staff document ID) and `ownerName` of the user who owns the lead. This denormalization allows security rules to validate ownership without needing to perform expensive `get()` operations to retrieve user data. This ensures that lead access can be controlled based solely on the data within the lead document itself, combined with the authenticated user's ID.\\n*   Staff: The `staff` collection uses an auto-generated document ID. It includes the `supervisorId` (also an auto-generated ID) for reporting relationships. While the UI only allows Admins to manage staff, we can add roles if needed.\\n\\n**Structural Segregation (Homogeneous Security Posture):**\\n\\n*   User Data: User profiles are stored within the `staff` collection. The mapping between a Firebase Auth UID and the staff document ID happens at login.\\n*   Public Data: The `knowledge_base` and `leads` collections are within the `/public/data/` section of the database. While the security rules may differentiate access within those collections, this design communicates the intent that they are generally readable.\\n\\n**QAPs (Rules are not Filters):**\\n\\n*   List Operations: The segregation of user data and public data allows for secure `list` operations. For example, listing leads requires checking if the user has the correct role (Broker, Supervisor, Admin) and filtering based on `ownerId`.\\n\\n**Global Roles (DBAC):**\\n\\n*   Role-Based Access: User roles are stored in the `staff` document. The system can be expanded to utilize a dedicated `/roles_{role}/{uid}` collection to manage administrative or elevated rights. The UI only uses role to gate access to Staff management features, so this functionality isn't required for compliance."
   }
 }
+

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -9,7 +10,7 @@ import { formatDistanceToNow, differenceInHours } from 'date-fns';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
-const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido"];
+const leadStages: Lead['stage'][] = ["Nuevo", "Calificado", "Citado", "En Seguimiento", "Ganado", "Perdido", "No Show"];
 
 const getAvatarFallback = (name: string) => {
     if (!name) return 'U';
@@ -100,7 +101,7 @@ export function KanbanBoard({ leads, onStageChange, loading }: KanbanBoardProps)
     }
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4 items-start">
             {leadStages.map(stage => (
                 <div
                     key={stage}
