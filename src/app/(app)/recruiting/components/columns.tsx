@@ -93,7 +93,7 @@ const CellActions: React.FC<{ row: Row<Candidate>; onCreateStaff: (candidate: Ca
 
 
     const availableOptions = statusOptions[candidate.pipelineStatus] || [];
-    const canCreateProfile = candidate.pipelineStatus === 'Approved' || candidate.pipelineStatus === 'Onboarding';
+    const canCreateProfile = candidate.pipelineStatus === 'Approved' || candidate.pipelineStatus === 'Onboarding' || candidate.pipelineStatus === 'Active';
     const isApproved = candidate.pipelineStatus === 'Approved';
 
     return (
