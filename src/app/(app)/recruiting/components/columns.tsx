@@ -94,7 +94,6 @@ const CellActions: React.FC<{ row: Row<Candidate>; onCreateStaff: (candidate: Ca
 
     const availableOptions = statusOptions[candidate.pipelineStatus] || [];
     const canCreateProfile = candidate.pipelineStatus === 'Approved' || candidate.pipelineStatus === 'Onboarding' || candidate.pipelineStatus === 'Active';
-    const isApproved = candidate.pipelineStatus === 'Approved';
 
     return (
         <DropdownMenu>
@@ -117,29 +116,22 @@ const CellActions: React.FC<{ row: Row<Candidate>; onCreateStaff: (candidate: Ca
                         Change Status
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent>
-                        {availableOptions.map(status => (
-                            <DropdownMenuItem 
-                                key={status} 
-                                onSelect={() => handleStatusChange(status)}
-                                className={cn({
-                                    'text-destructive focus:text-destructive': status === 'Rejected' || status === 'Inactive'
-                                })}
-                            >
-                                {status}
-                            </DropdownMenuItem>
-                        ))}
+                        {availableOptions.map(status => {
+                            const label = status === 'Onboarding' ? 'Training' : status;
+                            return (
+                                <DropdownMenuItem 
+                                    key={status} 
+                                    onSelect={() => handleStatusChange(status)}
+                                    className={cn({
+                                        'text-destructive focus:text-destructive': status === 'Rejected' || status === 'Inactive'
+                                    })}
+                                >
+                                    {label}
+                                </DropdownMenuItem>
+                            );
+                        })}
                     </DropdownMenuSubContent>
                 </DropdownMenuSub>
-            )}
-
-            {isApproved && (
-                <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => handleStatusChange('Onboarding')} className="focus:bg-green-50 focus:text-green-700">
-                        <Rocket className="mr-2 h-4 w-4" />
-                        Mark as Ready & Start Onboarding
-                    </DropdownMenuItem>
-                </>
             )}
 
             <DropdownMenuSeparator />
@@ -277,3 +269,5 @@ export const getColumns = (onViewDetails: (candidate: Candidate) => void, onCrea
     cell: ({ row }) => <CellActions row={row} onCreateStaff={onCreateStaff} onDeleteCandidate={onDeleteCandidate} />,
   },
 ];
+
+    
