@@ -93,11 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isPublicPath = PUBLIC_PATHS.some(path => pathname === path || (path !== '/' && pathname.startsWith(path))) || pathname.startsWith('/inventory/vehicle') || pathname.startsWith('/training/certificate');
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (isPublicPath) {
-        setLoading(false);
-      } else {
-        setLoading(true);
-      }
+      setLoading(true);
 
       if (firebaseUser) {
         try {
@@ -105,28 +101,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (userProfile) {
             setUser(userProfile);
             setAuthError(null);
-            if (isPublicPath) {
+            // If user is logged in and on a public-only page like login, redirect them.
+            if (pathname === '/login') {
               router.push('/dashboard');
             }
           } else {
+            // This case handles a logged-in Firebase user who has no profile in our database.
+            // This is a critical error state.
             setUser(null);
             setAuthError("Your user profile could not be found.");
             await signOut(auth);
+            if (!isPublicPath) {
+                router.push('/login');
+            }
           }
         } catch (error: any) {
           console.error("Failed to fetch app user profile:", error);
           setUser(null);
           setAuthError(error.message || "An error occurred fetching your profile.");
           await signOut(auth);
-          setLoading(false); // Ensure loading is false on profile fetch error
+           if (!isPublicPath) {
+              router.push('/login');
+            }
         }
       } else {
+        // No Firebase user is logged in.
         setUser(null);
+        if (!isPublicPath) {
+            router.push('/login');
+        }
       }
-
-      if (!isPublicPath) {
-        setLoading(false);
-      }
+      setLoading(false);
     });
 
     return () => unsubscribe();

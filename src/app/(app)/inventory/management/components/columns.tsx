@@ -78,13 +78,7 @@ export const getColumns = (): ColumnDef<Vehicle>[] => [
             let imageUrl = `https://placehold.co/80x60/f0f2f4/9ca3af?text=${row.original.make.charAt(0)}`;
 
             if (photos && photos.length > 0 && photos[0]) {
-                try {
-                    // This will throw an error for invalid URLs, which we catch.
-                    new URL(photos[0]); 
-                    imageUrl = photos[0];
-                } catch (error) {
-                    // If photos[0] is not a valid URL, imageUrl remains the placeholder.
-                }
+                 imageUrl = photos[0];
             }
             
             return (
@@ -103,6 +97,7 @@ export const getColumns = (): ColumnDef<Vehicle>[] => [
                 <div>
                     <p className="font-bold text-slate-800">{vehicle.year} {vehicle.make} {vehicle.model}</p>
                     <p className="text-xs text-muted-foreground">{vehicle.trim}</p>
+                    <p className="text-xs text-muted-foreground">{vehicle.mileage?.toLocaleString()} mi</p>
                 </div>
             )
         }

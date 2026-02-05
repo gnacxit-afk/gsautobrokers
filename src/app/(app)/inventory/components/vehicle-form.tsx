@@ -13,10 +13,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Save, Trash2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ArrowLeft, Save, Trash2, UploadCloud, X } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
+import Image from 'next/image';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,23 +28,22 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const vehicleSchema = z.object({
-  year: z.coerce.number().min(1980, "Must be after 1980").max(new Date().getFullYear() + 1).optional(),
-  make: z.string().optional(),
-  model: z.string().optional(),
+  year: z.coerce.number().min(1980, "Must be after 1980").max(new Date().getFullYear() + 1),
+  make: z.string().min(1, 'Make is required.'),
+  model: z.string().min(1, 'Model is required.'),
   trim: z.string().optional(),
-  stockNumber: z.string().optional(),
-  cashPrice: z.coerce.number().min(0).optional(),
-  downPayment: z.coerce.number().min(0).optional(),
-  condition: z.enum(['New', 'Used', 'Rebuilt']).optional(),
-  mileage: z.coerce.number().min(0).optional(),
-  transmission: z.enum(['Automatic', 'Manual', 'CVT']).optional(),
-  driveTrain: z.enum(['FWD', 'RWD', 'AWD', '4x4']).optional(),
+  stockNumber: z.string(),
+  cashPrice: z.coerce.number().min(0),
+  downPayment: z.coerce.number().min(0),
+  condition: z.enum(['New', 'Used', 'Rebuilt']),
+  mileage: z.coerce.number().min(0),
+  transmission: z.enum(['Automatic', 'Manual', 'CVT']),
+  driveTrain: z.enum(['FWD', 'RWD', 'AWD', '4x4']),
   exteriorColor: z.string().optional(),
   interiorColor: z.string().optional(),
-  fuelType: z.enum(['Gasoline', 'Diesel', 'Electric', 'Hybrid']).optional(),
-  status: z.enum(['Active', 'Pending', 'Sold']).optional(),
-  dealershipId: z.string().optional(),
-  photoUrls: z.string().optional(),
+  fuelType: z.enum(['Gasoline', 'Diesel', 'Electric', 'Hybrid']),
+  status: z.enum(['Active', 'Pending', 'Sold']),
+  dealershipId: z.string().min(1, 'A dealership is required.'),
 });
 
 type VehicleFormValues = z.infer<typeof vehicleSchema>;
@@ -60,6 +60,10 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
   const isEditing = !!vehicle;
   const [newVehicleId] = useState(() => uuidv4().split('-')[0].toUpperCase());
 
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const { data: dealerships, loading: dealershipsLoading } = useCollection<Dealership>(
     firestore ? collection(firestore, 'dealerships') : null
   );
@@ -70,11 +74,10 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
 
   useEffect(() => {
     if (isEditing && vehicle) {
-        const { photos, ...vehicleData } = vehicle;
-        reset({
-            ...vehicleData,
-            photoUrls: photos?.join('\n') || '',
-        });
+        reset(vehicle);
+        if (vehicle.photos) {
+          setImagePreviews(vehicle.photos);
+        }
     } else if (!isEditing && dealerships) {
         const defaultDealership = dealerships.find(d => d.name === "USA Auto Brokers");
         reset({
@@ -86,14 +89,12 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
             fuelType: 'Gasoline',
             status: 'Active',
             stockNumber: 'Select a dealership to generate',
-            photoUrls: '',
             year: new Date().getFullYear(),
             cashPrice: 0,
             mileage: 0,
         });
     }
   }, [isEditing, vehicle, reset, dealerships]);
-
 
   const watchedDealershipId = watch('dealershipId');
 
@@ -113,6 +114,37 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
     }
   }, [watchedDealershipId, dealerships, isEditing, newVehicleId, setValue]);
 
+  const handleFileChange = (files: FileList | null) => {
+    if (!files) return;
+    if (imagePreviews.length + files.length > 15) {
+      toast({ title: 'Error', description: 'You can upload a maximum of 15 images.', variant: 'destructive' });
+      return;
+    }
+    const newFilePreviews: string[] = [];
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        newFilePreviews.push(reader.result as string);
+        if (newFilePreviews.length === files.length) {
+          setImagePreviews(prev => [...prev, ...newFilePreviews]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    handleFileChange(e.dataTransfer.files);
+  };
+  
+  const removeImage = (indexToRemove: number) => {
+      setImagePreviews(prev => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+
   const onSubmit = async (data: VehicleFormValues) => {
     if (!firestore || !dealerships) return;
     
@@ -126,14 +158,10 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
         toast({ title: 'Error', description: 'Selected dealership not found.', variant: 'destructive'});
         return;
     }
-    
-    const { photoUrls, ...restOfData } = data;
-    const photos = photoUrls ? photoUrls.split('\n').map(url => url.trim()).filter(url => url) : [];
-
 
     const processedData = {
-        ...restOfData,
-        photos,
+        ...data,
+        photos: imagePreviews,
         dealershipCode: selectedDealership.dealershipCode,
         commission: selectedDealership.commission,
     };
@@ -243,29 +271,9 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
                  <div className="space-y-2"><Label>Condition</Label><Controller name="condition" control={control} render={({field}) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="New">New</SelectItem><SelectItem value="Used">Used</SelectItem><SelectItem value="Rebuilt">Rebuilt</SelectItem></SelectContent></Select>)}/></div>
                  <div className="space-y-2"><Label>Mileage</Label><Input type="number" {...register('mileage')} />{errors.mileage && <p className="text-xs text-destructive">{errors.mileage.message}</p>}</div>
                  <div className="space-y-2"><Label>Transmission</Label><Controller name="transmission" control={control} render={({field}) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Automatic">Automatic</SelectItem><SelectItem value="Manual">Manual</SelectItem><SelectItem value="CVT">CVT</SelectItem></SelectContent></Select>)}/></div>
-                 <div className="space-y-2">
-                    <Label>Drive Train</Label>
-                    <Controller
-                    name="driveTrain"
-                    control={control}
-                    render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="FWD">FWD</SelectItem>
-                            <SelectItem value="RWD">RWD</SelectItem>
-                            <SelectItem value="AWD">AWD</SelectItem>
-                            <SelectItem value="4x4">4x4</SelectItem>
-                        </SelectContent>
-                        </Select>
-                    )}
-                    />
-                    {errors.driveTrain && <p className="text-xs text-destructive">{errors.driveTrain.message}</p>}
-                </div>
-                 <div className="space-y-2"><Label>Exterior Color</Label><Input {...register('exteriorColor')} />{errors.exteriorColor && <p className="text-xs text-destructive">{errors.exteriorColor.message}</p>}</div>
-                 <div className="space-y-2"><Label>Interior Color</Label><Input {...register('interiorColor')} />{errors.interiorColor && <p className="text-xs text-destructive">{errors.interiorColor.message}</p>}</div>
+                 <div className="space-y-2"><Label>Drive Train</Label><Controller name="driveTrain" control={control} render={({field}) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="FWD">FWD</SelectItem><SelectItem value="RWD">RWD</SelectItem><SelectItem value="AWD">AWD</SelectItem><SelectItem value="4x4">4x4</SelectItem></SelectContent></Select>)}/></div>
+                 <div className="space-y-2"><Label>Exterior Color</Label><Input {...register('exteriorColor')} /></div>
+                 <div className="space-y-2"><Label>Interior Color</Label><Input {...register('interiorColor')} /></div>
                  <div className="space-y-2"><Label>Fuel Type</Label><Controller name="fuelType" control={control} render={({field}) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Gasoline">Gasoline</SelectItem><SelectItem value="Diesel">Diesel</SelectItem><SelectItem value="Electric">Electric</SelectItem><SelectItem value="Hybrid">Hybrid</SelectItem></SelectContent></Select>)}/></div>
             </CardContent>
         </Card>
@@ -274,20 +282,54 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
             <CardHeader>
                 <CardTitle>Photos</CardTitle>
                 <CardDescription>
-                    Paste direct image URLs, one per line. The first URL will be the main image. You can get these links from a service like Postimages.
+                    Drag and drop up to 15 images, or click to select files. The first image will be the main one.
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="space-y-2">
-                    <Label htmlFor="photoUrls">Image URLs</Label>
-                    <Textarea
-                        id="photoUrls"
-                        {...register('photoUrls')}
-                        placeholder="https://.../image1.jpg\nhttps://.../image2.png\nhttps://.../image3.webp"
-                        rows={5}
+                 <div 
+                    className={cn(
+                        "mt-2 flex justify-center items-center flex-col w-full h-48 border-2 border-dashed rounded-lg cursor-pointer",
+                        isDragging ? "border-primary bg-primary/10" : "border-slate-300 bg-slate-50"
+                    )}
+                    onDragEnter={() => setIsDragging(true)}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                 >
+                     <UploadCloud className="h-10 w-10 text-slate-400 mb-2" />
+                     <p className="text-sm text-slate-500">
+                        <span className="font-semibold">Click to upload</span> or drag and drop
+                     </p>
+                     <p className="text-xs text-slate-400">Up to 15 images</p>
+                     <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleFileChange(e.target.files)}
                     />
-                    {errors.photoUrls && <p className="text-xs text-destructive">{errors.photoUrls.message}</p>}
-                </div>
+                 </div>
+
+                 {imagePreviews.length > 0 && (
+                    <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                        {imagePreviews.map((preview, index) => (
+                            <div key={index} className="relative group aspect-square">
+                                <Image src={preview} alt={`Preview ${index}`} fill className="object-cover rounded-md" />
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="icon"
+                                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => removeImage(index)}
+                                >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                 )}
             </CardContent>
         </Card>
 

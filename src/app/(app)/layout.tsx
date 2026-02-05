@@ -295,11 +295,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     if (pathname.startsWith('/leads/')) return 'Lead Details';
     if (pathname.startsWith('/staff/')) return 'Staff Profile';
-    if (pathname.startsWith('/inventory/management')) return 'Inventory Management';
+    if (pathname.startsWith('/inventory/add')) return 'Add Vehicle';
+    if (pathname.startsWith('/inventory/edit')) return 'Edit Vehicle';
     if (pathname.startsWith('/training/admin/courses/new')) return 'New Course';
     if (pathname.startsWith('/training/admin/courses/edit')) return 'Edit Course';
     if (pathname.startsWith('/admin/seeder')) return 'Content Seeder';
-
 
     return 'Dashboard';
   };
