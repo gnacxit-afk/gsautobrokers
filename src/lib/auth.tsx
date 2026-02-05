@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from "react";
@@ -29,7 +28,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Moved redirection logic to AppShell. This provider now only manages auth state.
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -37,7 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const firestore = useFirestore();
   const auth = useAuth();
-  const router = useRouter(); // Keep for logout
+  const router = useRouter();
   
   const fetchAppUser = useCallback(async (fbUser: FirebaseUser): Promise<User | null> => {
     if (!firestore) throw new Error("Firestore not initialized");
@@ -53,7 +51,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } as User;
     }
 
-    // Fallback for older data model where authUid was a field
     const staffCollection = collection(firestore, 'staff');
     const q = query(staffCollection, where("authUid", "==", fbUser.uid));
     const querySnapshot = await getDocs(q);
@@ -63,7 +60,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { id: userDoc.id, ...userDoc.data() } as User;
     }
     
-    // Auto-create master admin profile if it doesn't exist
     if (fbUser.email === MASTER_ADMIN_EMAIL) {
         console.log("Master Admin profile not found, creating it...");
         const newAdminProfile: Omit<Staff, 'id'> = {
@@ -84,10 +80,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return null;
   }, [firestore]);
 
+  // This useEffect only handles initial session management and background auth state changes.
   useEffect(() => {
     if (!auth || !firestore) {
-        setLoading(true); 
-        return;
+      setLoading(true);
+      return;
     }
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
@@ -96,17 +93,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const userProfile = await fetchAppUser(firebaseUser);
           if (userProfile) {
             setUser(userProfile);
-            setAuthError(null);
           } else {
-            setUser(null);
-            setAuthError("Your user profile could not be found in the database.");
             await signOut(auth);
+            setUser(null);
           }
-        } catch (error: any) {
-          console.error("Failed to fetch app user profile:", error);
-          setUser(null);
-          setAuthError(error.message || "An error occurred fetching your profile.");
+        } catch (error) {
+          console.error("Auth state change error:", error);
           await signOut(auth);
+          setUser(null);
         }
       } else {
         setUser(null);
@@ -116,34 +110,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, [auth, firestore, fetchAppUser]);
 
-
   const login = useCallback(async (email: string, pass: string): Promise<void> => {
-    if (!auth) {
-        setAuthError("Authentication service not available.");
-        return;
+    if (!auth || !firestore) {
+      setAuthError("Authentication service not available.");
+      return;
     }
     setLoading(true);
     setAuthError(null);
     try {
-        await signInWithEmailAndPassword(auth, email, pass);
-        // On success, the onAuthStateChanged listener will handle setting user and loading state.
-    } catch (error: any) {
-        let friendlyMessage = "An unexpected error occurred.";
-        switch (error.code) {
-            case 'auth/user-not-found':
-            case 'auth/wrong-password':
-            case 'auth/invalid-credential':
-                friendlyMessage = "Invalid email or password.";
-                break;
-            case 'auth/invalid-email':
-                friendlyMessage = "The email address is not valid.";
-                break;
-        }
-        setAuthError(friendlyMessage);
+      const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+      const firebaseUser = userCredential.user;
+
+      const userProfile = await fetchAppUser(firebaseUser);
+
+      if (userProfile) {
+        setUser(userProfile);
+      } else {
+        await signOut(auth);
         setUser(null);
-        setLoading(false);
+        setAuthError("An account must be created by an administrator. Please contact an admin.");
+      }
+    } catch (error: any) {
+      let friendlyMessage = "An unexpected error occurred.";
+      switch (error.code) {
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+        case 'auth/invalid-credential':
+          friendlyMessage = "Invalid email or password.";
+          break;
+        case 'auth/invalid-email':
+          friendlyMessage = "The email address is not valid.";
+          break;
+      }
+      setAuthError(friendlyMessage);
+      setUser(null);
+    } finally {
+      setLoading(false);
     }
-  }, [auth]);
+  }, [auth, firestore, fetchAppUser]);
 
   const logout = useCallback(async () => {
     if (!auth) return;
