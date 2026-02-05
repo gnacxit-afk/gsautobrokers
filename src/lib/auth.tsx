@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from "react";
@@ -80,34 +81,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return null;
   }, [firestore]);
 
-  // This useEffect only handles initial session management and background auth state changes.
+  // This useEffect handles session persistence on page load/refresh.
   useEffect(() => {
     if (!auth || !firestore) {
-      setLoading(true);
       return;
     }
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setLoading(true);
       if (firebaseUser) {
-        try {
-          const userProfile = await fetchAppUser(firebaseUser);
-          if (userProfile) {
-            setUser(userProfile);
-          } else {
-            await signOut(auth);
-            setUser(null);
-          }
-        } catch (error) {
-          console.error("Auth state change error:", error);
-          await signOut(auth);
-          setUser(null);
+        // If we already have the correct user data, don't re-fetch.
+        if (user?.authUid === firebaseUser.uid) {
+          setLoading(false);
+          return;
         }
+        const userProfile = await fetchAppUser(firebaseUser);
+        setUser(userProfile);
       } else {
         setUser(null);
       }
       setLoading(false);
     });
     return () => unsubscribe();
+    // This effect should run once on mount.
+    // The user dependency is removed to prevent loops. State changes are handled internally.
   }, [auth, firestore, fetchAppUser]);
 
   const login = useCallback(async (email: string, pass: string): Promise<void> => {
@@ -124,10 +119,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userProfile = await fetchAppUser(firebaseUser);
 
       if (userProfile) {
-        setUser(userProfile);
+        setUser(userProfile); // Set the user state immediately
         router.push('/leads');
       } else {
-        await signOut(auth);
+        await signOut(auth); // Sign out because they have no profile
         setUser(null);
         setAuthError("An account must be created by an administrator. Please contact an admin.");
       }
