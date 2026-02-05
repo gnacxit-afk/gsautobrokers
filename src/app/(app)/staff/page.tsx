@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useMemo, useState, useCallback } from 'react';
@@ -120,17 +119,19 @@ export default function StaffPage() {
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-bold">Staff Management</h3>
         <div className="flex items-center gap-2">
-           <SendNotificationDialog allStaff={staff || []}>
-             <Button variant="outline" className="text-indigo-600 border-indigo-200 px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-50 hover:text-indigo-700">
-              <MessageSquare size={18} /> Send Notification
-            </Button>
-          </SendNotificationDialog>
           {user.role === 'Admin' && (
-            <NewStaffDialog allStaff={staff || []}>
-              <Button className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-200">
-                <UserPlus size={18} /> Register Employee
-              </Button>
-            </NewStaffDialog>
+            <>
+              <SendNotificationDialog allStaff={staff || []}>
+                <Button variant="outline" className="text-indigo-600 border-indigo-200 px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-50 hover:text-indigo-700">
+                  <MessageSquare size={18} /> Send Notification
+                </Button>
+              </SendNotificationDialog>
+              <NewStaffDialog allStaff={staff || []}>
+                <Button className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-200">
+                  <UserPlus size={18} /> Register Employee
+                </Button>
+              </NewStaffDialog>
+            </>
           )}
         </div>
       </div>

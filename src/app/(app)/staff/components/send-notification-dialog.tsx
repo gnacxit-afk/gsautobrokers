@@ -18,9 +18,10 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser } from '@/firebase';
-import { addDoc, collection, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, writeBatch, doc } from 'firebase/firestore';
 import type { Staff, Notification } from '@/lib/types';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const notificationSchema = z.object({
   content: z.string().min(1, 'Notification content cannot be empty.'),
@@ -30,6 +31,7 @@ type NotificationFormValues = z.infer<typeof notificationSchema>;
 
 export function SendNotificationDialog({ children, allStaff }: { children: React.ReactNode, allStaff: Staff[] }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [target, setTarget] = useState('all'); // 'all' or a specific user ID
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
@@ -52,7 +54,16 @@ export function SendNotificationDialog({ children, allStaff }: { children: React
       const batch = writeBatch(firestore);
       const notificationsCollection = collection(firestore, 'notifications');
       
-      allStaff.forEach(staffMember => {
+      const recipients = target === 'all'
+        ? allStaff
+        : allStaff.filter(s => s.id === target);
+
+      if (recipients.length === 0) {
+        toast({ title: "No Recipients", description: "Could not find anyone to send the notification to.", variant: "destructive" });
+        return;
+      }
+
+      recipients.forEach(staffMember => {
           const newNotification: Omit<Notification, 'id'> = {
               userId: staffMember.id,
               content: data.content,
@@ -67,7 +78,7 @@ export function SendNotificationDialog({ children, allStaff }: { children: React
 
       toast({
         title: 'Notification Sent',
-        description: `Your message has been sent to all staff members.`,
+        description: `Your message has been sent to ${target === 'all' ? 'all staff members' : recipients[0].name}.`,
       });
       reset();
       setIsOpen(false);
@@ -86,12 +97,27 @@ export function SendNotificationDialog({ children, allStaff }: { children: React
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Send Global Notification</DialogTitle>
+          <DialogTitle>Send Notification</DialogTitle>
           <DialogDescription>
-            This message will be sent to every staff member.
+            Send a message to all staff or a specific member.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 py-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="targetUser">Recipient</Label>
+            <Select value={target} onValueChange={setTarget}>
+                <SelectTrigger id="targetUser">
+                    <SelectValue placeholder="Select a recipient" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">All Staff</SelectItem>
+                    {allStaff.map(staffMember => (
+                        <SelectItem key={staffMember.id} value={staffMember.id}>{staffMember.name}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+          </div>
+
           <div className="grid gap-2">
             <Label htmlFor="content">Message</Label>
             <Textarea id="content" {...register('content')} placeholder="Type your notification here..." />
@@ -99,9 +125,9 @@ export function SendNotificationDialog({ children, allStaff }: { children: React
           </div>
 
           <DialogFooter>
-             <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
+             <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Sending...' : 'Send to All Staff'}
+              {isSubmitting ? 'Sending...' : 'Send Notification'}
             </Button>
           </DialogFooter>
         </form>
