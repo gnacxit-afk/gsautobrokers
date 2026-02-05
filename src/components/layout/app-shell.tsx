@@ -89,6 +89,7 @@ const navItems: NavItemGroup[] = [
       { href: '/recruiting/pipeline/new', label: 'New Applicants', icon: 'UserPlus' },
       { href: '/recruiting/pipeline/interviews', label: 'Interviews', icon: 'Clock5' },
       { href: '/recruiting/onboarding/approved', label: 'Approved for Onboarding', icon: 'UserCheck' },
+      { href: '/recruiting/active', label: 'Active', icon: 'Target' },
       { href: '/recruiting/rejected', label: 'Rejected', icon: 'UserX' },
       { href: '/recruiting/inactive', label: 'Inactive', icon: 'Archive' },
       { href: '/apply', label: 'Public Application Form', icon: 'Briefcase', target: '_blank' },
