@@ -11,6 +11,8 @@ import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/icons";
 
+export const dynamic = 'force-dynamic';
+
 export default function LoginPage() {
   const { login, authError, loading } = useAuthContext();
   const [email, setEmail] = useState("");
