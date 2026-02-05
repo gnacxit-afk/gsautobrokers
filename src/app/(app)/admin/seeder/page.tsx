@@ -1,21 +1,21 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, writeBatch, getDocs, query, where, serverTimestamp, doc } from 'firebase/firestore';
+import { collection, writeBatch, getDocs, doc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { articlesToSeed } from '@/lib/knowledge-base-seeder-data';
-import { Loader2, BookCheck, AlertTriangle } from 'lucide-react';
+import { Loader2, BookCheck, AlertTriangle, UploadCloud } from 'lucide-react';
 import { AccessDenied } from '@/components/access-denied';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type SeedReport = {
   totalInManual: number;
-  seededCount: number;
-  missingCount: number;
+  syncedCount: number;
+  newCount: number;
+  updateableCount: number;
 };
 
 export default function SeederPage() {
@@ -33,15 +33,29 @@ export default function SeederPage() {
       try {
         const articlesRef = collection(firestore, 'articles');
         const snapshot = await getDocs(articlesRef);
-        const existingTitles = new Set(snapshot.docs.map(doc => doc.data().title));
-        
-        const totalInManual = articlesToSeed.length;
-        const seededCount = Array.from(existingTitles).filter(title => 
-            articlesToSeed.some(seedArticle => seedArticle.title === title)
-        ).length;
-        const missingCount = totalInManual - seededCount;
+        const existingArticlesMap = new Map(snapshot.docs.map(doc => [doc.data().title, { id: doc.id, version: doc.data().version || '1.0' }]));
 
-        setReport({ totalInManual, seededCount, missingCount });
+        let newCount = 0;
+        let updateableCount = 0;
+        let syncedCount = 0;
+
+        for (const seedArticle of articlesToSeed) {
+          const existing = existingArticlesMap.get(seedArticle.title);
+          if (!existing) {
+            newCount++;
+          } else if (existing.version !== seedArticle.version) {
+            updateableCount++;
+          } else {
+            syncedCount++;
+          }
+        }
+        
+        setReport({
+          totalInManual: articlesToSeed.length,
+          syncedCount,
+          newCount,
+          updateableCount
+        });
       } catch (error) {
         console.error("Error checking seeded status:", error);
         toast({ title: 'Error', description: 'Could not check knowledge base status.', variant: 'destructive'});
@@ -62,22 +76,30 @@ export default function SeederPage() {
     try {
       const articlesRef = collection(firestore, 'articles');
       const snapshot = await getDocs(articlesRef);
-      const existingTitles = new Set(snapshot.docs.map(doc => doc.data().title));
+      const existingArticlesMap = new Map(snapshot.docs.map(doc => [doc.data().title, { id: doc.id, version: doc.data().version || '1.0' }]));
 
-      const articlesToAdd = articlesToSeed.filter(article => !existingTitles.has(article.title));
+      const articlesToAdd: typeof articlesToSeed = [];
+      const articlesToUpdate: (typeof articlesToSeed[0] & { id: string })[] = [];
+
+      for (const seedArticle of articlesToSeed) {
+        const existing = existingArticlesMap.get(seedArticle.title);
+        if (!existing) {
+          articlesToAdd.push(seedArticle);
+        } else if (existing.version !== seedArticle.version) {
+          articlesToUpdate.push({ ...seedArticle, id: existing.id });
+        }
+      }
       
-      if (articlesToAdd.length === 0) {
+      if (articlesToAdd.length === 0 && articlesToUpdate.length === 0) {
         toast({
           title: 'Knowledge Base is Up to Date',
-          description: 'All articles from the manual are already in the database.',
+          description: 'All articles are already synced.',
         });
-        if(report) {
-            setReport({...report, missingCount: 0});
-        }
         return;
       }
 
       const batch = writeBatch(firestore);
+
       articlesToAdd.forEach(article => {
         const docRef = doc(articlesRef);
         batch.set(docRef, {
@@ -86,22 +108,50 @@ export default function SeederPage() {
             date: serverTimestamp(),
         });
       });
+      
+      articlesToUpdate.forEach(article => {
+        const docRef = doc(firestore, 'articles', article.id);
+        const { id, ...updateData } = article;
+        batch.update(docRef, {
+            ...updateData,
+            author: user?.name || 'Admin',
+            date: serverTimestamp(),
+        });
+      });
 
       await batch.commit();
 
       toast({
-        title: 'Knowledge Base Seeded!',
-        description: `${articlesToAdd.length} new articles have been added to the database.`,
+        title: 'Knowledge Base Updated!',
+        description: `${articlesToAdd.length} new articles added, ${articlesToUpdate.length} articles updated.`,
       });
       
-      // Update report after seeding
-      if (report) {
-        setReport(prev => ({
-            ...prev!,
-            seededCount: prev!.seededCount + articlesToAdd.length,
-            missingCount: prev!.missingCount - articlesToAdd.length,
-        }));
+      // Re-run the status check to update the UI
+      const newSnapshot = await getDocs(articlesRef);
+      const newExistingArticlesMap = new Map(newSnapshot.docs.map(doc => [doc.data().title, { id: doc.id, version: doc.data().version || '1.0' }]));
+      
+      let newCount = 0;
+      let updateableCount = 0;
+      let syncedCount = 0;
+
+      for (const seedArticle of articlesToSeed) {
+        const existing = newExistingArticlesMap.get(seedArticle.title);
+        if (!existing) {
+          newCount++;
+        } else if (existing.version !== seedArticle.version) {
+          updateableCount++;
+        } else {
+          syncedCount++;
+        }
       }
+      
+      setReport({
+        totalInManual: articlesToSeed.length,
+        syncedCount,
+        newCount,
+        updateableCount
+      });
+
 
     } catch (error: any) {
       toast({
@@ -117,6 +167,17 @@ export default function SeederPage() {
   if (user?.role !== 'Admin') {
     return <AccessDenied />;
   }
+  
+  const getButtonText = () => {
+    if (!report || isSeeding) return 'Syncing...';
+    if (report.newCount === 0 && report.updateableCount === 0) return 'Sync Content';
+    
+    const parts = [];
+    if (report.newCount > 0) parts.push(`Add ${report.newCount} New`);
+    if (report.updateableCount > 0) parts.push(`Update ${report.updateableCount}`);
+    return parts.join(' & ');
+  };
+
 
   const renderContent = () => {
     if (isLoading) {
@@ -130,11 +191,11 @@ export default function SeederPage() {
             </div>
         )
     }
-    if (report.missingCount === 0) {
+    if (report.newCount === 0 && report.updateableCount === 0) {
         return (
              <div className="flex items-center gap-2 rounded-md bg-green-50 p-4 text-green-700">
                 <BookCheck className="h-5 w-5" />
-                <p className="text-sm font-medium">The knowledge base is up to date. ({report.seededCount}/{report.totalInManual} articles synced)</p>
+                <p className="text-sm font-medium">The knowledge base is up to date. ({report.syncedCount}/{report.totalInManual} articles synced)</p>
             </div>
         )
     }
@@ -142,13 +203,14 @@ export default function SeederPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2 text-amber-700">
                 <AlertTriangle className="h-5 w-5" />
-                <p className="text-sm font-medium">
-                    {report.missingCount} articles from the manual are missing. ({report.seededCount}/{report.totalInManual} synced)
-                </p>
+                <div className="text-sm font-medium">
+                  <p>{report.newCount} new articles to add.</p>
+                  <p>{report.updateableCount} articles need to be updated.</p>
+                </div>
             </div>
             <Button onClick={handleSeed} disabled={isSeeding}>
-                {isSeeding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Seed {report.missingCount} Missing Articles
+                {isSeeding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
+                {getButtonText()}
             </Button>
         </div>
     )
@@ -167,7 +229,7 @@ export default function SeederPage() {
         <CardHeader>
           <CardTitle>Knowledge Base Seeder</CardTitle>
           <CardDescription>
-            This will populate your Firestore database with all the articles from the training manual. It will skip any articles that already exist.
+            This tool will sync your Firestore database with the articles from the training manual. It adds new articles and updates existing ones if the version has changed.
           </CardDescription>
         </CardHeader>
         <CardContent>
