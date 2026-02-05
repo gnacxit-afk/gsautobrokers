@@ -45,6 +45,8 @@ import { Avatar, AvatarFallback } from "../ui/avatar";
 import { ScrollArea } from "../ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
+const PUBLIC_PATHS = ['/login', '/apply', '/inventory', '/privacy', '/terms', '/cookie-policy', '/'];
+
 const icons: { [key: string]: LucideIcon } = {
   LayoutDashboard,
   PhoneCall,
@@ -88,7 +90,7 @@ const navItems: NavItemGroup[] = [
       { href: '/recruiting/pipeline/new', label: 'New Applicants', icon: 'UserPlus' },
       { href: '/recruiting/pipeline/interviews', label: 'Interviews', icon: 'Clock5' },
       { href: '/recruiting/onboarding/approved', label: 'Approved for Onboarding', icon: 'UserCheck' },
-      { href: '/recruiting/onboarding/training', label: 'Training', icon: 'Rocket' },
+      { href: "/recruiting/onboarding/training", label: "Training", icon: "Rocket" },
       { href: '/recruiting/active', label: 'Active', icon: 'Target' },
       { href: '/recruiting/rejected', label: 'Rejected', icon: 'UserX' },
       { href: '/recruiting/inactive', label: 'Inactive', icon: 'Archive' },
@@ -251,10 +253,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   
   useEffect(() => {
-    if (!loading && !user) {
+    const isPublicPath = PUBLIC_PATHS.some(path => pathname === path || (path !== '/' && pathname.startsWith(path))) || pathname.startsWith('/inventory/vehicle') || pathname.startsWith('/training/certificate');
+
+    if (loading) return; // Don't do anything until auth state is resolved
+
+    if (user && pathname === '/login') {
+      // If user is logged in and tries to go to login page, redirect to dashboard
+      router.replace('/dashboard');
+    } else if (!user && !isPublicPath) {
+      // If user is not logged in and not on a public path, redirect to login
       router.replace('/login');
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, pathname]);
 
   if (loading) {
     return (
@@ -266,6 +276,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // If there's no user and we're on a protected path, this will be null briefly before redirect
+  // If we are on a public path, AppShell isn't used, so we don't need to worry about that.
   if (!user) {
       return null;
   }

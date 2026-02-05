@@ -29,8 +29,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const PUBLIC_PATHS = ['/login', '/apply', '/inventory', '/privacy', '/terms', '/cookie-policy', '/'];
-
+// Moved redirection logic to AppShell. This provider now only manages auth state.
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -38,8 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const firestore = useFirestore();
   const auth = useAuth();
-  const router = useRouter();
-  const pathname = usePathname();
+  const router = useRouter(); // Keep for logout
   
   const fetchAppUser = useCallback(async (fbUser: FirebaseUser): Promise<User | null> => {
     if (!firestore) throw new Error("Firestore not initialized");
@@ -55,6 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } as User;
     }
 
+    // Fallback for older data model where authUid was a field
     const staffCollection = collection(firestore, 'staff');
     const q = query(staffCollection, where("authUid", "==", fbUser.uid));
     const querySnapshot = await getDocs(q);
@@ -64,6 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { id: userDoc.id, ...userDoc.data() } as User;
     }
     
+    // Auto-create master admin profile if it doesn't exist
     if (fbUser.email === MASTER_ADMIN_EMAIL) {
         console.log("Master Admin profile not found, creating it...");
         const newAdminProfile: Omit<Staff, 'id'> = {
@@ -84,58 +84,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return null;
   }, [firestore]);
 
- useEffect(() => {
+  useEffect(() => {
     if (!auth || !firestore) {
         setLoading(true); 
         return;
     }
-
-    const isPublicPath = PUBLIC_PATHS.some(path => pathname === path || (path !== '/' && pathname.startsWith(path))) || pathname.startsWith('/inventory/vehicle') || pathname.startsWith('/training/certificate');
-
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
-
       if (firebaseUser) {
         try {
           const userProfile = await fetchAppUser(firebaseUser);
           if (userProfile) {
             setUser(userProfile);
             setAuthError(null);
-            // If user is logged in and on a public-only page like login, redirect them.
-            if (pathname === '/login') {
-              router.push('/dashboard');
-            }
           } else {
-            // This case handles a logged-in Firebase user who has no profile in our database.
-            // This is a critical error state.
             setUser(null);
-            setAuthError("Your user profile could not be found.");
+            setAuthError("Your user profile could not be found in the database.");
             await signOut(auth);
-            if (!isPublicPath) {
-                router.push('/login');
-            }
           }
         } catch (error: any) {
           console.error("Failed to fetch app user profile:", error);
           setUser(null);
           setAuthError(error.message || "An error occurred fetching your profile.");
           await signOut(auth);
-           if (!isPublicPath) {
-              router.push('/login');
-            }
         }
       } else {
-        // No Firebase user is logged in.
         setUser(null);
-        if (!isPublicPath) {
-            router.push('/login');
-        }
       }
       setLoading(false);
     });
-
     return () => unsubscribe();
-  }, [auth, firestore, fetchAppUser, pathname, router]);
+  }, [auth, firestore, fetchAppUser]);
 
 
   const login = useCallback(async (email: string, pass: string): Promise<void> => {
