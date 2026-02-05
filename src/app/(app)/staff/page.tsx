@@ -149,7 +149,7 @@ export default function StaffPage() {
               <TabsList>
                   <TabsTrigger value="my-team">My Team</TabsTrigger>
               </TabsList>
-              <TabsContent value="my-team">
+              <TabsContent value="my-team" className="mt-4">
                   <StaffDataTable 
                     table={myTeamTable}
                     columns={columns}

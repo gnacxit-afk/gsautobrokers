@@ -69,15 +69,12 @@ const navItems: NavItemGroup[] = [
   {
     heading: 'CRM',
     items: [
-      { href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard", role: ["Admin"] },
+      { href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard", role: ["Admin", "Supervisor"] },
       { href: "/leads", label: "Leads / CRM", icon: "PhoneCall", role: ["Admin", "Supervisor", "Broker"] },
       { href: "/appointments", label: "Appointments", icon: "Calendar", role: ["Admin", "Supervisor", "Broker"] },
       { href: "/todos", label: "Daily To-Do", icon: "CheckSquare", role: ["Admin", "Supervisor", "Broker"] },
       { href: "/kpi", label: "KPI's & Performance", icon: "TrendingUp", role: ["Admin", "Supervisor", "Broker"] },
       { href: "/knowledge", label: "Knowledge Base", icon: "BookOpen", role: ["Admin", "Supervisor", "Broker"] },
-      { href: "/staff", label: "Staff", icon: "Users", role: ["Admin", "Supervisor"] },
-      { href: "/dealerships", label: "Dealerships", icon: "Building", role: ["Admin"] },
-      { href: "/contracts", label: "Contracts", icon: "FileText", role: ["Admin"] },
     ]
   },
   {
@@ -94,6 +91,24 @@ const navItems: NavItemGroup[] = [
       { href: '/recruiting/inactive', label: 'Inactive', icon: 'Archive' },
       { href: '/apply', label: 'Public Application Form', icon: 'Briefcase', target: '_blank' },
     ],
+  },
+  {
+    heading: 'Training',
+    role: ["Admin", "Supervisor", "Broker"],
+    items: [
+       { href: "/training/dashboard", label: "My Learning", icon: "LayoutDashboard", role: ["Admin", "Supervisor", "Broker"]},
+       { href: "/training/admin/courses", label: "Course Management", icon: "BookOpen", role: ["Admin", "Supervisor"]},
+       { href: "/training/admin/progress", label: "User Progress", icon: "LineChart", role: ["Admin", "Supervisor"]},
+    ]
+  },
+  {
+    heading: 'Admin',
+    role: ["Admin", "Supervisor"],
+    items: [
+      { href: "/staff", label: "Staff", icon: "Users", role: ["Admin", "Supervisor"] },
+      { href: "/dealerships", label: "Dealerships", icon: "Building", role: ["Admin"] },
+      { href: "/contracts", label: "Contracts", icon: "FileText", role: ["Admin"] },
+    ]
   },
 ];
 
@@ -128,7 +143,7 @@ function MainNav({ items, onLinkClick }: { items: NavItemGroup[], onLinkClick?: 
   
   return (
     <nav className="flex-1 px-4 space-y-2">
-      <Accordion type="multiple" defaultValue={['CRM', 'Recruiting']} className="w-full">
+      <Accordion type="multiple" defaultValue={['CRM', 'Recruiting', 'Training', 'Admin']} className="w-full">
         {items.map((group) => (
            hasAccess(user.role, group.role) && group.heading && group.items && Array.isArray(group.items) && (
             <AccordionItem key={group.heading} value={group.heading} className="border-b-0">
@@ -267,6 +282,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
     if (pathname.startsWith('/leads/')) return 'Lead Details';
     if (pathname.startsWith('/staff/')) return 'Staff Profile';
+    if (pathname.startsWith('/training/admin/builder/')) return 'Course Builder';
 
     return 'Dashboard';
   };
